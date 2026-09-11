@@ -30,7 +30,7 @@ func TestSSOTokenLifecycle(t *testing.T) {
 	if exp := s.TokenExpiry(); exp != nil {
 		t.Fatalf("TokenExpiry before login = %v", exp)
 	}
-	if _, err := s.token(); !errors.Is(err, ErrSSOLoginRequired) {
+	if _, err := s.token(context.Background()); !errors.Is(err, ErrSSOLoginRequired) {
 		t.Fatalf("token before login = %v", err)
 	}
 	// Every portal call fails before touching the network when no token exists.
@@ -68,7 +68,7 @@ func TestSSOTokenLifecycle(t *testing.T) {
 	if got := s.TokenExpiry(); got == nil || !got.Equal(expires) {
 		t.Fatalf("TokenExpiry = %v, want %v", got, expires)
 	}
-	tok, err := s.token()
+	tok, err := s.token(context.Background())
 	if err != nil || tok.AccessToken != "at" {
 		t.Fatalf("token = %+v, %v", tok, err)
 	}
@@ -82,7 +82,11 @@ func TestSSOTokenLifecycle(t *testing.T) {
 	if s.TokenExpiry() != nil {
 		t.Fatal("token 30s before expiry should count as expired")
 	}
-	if _, err := s.token(); !errors.Is(err, ErrSSOLoginRequired) {
+	// Without a refresh token an expired token needs a new login.
+	if err := s.StoreImportedToken("at", "", "cid", "cs", "", expires); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.token(context.Background()); !errors.Is(err, ErrSSOLoginRequired) {
 		t.Fatalf("expired token = %v", err)
 	}
 
@@ -125,13 +129,13 @@ func TestSSOTokenErrors(t *testing.T) {
 	if s.TokenExpiry() != nil {
 		t.Fatal("corrupt token reported an expiry")
 	}
-	if _, err := s.token(); err == nil || errors.Is(err, ErrSSOLoginRequired) {
+	if _, err := s.token(context.Background()); err == nil || errors.Is(err, ErrSSOLoginRequired) {
 		t.Fatalf("corrupt token = %v, want a parse error", err)
 	}
 
 	boom := errors.New("boom")
 	failing := newSSO(failStore{boom}, &now)
-	if _, err := failing.token(); !errors.Is(err, boom) {
+	if _, err := failing.token(context.Background()); !errors.Is(err, boom) {
 		t.Fatalf("store error = %v", err)
 	}
 	if err := failing.StoreImportedToken("a", "", "c", "s", "", now); !errors.Is(err, boom) {

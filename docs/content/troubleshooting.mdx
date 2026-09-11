@@ -7,7 +7,7 @@ sidebar:
 
 ## Verbose logs
 
-Set `ROLLE_DEBUG=1`, pass `rolle --debug`, or turn on **Settings → Advanced → Verbose logging**. The desktop app and the CLI then log every provider call.
+Set `ROLLE_DEBUG=1`, pass `rolle --debug`, or turn on **Settings → General → Verbose logging**. The desktop app and the CLI then log every provider call.
 
 ## `ExpiredToken` or the wrong identity after Start
 
@@ -19,7 +19,7 @@ The Identity Center token for that portal has expired. Press **Start** again in 
 
 ## `gcloud` is not found
 
-Rolle looks for `gcloud` on your `PATH`, then in the usual install locations: Homebrew, the Google Cloud SDK installer, and [mise](https://mise.jdx.dev) installs. An app started from the Dock or Start menu does not get your shell's `PATH`, so a `gcloud` that only your shell can see may be missed. Install the SDK with Homebrew, the official installer, or `mise use -g gcloud`, then run the sign-in command shown on the Google Cloud connect step and press **Check again**.
+Rolle looks for `gcloud` on your `PATH`, then in the usual install locations: Homebrew, the Google Cloud SDK installer, and [mise](https://mise.jdx.dev) installs. An app started from the Dock or the Start menu does not get your shell's `PATH`. Rolle cannot find a `gcloud` that only your shell can see. Install the SDK with Homebrew, the official installer, or `mise use -g gcloud`. Run the sign-in command on the Google Cloud connect step. Then press **Check again**.
 
 ## TLS errors behind an inspecting proxy
 

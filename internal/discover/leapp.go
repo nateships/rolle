@@ -238,6 +238,13 @@ func decryptCryptoJS(b64, passphrase string) ([]byte, error) {
 	if pad == 0 || pad > aes.BlockSize || pad > len(plain) {
 		return nil, errors.New("bad padding: the machine id does not match the workspace")
 	}
+	// Every pad byte must equal the pad length. A wrong key passes the
+	// last-byte check about one time in sixteen; this check catches those.
+	for _, b := range plain[len(plain)-pad:] {
+		if int(b) != pad {
+			return nil, errors.New("bad padding: the machine id does not match the workspace")
+		}
+	}
 	return plain[:len(plain)-pad], nil
 }
 

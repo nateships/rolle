@@ -160,10 +160,17 @@ func TestRefreshRenewsExpiredIAMUserWithoutMFA(t *testing.T) {
 	if _, err := s.Start(context.Background(), sess.ID, StartOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := s.Cache.Delete(sess.ID); err != nil {
+	if _, err := s.Cache.Get(sess.ID); err == nil {
+		t.Fatal("Start must not cache a static access key")
+	}
+	// Push the synthetic expiry into the past; Refresh renews from the keychain.
+	w, _ := s.Load()
+	past := time.Now().Add(-time.Minute)
+	w.Sessions[0].Expires = &past
+	if err := s.Save(w); err != nil {
 		t.Fatal(err)
 	}
-	w, err := s.Refresh()
+	w, err = s.Refresh()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,8 +178,11 @@ func TestRefreshRenewsExpiredIAMUserWithoutMFA(t *testing.T) {
 	if got.Status != core.StatusActive {
 		t.Fatalf("status = %s, want active after renewal", got.Status)
 	}
-	if _, err := s.Cache.Get(sess.ID); err != nil {
-		t.Fatalf("cache not repopulated: %v", err)
+	if got.Expires == nil || !got.Expires.After(time.Now()) {
+		t.Fatalf("expires = %v, want a future expiry after renewal", got.Expires)
+	}
+	if _, err := s.Cache.Get(sess.ID); err == nil {
+		t.Fatal("Refresh must not cache a static access key")
 	}
 }
 

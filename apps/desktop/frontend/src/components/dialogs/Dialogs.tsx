@@ -154,6 +154,16 @@ export function AddAssumeRoleDialog({
   const [sourceRef, setSource] = useState("");
   const [externalId, setExternalId] = useState("");
   const [busy, setBusy] = useState(false);
+  // The dialog stays mounted; clear the form when it closes.
+  useEffect(() => {
+    if (open) return;
+    setName("");
+    setRoleArn("");
+    setSource("");
+    setExternalId("");
+  }, [open]);
+  // Only AWS sessions can provide the source credentials.
+  const sources = workspace.sessions.filter((s) => s.kind.startsWith("aws"));
   const valid =
     name.trim() && /^arn:aws[a-z-]*:iam::\d{12}:role\/.+/.test(roleArn.trim()) && sourceRef && region.trim();
   return (
@@ -209,7 +219,7 @@ export function AddAssumeRoleDialog({
                 <SelectValue placeholder="Choose a session" />
               </SelectTrigger>
               <SelectContent>
-                {workspace.sessions.map((s) => (
+                {sources.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
                     {s.name}
                   </SelectItem>
@@ -391,6 +401,13 @@ export function AddGCPImpersonationDialog({
   const [projectId, setProjectId] = useState("");
   const [serviceAccount, setServiceAccount] = useState("");
   const [busy, setBusy] = useState(false);
+  // The dialog stays mounted; clear the form when it closes.
+  useEffect(() => {
+    if (open) return;
+    setName("");
+    setProjectId("");
+    setServiceAccount("");
+  }, [open]);
   const valid =
     name.trim() &&
     integrationRef &&

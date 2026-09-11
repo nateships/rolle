@@ -60,6 +60,9 @@ func AssumeRole(ctx context.Context, in AssumeRoleInput) (core.Credentials, erro
 	if err != nil {
 		return core.Credentials{}, fmt.Errorf("assume role %s: %w", in.RoleARN, err)
 	}
+	if out.Credentials == nil {
+		return core.Credentials{}, fmt.Errorf("assume role %s: empty response", in.RoleARN)
+	}
 	return fromSTS(out.Credentials.AccessKeyId, out.Credentials.SecretAccessKey, out.Credentials.SessionToken, out.Credentials.Expiration), nil
 }
 

@@ -17,26 +17,28 @@ var tempCreds = core.Credentials{AccessKeyID: "AKIA", SecretAccessKey: "sec/ret+
 func TestConsoleURL(t *testing.T) {
 	cases := []struct {
 		region string
+		signin string
 		dest   string
 	}{
-		{"", "https://console.aws.amazon.com/"},
-		{"eu-west-1", "https://eu-west-1.console.aws.amazon.com/console/home?region=eu-west-1"},
-		{"us-gov-west-1", "https://us-gov-west-1.console.aws.amazon.com/console/home?region=us-gov-west-1"},
+		{"", "signin.aws.amazon.com", "https://console.aws.amazon.com/"},
+		{"eu-west-1", "signin.aws.amazon.com", "https://eu-west-1.console.aws.amazon.com/console/home?region=eu-west-1"},
+		{"us-gov-west-1", "signin.amazonaws-us-gov.com", "https://us-gov-west-1.console.amazonaws-us-gov.com/console/home?region=us-gov-west-1"},
+		{"cn-north-1", "signin.amazonaws.cn", "https://cn-north-1.console.amazonaws.cn/console/home?region=cn-north-1"},
 	}
 	for _, tc := range cases {
 		t.Run("region="+tc.region, func(t *testing.T) {
-			var gotPath string
+			var gotHost, gotPath string
 			var gotQuery url.Values
 			client, rt := testClient(t, func(w http.ResponseWriter, r *http.Request) {
-				gotPath, gotQuery = r.URL.Path, r.URL.Query()
+				gotHost, gotPath, gotQuery = r.Host, r.URL.Path, r.URL.Query()
 				fmt.Fprint(w, `{"SigninToken":"signin-123"}`)
 			})
 			got, err := ConsoleURL(context.Background(), client, tempCreds, tc.region)
 			if err != nil {
 				t.Fatal(err)
 			}
-			if rt.calls != 1 || gotPath != "/federation" {
-				t.Fatalf("calls = %d, path = %q", rt.calls, gotPath)
+			if rt.calls != 1 || gotPath != "/federation" || gotHost != tc.signin {
+				t.Fatalf("calls = %d, host = %q, path = %q", rt.calls, gotHost, gotPath)
 			}
 			if gotQuery.Get("Action") != "getSigninToken" || gotQuery.Has("SessionDuration") {
 				t.Fatalf("token request query = %v", gotQuery)
@@ -53,7 +55,7 @@ func TestConsoleURL(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if u.Scheme+"://"+u.Host+u.Path != "https://signin.aws.amazon.com/federation" {
+			if u.Scheme+"://"+u.Host+u.Path != "https://"+tc.signin+"/federation" {
 				t.Fatalf("login url = %s", got)
 			}
 			q := u.Query()

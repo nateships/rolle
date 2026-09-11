@@ -9,13 +9,13 @@ sidebar:
 
 Identity Center refresh tokens, Azure token caches, and IAM user access keys live in the OS keychain (macOS Keychain, Windows Credential Manager, Secret Service on Linux) under the service name `rolle`. Large tokens are split into chunks to fit platform limits.
 
-## Short-lived credentials are cached, then expire
+## Rolle caches short-lived credentials until they expire
 
-Started sessions cache their temporary credentials in the cache directory (`~/.cache/rolle/credentials`, or the platform cache location) with owner-only permissions. `credential_process` reads that cache. Entries carry their expiry and are refreshed or removed by the app.
+A started session caches its temporary credentials in `credentials/` under the cache directory (see [Storage](/#storage)) with owner-only permissions. `credential_process` reads that cache. Each entry carries its expiry. The app renews or removes entries. An IAM user without MFA has no temporary credentials: its access key stays in the keychain and never enters the cache.
 
-## AWS config is written with care
+## Rolle writes only its own AWS profiles
 
-Rolle writes only profiles it owns, marked with a `rolle_session` key. It refuses to touch a section that holds `aws_access_key_id` or other credential keys. A plain `[default]` section that only sets region or output is taken over and restored on stop.
+Rolle marks each profile it writes with a `rolle_session` key. It refuses to touch a section that holds `aws_access_key_id` or other credential keys. A plain `[default]` section that only sets region or output is taken over and restored on stop.
 
 ## No telemetry
 
@@ -27,7 +27,7 @@ TLS is verified against the OS trust store: the macOS Keychain, Windows certific
 
 ## Signed updates
 
-Release manifests are signed with an Ed25519 key. The desktop app verifies the signature before it installs an update. macOS builds are signed with a Developer ID certificate and notarized.
+An Ed25519 key signs every release manifest. The desktop app verifies the signature before it installs an update. A Developer ID certificate signs the macOS builds, and Apple notarizes them.
 
 ## Reset
 

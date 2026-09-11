@@ -48,8 +48,10 @@ func ctx() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), 2*time.Minute)
 }
 
-// Workspace returns the workspace with session statuses reconciled.
-func (r *RolleService) Workspace() (*core.Workspace, error) { return r.svc.Refresh() }
+// Workspace returns the stored workspace. Renewals run on the background
+// ticker in main.go, which saves and so emits EventWorkspaceChanged; the UI
+// must not wait on the network to paint.
+func (r *RolleService) Workspace() (*core.Workspace, error) { return r.svc.Load() }
 
 // CompleteOnboarding marks the walkthrough as done.
 func (r *RolleService) CompleteOnboarding() error {
@@ -82,6 +84,10 @@ func (r *RolleService) StartSSOLogin(ref string) (DeviceLogin, error) {
 		return DeviceLogin{}, err
 	}
 	r.mu.Lock()
+	if old := r.pending[ref]; old != nil {
+		// A second click abandons the first login; free its loopback port.
+		old.Cancel()
+	}
 	r.pending[ref] = auth
 	r.mu.Unlock()
 	_ = browser.Open(auth.VerificationURI)
@@ -159,26 +165,6 @@ func (r *RolleService) Start(ref, mfaCode string) (core.Credentials, error) {
 // Stop deactivates a session.
 func (r *RolleService) Stop(ref string) error {
 	return r.svc.Stop(ref)
-}
-
-// Credentials returns fresh credentials for an active session.
-func (r *RolleService) Credentials(ref string) (core.Credentials, error) {
-	c, cancel := ctx()
-	defer cancel()
-	return r.svc.Credentials(c, ref)
-}
-
-// ProfileName returns the AWS profile a session writes.
-func (r *RolleService) ProfileName(ref string) (string, error) {
-	w, err := r.svc.Load()
-	if err != nil {
-		return "", err
-	}
-	s, err := app.FindSession(w, ref)
-	if err != nil {
-		return "", err
-	}
-	return app.ProfileName(s), nil
 }
 
 // OpenConsole opens the AWS console for a session in the browser.
@@ -285,7 +271,8 @@ func (r *RolleService) AddGCPImpersonation(in app.AddGCPImpersonationInput) (cor
 // Settings returns the effective user preferences.
 func (r *RolleService) Settings() (core.Settings, error) { return r.svc.Settings() }
 
-// UpdateSettings stores preferences.
+// UpdateSettings stores preferences. The update ticker reads AutoUpdateOff on
+// every tick, so the change applies without a restart.
 func (r *RolleService) UpdateSettings(in core.Settings) (core.Settings, error) {
 	return r.svc.UpdateSettings(in)
 }

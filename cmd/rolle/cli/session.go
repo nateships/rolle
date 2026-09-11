@@ -67,7 +67,7 @@ func sessionAddCmd() *cobra.Command {
 	assume.Flags().StringVar(&ar.SourceRef, "source", "", "session that provides the source credentials")
 	assume.Flags().StringVar(&ar.Region, "region", "", "default region")
 	assume.Flags().StringVar(&ar.ExternalID, "external-id", "", "external ID, if the trust policy needs one")
-	assume.Flags().StringVar(&ar.Profile, "profile", "", "AWS profile name (defaults to the session name)")
+	assume.Flags().StringVar(&ar.Profile, "profile", "", "AWS profile name (empty uses the shared default profile)")
 	for _, f := range []string{"name", "role-arn", "source", "region"} {
 		_ = assume.MarkFlagRequired(f)
 	}
@@ -99,7 +99,7 @@ func sessionAddCmd() *cobra.Command {
 	iam.Flags().StringVar(&iu.Key.AccessKeyID, "access-key-id", "", "access key ID")
 	iam.Flags().StringVar(&iu.Key.SecretAccessKey, "secret-access-key", "", "secret access key (prompted when omitted)")
 	iam.Flags().StringVar(&iu.MFADevice, "mfa-device", "", "MFA device ARN or serial")
-	iam.Flags().StringVar(&iu.Profile, "profile", "", "AWS profile name (defaults to the session name)")
+	iam.Flags().StringVar(&iu.Profile, "profile", "", "AWS profile name (empty uses the shared default profile)")
 	for _, f := range []string{"name", "region", "access-key-id"} {
 		_ = iam.MarkFlagRequired(f)
 	}

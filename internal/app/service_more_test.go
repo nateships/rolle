@@ -305,8 +305,9 @@ func TestCredentialsServesCacheAndRejectsInactive(t *testing.T) {
 	if err != nil || creds.AccessKeyID != "AKIAdev" {
 		t.Fatalf("creds after cache miss = %+v, %v; want a refetch from the stored key", creds, err)
 	}
-	if _, err := s.Cache.Get(sess.ID); err != nil {
-		t.Fatalf("refetch must repopulate the cache: %v", err)
+	// A long-lived key never lands in the on-disk cache; it stays in the keychain.
+	if _, err := s.Cache.Get(sess.ID); err == nil {
+		t.Fatal("the static access key must not be written to the credential cache")
 	}
 	if err := s.Stop(sess.ID); err != nil {
 		t.Fatal(err)

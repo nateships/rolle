@@ -95,13 +95,6 @@ export function CompleteOnboarding(): $CancellablePromise<void> {
 }
 
 /**
- * Credentials returns fresh credentials for an active session.
- */
-export function Credentials(ref: string): $CancellablePromise<core$0.Credentials> {
-    return $Call.ByID(34508111, ref);
-}
-
-/**
  * DevMode reports whether in-app dev tools are compiled in.
  */
 export function DevMode(): $CancellablePromise<boolean> {
@@ -185,13 +178,6 @@ export function OpenTerminal(ref: string): $CancellablePromise<void> {
  */
 export function OpenURL(u: string): $CancellablePromise<void> {
     return $Call.ByID(3697858276, u);
-}
-
-/**
- * ProfileName returns the AWS profile a session writes.
- */
-export function ProfileName(ref: string): $CancellablePromise<string> {
-    return $Call.ByID(816494467, ref);
 }
 
 /**
@@ -315,7 +301,8 @@ export function SyncSSO(ref: string): $CancellablePromise<core$0.Session[] | nul
 }
 
 /**
- * UpdateSettings stores preferences.
+ * UpdateSettings stores preferences. The update ticker reads AutoUpdateOff on
+ * every tick, so the change applies without a restart.
  */
 export function UpdateSettings($in: core$0.Settings): $CancellablePromise<core$0.Settings> {
     return $Call.ByID(2682712267, $in);
@@ -329,7 +316,9 @@ export function WaitSSOLogin(ref: string): $CancellablePromise<core$0.Session[] 
 }
 
 /**
- * Workspace returns the workspace with session statuses reconciled.
+ * Workspace returns the stored workspace. Renewals run on the background
+ * ticker in main.go, which saves and so emits EventWorkspaceChanged; the UI
+ * must not wait on the network to paint.
  */
 export function Workspace(): $CancellablePromise<core$0.Workspace | null> {
     return $Call.ByID(1576073332);

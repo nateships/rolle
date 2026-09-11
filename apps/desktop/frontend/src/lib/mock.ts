@@ -222,9 +222,6 @@ export const mockApi = {
     s.expires = null;
     emit();
   },
-  Credentials: async () => creds,
-  ProfileName: async (ref: string) =>
-    (state.sessions.find((x) => x.id === ref)?.name ?? "").replace(/[^A-Za-z0-9._-]/g, "-"),
   EnvText: async () => "export AWS_ACCESS_KEY_ID=ASIAMOCK\n",
   OpenConsole: async () => {},
   OpenURL: async (u: string) => {

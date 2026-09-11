@@ -30,7 +30,10 @@ changelog:
 
 release:
   # The desktop jobs create a draft and upload their packages first.
-  # goreleaser then fills in the notes and publishes.
+  # goreleaser then attaches to that draft, fills in the notes, and publishes.
+  # Without use_existing_draft it cannot see the draft and creates a second
+  # release for the tag.
+  use_existing_draft: true
   draft: false
   mode: replace
   prerelease: auto

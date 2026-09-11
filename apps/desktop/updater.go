@@ -38,7 +38,9 @@ func isDevBuild() bool {
 }
 
 // setupUpdater configures self-updates. Dev builds skip it: there is nothing
-// to compare against and no manifest to fetch.
+// to compare against and no manifest to fetch. Background checks run on a
+// ticker here, not in the Wails updater, so the AutoUpdateOff setting is read
+// on every tick and a change applies without a restart.
 func setupUpdater(a *application.App, svc *app.Service) error {
 	if isDevBuild() {
 		debug.Logf("updater", "dev build %q, updater disabled", version.Version)
@@ -52,18 +54,28 @@ func setupUpdater(a *application.App, svc *app.Service) error {
 	if err != nil {
 		return err
 	}
-	interval := checkInterval
-	if st, err := svc.Settings(); err == nil && st.AutoUpdateOff {
-		interval = 0
-	}
 	cfg := updater.Config{
 		CurrentVersion: strings.TrimPrefix(version.Version, "v"),
 		Providers:      []updater.Provider{provider},
 		PublicKey:      key,
-		CheckInterval:  interval,
 	}
-	debug.Logf("updater", "configured for %s, background checks every %v", cfg.CurrentVersion, interval)
-	return a.Updater.Init(cfg)
+	if err := a.Updater.Init(cfg); err != nil {
+		return err
+	}
+	debug.Logf("updater", "configured for %s, background checks every %v", cfg.CurrentVersion, checkInterval)
+	go func() {
+		for range time.Tick(checkInterval) {
+			if st, err := svc.Settings(); err != nil || st.AutoUpdateOff {
+				continue
+			}
+			c, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+			if err := a.Updater.CheckAndInstall(c); err != nil {
+				debug.Logf("updater", "background check: %v", err)
+			}
+			cancel()
+		}
+	}()
+	return nil
 }
 
 // parsePublicKey accepts the PEM file written by `wails3 updater genkey` or

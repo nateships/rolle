@@ -19,7 +19,7 @@ export interface AWSSSOIntegration {
  */
 export interface AWSSession {
     /**
-     * Profile is the name written to ~/.aws/config. Defaults to the session name.
+     * Profile is the name written to ~/.aws/config. Empty means the shared "default" profile.
      */
     "profile"?: string;
 

@@ -66,6 +66,9 @@ func (s *Service) AddAzure(alias, tenantID string) (core.Integration, error) {
 	if err != nil {
 		return core.Integration{}, err
 	}
+	if err := checkAlias(w, alias, ""); err != nil {
+		return core.Integration{}, err
+	}
 	in := core.Integration{ID: newID(), Alias: alias, Cloud: core.CloudAzure, Azure: &core.AzureIntegration{TenantID: tenantID}}
 	w.Integrations = append(w.Integrations, in)
 	return in, s.Save(w)
@@ -246,6 +249,9 @@ func (s *Service) AddGCP(ctx context.Context, alias string) (core.Integration, [
 	}
 	w, err := s.Load()
 	if err != nil {
+		return core.Integration{}, nil, err
+	}
+	if err := checkAlias(w, alias, ""); err != nil {
 		return core.Integration{}, nil, err
 	}
 	in := core.Integration{ID: newID(), Alias: alias, Cloud: core.CloudGCP, GCP: &core.GCPIntegration{Account: acct.Email}}

@@ -10,7 +10,7 @@ sidebar:
 - **AWS**: IAM Identity Center sign-in with role discovery, `AssumeRole` chaining with optional external ID, IAM users with optional MFA, federated console links, `credential_process` profiles in `~/.aws/config`, shared or named profiles, per-session regions.
 - **Azure**: Entra ID sign-in through the browser or a device code, subscription discovery, Azure Resource Manager tokens, portal links.
 - **Google Cloud**: reuse of gcloud Application Default Credentials, project discovery, service account impersonation with an impersonated ADC file, console links.
-- **Import**: Identity Center portals from the AWS CLI config and Granted, Azure tenants from the az CLI, and gcloud credentials. A valid AWS CLI SSO token is reused so no second sign-in is needed.
+- **Import**: Identity Center portals from the AWS CLI config and Granted, Azure tenants from the az CLI, gcloud credentials, and IAM users and chained roles from a Leapp workspace. Rolle reuses a valid AWS CLI SSO token, so no second sign-in is needed.
 - **Sessions**: start, stop, silent renewal, favorites, rename, copy credentials, open a terminal with the environment set, open the console.
 - **Desktop app**: guided onboarding, dashboard with account groups, system tray with session toggles, settings (theme, default region, assume-role duration, terminal app, tray behaviour, logging, updates), signed self-updates from GitHub releases.
 - **CLI**: `integration`, `session`, `start`, `stop`, `env`, `shell`, `console`, `status`, `reset`.
@@ -21,4 +21,3 @@ sidebar:
 - Export of Azure tokens into the az CLI token cache. Use `rolle env` or the terminal action instead.
 - Session expiry notifications.
 - Windows code signing. SmartScreen warns on first launch.
-- Cascading removal of chained roles when their source session disappears.

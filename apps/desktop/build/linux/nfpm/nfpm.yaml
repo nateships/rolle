@@ -50,7 +50,7 @@ scripts:
   # preremove: "./build/linux/nfpm/scripts/preremove.sh"
   # postremove: "./build/linux/nfpm/scripts/postremove.sh"
 
-# If you build your app with -tags gtk3 (legacy WebKit2GTK 4.1 stack — supported through v3.0.x, removed in v3.1),
+# If you build your app with -tags gtk3 (legacy WebKit2GTK 4.1 stack: supported through v3.0.x, removed in v3.1),
 # replace the depends/overrides above with these:
 #
 # depends:

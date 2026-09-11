@@ -110,9 +110,15 @@ func main() {
 		log.Println("updater:", err)
 	}
 
-	// Renew or deactivate expired sessions. Refresh saves, and so notifies
-	// the UI, only when a session changed.
+	// Renew or deactivate expired sessions, now and every 30 seconds. Refresh
+	// saves, and so notifies the UI, only when a session changed.
 	go func() {
+		// The app may have moved since a profile was written; point the
+		// active profiles at this binary before anything reads them.
+		if err := svc.ReconcileProfiles(); err != nil {
+			debug.Logf("app", "reconcile profiles: %v", err)
+		}
+		_, _ = svc.Refresh()
 		for range time.Tick(30 * time.Second) {
 			_, _ = svc.Refresh()
 		}

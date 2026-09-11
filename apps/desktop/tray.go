@@ -36,11 +36,15 @@ func newTray(a *application.App, svc *app.Service, window *application.WebviewWi
 
 // rebuild regenerates the menu from the current workspace.
 func (t *tray) rebuild() {
+	menu := t.app.NewMenu()
 	w, err := t.svc.Load()
 	if err != nil {
+		// Keep Open and Quit reachable when the workspace cannot be read.
+		menu.Add("Workspace could not be read").SetEnabled(false)
+		t.addFooter(menu)
+		t.item.SetMenu(menu)
 		return
 	}
-	menu := t.app.NewMenu()
 	active := 0
 	for _, s := range w.Sessions {
 		if s.Status == core.StatusActive {
@@ -66,18 +70,22 @@ func (t *tray) rebuild() {
 		}
 		item.OnClick(func(*application.Context) { t.toggle(sess) })
 	}
-	menu.AddSeparator()
-	menu.Add("Open Rolle").OnClick(func(*application.Context) {
-		t.window.Show()
-		t.window.Focus()
-	})
-	menu.Add("Quit").OnClick(func(*application.Context) { t.app.Quit() })
+	t.addFooter(menu)
 	t.item.SetMenu(menu)
 	if active > 0 {
 		t.item.SetLabel(fmt.Sprintf("%d", active))
 	} else {
 		t.item.SetLabel("")
 	}
+}
+
+func (t *tray) addFooter(menu *application.Menu) {
+	menu.AddSeparator()
+	menu.Add("Open Rolle").OnClick(func(*application.Context) {
+		t.window.Show()
+		t.window.Focus()
+	})
+	menu.Add("Quit").OnClick(func(*application.Context) { t.app.Quit() })
 }
 
 func (t *tray) toggle(sess core.Session) {
@@ -91,6 +99,9 @@ func (t *tray) toggle(sess core.Session) {
 	}
 	if err != nil {
 		debug.Logf("tray", "%s: %v", sess.Name, err)
+		// Wails flips the checkbox before the click runs. A failed call saved
+		// nothing, so no change event follows; rebuild to show the true state.
+		t.rebuild()
 	}
 }
 

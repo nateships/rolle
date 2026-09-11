@@ -197,12 +197,19 @@ function AccountRow({ row, open, onToggle }: { row: Row & { group: true }; open:
           )}
         >
           <TableCell className="pr-0">
-            <ChevronRight
-              className={cn(
-                "ml-1.5 inline-block size-4 text-muted-foreground transition-transform",
-                open && "rotate-90",
-              )}
-            />
+            {/* The row toggles on click; this button gives the keyboard the same control. */}
+            <button
+              type="button"
+              aria-expanded={open}
+              aria-label={`${open ? "Collapse" : "Expand"} ${row.label}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggle();
+              }}
+              className="ml-1.5 inline-flex rounded-sm text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring"
+            >
+              <ChevronRight className={cn("size-4 transition-transform", open && "rotate-90")} />
+            </button>
           </TableCell>
           <TableCell colSpan={5}>
             <div className="flex items-center gap-2.5">

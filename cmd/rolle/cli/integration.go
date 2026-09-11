@@ -177,8 +177,11 @@ func integrationLogoutCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if in.Cloud == core.CloudAzure {
+			switch in.Cloud {
+			case core.CloudAzure:
 				return svc.AzureLogout(cmd.Context(), args[0])
+			case core.CloudGCP:
+				return fmt.Errorf("%s uses the gcloud login; run `gcloud auth application-default revoke` or remove the integration", in.Alias)
 			}
 			return svc.SSOLogout(args[0])
 		},

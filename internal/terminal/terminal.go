@@ -105,11 +105,12 @@ func writeScript(dir, pattern, body string) (string, error) {
 	return path, nil
 }
 
-func openDarwin(o Options) error {
+func openDarwin(o Options) (err error) {
 	path, err := writeScript(o.Dir, "rolle-session-*.command", posixScript(o))
 	if err != nil {
 		return err
 	}
+	defer removeOnError(path, &err)
 	app := o.App
 	if app == Auto || app == "" {
 		app = detectDarwin()
@@ -180,11 +181,20 @@ func detectDarwin() App {
 	return MacOS
 }
 
-func openLinux(o Options) error {
+// removeOnError deletes the launcher script when the terminal did not start,
+// so a script that holds tokens never stays behind.
+func removeOnError(path string, err *error) {
+	if *err != nil {
+		_ = os.Remove(path)
+	}
+}
+
+func openLinux(o Options) (err error) {
 	path, err := writeScript(o.Dir, "rolle-session-*.sh", posixScript(o))
 	if err != nil {
 		return err
 	}
+	defer removeOnError(path, &err)
 	// The script is executable, so every emulator gets one argument. This
 	// also fits emulators whose -e takes a single string.
 	if t := os.Getenv("TERMINAL"); t != "" {
@@ -203,7 +213,7 @@ func openLinux(o Options) error {
 
 func psQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", "''") + "'" }
 
-func openWindows(o Options) error {
+func openWindows(o Options) (err error) {
 	var b strings.Builder
 	b.WriteString("Remove-Item -LiteralPath $PSCommandPath -Force\n")
 	b.WriteString(Exports(o.Env, true))
@@ -213,6 +223,7 @@ func openWindows(o Options) error {
 	if err != nil {
 		return err
 	}
+	defer removeOnError(path, &err)
 	args := []string{"-NoExit", "-ExecutionPolicy", "Bypass", "-File", path}
 	if o.App != PowerShell {
 		if wt, err := exec.LookPath("wt.exe"); err == nil {

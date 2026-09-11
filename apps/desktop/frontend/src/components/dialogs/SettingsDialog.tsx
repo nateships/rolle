@@ -14,6 +14,15 @@ import { copyText } from "@/lib/clipboard";
 import { applyTheme, type Theme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
+/** Fields of `cur` that differ from `base`: the edits made while a save was in flight. */
+function diff(cur: Settings, base: Settings): Partial<Settings> {
+  const out: Partial<Settings> = {};
+  for (const k of Object.keys(cur) as (keyof Settings)[]) {
+    if (cur[k] !== base[k]) (out as Record<string, unknown>)[k] = cur[k];
+  }
+  return out;
+}
+
 const IS_MAC = /Macintosh/.test(navigator.userAgent);
 const IS_WIN = /Windows/.test(navigator.userAgent);
 const TERMINALS: { value: string; label: string }[] = IS_MAC
@@ -85,13 +94,19 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
 
   const update = async (patch: Partial<Settings>) => {
     if (!settings) return;
+    const prev = settings;
     const next = { ...settings, ...patch };
     setSettings(next);
     if (patch.theme) applyTheme(patch.theme as Theme);
     setSaving(true);
     try {
-      setSettings(await api.UpdateSettings(next));
+      const saved = await api.UpdateSettings(next);
+      // Merge: a toggle that raced this call keeps its own value.
+      setSettings((cur) => ({ ...saved, ...(cur ? diff(cur, next) : {}) }));
     } catch (e) {
+      // The backend kept the old settings; show them again.
+      setSettings(prev);
+      if (patch.theme) applyTheme(prev.theme as Theme);
       toast.error(errorMessage(e));
     } finally {
       setSaving(false);

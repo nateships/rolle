@@ -95,5 +95,8 @@ func IAMUserCredentials(ctx context.Context, in IAMUserInput) (core.Credentials,
 	if err != nil {
 		return core.Credentials{}, fmt.Errorf("get session token: %w", err)
 	}
+	if out.Credentials == nil {
+		return core.Credentials{}, errors.New("get session token: empty response")
+	}
 	return fromSTS(out.Credentials.AccessKeyId, out.Credentials.SecretAccessKey, out.Credentials.SessionToken, out.Credentials.Expiration), nil
 }

@@ -109,7 +109,7 @@ type Session struct {
 
 // AWSSession holds AWS specific settings.
 type AWSSession struct {
-	// Profile is the name written to ~/.aws/config. Defaults to the session name.
+	// Profile is the name written to ~/.aws/config. Empty means the shared "default" profile.
 	Profile string `json:"profile,omitempty"`
 	// AccountID and RoleName identify an SSO role or the target of AssumeRole.
 	AccountID string `json:"accountId,omitempty"`

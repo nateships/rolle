@@ -68,9 +68,7 @@ export function SessionRow({
       const first = !workspace.sessions.some((x) => x.status === Status.StatusActive);
       if (first) celebrate("small");
       toast.success(`${s.name} started`, {
-        description: isAWS
-          ? `AWS profile ${await api.ProfileName(s.id)} is ready.`
-          : "Credentials are ready for your shell.",
+        description: isAWS ? `AWS profile ${profileName} is ready.` : "Credentials are ready for your shell.",
         action: { label: "Copy env", onClick: () => void copy("env") },
       });
     } catch (e) {
@@ -102,7 +100,7 @@ export function SessionRow({
 
   async function copy(kind: "env" | "profile") {
     try {
-      const text = kind === "profile" ? `aws --profile ${await api.ProfileName(s.id)}` : await api.EnvText(s.id);
+      const text = kind === "profile" ? `aws --profile ${profileName}` : await api.EnvText(s.id);
       await copyText(text);
       toast.success(kind === "profile" ? "Profile command copied" : "Credentials copied", {
         description: kind === "env" ? "Paste into a shell. They expire on their own." : undefined,

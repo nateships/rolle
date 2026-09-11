@@ -69,10 +69,19 @@ type DeviceAuthorization struct {
 	UserCode string
 	// complete finishes the flow. It is set by StartLogin and StartDeviceLogin.
 	complete func(ctx context.Context) error
+	// cancel releases the loopback listener of the browser flow. Nil for the device flow.
+	cancel func()
 }
 
 // Wait blocks until the user approves the login in the browser, then stores the token.
 func (d *DeviceAuthorization) Wait(ctx context.Context) error { return d.complete(ctx) }
+
+// Cancel abandons a login that will not be waited on and frees its listener.
+func (d *DeviceAuthorization) Cancel() {
+	if d.cancel != nil {
+		d.cancel()
+	}
+}
 
 // SSO authenticates against one IAM Identity Center portal.
 type SSO struct {
@@ -136,6 +145,13 @@ func (s *SSO) StartLogin(ctx context.Context) (*DeviceAuthorization, error) {
 	mux.HandleFunc(redirectPath, func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		// Only the redirect that carries this login's state counts. Anything
+		// else on the loopback port is ignored and does not consume the slot.
+		if q.Get("state") != state {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = callbackPage.Execute(w, callbackView{Class: "err", Title: "This page does not belong to the current sign-in", Text: "You can close this tab and try again from Rolle."})
+			return
+		}
 		view := callbackView{Class: "ok", Title: "Signed in", Text: "You can close this tab and return to Rolle."}
 		if q.Get("error") != "" {
 			view = callbackView{Class: "err", Title: "Sign-in was not approved", Text: "You can close this tab and try again from Rolle."}
@@ -149,14 +165,15 @@ func (s *SSO) StartLogin(ctx context.Context) (*DeviceAuthorization, error) {
 	})
 	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 	go func() { _ = srv.Serve(ln) }()
+	stop := func() {
+		shutdown, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		_ = srv.Shutdown(shutdown)
+	}
 
-	d := &DeviceAuthorization{VerificationURI: authorizeURL(s.Integration.AWSSSO.Region, aws.ToString(reg.ClientId), redirect, state, challenge)}
+	d := &DeviceAuthorization{VerificationURI: authorizeURL(s.Integration.AWSSSO.Region, aws.ToString(reg.ClientId), redirect, state, challenge), cancel: stop}
 	d.complete = func(ctx context.Context) error {
-		defer func() {
-			shutdown, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			defer cancel()
-			_ = srv.Shutdown(shutdown)
-		}()
+		defer stop()
 		var cb callback
 		select {
 		case cb = <-got:
@@ -319,14 +336,17 @@ func (s *SSO) Logout() error { return s.Secrets.Delete(ssoTokenKey(s.Integration
 
 // TokenExpiry returns when the cached token expires, or nil when logged out.
 func (s *SSO) TokenExpiry() *time.Time {
-	t, err := s.token()
-	if err != nil {
+	t, err := s.storedToken()
+	if err != nil || !s.valid(t) {
 		return nil
 	}
 	return &t.Expires
 }
 
-func (s *SSO) token() (ssoToken, error) {
+// valid reports whether the access token has more than one minute left.
+func (s *SSO) valid(t ssoToken) bool { return s.now().Add(time.Minute).Before(t.Expires) }
+
+func (s *SSO) storedToken() (ssoToken, error) {
 	raw, err := s.Secrets.Get(ssoTokenKey(s.Integration.ID))
 	if errors.Is(err, secrets.ErrNotFound) {
 		return ssoToken{}, ErrSSOLoginRequired
@@ -338,8 +358,47 @@ func (s *SSO) token() (ssoToken, error) {
 	if err := json.Unmarshal([]byte(raw), &t); err != nil {
 		return ssoToken{}, err
 	}
-	if !s.now().Add(time.Minute).Before(t.Expires) {
+	return t, nil
+}
+
+// token returns a usable access token. An expired token is renewed with the
+// refresh token when the portal issued one; otherwise a login is required.
+func (s *SSO) token(ctx context.Context) (ssoToken, error) {
+	t, err := s.storedToken()
+	if err != nil {
+		return ssoToken{}, err
+	}
+	if s.valid(t) {
+		return t, nil
+	}
+	if t.RefreshToken == "" || t.ClientID == "" || t.ClientSecret == "" {
 		return ssoToken{}, ErrSSOLoginRequired
+	}
+	return s.refresh(ctx, t)
+}
+
+// refresh trades the refresh token for a new access token and stores it.
+func (s *SSO) refresh(ctx context.Context, t ssoToken) (ssoToken, error) {
+	cfg, err := s.cfg(ctx)
+	if err != nil {
+		return ssoToken{}, err
+	}
+	out, err := ssooidc.NewFromConfig(cfg).CreateToken(ctx, &ssooidc.CreateTokenInput{
+		ClientId:     aws.String(t.ClientID),
+		ClientSecret: aws.String(t.ClientSecret),
+		GrantType:    aws.String("refresh_token"),
+		RefreshToken: aws.String(t.RefreshToken),
+	})
+	if err != nil {
+		return ssoToken{}, fmt.Errorf("%w: token refresh failed: %v", ErrSSOLoginRequired, err)
+	}
+	t.AccessToken = aws.ToString(out.AccessToken)
+	if rt := aws.ToString(out.RefreshToken); rt != "" {
+		t.RefreshToken = rt
+	}
+	t.Expires = s.now().Add(time.Duration(out.ExpiresIn) * time.Second)
+	if err := s.storeToken(t); err != nil {
+		return ssoToken{}, err
 	}
 	return t, nil
 }
@@ -358,7 +417,7 @@ type Role struct {
 
 // ListAccounts returns every account the signed-in user can access.
 func (s *SSO) ListAccounts(ctx context.Context) ([]Account, error) {
-	tok, err := s.token()
+	tok, err := s.token(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -383,7 +442,7 @@ func (s *SSO) ListAccounts(ctx context.Context) ([]Account, error) {
 
 // ListRoles returns the roles available in one account.
 func (s *SSO) ListRoles(ctx context.Context, accountID string) ([]Role, error) {
-	tok, err := s.token()
+	tok, err := s.token(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -411,7 +470,7 @@ func (s *SSO) ListRoles(ctx context.Context, accountID string) ([]Role, error) {
 
 // RoleCredentials fetches short-lived credentials for one SSO role.
 func (s *SSO) RoleCredentials(ctx context.Context, accountID, roleName string) (core.Credentials, error) {
-	tok, err := s.token()
+	tok, err := s.token(ctx)
 	if err != nil {
 		return core.Credentials{}, err
 	}
@@ -428,6 +487,9 @@ func (s *SSO) RoleCredentials(ctx context.Context, accountID, roleName string) (
 		return core.Credentials{}, fmt.Errorf("get role credentials: %w", err)
 	}
 	rc := out.RoleCredentials
+	if rc == nil {
+		return core.Credentials{}, errors.New("get role credentials: empty response")
+	}
 	exp := time.UnixMilli(rc.Expiration).UTC()
 	return core.Credentials{
 		AccessKeyID:     aws.ToString(rc.AccessKeyId),

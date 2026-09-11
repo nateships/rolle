@@ -93,7 +93,7 @@ func TestStartLoginPKCE(t *testing.T) {
 	if base64.RawURLEncoding.EncodeToString(sum[:]) != q.Get("code_challenge") {
 		t.Fatal("code verifier does not match the challenge")
 	}
-	tok, err := s.token()
+	tok, err := s.token(context.Background())
 	if err != nil || tok.AccessToken != "at" || tok.RefreshToken != "rt" || tok.ClientID != "cid" {
 		t.Fatalf("stored token %+v err %v", tok, err)
 	}
@@ -112,16 +112,87 @@ func TestStartLoginPKCERejectsWrongState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	redirect := must(url.Parse(auth.VerificationURI)).Query().Get("redirect_uri")
+	q := must(url.Parse(auth.VerificationURI)).Query()
+	redirect := q.Get("redirect_uri")
 	done := make(chan error, 1)
 	go func() { done <- auth.Wait(context.Background()) }()
+	// A request with another state is refused and does not end the wait.
 	resp, err := http.Get(redirect + "?code=abc&state=other")
 	if err != nil {
 		t.Fatal(err)
 	}
 	_ = resp.Body.Close()
-	if err := <-done; err == nil || !strings.Contains(err.Error(), "did not match") {
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("foreign callback status %d", resp.StatusCode)
+	}
+	select {
+	case err := <-done:
+		t.Fatalf("Wait returned %v after a foreign callback", err)
+	case <-time.After(200 * time.Millisecond):
+	}
+	// The real redirect still completes the flow.
+	resp, err = http.Get(redirect + "?error=access_denied&state=" + url.QueryEscape(q.Get("state")))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	if err := <-done; err == nil || !strings.Contains(err.Error(), "access_denied") {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+// TestCancelFreesListener makes sure an abandoned browser login closes its port.
+func TestCancelFreesListener(t *testing.T) {
+	oidc := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_ = json.NewEncoder(w).Encode(map[string]any{"clientId": "cid", "clientSecret": "csec", "clientIdIssuedAt": 1, "clientSecretExpiresAt": 9999999999})
+	}))
+	defer oidc.Close()
+	t.Setenv("AWS_ENDPOINT_URL_SSO_OIDC", oidc.URL)
+	now := time.Now()
+	auth, err := newSSO(&secrets.Memory{}, &now).StartLogin(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	redirect := must(url.Parse(auth.VerificationURI)).Query().Get("redirect_uri")
+	auth.Cancel()
+	if _, err := http.Get(redirect); err == nil {
+		t.Fatal("listener still accepts connections after Cancel")
+	}
+}
+
+// TestTokenRefresh trades an expired access token for a new one with the
+// stored refresh token instead of asking for a new login.
+func TestTokenRefresh(t *testing.T) {
+	var tokenReq map[string]any
+	oidc := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/token" {
+			http.NotFound(w, r)
+			return
+		}
+		_ = json.NewDecoder(r.Body).Decode(&tokenReq)
+		_ = json.NewEncoder(w).Encode(map[string]any{"accessToken": "at2", "refreshToken": "rt2", "expiresIn": 3600, "tokenType": "Bearer"})
+	}))
+	defer oidc.Close()
+	t.Setenv("AWS_ENDPOINT_URL_SSO_OIDC", oidc.URL)
+
+	now := ssoNow
+	store := &secrets.Memory{}
+	s := newSSO(store, &now)
+	if err := s.StoreImportedToken("at", "rt", "cid", "cs", "", now.Add(-time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	tok, err := s.token(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tokenReq["grantType"] != "refresh_token" || tokenReq["refreshToken"] != "rt" || tokenReq["clientId"] != "cid" || tokenReq["clientSecret"] != "cs" {
+		t.Fatalf("token request: %v", tokenReq)
+	}
+	if tok.AccessToken != "at2" || tok.RefreshToken != "rt2" || !tok.Expires.Equal(now.Add(time.Hour)) {
+		t.Fatalf("token = %+v", tok)
+	}
+	if exp := s.TokenExpiry(); exp == nil || !exp.Equal(now.Add(time.Hour)) {
+		t.Fatalf("TokenExpiry after refresh = %v", exp)
 	}
 }
 

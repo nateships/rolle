@@ -538,11 +538,14 @@ function SideItem({
       <button
         type="button"
         onClick={onClick}
+        // The dot alone is colour only; the title names the state for hover and assistive tech.
+        title={dot ? (dot === "ok" ? "Signed in" : "Signed out") : undefined}
         className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-sm"
       >
         {icon}
         {dot && (
           <span
+            aria-hidden
             className={cn("size-1.5 shrink-0 rounded-full", dot === "ok" ? "bg-emerald-400" : "bg-muted-foreground/40")}
           />
         )}

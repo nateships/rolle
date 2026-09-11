@@ -75,7 +75,11 @@ func DetectAccount(ctx context.Context) (Account, error) {
 	}
 	acct := Account{Email: a.Account}
 	if acct.Email == "" {
-		if email, err := userEmail(ctx, path, data); err == nil {
+		// The lookup is cosmetic. Bound it so an offline machine does not
+		// stall the caller for its whole deadline.
+		lookup, cancel := context.WithTimeout(ctx, 5*time.Second)
+		defer cancel()
+		if email, err := userEmail(lookup, path, data); err == nil {
 			acct.Email = email
 		}
 	}
@@ -102,8 +106,11 @@ func userEmail(ctx context.Context, path string, adcData []byte) (string, error)
 	if err != nil {
 		return "", err
 	}
-	client := oauth2.NewClient(ctx, ts)
-	resp, err := client.Get("https://openidconnect.googleapis.com/v1/userinfo")
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, "https://openidconnect.googleapis.com/v1/userinfo", nil)
+	if err != nil {
+		return "", err
+	}
+	resp, err := oauth2.NewClient(ctx, ts).Do(req)
 	if err != nil {
 		return "", err
 	}

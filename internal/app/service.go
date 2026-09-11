@@ -15,9 +15,11 @@ import (
 
 	"github.com/nateships/rolle/internal/aws"
 	"github.com/nateships/rolle/internal/awsconfig"
+	"github.com/nateships/rolle/internal/azure"
 	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/credcache"
 	"github.com/nateships/rolle/internal/debug"
+	"github.com/nateships/rolle/internal/gcp"
 	"github.com/nateships/rolle/internal/netcfg"
 	"github.com/nateships/rolle/internal/secrets"
 	"github.com/nateships/rolle/internal/workspace"
@@ -83,46 +85,95 @@ func (s *Service) notify() {
 // ErrAmbiguous is returned when a name or ID prefix matches more than one item.
 var ErrAmbiguous = errors.New("ambiguous reference")
 
-// FindSession resolves a session by exact ID, exact name, or unique ID prefix.
+// FindSession resolves a session by exact ID, unique exact name, or unique ID prefix.
 func FindSession(w *core.Workspace, ref string) (*core.Session, error) {
-	var matches []*core.Session
+	var byName, byPrefix []*core.Session
 	for i := range w.Sessions {
 		sess := &w.Sessions[i]
-		if sess.ID == ref || sess.Name == ref {
+		if sess.ID == ref {
 			return sess, nil
 		}
+		if sess.Name == ref {
+			byName = append(byName, sess)
+		}
 		if strings.HasPrefix(sess.ID, ref) {
-			matches = append(matches, sess)
+			byPrefix = append(byPrefix, sess)
 		}
 	}
-	switch len(matches) {
-	case 0:
-		return nil, fmt.Errorf("session %q: %w", ref, core.ErrNotFound)
-	case 1:
-		return matches[0], nil
-	}
-	return nil, fmt.Errorf("session %q: %w", ref, ErrAmbiguous)
+	return pick("session", ref, byName, byPrefix)
 }
 
-// FindIntegration resolves an integration by exact ID, alias, or unique ID prefix.
+// FindIntegration resolves an integration by exact ID, unique alias, or unique ID prefix.
 func FindIntegration(w *core.Workspace, ref string) (*core.Integration, error) {
-	var matches []*core.Integration
+	var byName, byPrefix []*core.Integration
 	for i := range w.Integrations {
 		in := &w.Integrations[i]
-		if in.ID == ref || in.Alias == ref {
+		if in.ID == ref {
 			return in, nil
 		}
+		if in.Alias == ref {
+			byName = append(byName, in)
+		}
 		if strings.HasPrefix(in.ID, ref) {
-			matches = append(matches, in)
+			byPrefix = append(byPrefix, in)
 		}
 	}
-	switch len(matches) {
-	case 0:
-		return nil, fmt.Errorf("integration %q: %w", ref, core.ErrNotFound)
-	case 1:
-		return matches[0], nil
+	return pick("integration", ref, byName, byPrefix)
+}
+
+// pick returns the single name match, else the single ID prefix match. Two
+// items with one name are ambiguous: the caller must use the ID.
+func pick[T any](kind, ref string, byName, byPrefix []*T) (*T, error) {
+	if len(byName) == 1 {
+		return byName[0], nil
 	}
-	return nil, fmt.Errorf("integration %q: %w", ref, ErrAmbiguous)
+	if len(byName) > 1 {
+		return nil, fmt.Errorf("%s %q: %w (use the ID)", kind, ref, ErrAmbiguous)
+	}
+	switch len(byPrefix) {
+	case 0:
+		return nil, fmt.Errorf("%s %q: %w", kind, ref, core.ErrNotFound)
+	case 1:
+		return byPrefix[0], nil
+	}
+	return nil, fmt.Errorf("%s %q: %w", kind, ref, ErrAmbiguous)
+}
+
+// checkSessionName rejects an empty name or a name another session uses.
+func checkSessionName(w *core.Workspace, name, exceptID string) error {
+	if strings.TrimSpace(name) == "" {
+		return errors.New("name cannot be empty")
+	}
+	for _, sess := range w.Sessions {
+		if sess.Name == name && sess.ID != exceptID {
+			return fmt.Errorf("a session named %q already exists", name)
+		}
+	}
+	return nil
+}
+
+// checkAlias rejects an empty alias or an alias another integration uses.
+func checkAlias(w *core.Workspace, alias, exceptID string) error {
+	if strings.TrimSpace(alias) == "" {
+		return errors.New("name cannot be empty")
+	}
+	for _, in := range w.Integrations {
+		if in.Alias == alias && in.ID != exceptID {
+			return fmt.Errorf("an integration named %q already exists", alias)
+		}
+	}
+	return nil
+}
+
+var profileNameRe = regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
+
+// checkProfile rejects a profile name that is not a valid INI section name.
+// Empty means the default profile.
+func checkProfile(profile string) error {
+	if profile != "" && !profileNameRe.MatchString(profile) {
+		return errors.New("profile names may contain letters, digits, '.', '-', and '_'")
+	}
+	return nil
 }
 
 func newID() string { return uuid.NewString() }
@@ -143,6 +194,9 @@ func ssoIntegration(w *core.Workspace, ref string) (*core.Integration, error) {
 func (s *Service) AddAWSSSO(alias, startURL, region string) (core.Integration, error) {
 	w, err := s.Load()
 	if err != nil {
+		return core.Integration{}, err
+	}
+	if err := checkAlias(w, alias, ""); err != nil {
 		return core.Integration{}, err
 	}
 	in := core.Integration{
@@ -166,15 +220,37 @@ func (s *Service) RemoveIntegration(ref string) error {
 		return err
 	}
 	s.forgetIntegration(*in)
+	for i := range w.Sessions {
+		if w.Sessions[i].IntegrationID == in.ID {
+			_ = s.deactivate(&w.Sessions[i])
+		}
+	}
 	for _, sess := range w.Sessions {
 		if sess.IntegrationID == in.ID {
-			_ = s.deactivate(&sess)
+			s.dropDependents(w, sess.ID)
 		}
 	}
 	if err := w.RemoveIntegration(in.ID); err != nil {
 		return err
 	}
 	return s.Save(w)
+}
+
+// dropDependents deactivates and removes every assume-role session whose
+// source is sourceID, recursively. A chain without its source cannot start.
+func (s *Service) dropDependents(w *core.Workspace, sourceID string) {
+	for i := 0; i < len(w.Sessions); i++ {
+		sess := &w.Sessions[i]
+		if sess.AWS == nil || sess.AWS.SourceSessionID != sourceID {
+			continue
+		}
+		debug.Logf("session", "remove %s: its source session is gone", sess.Name)
+		_ = s.deactivate(sess)
+		id := sess.ID
+		w.Sessions = append(w.Sessions[:i], w.Sessions[i+1:]...)
+		i--
+		s.dropDependents(w, id)
+	}
 }
 
 func (s *Service) sso(in core.Integration) *aws.SSO {
@@ -290,16 +366,24 @@ func (s *Service) SyncSSO(ctx context.Context, ref string) ([]core.Session, erro
 			added = append(added, sess)
 		}
 	}
+	var gone []string
 	kept := w.Sessions[:0]
 	for _, sess := range w.Sessions {
 		if sess.IntegrationID == in.ID && sess.Kind == core.KindAWSSSORole && !seen[sess.AWS.AccountID+"/"+sess.AWS.RoleName] {
 			_ = s.deactivate(&sess)
+			gone = append(gone, sess.ID)
 			continue
 		}
 		kept = append(kept, sess)
 	}
 	w.Sessions = kept
-	return added, s.Save(w)
+	for _, id := range gone {
+		s.dropDependents(w, id)
+	}
+	if len(added) > 0 || len(gone) > 0 {
+		return added, s.Save(w)
+	}
+	return added, nil
 }
 
 func hasSSORole(w *core.Workspace, integrationID, accountID, role string) bool {
@@ -323,14 +407,17 @@ type AddAssumeRoleInput struct {
 
 // AddAssumeRole creates a session that assumes a role from another session.
 func (s *Service) AddAssumeRole(in AddAssumeRoleInput) (core.Session, error) {
-	if strings.TrimSpace(in.Name) == "" {
-		return core.Session{}, errors.New("name cannot be empty")
-	}
 	if !strings.HasPrefix(in.RoleARN, "arn:") {
 		return core.Session{}, fmt.Errorf("role ARN %q is not an ARN", in.RoleARN)
 	}
+	if err := checkProfile(in.Profile); err != nil {
+		return core.Session{}, err
+	}
 	w, err := s.Load()
 	if err != nil {
+		return core.Session{}, err
+	}
+	if err := checkSessionName(w, in.Name, ""); err != nil {
 		return core.Session{}, err
 	}
 	src, err := FindSession(w, in.SourceRef)
@@ -360,8 +447,14 @@ type AddIAMUserInput struct {
 
 // AddIAMUser creates a session backed by a long-lived access key.
 func (s *Service) AddIAMUser(in AddIAMUserInput) (core.Session, error) {
+	if err := checkProfile(in.Profile); err != nil {
+		return core.Session{}, err
+	}
 	w, err := s.Load()
 	if err != nil {
+		return core.Session{}, err
+	}
+	if err := checkSessionName(w, in.Name, ""); err != nil {
 		return core.Session{}, err
 	}
 	sess := core.Session{
@@ -404,7 +497,6 @@ func (s *Service) RemoveSession(ref string) error {
 	return s.Save(w)
 }
 
-// ProfileName returns the AWS profile a session writes.
 // ProfileName returns the AWS profile a session writes. Sessions share the
 // "default" profile unless one is set, so `aws` works without --profile and
 // only one such session is active at a time.
@@ -451,27 +543,63 @@ func (s *Service) Start(ctx context.Context, ref string, opts StartOptions) (cor
 		debug.Logf("session", "start %s failed: %v", sess.Name, err)
 		return core.Credentials{}, err
 	}
-	if err := s.Cache.Put(sess.ID, creds); err != nil {
-		return core.Credentials{}, err
-	}
-	if sess.Kind.Cloud() == core.CloudAWS {
-		// One active session per profile: the newest start takes it over.
-		for i := range w.Sessions {
-			other := &w.Sessions[i]
-			if other.ID != sess.ID && other.Status == core.StatusActive && other.Kind.Cloud() == core.CloudAWS && ProfileName(other) == ProfileName(sess) {
-				debug.Logf("session", "stop %s: profile %s taken over by %s", other.Name, ProfileName(other), sess.Name)
-				if err := s.deactivate(other); err != nil {
-					return core.Credentials{}, err
-				}
-			}
-		}
-	}
-	sess.Status = core.StatusActive
-	sess.Expires = creds.Expiration
+	// Write the profile before anything else changes on disk, so a refused
+	// profile leaves the other sessions untouched.
 	if err := s.writeCloudFiles(sess); err != nil {
 		return core.Credentials{}, err
 	}
+	if err := s.cachePut(sess, creds); err != nil {
+		return core.Credentials{}, err
+	}
+	if err := s.takeOverProfile(w, sess); err != nil {
+		return core.Credentials{}, err
+	}
+	sess.Status = core.StatusActive
+	sess.Expires = creds.Expiration
 	return creds, s.Save(w)
+}
+
+// takeOverProfile stops the other active AWS sessions that write the same
+// profile as sess. One active session per profile. Sessions that feed sess
+// through a role chain stay active; sess needs them to renew.
+func (s *Service) takeOverProfile(w *core.Workspace, sess *core.Session) error {
+	if sess.Kind.Cloud() != core.CloudAWS {
+		return nil
+	}
+	sources := map[string]bool{}
+	for cur := sess; cur != nil && cur.AWS != nil && cur.AWS.SourceSessionID != ""; {
+		src, err := w.Session(cur.AWS.SourceSessionID)
+		if err != nil || sources[src.ID] {
+			break
+		}
+		sources[src.ID] = true
+		cur = src
+	}
+	for i := range w.Sessions {
+		other := &w.Sessions[i]
+		if other.ID == sess.ID || sources[other.ID] || other.Status != core.StatusActive || other.Kind.Cloud() != core.CloudAWS || ProfileName(other) != ProfileName(sess) {
+			continue
+		}
+		debug.Logf("session", "stop %s: profile %s taken over by %s", other.Name, ProfileName(other), sess.Name)
+		if err := s.deactivate(other); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// cacheable reports whether a session's credentials may be written to the
+// credential cache. An IAM user without MFA yields its long-lived key, which
+// stays in the keychain only.
+func cacheable(sess *core.Session) bool {
+	return sess.Kind != core.KindAWSIAMUser || (sess.AWS != nil && sess.AWS.MFADevice != "")
+}
+
+func (s *Service) cachePut(sess *core.Session, creds core.Credentials) error {
+	if !cacheable(sess) {
+		return nil
+	}
+	return s.Cache.Put(sess.ID, creds)
 }
 
 // Stop drops cached credentials, removes the AWS profile, and marks the session inactive.
@@ -533,11 +661,30 @@ func (s *Service) credentials(ctx context.Context, w *core.Workspace, sess *core
 		debug.Logf("creds", "%s refresh failed: %v", sess.Name, err)
 		return core.Credentials{}, err
 	}
+	if !cacheable(sess) {
+		return creds, nil
+	}
 	if err := s.Cache.Put(sess.ID, creds); err != nil {
 		return core.Credentials{}, err
 	}
 	sess.Expires = creds.Expiration
-	return creds, s.Save(w)
+	return creds, s.saveExpires(sess.ID, creds.Expiration)
+}
+
+// saveExpires records a session's new expiry in a fresh copy of the
+// workspace. The caller's copy may predate a network round trip, so writing
+// it back would drop changes made in the meantime.
+func (s *Service) saveExpires(id string, exp *time.Time) error {
+	w, err := s.Load()
+	if err != nil {
+		return err
+	}
+	sess, err := w.Session(id)
+	if err != nil || sess.Status != core.StatusActive {
+		return nil
+	}
+	sess.Expires = exp
+	return s.Save(w)
 }
 
 // fetch obtains credentials from the provider behind a session.
@@ -629,10 +776,7 @@ func (s *Service) Refresh() (*core.Workspace, error) {
 	expired := map[string]bool{}
 	for i := range w.Sessions {
 		sess := &w.Sessions[i]
-		if sess.Status != core.StatusActive {
-			continue
-		}
-		if _, err := s.Cache.Get(sess.ID); err == nil {
+		if sess.Status != core.StatusActive || !s.stale(sess) {
 			continue
 		}
 		if !s.renewable(sess) {
@@ -642,12 +786,17 @@ func (s *Service) Refresh() (*core.Workspace, error) {
 		}
 		creds, err := s.fetch(ctx, w, sess, "")
 		if err != nil {
-			debug.Logf("refresh", "%s renewal failed, deactivating: %v", sess.Name, err)
-			expired[sess.ID] = true
+			if permanent(err) {
+				debug.Logf("refresh", "%s renewal failed, deactivating: %v", sess.Name, err)
+				expired[sess.ID] = true
+			} else {
+				// A network problem is not an expired session. Try again next tick.
+				debug.Logf("refresh", "%s renewal failed, will retry: %v", sess.Name, err)
+			}
 			continue
 		}
 		debug.Logf("refresh", "%s renewed until %v", sess.Name, creds.Expiration)
-		if err := s.Cache.Put(sess.ID, creds); err != nil {
+		if err := s.cachePut(sess, creds); err != nil {
 			return nil, err
 		}
 		renewed[sess.ID] = creds.Expiration
@@ -658,6 +807,7 @@ func (s *Service) Refresh() (*core.Workspace, error) {
 	if w, err = s.Load(); err != nil {
 		return nil, err
 	}
+	tokenSeen := map[string]bool{}
 	for i := range w.Sessions {
 		sess := &w.Sessions[i]
 		if sess.Status != core.StatusActive {
@@ -665,12 +815,64 @@ func (s *Service) Refresh() (*core.Workspace, error) {
 		}
 		if exp, ok := renewed[sess.ID]; ok {
 			sess.Expires = exp
+			// A renewed Identity Center role proves the portal token is valid,
+			// possibly through a silent token refresh. Record the new expiry.
+			if sess.Kind == core.KindAWSSSORole && !tokenSeen[sess.IntegrationID] {
+				tokenSeen[sess.IntegrationID] = true
+				if in, err := w.Integration(sess.IntegrationID); err == nil {
+					in.AWSSSO.TokenExpires = s.sso(*in).TokenExpiry()
+				}
+			}
 		}
 		if expired[sess.ID] {
 			_ = s.deactivate(sess)
 		}
 	}
 	return w, s.Save(w)
+}
+
+// ReconcileProfiles rewrites the AWS profile of every active AWS session so
+// credential_process names this executable. A profile written by a binary
+// that has since moved (a DMG, App Translocation, a Downloads folder) would
+// otherwise point at a path that no longer exists.
+func (s *Service) ReconcileProfiles() error {
+	w, err := s.Load()
+	if err != nil {
+		return err
+	}
+	var first error
+	for i := range w.Sessions {
+		sess := &w.Sessions[i]
+		if sess.Status != core.StatusActive || sess.Kind.Cloud() != core.CloudAWS {
+			continue
+		}
+		if err := s.writeCloudFiles(sess); err != nil && first == nil {
+			first = err
+		}
+	}
+	return first
+}
+
+// stale reports whether a session's credentials need renewal: a cache miss,
+// or for an uncached IAM user, an expiry that has passed.
+func (s *Service) stale(sess *core.Session) bool {
+	if cacheable(sess) {
+		_, err := s.Cache.Get(sess.ID)
+		return err != nil
+	}
+	now := time.Now()
+	if s.Now != nil {
+		now = s.Now()
+	}
+	return sess.Expires == nil || !now.Before(*sess.Expires)
+}
+
+// permanent reports whether a renewal error means the session cannot renew
+// without the user: a sign-in is needed, or a source session is gone.
+func permanent(err error) bool {
+	return errors.Is(err, aws.ErrSSOLoginRequired) || errors.Is(err, azure.ErrLoginRequired) ||
+		errors.Is(err, ErrSessionInactive) || errors.Is(err, core.ErrNotFound) ||
+		errors.Is(err, aws.ErrNoAccessKey) || errors.Is(err, gcp.ErrNoADC)
 }
 
 // renewable reports whether a session can refresh without user input.
@@ -753,15 +955,15 @@ func (s *Service) UpdateSettings(in core.Settings) (core.Settings, error) {
 // RenameIntegration changes an integration's alias.
 func (s *Service) RenameIntegration(ref, alias string) error {
 	alias = strings.TrimSpace(alias)
-	if alias == "" {
-		return errors.New("name cannot be empty")
-	}
 	w, err := s.Load()
 	if err != nil {
 		return err
 	}
 	in, err := FindIntegration(w, ref)
 	if err != nil {
+		return err
+	}
+	if err := checkAlias(w, alias, in.ID); err != nil {
 		return err
 	}
 	in.Alias = alias
@@ -772,15 +974,15 @@ func (s *Service) RenameIntegration(ref, alias string) error {
 // profile to the new name so the shell keeps working.
 func (s *Service) RenameSession(ref, name string) error {
 	name = strings.TrimSpace(name)
-	if name == "" {
-		return errors.New("name cannot be empty")
-	}
 	w, err := s.Load()
 	if err != nil {
 		return err
 	}
 	sess, err := FindSession(w, ref)
 	if err != nil {
+		return err
+	}
+	if err := checkSessionName(w, name, sess.ID); err != nil {
 		return err
 	}
 	oldProfile := ProfileName(sess)
@@ -810,15 +1012,13 @@ func (s *Service) SetFavorite(ref string, favorite bool) error {
 	return s.Save(w)
 }
 
-var profileNameRe = regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
-
 // SetProfile sets the AWS profile name a session writes. An empty name
 // returns to "default". An active session moves its profile section to the
-// new name.
+// new name and takes it over from any other active session.
 func (s *Service) SetProfile(ref, profile string) error {
 	profile = strings.TrimSpace(profile)
-	if profile != "" && !profileNameRe.MatchString(profile) {
-		return errors.New("profile names may contain letters, digits, '.', '-', and '_'")
+	if err := checkProfile(profile); err != nil {
+		return err
 	}
 	w, err := s.Load()
 	if err != nil {
@@ -845,6 +1045,9 @@ func (s *Service) SetProfile(ref, profile string) error {
 	sess.AWS.Profile = profile
 	if sess.Status == core.StatusActive && newProfile != oldProfile {
 		if err := s.writeCloudFiles(sess); err != nil {
+			return err
+		}
+		if err := s.takeOverProfile(w, sess); err != nil {
 			return err
 		}
 	}
