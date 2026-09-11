@@ -81,9 +81,9 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
             const items = workspace.integrations.filter((i) => i.cloud === sec.cloud);
             return (
               <div key={sec.cloud}>
-                <div className="mb-1 flex items-center justify-between px-2">
+                <div className="mb-1 flex items-center justify-between pl-2 pr-2">
                   <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{sec.title}</p>
-                  <Button variant="ghost" size="icon-xs" onClick={() => setDialog(sec.addKind)} title="Add"><Plus className="size-3.5" /></Button>
+                  <Button variant="ghost" size="icon-xs" className="text-muted-foreground" onClick={() => setDialog(sec.addKind)} title="Add"><Plus className="size-3.5" /></Button>
                 </div>
                 {items.length === 0 && <p className="px-2 py-1 text-xs text-muted-foreground/70">None yet.</p>}
                 {items.map((integ) => {
@@ -91,7 +91,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                   const sync = integ.cloud === CloudKind.CloudAzure ? api.SyncAzure : integ.cloud === CloudKind.CloudGCP ? api.SyncGCP : api.SyncSSO;
                   const logout = integ.cloud === CloudKind.CloudAzure ? api.AzureLogout : api.SSOLogout;
                   return (
-                    <div key={integ.id} className="group flex items-center">
+                    <div key={integ.id} className="group flex items-center gap-1 pr-2">
                       <SideItem
                         active={filter === integ.id}
                         onClick={() => setFilter(integ.id)}
