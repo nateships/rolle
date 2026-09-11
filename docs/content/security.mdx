@@ -21,6 +21,10 @@ Rolle writes only profiles it owns, marked with a `rolle_session` key. It refuse
 
 The app and the CLI collect nothing. Network traffic goes to the cloud providers you sign in to, and to `github.com` for the update manifest when the update check is on. No analytics, no crash reporting, no usage data.
 
+## Enterprise networks
+
+TLS is verified against the OS trust store: the macOS Keychain, Windows certificate store, or the Linux system bundle. A corporate root installed there, as TLS inspection products require, works with no Rolle configuration. For a root that is not in the OS store, point **Settings → Advanced → Extra CA bundle** at a PEM file. **HTTPS proxy** routes every request through one proxy when the app cannot see your shell's `HTTPS_PROXY`. Both apply to the CLI and the app, including the AWS SDK calls.
+
 ## Signed updates
 
 Release manifests are signed with an Ed25519 key. The desktop app verifies the signature before it installs an update. macOS builds are signed with a Developer ID certificate and notarized.

@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 
 	"github.com/nateships/rolle/internal/core"
+	"github.com/nateships/rolle/internal/netcfg"
 	"github.com/nateships/rolle/internal/secrets"
 )
 
@@ -81,6 +82,7 @@ func IAMUserCredentials(ctx context.Context, in IAMUserInput) (core.Credentials,
 	cfg, err := config.LoadDefaultConfig(ctx,
 		config.WithRegion(in.Region),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(in.Key.AccessKeyID, in.Key.SecretAccessKey, "")),
+		config.WithHTTPClient(netcfg.Client()),
 	)
 	if err != nil {
 		return core.Credentials{}, err

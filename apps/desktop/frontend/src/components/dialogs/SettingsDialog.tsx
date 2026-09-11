@@ -3,6 +3,7 @@ import { Check, Copy, Download, Loader2, Monitor, Moon, RefreshCw, RotateCcw, Su
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -247,6 +248,29 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
             </TabsContent>
 
             <TabsContent value="advanced" className="mt-4 min-h-64 space-y-3">
+              <p className="text-xs font-medium text-muted-foreground">Network</p>
+              <Row label="HTTPS proxy" hint="Empty follows HTTPS_PROXY. Example: http://proxy.corp:3128">
+                <Input
+                  key={`proxy-${settings.proxyUrl ?? ""}`}
+                  defaultValue={settings.proxyUrl ?? ""}
+                  placeholder="http://host:port"
+                  className="w-64 font-mono text-xs"
+                  onBlur={(e) =>
+                    e.target.value.trim() !== (settings.proxyUrl ?? "") && update({ proxyUrl: e.target.value.trim() })
+                  }
+                />
+              </Row>
+              <Row label="Extra CA bundle" hint="PEM file added to the OS trust store, for TLS inspection roots.">
+                <Input
+                  key={`ca-${settings.caBundle ?? ""}`}
+                  defaultValue={settings.caBundle ?? ""}
+                  placeholder="/path/to/corp-root.pem"
+                  className="w-64 font-mono text-xs"
+                  onBlur={(e) =>
+                    e.target.value.trim() !== (settings.caBundle ?? "") && update({ caBundle: e.target.value.trim() })
+                  }
+                />
+              </Row>
               <p className="text-xs font-medium text-destructive">Danger zone</p>
               <div className="flex flex-wrap gap-2">
                 <Button

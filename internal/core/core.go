@@ -5,6 +5,7 @@ package core
 
 import (
 	"errors"
+	"strings"
 	"time"
 )
 
@@ -168,6 +169,11 @@ type Settings struct {
 	AutoUpdateOff bool `json:"autoUpdateOff"`
 	// Terminal picks the terminal app for "Open terminal". Empty means auto.
 	Terminal string `json:"terminal,omitempty"`
+	// ProxyURL routes every request through one proxy. Empty follows the
+	// HTTPS_PROXY environment.
+	ProxyURL string `json:"proxyUrl,omitempty"`
+	// CABundle is a PEM file of extra roots, added to the OS trust store.
+	CABundle string `json:"caBundle,omitempty"`
 }
 
 // DefaultSettings are used until the user changes something.
@@ -190,6 +196,8 @@ func (s Settings) Normalize() Settings {
 	if s.AssumeRoleMinutes > 12*60 {
 		s.AssumeRoleMinutes = 12 * 60
 	}
+	s.ProxyURL = strings.TrimSpace(s.ProxyURL)
+	s.CABundle = strings.TrimSpace(s.CABundle)
 	return s
 }
 

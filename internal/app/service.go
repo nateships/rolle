@@ -18,6 +18,7 @@ import (
 	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/credcache"
 	"github.com/nateships/rolle/internal/debug"
+	"github.com/nateships/rolle/internal/netcfg"
 	"github.com/nateships/rolle/internal/secrets"
 	"github.com/nateships/rolle/internal/workspace"
 )
@@ -45,13 +46,20 @@ func Default() (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Service{
+	s := &Service{
 		WorkspacePath: workspace.DefaultPath(),
 		AWSConfigPath: awsPath,
 		Executable:    exe,
 		Secrets:       secrets.NewKeychain(),
 		Cache:         credcache.Default(),
-	}, nil
+	}
+	// A bad proxy or bundle must not stop the app; it is reported when edited.
+	if st, err := s.Settings(); err == nil {
+		if err := netcfg.Apply(st); err != nil {
+			debug.Logf("network", "%v", err)
+		}
+	}
+	return s, nil
 }
 
 // Load reads the workspace.
@@ -730,6 +738,9 @@ func (s *Service) UpdateSettings(in core.Settings) (core.Settings, error) {
 		return core.Settings{}, err
 	}
 	n := in.Normalize()
+	if err := netcfg.Apply(n); err != nil {
+		return core.Settings{}, err
+	}
 	w.Settings = &n
 	if err := s.Save(w); err != nil {
 		return core.Settings{}, err

@@ -25,6 +25,7 @@ import (
 	oidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
 
 	"github.com/nateships/rolle/internal/core"
+	"github.com/nateships/rolle/internal/netcfg"
 	"github.com/nateships/rolle/internal/secrets"
 )
 
@@ -92,6 +93,7 @@ func (s *SSO) cfg(ctx context.Context) (aws.Config, error) {
 	return config.LoadDefaultConfig(ctx,
 		config.WithRegion(s.Integration.AWSSSO.Region),
 		config.WithCredentialsProvider(aws.AnonymousCredentials{}),
+		config.WithHTTPClient(netcfg.Client()),
 	)
 }
 

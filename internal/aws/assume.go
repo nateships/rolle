@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 
 	"github.com/nateships/rolle/internal/core"
+	"github.com/nateships/rolle/internal/netcfg"
 )
 
 // AssumeRoleInput describes one AssumeRole call.
@@ -32,6 +33,7 @@ func AssumeRole(ctx context.Context, in AssumeRoleInput) (core.Credentials, erro
 	cfg, err := config.LoadDefaultConfig(ctx,
 		config.WithRegion(in.Region),
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(in.Source.AccessKeyID, in.Source.SecretAccessKey, in.Source.SessionToken)),
+		config.WithHTTPClient(netcfg.Client()),
 	)
 	if err != nil {
 		return core.Credentials{}, err

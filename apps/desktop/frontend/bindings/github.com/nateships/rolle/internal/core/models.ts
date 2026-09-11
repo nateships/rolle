@@ -236,6 +236,17 @@ export interface Settings {
      * Terminal picks the terminal app for "Open terminal". Empty means auto.
      */
     "terminal"?: string;
+
+    /**
+     * ProxyURL routes every request through one proxy. Empty follows the
+     * HTTPS_PROXY environment.
+     */
+    "proxyUrl"?: string;
+
+    /**
+     * CABundle is a PEM file of extra roots, added to the OS trust store.
+     */
+    "caBundle"?: string;
 }
 
 /**

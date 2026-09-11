@@ -21,6 +21,10 @@ The Identity Center token for that portal has expired. Press **Start** again in 
 
 Rolle looks for `gcloud` on your `PATH`, then in the usual install locations: Homebrew, the Google Cloud SDK installer, and [mise](https://mise.jdx.dev) installs. An app started from the Dock or Start menu does not get your shell's `PATH`, so a `gcloud` that only your shell can see may be missed. Install the SDK with Homebrew, the official installer, or `mise use -g gcloud`, then run the sign-in command shown on the Google Cloud connect step and press **Check again**.
 
+## TLS errors behind an inspecting proxy
+
+Rolle trusts the OS trust store. Install your organisation's root there (Keychain Access on macOS, `certmgr` on Windows, `update-ca-certificates` on Linux). If the root is only available as a file, set **Settings → Advanced → Extra CA bundle** to that PEM. Set **HTTPS proxy** when the app runs without your shell's proxy variables.
+
 ## macOS asks for keychain access
 
 Rolle stores refresh tokens and access keys in the login keychain under the service `rolle`. Choose **Always Allow** so every start does not prompt.
