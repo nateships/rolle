@@ -6,10 +6,12 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	_ "embed"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html/template"
 	"net"
 	"net/http"
 	"net/url"
@@ -31,6 +33,16 @@ const (
 	scopeAccountAccess = "sso:account:access"
 	redirectPath       = "/oauth/callback"
 )
+
+// callbackHTML is the page the browser shows after the loopback redirect.
+//
+//go:embed callback.html
+var callbackHTML string
+
+var callbackPage = template.Must(template.New("callback").Parse(callbackHTML))
+
+// callbackView fills callback.html.
+type callbackView struct{ Class, Title, Text string }
 
 // ssoToken is the cached IAM Identity Center access token for one integration.
 type ssoToken struct {
@@ -121,23 +133,28 @@ func (s *SSO) StartLogin(ctx context.Context) (*DeviceAuthorization, error) {
 	mux := http.NewServeMux()
 	mux.HandleFunc(redirectPath, func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query()
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		view := callbackView{Class: "ok", Title: "Signed in", Text: "You can close this tab and return to Rolle."}
+		if q.Get("error") != "" {
+			view = callbackView{Class: "err", Title: "Sign-in was not approved", Text: "You can close this tab and try again from Rolle."}
+		}
+		_ = callbackPage.Execute(w, view)
+		// The page is sent before the flow continues, so the tab never sees a dropped connection.
 		select {
 		case got <- callback{code: q.Get("code"), state: q.Get("state"), err: q.Get("error")}:
 		default:
 		}
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		if q.Get("error") != "" {
-			_, _ = fmt.Fprint(w, "<!doctype html><title>Rolle</title><p>Sign-in was not approved. You can close this tab.</p>")
-			return
-		}
-		_, _ = fmt.Fprint(w, "<!doctype html><title>Rolle</title><p>Signed in. You can close this tab and return to Rolle.</p>")
 	})
 	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 	go func() { _ = srv.Serve(ln) }()
 
 	d := &DeviceAuthorization{VerificationURI: authorizeURL(s.Integration.AWSSSO.Region, aws.ToString(reg.ClientId), redirect, state, challenge)}
 	d.complete = func(ctx context.Context) error {
-		defer func() { _ = srv.Close() }()
+		defer func() {
+			shutdown, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+			_ = srv.Shutdown(shutdown)
+		}()
 		var cb callback
 		select {
 		case cb = <-got:

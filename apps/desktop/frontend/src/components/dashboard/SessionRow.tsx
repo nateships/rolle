@@ -123,32 +123,42 @@ export function SessionRow({
       transition={{ duration: 0.15, ease: "easeOut" }}
       className={cn("group border-b transition-colors hover:bg-muted/50", active && "bg-emerald-500/[0.04]")}
     >
-      <TableCell className="pr-0 text-center">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              aria-label={active ? "Stop" : "Start"}
-              disabled={busy}
-              onClick={() => (active ? stop() : needsMFA ? setMfaOpen(true) : start())}
-              className={cn(
-                "relative inline-flex size-7 items-center justify-center rounded-full border transition-colors disabled:opacity-60",
-                active
-                  ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25"
-                  : "border-border text-muted-foreground hover:border-foreground/40 hover:bg-accent hover:text-foreground",
-              )}
-            >
-              {busy ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : active ? (
-                <Square className="size-2.5 fill-current" />
-              ) : (
-                <Play className="size-3 fill-current" />
-              )}
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right">{active ? "Stop" : "Start"}</TooltipContent>
-        </Tooltip>
+      <TableCell className="pr-0">
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            aria-label={active ? "Stop" : "Start"}
+            disabled={busy}
+            onClick={() => (active ? stop() : needsMFA ? setMfaOpen(true) : start())}
+            className={cn(
+              "relative inline-flex size-7 items-center justify-center rounded-full border transition-colors disabled:opacity-60",
+              active
+                ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25"
+                : "border-border text-muted-foreground hover:border-foreground/40 hover:bg-accent hover:text-foreground",
+            )}
+          >
+            {busy ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : active ? (
+              <Square className="size-2.5 fill-current" />
+            ) : (
+              <Play className="size-3 fill-current" />
+            )}
+          </button>
+          <button
+            type="button"
+            aria-label={s.favorite ? "Remove from favorites" : "Add to favorites"}
+            onClick={() => api.SetFavorite(s.id, !s.favorite).catch((e) => toast.error(errorMessage(e)))}
+            className={cn(
+              "rounded p-1 transition-opacity",
+              s.favorite
+                ? "text-brand-orange"
+                : "text-muted-foreground/50 opacity-0 hover:text-foreground group-hover:opacity-100 group-focus-within:opacity-100",
+            )}
+          >
+            <Star className={cn("size-4", s.favorite && "fill-current")} />
+          </button>
+        </div>
       </TableCell>
       <TableCell>
         <div className={cn("flex items-center gap-2.5", nested && "pl-10")}>
@@ -225,19 +235,6 @@ export function SessionRow({
       </TableCell>
       <TableCell className="text-right">
         <div className="flex items-center justify-end gap-0.5">
-          <button
-            type="button"
-            aria-label={s.favorite ? "Remove from favorites" : "Add to favorites"}
-            onClick={() => api.SetFavorite(s.id, !s.favorite).catch((e) => toast.error(errorMessage(e)))}
-            className={cn(
-              "rounded p-1 transition-opacity",
-              s.favorite
-                ? "text-brand-orange"
-                : "text-muted-foreground/50 opacity-0 hover:text-foreground group-hover:opacity-100 group-focus-within:opacity-100",
-            )}
-          >
-            <Star className={cn("size-4", s.favorite && "fill-current")} />
-          </button>
           <div
             className={cn(
               "flex items-center gap-0.5 transition-opacity",

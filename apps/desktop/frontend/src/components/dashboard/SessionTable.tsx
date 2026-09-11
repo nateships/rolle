@@ -137,12 +137,12 @@ export function SessionTable({ sessions, workspace, searching, flat, widths, onW
     <div className="overflow-hidden rounded-lg border bg-card">
       <Table className="table-fixed">
         <colgroup>
-          <col style={{ width: 56 }} />
+          <col style={{ width: 84 }} />
           <col />
           <col style={{ width: widths.profile }} />
           <col style={{ width: widths.region }} />
           <col style={{ width: widths.state }} />
-          <col style={{ width: 208 }} />
+          <col style={{ width: 184 }} />
         </colgroup>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
@@ -187,9 +187,9 @@ function AccountRow({ row, open, onToggle }: { row: Row & { group: true }; open:
         active > 0 && "bg-emerald-500/[0.04]",
       )}
     >
-      <TableCell className="pr-0 text-center">
+      <TableCell className="pr-0">
         <ChevronRight
-          className={cn("inline-block size-4 text-muted-foreground transition-transform", open && "rotate-90")}
+          className={cn("ml-1.5 inline-block size-4 text-muted-foreground transition-transform", open && "rotate-90")}
         />
       </TableCell>
       <TableCell colSpan={5}>
