@@ -1,0 +1,9 @@
+version: '3'
+
+# `wails3 dev` runs from the module root so that changes under internal/ rebuild
+# the desktop app. This file exposes the desktop tasks at the root.
+includes:
+  desktop:
+    taskfile: apps/desktop/Taskfile.yml
+    dir: apps/desktop
+    flatten: true
