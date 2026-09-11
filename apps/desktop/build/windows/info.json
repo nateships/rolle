@@ -1,0 +1,15 @@
+{
+	"fixed": {
+		"file_version": "0.0.1"
+	},
+	"info": {
+		"0000": {
+			"ProductVersion": "0.0.1",
+			"CompanyName": "nateships",
+			"FileDescription": "Assume any role, any cloud",
+			"LegalCopyright": "(c) 2026, nateships",
+			"ProductName": "Rolle",
+			"Comments": "Cloud credential and role manager"
+		}
+	}
+}
