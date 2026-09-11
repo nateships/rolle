@@ -3,14 +3,14 @@
 Assume any role, any cloud.
 
 Rolle is a desktop app and CLI that manages short-lived cloud credentials.
-It is a Rust successor to [Leapp](https://github.com/Noovolari/leapp), which is no longer maintained.
+It is a Go successor to [Leapp](https://github.com/Noovolari/leapp), which is no longer maintained.
 
 ## Layout
 
-- `crates/rolle-core`: sessions, provider trait, credential storage
-- `crates/rolled`: background daemon that owns sessions and refresh timers
-- `crates/rolle`: CLI, thin client for the daemon
-- `apps/desktop`: Tauri 2 desktop app (Svelte)
+- `internal/core`: sessions, provider interface, credential storage
+- `cmd/rolled`: background daemon that owns sessions and refresh timers
+- `cmd/rolle`: CLI, thin client for the daemon
+- `apps/desktop`: Wails v3 desktop app (Svelte)
 
 ## Develop
 
@@ -21,4 +21,4 @@ mise run check
 mise run desktop
 ```
 
-Cargo builds run through [mr. boxington](https://mr-boxington.jdx.dev/). Frontend packages use [aube](https://aube.sh). Both come from mise.
+Tools come from mise. Frontend packages use [aube](https://aube.sh).

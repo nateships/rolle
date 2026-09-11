@@ -1,23 +1,29 @@
 [tools]
-rust = { version = "1.95", components = ["rustfmt", "clippy"] }
+go = "1.26"
+golangci-lint = "latest"
 node = "26"
 aube = "2.2"
-mr-boxington = { version = "latest", postinstall = "mbx setup --yes" }
+"go:github.com/wailsapp/wails/v3/cmd/wails3" = "v3.0.0-beta.20"
 
 [tasks.setup]
 description = "Install frontend dependencies"
 run = "aube install"
-dir = "apps/desktop"
+dir = "apps/desktop/frontend"
 
 [tasks.check]
-description = "Format check, lint, and test the workspace"
+description = "Vet, lint, and test the module"
 run = [
-  "cargo fmt --all --check",
-  "cargo clippy --workspace --all-targets -- -D warnings",
-  "cargo test --workspace",
+  "go vet ./...",
+  "golangci-lint run ./...",
+  "go test ./...",
 ]
 
 [tasks.desktop]
 description = "Run the desktop app in dev mode"
-run = "aubr tauri dev"
+run = "wails3 dev"
+dir = "apps/desktop"
+
+[tasks."desktop:build"]
+description = "Build the desktop app"
+run = "wails3 build"
 dir = "apps/desktop"
