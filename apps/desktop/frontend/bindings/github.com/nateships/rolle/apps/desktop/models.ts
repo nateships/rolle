@@ -10,6 +10,15 @@ export interface DeviceLogin {
 }
 
 /**
+ * GCPStatus reports whether gcloud Application Default Credentials exist.
+ */
+export interface GCPStatus {
+    "ready": boolean;
+    "account": string;
+    "loginCommand": string;
+}
+
+/**
  * IAMUserInput is the frontend shape for a new IAM user session.
  */
 export interface IAMUserInput {

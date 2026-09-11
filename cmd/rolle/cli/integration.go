@@ -7,8 +7,41 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/nateships/rolle/internal/app"
 	"github.com/nateships/rolle/internal/browser"
+	"github.com/nateships/rolle/internal/core"
 )
+
+func azureLogin(cmd *cobra.Command, ref string, noBrowser bool) error {
+	var added []core.Session
+	var err error
+	if noBrowser {
+		dc, err := svc.AzureDeviceLogin(cmd.Context(), ref)
+		if err != nil {
+			return err
+		}
+		fmt.Println(dc.Message)
+		account, err := dc.Wait(cmd.Context())
+		if err != nil {
+			return err
+		}
+		added, err = svc.FinishAzureLogin(cmd.Context(), ref, account)
+		if err != nil {
+			return err
+		}
+	} else {
+		fmt.Println("Complete the sign-in in your browser...")
+		added, err = svc.AzureLogin(cmd.Context(), ref)
+		if err != nil {
+			return err
+		}
+	}
+	fmt.Printf("Logged in. %d new subscription(s) discovered.\n", len(added))
+	for _, s := range added {
+		fmt.Printf("  %s\n", s.Name)
+	}
+	return nil
+}
 
 func integrationCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "integration", Aliases: []string{"int"}, Short: "Manage identity sources"}
@@ -37,7 +70,7 @@ func integrationAddCmd() *cobra.Command {
 	_ = sso.MarkFlagRequired("alias")
 	_ = sso.MarkFlagRequired("start-url")
 	_ = sso.MarkFlagRequired("region")
-	add.AddCommand(sso)
+	add.AddCommand(sso, integrationAddAzureCmd(), integrationAddGCPCmd())
 	return add
 }
 
@@ -54,8 +87,13 @@ func integrationListCmd() *cobra.Command {
 			fmt.Fprintln(tw, "ALIAS\tCLOUD\tSTATE\tID")
 			for _, in := range w.Integrations {
 				state := "logged out"
-				if in.AWSSSO != nil && in.AWSSSO.TokenExpires != nil {
+				switch {
+				case in.AWSSSO != nil && in.AWSSSO.TokenExpires != nil:
 					state = "logged in until " + in.AWSSSO.TokenExpires.Local().Format("Jan 2 15:04")
+				case in.Azure != nil && in.Azure.Account != "":
+					state = in.Azure.Account
+				case in.GCP != nil && in.GCP.Account != "":
+					state = in.GCP.Account
 				}
 				fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", in.Alias, in.Cloud, state, in.ID)
 			}
@@ -71,6 +109,25 @@ func integrationLoginCmd() *cobra.Command {
 		Short: "Sign in and discover roles",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			w, err := svc.Load()
+			if err != nil {
+				return err
+			}
+			in, err := app.FindIntegration(w, args[0])
+			if err != nil {
+				return err
+			}
+			switch in.Cloud {
+			case core.CloudAzure:
+				return azureLogin(cmd, args[0], noBrowser)
+			case core.CloudGCP:
+				added, err := svc.SyncGCP(cmd.Context(), args[0])
+				if err != nil {
+					return err
+				}
+				fmt.Printf("%d new project(s)\n", len(added))
+				return nil
+			}
 			auth, err := svc.SSOLogin(cmd.Context(), args[0])
 			if err != nil {
 				return err
@@ -103,7 +160,20 @@ func integrationLogoutCmd() *cobra.Command {
 		Use:   "logout <integration>",
 		Short: "Sign out and stop its sessions",
 		Args:  cobra.ExactArgs(1),
-		RunE:  func(_ *cobra.Command, args []string) error { return svc.SSOLogout(args[0]) },
+		RunE: func(cmd *cobra.Command, args []string) error {
+			w, err := svc.Load()
+			if err != nil {
+				return err
+			}
+			in, err := app.FindIntegration(w, args[0])
+			if err != nil {
+				return err
+			}
+			if in.Cloud == core.CloudAzure {
+				return svc.AzureLogout(cmd.Context(), args[0])
+			}
+			return svc.SSOLogout(args[0])
+		},
 	}
 }
 
@@ -113,11 +183,27 @@ func integrationSyncCmd() *cobra.Command {
 		Short: "Rediscover accounts and roles",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			added, err := svc.SyncSSO(cmd.Context(), args[0])
+			w, err := svc.Load()
 			if err != nil {
 				return err
 			}
-			fmt.Printf("%d new role(s)\n", len(added))
+			in, err := app.FindIntegration(w, args[0])
+			if err != nil {
+				return err
+			}
+			var added []core.Session
+			switch in.Cloud {
+			case core.CloudAzure:
+				added, err = svc.SyncAzure(cmd.Context(), args[0])
+			case core.CloudGCP:
+				added, err = svc.SyncGCP(cmd.Context(), args[0])
+			default:
+				added, err = svc.SyncSSO(cmd.Context(), args[0])
+			}
+			if err != nil {
+				return err
+			}
+			fmt.Printf("%d new session(s)\n", len(added))
 			return nil
 		},
 	}

@@ -8,5 +8,6 @@ export {
 
 export type {
     DeviceLogin,
+    GCPStatus,
     IAMUserInput
 } from "./models.js";

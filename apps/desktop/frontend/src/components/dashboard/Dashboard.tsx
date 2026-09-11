@@ -1,17 +1,30 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { KeyRound, LogIn, LogOut, MoreHorizontal, Plus, RefreshCw, Search, ShieldCheck, Trash2, Waypoints } from "lucide-react";
+import { Cloud, KeyRound, LogIn, LogOut, MoreHorizontal, Plus, RefreshCw, Search, ShieldCheck, Trash2, UserCog, Waypoints } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Mark, CloudGlyph } from "@/components/Brand";
 import { SessionRow } from "./SessionRow";
-import { AddSSODialog, AddAssumeRoleDialog, AddIAMUserDialog, LoginDialog } from "@/components/dialogs/Dialogs";
-import { api, errorMessage, Status, type Integration, type Workspace } from "@/lib/api";
+import { AddSSODialog, AddAssumeRoleDialog, AddIAMUserDialog, AddAzureDialog, AddGCPDialog, AddGCPImpersonationDialog, LoginDialog } from "@/components/dialogs/Dialogs";
+import { api, errorMessage, Cloud as CloudKind, Status, type Integration, type Workspace } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-type Dialog = null | { kind: "sso" } | { kind: "assume" } | { kind: "iam" } | { kind: "login"; integration: Integration };
+type Dialog = null | { kind: "sso" } | { kind: "assume" } | { kind: "iam" } | { kind: "azure" } | { kind: "gcp" } | { kind: "gcp-impersonate" } | { kind: "login"; integration: Integration };
+
+function isLoggedIn(integ: Integration): boolean {
+  if (integ.awsSso) return !!integ.awsSso.tokenExpires && new Date(integ.awsSso.tokenExpires).getTime() > Date.now();
+  if (integ.azure) return !!integ.azure.account;
+  if (integ.gcp) return !!integ.gcp.account;
+  return false;
+}
+
+const CLOUD_SECTIONS: { cloud: string; title: string; addKind: Dialog }[] = [
+  { cloud: CloudKind.CloudAWS, title: "AWS Identity Center", addKind: { kind: "sso" } },
+  { cloud: CloudKind.CloudAzure, title: "Azure tenants", addKind: { kind: "azure" } },
+  { cloud: CloudKind.CloudGCP, title: "Google Cloud", addKind: { kind: "gcp" } },
+];
 
 export function Dashboard({ workspace }: { workspace: Workspace }) {
   const [query, setQuery] = useState("");
@@ -50,44 +63,52 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
             <SideItem active={filter === null} onClick={() => setFilter(null)} label="All sessions" count={workspace.sessions.length} />
             {manualCount > 0 && <SideItem active={filter === "manual"} onClick={() => setFilter("manual")} label="Manual" count={manualCount} />}
           </div>
-          <div>
-            <div className="mb-1 flex items-center justify-between px-2">
-              <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Identity Center</p>
-              <Button variant="ghost" size="icon-xs" onClick={() => setDialog({ kind: "sso" })} title="Add portal"><Plus className="size-3.5" /></Button>
-            </div>
-            {workspace.integrations.length === 0 && <p className="px-2 py-1 text-xs text-muted-foreground/70">No portals yet.</p>}
-            {workspace.integrations.map((integ) => {
-              const loggedIn = !!integ.awsSso?.tokenExpires && new Date(integ.awsSso.tokenExpires).getTime() > Date.now();
-              return (
-                <div key={integ.id} className="group flex items-center">
-                  <SideItem
-                    active={filter === integ.id}
-                    onClick={() => setFilter(integ.id)}
-                    label={integ.alias}
-                    dot={loggedIn ? "ok" : "off"}
-                    count={workspace.sessions.filter((s) => s.integrationId === integ.id).length}
-                  />
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon-xs" className="opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"><MoreHorizontal className="size-3.5" /></Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" side="right">
-                      {loggedIn ? (
-                        <>
-                          <DropdownMenuItem onClick={() => run("Roles synced", () => api.SyncSSO(integ.id))}><RefreshCw /> Sync roles</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => run("Signed out", () => api.SSOLogout(integ.id))}><LogOut /> Sign out</DropdownMenuItem>
-                        </>
-                      ) : (
-                        <DropdownMenuItem onClick={() => setDialog({ kind: "login", integration: integ })}><LogIn /> Sign in</DropdownMenuItem>
-                      )}
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem variant="destructive" onClick={() => run("Portal removed", () => api.RemoveIntegration(integ.id))}><Trash2 /> Remove</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+          {CLOUD_SECTIONS.map((sec) => {
+            const items = workspace.integrations.filter((i) => i.cloud === sec.cloud);
+            return (
+              <div key={sec.cloud}>
+                <div className="mb-1 flex items-center justify-between px-2">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{sec.title}</p>
+                  <Button variant="ghost" size="icon-xs" onClick={() => setDialog(sec.addKind)} title="Add"><Plus className="size-3.5" /></Button>
                 </div>
-              );
-            })}
-          </div>
+                {items.length === 0 && <p className="px-2 py-1 text-xs text-muted-foreground/70">None yet.</p>}
+                {items.map((integ) => {
+                  const loggedIn = isLoggedIn(integ);
+                  const sync = integ.cloud === CloudKind.CloudAzure ? api.SyncAzure : integ.cloud === CloudKind.CloudGCP ? api.SyncGCP : api.SyncSSO;
+                  const logout = integ.cloud === CloudKind.CloudAzure ? api.AzureLogout : api.SSOLogout;
+                  return (
+                    <div key={integ.id} className="group flex items-center">
+                      <SideItem
+                        active={filter === integ.id}
+                        onClick={() => setFilter(integ.id)}
+                        label={integ.alias}
+                        dot={loggedIn ? "ok" : "off"}
+                        count={workspace.sessions.filter((s) => s.integrationId === integ.id).length}
+                      />
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon-xs" className="opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"><MoreHorizontal className="size-3.5" /></Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" side="right">
+                          {loggedIn ? (
+                            <>
+                              <DropdownMenuItem onClick={() => run("Synced", () => sync(integ.id))}><RefreshCw /> Sync</DropdownMenuItem>
+                              {integ.cloud !== CloudKind.CloudGCP && <DropdownMenuItem onClick={() => run("Signed out", () => logout(integ.id))}><LogOut /> Sign out</DropdownMenuItem>}
+                            </>
+                          ) : (
+                            <DropdownMenuItem onClick={() => (integ.cloud === CloudKind.CloudGCP ? run("Synced", () => api.SyncGCP(integ.id)) : setDialog({ kind: "login", integration: integ }))}><LogIn /> Sign in</DropdownMenuItem>
+                          )}
+                          {integ.cloud === CloudKind.CloudGCP && <DropdownMenuItem onClick={() => setDialog({ kind: "gcp-impersonate" })}><UserCog /> Impersonate service account</DropdownMenuItem>}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem variant="destructive" onClick={() => run("Removed", () => api.RemoveIntegration(integ.id))}><Trash2 /> Remove</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
         </nav>
         <div className="border-t p-3 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
@@ -109,9 +130,14 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
               <Button size="sm" className="no-drag gap-1.5"><Plus className="size-4" /> Add</Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setDialog({ kind: "sso" })}><ShieldCheck /> Identity Center portal</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDialog({ kind: "assume" })} disabled={workspace.sessions.length === 0}><Waypoints /> Assume role</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDialog({ kind: "iam" })}><KeyRound /> IAM user access key</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDialog({ kind: "sso" })}><ShieldCheck /> AWS Identity Center portal</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDialog({ kind: "assume" })} disabled={!workspace.sessions.some((s) => s.aws)}><Waypoints /> AWS assume role</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDialog({ kind: "iam" })}><KeyRound /> AWS IAM user access key</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setDialog({ kind: "azure" })}><Cloud /> Azure tenant</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setDialog({ kind: "gcp" })}><Cloud /> Google Cloud account</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDialog({ kind: "gcp-impersonate" })} disabled={!workspace.integrations.some((i) => i.gcp)}><UserCog /> GCP service account impersonation</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
@@ -134,6 +160,9 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
       <AddSSODialog open={dialog?.kind === "sso"} onClose={() => setDialog(null)} onLogin={(integ) => setDialog({ kind: "login", integration: integ })} />
       <AddAssumeRoleDialog open={dialog?.kind === "assume"} onClose={() => setDialog(null)} workspace={workspace} />
       <AddIAMUserDialog open={dialog?.kind === "iam"} onClose={() => setDialog(null)} />
+      <AddAzureDialog open={dialog?.kind === "azure"} onClose={() => setDialog(null)} onLogin={(integ) => setDialog({ kind: "login", integration: integ })} />
+      <AddGCPDialog open={dialog?.kind === "gcp"} onClose={() => setDialog(null)} />
+      <AddGCPImpersonationDialog open={dialog?.kind === "gcp-impersonate"} onClose={() => setDialog(null)} workspace={workspace} />
       <LoginDialog integration={dialog?.kind === "login" ? dialog.integration : null} onClose={() => setDialog(null)} />
     </div>
   );

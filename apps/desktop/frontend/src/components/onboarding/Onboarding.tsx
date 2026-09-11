@@ -9,9 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Mark, CloudGlyph } from "@/components/Brand";
 import { api, errorMessage, type Session, type Workspace } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
+import { cloudOf } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 type Step = "welcome" | "cloud" | "connect" | "approve" | "roles" | "done";
+type CloudChoice = "aws" | "azure" | "gcp";
 const ORDER: Step[] = ["welcome", "cloud", "connect", "approve", "roles", "done"];
 
 const slide = {
@@ -23,6 +25,7 @@ const slide = {
 
 export function Onboarding({ workspace }: { workspace: Workspace }) {
   const [step, setStep] = useState<Step>("welcome");
+  const [cloud, setCloud] = useState<CloudChoice>("aws");
   const [method, setMethod] = useState<"sso" | "key">("sso");
   const [alias, setAlias] = useState("");
   const [login, setLogin] = useState<{ verificationUri: string; userCode: string } | null>(null);
@@ -86,15 +89,15 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
             <motion.section key="cloud" {...slide} className="w-full max-w-2xl">
               <StepTitle eyebrow="Step 1" title="Where do your roles live?" hint="You can add more clouds later." />
               <div className="mt-8 grid grid-cols-3 gap-4">
-                <CloudCard cloud="aws" title="Amazon Web Services" desc="IAM Identity Center, assume role, IAM users" onClick={() => go("connect")} />
-                <CloudCard cloud="azure" title="Microsoft Azure" desc="Entra ID subscriptions" soon />
-                <CloudCard cloud="gcp" title="Google Cloud" desc="Service account impersonation" soon />
+                <CloudCard cloud="aws" title="Amazon Web Services" desc="IAM Identity Center, assume role, IAM users" onClick={() => { setCloud("aws"); go("connect"); }} />
+                <CloudCard cloud="azure" title="Microsoft Azure" desc="Entra ID tenants and subscriptions" onClick={() => { setCloud("azure"); go("connect"); }} />
+                <CloudCard cloud="gcp" title="Google Cloud" desc="Projects and service account impersonation" onClick={() => { setCloud("gcp"); go("connect"); }} />
               </div>
             </motion.section>
           )}
 
-          {step === "connect" && (
-            <motion.section key="connect" {...slide} className="w-full max-w-lg">
+          {step === "connect" && cloud === "aws" && (
+            <motion.section key="connect-aws" {...slide} className="w-full max-w-lg">
               <StepTitle eyebrow="Step 2" title="Connect to AWS" hint="Identity Center is the recommended path. It discovers every role you can reach." />
               <div className="mt-6 grid grid-cols-2 gap-3">
                 <MethodButton active={method === "sso"} onClick={() => setMethod("sso")} icon={<ShieldCheck className="size-4" />} title="IAM Identity Center" desc="Sign in once, get every role" />
@@ -141,27 +144,89 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                   />
                 )}
               </div>
+              <BackLink onClick={() => go("cloud")} />
             </motion.section>
           )}
 
-          {step === "approve" && login && (
+          {step === "connect" && cloud === "azure" && (
+            <motion.section key="connect-azure" {...slide} className="w-full max-w-lg">
+              <StepTitle eyebrow="Step 2" title="Connect to Azure" hint="Sign in with your Microsoft account. Rolle discovers every subscription you can see." />
+              <div className="mt-6">
+                <AzureForm
+                  busy={busy}
+                  onSubmit={async (v) => {
+                    setBusy(true);
+                    try {
+                      const integ = await api.AddAzure(v.alias, v.tenant);
+                      setAlias(integ.alias);
+                      setLogin(null);
+                      go("approve");
+                      const added = await api.AzureLogin(integ.id);
+                      setDiscovered(added);
+                      go("roles");
+                    } catch (e) {
+                      toast.error(errorMessage(e));
+                      go("connect");
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                />
+              </div>
+              <BackLink onClick={() => go("cloud")} />
+            </motion.section>
+          )}
+
+          {step === "connect" && cloud === "gcp" && (
+            <motion.section key="connect-gcp" {...slide} className="w-full max-w-lg">
+              <StepTitle eyebrow="Step 2" title="Connect to Google Cloud" hint="Rolle uses the credentials gcloud already has on this machine." />
+              <div className="mt-6">
+                <GCPConnect
+                  busy={busy}
+                  onSubmit={async (alias) => {
+                    setBusy(true);
+                    try {
+                      const added = await api.AddGCP(alias);
+                      setDiscovered(added);
+                      go("roles");
+                    } catch (e) {
+                      toast.error(errorMessage(e));
+                    } finally {
+                      setBusy(false);
+                    }
+                  }}
+                />
+              </div>
+              <BackLink onClick={() => go("cloud")} />
+            </motion.section>
+          )}
+
+          {step === "approve" && (
             <motion.section key="approve" {...slide} className="flex w-full max-w-lg flex-col items-center text-center">
-              <StepTitle eyebrow="Step 3" title="Approve in your browser" hint={`We opened ${alias}. Confirm this code when it asks.`} center />
-              <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="mt-8 rounded-xl border bg-card px-8 py-5 font-mono text-4xl font-semibold tracking-[0.3em] glow">
-                {login.userCode}
-              </motion.div>
+              <StepTitle eyebrow="Step 3" title={login ? "Approve in your browser" : "Sign in with Microsoft"} hint={login ? `We opened ${alias}. Confirm this code when it asks.` : `A browser window is open for ${alias}. Finish signing in there.`} center />
+              {login ? (
+                <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="mt-8 rounded-xl border bg-card px-8 py-5 font-mono text-4xl font-semibold tracking-[0.3em] glow">
+                  {login.userCode}
+                </motion.div>
+              ) : (
+                <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="mt-8 rounded-full bg-sky-500/10 p-6 text-sky-300 glow">
+                  <CloudGlyph cloud="azure" className="size-14 text-base" />
+                </motion.div>
+              )}
               <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" /> Waiting for approval…
               </div>
-              <Button variant="link" className="mt-2 gap-1 text-muted-foreground" onClick={() => void api.OpenURL(login.verificationUri)}>
-                Reopen the page <ExternalLink className="size-3" />
-              </Button>
+              {login && (
+                <Button variant="link" className="mt-2 gap-1 text-muted-foreground" onClick={() => void api.OpenURL(login.verificationUri)}>
+                  Reopen the page <ExternalLink className="size-3" />
+                </Button>
+              )}
             </motion.section>
           )}
 
           {step === "roles" && (
             <motion.section key="roles" {...slide} className="w-full max-w-lg">
-              <StepTitle eyebrow="Step 4" title={discovered.length === 1 ? "One session ready" : `${discovered.length} roles discovered`} hint="Each becomes an AWS profile you can start from the dashboard or the CLI." />
+              <StepTitle eyebrow="Step 4" title={discovered.length === 1 ? "One session ready" : `${discovered.length} sessions discovered`} hint="Start any of them from the dashboard or the CLI." />
               <ul className="mt-6 max-h-64 space-y-2 overflow-y-auto pr-1">
                 {discovered.map((s, i) => (
                   <motion.li
@@ -171,10 +236,10 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                     transition={{ delay: Math.min(i * 0.05, 0.6), type: "spring", stiffness: 260, damping: 24 }}
                     className="flex items-center gap-3 rounded-lg border bg-card/60 px-3 py-2"
                   >
-                    <CloudGlyph cloud="aws" />
+                    <CloudGlyph cloud={cloudOf(s.kind)} />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{s.name}</p>
-                      <p className="truncate text-xs text-muted-foreground">{s.aws?.accountId ?? s.region}</p>
+                      <p className="truncate text-xs text-muted-foreground">{s.aws?.accountId ?? s.azure?.subscriptionId ?? s.gcp?.projectId ?? s.region}</p>
                     </div>
                     <Check className="size-4 text-emerald-400" />
                   </motion.li>
@@ -209,7 +274,7 @@ function Done({ count, onFinish }: { count: number; onFinish: () => void }) {
       </motion.div>
       <h2 className="text-3xl font-semibold tracking-tight">You're all set.</h2>
       <p className="mt-3 text-muted-foreground">
-        {count > 0 ? `${count} session${count === 1 ? "" : "s"} ready to start.` : "Your workspace is ready."} Start one, then run <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">aws --profile &lt;name&gt;</code> anywhere.
+        {count > 0 ? `${count} session${count === 1 ? "" : "s"} ready to start.` : "Your workspace is ready."} Start one, then use it from any terminal with <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">rolle env &lt;name&gt;</code>.
       </p>
       <Button size="lg" className="mt-8 gap-2" onClick={onFinish}>
         Open dashboard <ArrowRight className="size-4" />
@@ -305,6 +370,64 @@ export function KeyForm({ busy, onSubmit }: { busy: boolean; onSubmit: (v: { nam
         {busy ? <Loader2 className="size-4 animate-spin" /> : <KeyRound className="size-4" />} Add session
       </Button>
     </form>
+  );
+}
+
+function BackLink({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="mt-4 text-xs text-muted-foreground hover:text-foreground">
+      ← Choose a different cloud
+    </button>
+  );
+}
+
+export function AzureForm({ busy, onSubmit, submitLabel = "Sign in with Microsoft" }: { busy: boolean; onSubmit: (v: { alias: string; tenant: string }) => void; submitLabel?: string }) {
+  const [alias, setAlias] = useState("");
+  const [tenant, setTenant] = useState("");
+  const valid = alias.trim().length > 0;
+  return (
+    <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (valid) onSubmit({ alias: alias.trim(), tenant: tenant.trim() }); }}>
+      <Field label="Tenant name" hint="How it shows in the sidebar">
+        <Input value={alias} onChange={(e) => setAlias(e.target.value)} placeholder="contoso" autoFocus />
+      </Field>
+      <Field label="Tenant ID or domain (optional)" hint="Leave empty to use your home tenant">
+        <Input value={tenant} onChange={(e) => setTenant(e.target.value)} placeholder="contoso.onmicrosoft.com" className="font-mono text-xs" />
+      </Field>
+      <Button type="submit" className="w-full gap-2" disabled={!valid || busy}>
+        {busy ? <Loader2 className="size-4 animate-spin" /> : <ExternalLink className="size-4" />} {submitLabel}
+      </Button>
+    </form>
+  );
+}
+
+export function GCPConnect({ busy, onSubmit }: { busy: boolean; onSubmit: (alias: string) => void }) {
+  const [alias, setAlias] = useState("gcp");
+  const [status, setStatus] = useState<{ ready: boolean; account: string; loginCommand: string } | null>(null);
+  const check = async () => setStatus(await api.GCPStatus());
+  useEffect(() => { void check(); }, []);
+  return (
+    <div className="space-y-4">
+      {status === null ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Looking for gcloud credentials…</div>
+      ) : status.ready ? (
+        <div className="flex items-center gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-sm">
+          <Check className="size-4 text-emerald-400" />
+          <span className="truncate">Signed in as <span className="font-medium">{status.account || "a Google account"}</span></span>
+        </div>
+      ) : (
+        <div className="space-y-2 rounded-lg border border-dashed p-3 text-sm">
+          <p>No Application Default Credentials found. Run this in a terminal, then check again:</p>
+          <code className="block rounded bg-muted px-2 py-1.5 font-mono text-xs">{status.loginCommand}</code>
+          <Button variant="secondary" size="sm" onClick={() => void check()}>Check again</Button>
+        </div>
+      )}
+      <Field label="Account name" hint="How it shows in the sidebar">
+        <Input value={alias} onChange={(e) => setAlias(e.target.value)} />
+      </Field>
+      <Button className="w-full gap-2" disabled={!status?.ready || !alias.trim() || busy} onClick={() => onSubmit(alias.trim())}>
+        {busy ? <Loader2 className="size-4 animate-spin" /> : <Cloud className="size-4" />} Discover projects
+      </Button>
+    </div>
   );
 }
 

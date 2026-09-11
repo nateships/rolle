@@ -21,10 +21,12 @@ Out of scope: browser multi-session tooling (AWS provides this natively).
 - [x] Integration management
 
 ## 3. Azure
-- [ ] Entra ID login (MSAL), subscription discovery, ARM tokens
+- [x] Entra ID login (MSAL), subscription discovery, ARM tokens
+- [ ] Export tokens into the az CLI cache
 
 ## 4. GCP
-- [ ] Google login, project discovery, service account impersonation, ADC file
+- [x] gcloud ADC reuse, project discovery, service account impersonation
+- [ ] Write impersonated ADC file for SDKs without env support
 
 ## 5. Release
 - [ ] goreleaser for CLI and daemon, desktop packaging, signing

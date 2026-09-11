@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Field, KeyForm, SSOForm } from "@/components/onboarding/Onboarding";
-import { api, errorMessage, type Integration, type Session, type Workspace } from "@/lib/api";
+import { AzureForm, Field, GCPConnect, KeyForm, SSOForm } from "@/components/onboarding/Onboarding";
+import { CloudGlyph } from "@/components/Brand";
+import { api, errorMessage, Cloud, type Integration, type Session, type Workspace } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
 
 export function AddSSODialog({ open, onClose, onLogin }: { open: boolean; onClose: () => void; onLogin: (i: Integration) => void }) {
@@ -51,10 +52,15 @@ export function LoginDialog({ integration, onClose }: { integration: Integration
     let cancelled = false;
     (async () => {
       try {
-        const dl = await api.StartSSOLogin(integration.id);
-        if (cancelled) return;
-        setLogin(dl);
-        const sessions = await api.WaitSSOLogin(integration.id);
+        let sessions: Session[];
+        if (integration.cloud === Cloud.CloudAzure) {
+          sessions = await api.AzureLogin(integration.id);
+        } else {
+          const dl = await api.StartSSOLogin(integration.id);
+          if (cancelled) return;
+          setLogin(dl);
+          sessions = await api.WaitSSOLogin(integration.id);
+        }
         if (cancelled) return;
         setAdded(sessions);
         if (sessions.length > 0) celebrate("small");
@@ -76,13 +82,17 @@ export function LoginDialog({ integration, onClose }: { integration: Integration
       <DialogContent className="text-center">
         <DialogHeader className="items-center">
           <DialogTitle>{added ? "Signed in" : `Sign in to ${integration?.alias ?? ""}`}</DialogTitle>
-          <DialogDescription>{added ? `${added.length} new role${added.length === 1 ? "" : "s"} discovered.` : "Approve the request in your browser and confirm this code."}</DialogDescription>
+          <DialogDescription>{added ? `${added.length} new session${added.length === 1 ? "" : "s"} discovered.` : integration?.cloud === Cloud.CloudAzure ? "Finish signing in with Microsoft in your browser." : "Approve the request in your browser and confirm this code."}</DialogDescription>
         </DialogHeader>
         {!added && (
           <div className="flex flex-col items-center gap-4 py-2">
-            <div className="rounded-xl border bg-card px-6 py-4 font-mono text-3xl font-semibold tracking-[0.3em] glow">
-              {login?.userCode ?? "····-····"}
-            </div>
+            {integration?.cloud === Cloud.CloudAzure ? (
+              <div className="rounded-full bg-sky-500/10 p-5 glow"><CloudGlyph cloud="azure" className="size-12 text-sm" /></div>
+            ) : (
+              <div className="rounded-xl border bg-card px-6 py-4 font-mono text-3xl font-semibold tracking-[0.3em] glow">
+                {login?.userCode ?? "····-····"}
+              </div>
+            )}
             <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Waiting for approval…</div>
             {login && (
               <Button variant="link" className="gap-1 text-muted-foreground" onClick={() => void api.OpenURL(login.verificationUri)}>
@@ -197,6 +207,127 @@ export function MFADialog({ open, onClose, onSubmit }: { open: boolean; onClose:
         <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (code.length >= 6) onSubmit(code.trim()); }}>
           <Input value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 8))} inputMode="numeric" autoFocus className="text-center font-mono text-2xl tracking-[0.4em]" placeholder="000000" />
           <Button type="submit" className="w-full" disabled={code.length < 6}>Start session</Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function AddAzureDialog({ open, onClose, onLogin }: { open: boolean; onClose: () => void; onLogin: (i: Integration) => void }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add Azure tenant</DialogTitle>
+          <DialogDescription>Sign in with Microsoft. Rolle discovers every subscription you can see.</DialogDescription>
+        </DialogHeader>
+        <AzureForm
+          busy={busy}
+          submitLabel="Add and sign in"
+          onSubmit={async (v) => {
+            setBusy(true);
+            try {
+              const integ = await api.AddAzure(v.alias, v.tenant);
+              onLogin(integ);
+            } catch (e) {
+              toast.error(errorMessage(e));
+            } finally {
+              setBusy(false);
+            }
+          }}
+        />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function AddGCPDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [busy, setBusy] = useState(false);
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add Google Cloud account</DialogTitle>
+          <DialogDescription>Uses the Application Default Credentials gcloud already has on this machine.</DialogDescription>
+        </DialogHeader>
+        {open && (
+          <GCPConnect
+            busy={busy}
+            onSubmit={async (alias) => {
+              setBusy(true);
+              try {
+                const added = await api.AddGCP(alias);
+                toast.success(`${added.length} project${added.length === 1 ? "" : "s"} discovered`);
+                if (added.length > 0) celebrate("small");
+                onClose();
+              } catch (e) {
+                toast.error(errorMessage(e));
+              } finally {
+                setBusy(false);
+              }
+            }}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function AddGCPImpersonationDialog({ open, onClose, workspace }: { open: boolean; onClose: () => void; workspace: Workspace }) {
+  const gcpIntegrations = workspace.integrations.filter((i) => i.gcp);
+  const projects = Array.from(new Set(workspace.sessions.filter((s) => s.gcp).map((s) => s.gcp!.projectId))).sort();
+  const [name, setName] = useState("");
+  const [integrationRef, setIntegrationRef] = useState(gcpIntegrations[0]?.id ?? "");
+  const [projectId, setProjectId] = useState("");
+  const [serviceAccount, setServiceAccount] = useState("");
+  const [busy, setBusy] = useState(false);
+  const valid = name.trim() && integrationRef && projectId.trim() && /^[^@\s]+@[^@\s]+\.iam\.gserviceaccount\.com$/.test(serviceAccount.trim());
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Impersonate a service account</DialogTitle>
+          <DialogDescription>Your Google account needs the Service Account Token Creator role on it.</DialogDescription>
+        </DialogHeader>
+        <form
+          className="space-y-4"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (!valid) return;
+            setBusy(true);
+            try {
+              await api.AddGCPImpersonation({ name: name.trim(), integrationRef, projectId: projectId.trim(), serviceAccount: serviceAccount.trim() });
+              toast.success(`${name} added`);
+              onClose();
+            } catch (err) {
+              toast.error(errorMessage(err));
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          <Field label="Session name"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="prod-deployer" autoFocus /></Field>
+          {gcpIntegrations.length > 1 && (
+            <Field label="Account">
+              <Select value={integrationRef} onValueChange={setIntegrationRef}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>{gcpIntegrations.map((i) => <SelectItem key={i.id} value={i.id}>{i.alias}</SelectItem>)}</SelectContent>
+              </Select>
+            </Field>
+          )}
+          <Field label="Project ID">
+            {projects.length > 0 ? (
+              <Select value={projectId} onValueChange={setProjectId}>
+                <SelectTrigger className="w-full"><SelectValue placeholder="Choose a project" /></SelectTrigger>
+                <SelectContent>{projects.map((p) => <SelectItem key={p} value={p}>{p}</SelectItem>)}</SelectContent>
+              </Select>
+            ) : (
+              <Input value={projectId} onChange={(e) => setProjectId(e.target.value)} placeholder="my-project" className="font-mono text-xs" />
+            )}
+          </Field>
+          <Field label="Service account email"><Input value={serviceAccount} onChange={(e) => setServiceAccount(e.target.value)} placeholder="deployer@my-project.iam.gserviceaccount.com" className="font-mono text-xs" /></Field>
+          <Button type="submit" className="w-full" disabled={!valid || busy}>{busy ? <Loader2 className="size-4 animate-spin" /> : "Add session"}</Button>
         </form>
       </DialogContent>
     </Dialog>

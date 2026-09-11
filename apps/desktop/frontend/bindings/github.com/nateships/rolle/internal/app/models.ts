@@ -12,3 +12,13 @@ export interface AddAssumeRoleInput {
     "externalId": string;
     "profile": string;
 }
+
+/**
+ * AddGCPImpersonationInput describes a service account impersonation session.
+ */
+export interface AddGCPImpersonationInput {
+    "name": string;
+    "integrationRef": string;
+    "projectId": string;
+    "serviceAccount": string;
+}

@@ -28,7 +28,7 @@ export function SessionRow({ session: s, workspace }: { session: Session; worksp
       await api.Start(s.id, mfaCode);
       const first = !workspace.sessions.some((x) => x.status === Status.StatusActive);
       if (first) celebrate("small");
-      toast.success(`${s.name} started`, { description: `aws --profile ${await api.ProfileName(s.id)}` });
+      toast.success(`${s.name} started`, { description: isAWS ? `aws --profile ${await api.ProfileName(s.id)}` : `eval "$(rolle env ${s.name})"` });
     } catch (e) {
       toast.error(errorMessage(e));
     } finally {
@@ -47,15 +47,11 @@ export function SessionRow({ session: s, workspace }: { session: Session; worksp
     }
   }
 
+  const isAWS = cloudOf(s.kind) === "aws";
+
   async function copy(kind: "env" | "profile") {
     try {
-      let text: string;
-      if (kind === "profile") {
-        text = `aws --profile ${await api.ProfileName(s.id)}`;
-      } else {
-        const c = await api.Credentials(s.id);
-        text = [`export AWS_ACCESS_KEY_ID=${c.accessKeyId}`, `export AWS_SECRET_ACCESS_KEY=${c.secretAccessKey}`, c.sessionToken ? `export AWS_SESSION_TOKEN=${c.sessionToken}` : "", s.region ? `export AWS_REGION=${s.region}` : ""].filter(Boolean).join("\n");
-      }
+      const text = kind === "profile" ? `aws --profile ${await api.ProfileName(s.id)}` : await api.EnvText(s.id);
       await WailsClipboard.SetText(text);
       toast.success(kind === "profile" ? "Profile command copied" : "Credentials copied", { description: kind === "env" ? "Paste into a shell. They expire on their own." : undefined });
     } catch (e) {
@@ -87,15 +83,15 @@ export function SessionRow({ session: s, workspace }: { session: Session; worksp
         {active && (
           <>
             <IconBtn label="Open console" onClick={() => api.OpenConsole(s.id).catch((e) => toast.error(errorMessage(e)))}><ExternalLink /></IconBtn>
-            <IconBtn label="Copy profile command" onClick={() => copy("profile")}><Terminal /></IconBtn>
+            {isAWS && <IconBtn label="Copy profile command" onClick={() => copy("profile")}><Terminal /></IconBtn>}
             <IconBtn label="Copy credentials as env" onClick={() => copy("env")}><Clipboard /></IconBtn>
           </>
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm"><MoreHorizontal /></Button></DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => copy("profile")}><Terminal /> Copy profile command</DropdownMenuItem>
-            <DropdownMenuSeparator />
+            {isAWS && <DropdownMenuItem onClick={() => copy("profile")}><Terminal /> Copy profile command</DropdownMenuItem>}
+            {isAWS && <DropdownMenuSeparator />}
             <DropdownMenuItem variant="destructive" onClick={() => api.RemoveSession(s.id).catch((e) => toast.error(errorMessage(e)))}><Trash2 /> Remove</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

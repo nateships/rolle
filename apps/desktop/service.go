@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/nateships/rolle/internal/aws"
 	"github.com/nateships/rolle/internal/browser"
 	"github.com/nateships/rolle/internal/core"
+	"github.com/nateships/rolle/internal/gcp"
 )
 
 // EventWorkspaceChanged is emitted after any mutation so the UI can reload.
@@ -209,11 +211,113 @@ func (r *RolleService) ProfileName(ref string) (string, error) {
 func (r *RolleService) OpenConsole(ref string) error {
 	c, cancel := ctx()
 	defer cancel()
-	u, err := r.svc.ConsoleURL(c, ref)
+	u, err := r.svc.ConsoleURLFor(c, ref)
 	if err != nil {
 		return err
 	}
 	return browser.Open(u)
+}
+
+// EnvText returns shell export lines for an active session.
+func (r *RolleService) EnvText(ref string) (string, error) {
+	c, cancel := ctx()
+	defer cancel()
+	w, err := r.svc.Load()
+	if err != nil {
+		return "", err
+	}
+	sess, err := app.FindSession(w, ref)
+	if err != nil {
+		return "", err
+	}
+	creds, err := r.svc.Credentials(c, ref)
+	if err != nil {
+		return "", err
+	}
+	var b strings.Builder
+	for _, kv := range app.EnvVars(sess, creds) {
+		if kv[1] != "" {
+			fmt.Fprintf(&b, "export %s=%q\n", kv[0], kv[1])
+		}
+	}
+	return b.String(), nil
+}
+
+// AddAzure registers an Entra ID tenant.
+func (r *RolleService) AddAzure(alias, tenantID string) (core.Integration, error) {
+	in, err := r.svc.AddAzure(alias, tenantID)
+	r.changed()
+	return in, err
+}
+
+// AzureLogin opens the browser sign-in, then discovers subscriptions.
+func (r *RolleService) AzureLogin(ref string) ([]core.Session, error) {
+	c, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
+	defer cancel()
+	added, err := r.svc.AzureLogin(c, ref)
+	r.changed()
+	return added, err
+}
+
+// AzureLogout signs out of a tenant.
+func (r *RolleService) AzureLogout(ref string) error {
+	c, cancel := ctx()
+	defer cancel()
+	err := r.svc.AzureLogout(c, ref)
+	r.changed()
+	return err
+}
+
+// SyncAzure rediscovers subscriptions.
+func (r *RolleService) SyncAzure(ref string) ([]core.Session, error) {
+	c, cancel := ctx()
+	defer cancel()
+	added, err := r.svc.SyncAzure(c, ref)
+	r.changed()
+	return added, err
+}
+
+// GCPStatus reports whether gcloud Application Default Credentials exist.
+type GCPStatus struct {
+	Ready        bool   `json:"ready"`
+	Account      string `json:"account"`
+	LoginCommand string `json:"loginCommand"`
+}
+
+// GCPStatus checks for local gcloud credentials.
+func (r *RolleService) GCPStatus() GCPStatus {
+	c, cancel := ctx()
+	defer cancel()
+	acct, err := gcp.DetectAccount(c)
+	if err != nil {
+		return GCPStatus{LoginCommand: gcp.LoginCommand}
+	}
+	return GCPStatus{Ready: true, Account: acct.Email, LoginCommand: gcp.LoginCommand}
+}
+
+// AddGCP registers gcloud credentials and discovers projects.
+func (r *RolleService) AddGCP(alias string) ([]core.Session, error) {
+	c, cancel := ctx()
+	defer cancel()
+	_, added, err := r.svc.AddGCP(c, alias)
+	r.changed()
+	return added, err
+}
+
+// SyncGCP rediscovers projects.
+func (r *RolleService) SyncGCP(ref string) ([]core.Session, error) {
+	c, cancel := ctx()
+	defer cancel()
+	added, err := r.svc.SyncGCP(c, ref)
+	r.changed()
+	return added, err
+}
+
+// AddGCPImpersonation creates a service account impersonation session.
+func (r *RolleService) AddGCPImpersonation(in app.AddGCPImpersonationInput) (core.Session, error) {
+	s, err := r.svc.AddGCPImpersonation(in)
+	r.changed()
+	return s, err
 }
 
 // OpenURL opens a link in the default browser.

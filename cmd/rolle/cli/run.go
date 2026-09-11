@@ -17,7 +17,7 @@ func startCmd() *cobra.Command {
 	var mfa string
 	cmd := &cobra.Command{
 		Use:   "start <session>",
-		Short: "Start a session and write its AWS profile",
+		Short: "Start a session",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			creds, err := svc.Start(cmd.Context(), args[0], app.StartOptions{MFACode: mfa})
@@ -36,7 +36,12 @@ func startCmd() *cobra.Command {
 			if creds.Expiration != nil {
 				until = " until " + creds.Expiration.Local().Format(time.Kitchen)
 			}
-			fmt.Printf("%s active%s\nAWS profile: %s\n", sess.Name, until, app.ProfileName(sess))
+			fmt.Printf("%s active%s\n", sess.Name, until)
+			if sess.Kind.Cloud() == core.CloudAWS {
+				fmt.Printf("AWS profile: %s\n", app.ProfileName(sess))
+			} else {
+				fmt.Printf("shell: eval \"$(rolle env %s)\"\n", sess.Name)
+			}
 			return nil
 		},
 	}
@@ -47,7 +52,7 @@ func startCmd() *cobra.Command {
 func stopCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "stop <session>",
-		Short: "Stop a session and remove its AWS profile",
+		Short: "Stop a session",
 		Args:  cobra.ExactArgs(1),
 		RunE:  func(_ *cobra.Command, args []string) error { return svc.Stop(args[0]) },
 	}
@@ -113,14 +118,7 @@ func envCmd() *cobra.Command {
 }
 
 func printEnv(sess *core.Session, creds core.Credentials, powershell bool) error {
-	vars := [][2]string{
-		{"AWS_ACCESS_KEY_ID", creds.AccessKeyID},
-		{"AWS_SECRET_ACCESS_KEY", creds.SecretAccessKey},
-		{"AWS_SESSION_TOKEN", creds.SessionToken},
-		{"AWS_REGION", sess.Region},
-		{"AWS_DEFAULT_REGION", sess.Region},
-	}
-	for _, kv := range vars {
+	for _, kv := range app.EnvVars(sess, creds) {
 		if kv[1] == "" {
 			continue
 		}
@@ -137,10 +135,10 @@ func consoleCmd() *cobra.Command {
 	var print bool
 	cmd := &cobra.Command{
 		Use:   "console <session>",
-		Short: "Open the AWS console for a session",
+		Short: "Open the cloud console for a session",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			u, err := svc.ConsoleURL(cmd.Context(), args[0])
+			u, err := svc.ConsoleURLFor(cmd.Context(), args[0])
 			if err != nil {
 				return err
 			}

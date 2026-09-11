@@ -39,6 +39,8 @@ export function remaining(expires: string | null | undefined, now: number): stri
 }
 
 export function sessionSubtitle(s: Session): string {
+  if (s.azure) return s.azure.subscriptionId;
+  if (s.gcp) return s.gcp.serviceAccount ? `${s.gcp.projectId} · ${s.gcp.serviceAccount}` : s.gcp.projectId;
   const a = s.aws;
   if (!a) return s.region ?? "";
   if (s.kind === Kind.KindAWSSSORole) return `${a.accountId ?? ""} · ${a.roleName ?? ""}`;

@@ -524,7 +524,7 @@ func (s *Service) fetch(ctx context.Context, w *core.Workspace, sess *core.Sessi
 		}
 		return aws.IAMUserCredentials(ctx, aws.IAMUserInput{Key: key, Region: sess.Region, MFADevice: sess.AWS.MFADevice, MFACode: mfaCode})
 	}
-	return core.Credentials{}, fmt.Errorf("session kind %q is not supported yet", sess.Kind)
+	return s.fetchCloud(ctx, w, sess)
 }
 
 // ConsoleURL returns a federated AWS console sign-in link for an active session.

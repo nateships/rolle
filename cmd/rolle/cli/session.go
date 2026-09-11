@@ -105,7 +105,7 @@ func sessionAddCmd() *cobra.Command {
 		_ = iam.MarkFlagRequired(f)
 	}
 
-	add.AddCommand(assume, iam)
+	add.AddCommand(assume, iam, sessionAddGCPImpersonateCmd())
 	return add
 }
 

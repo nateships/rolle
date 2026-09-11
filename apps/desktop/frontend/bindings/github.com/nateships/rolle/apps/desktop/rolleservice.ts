@@ -36,10 +36,45 @@ export function AddAssumeRole($in: app$0.AddAssumeRoleInput): $CancellablePromis
 }
 
 /**
+ * AddAzure registers an Entra ID tenant.
+ */
+export function AddAzure(alias: string, tenantID: string): $CancellablePromise<core$0.Integration> {
+    return $Call.ByID(613093005, alias, tenantID);
+}
+
+/**
+ * AddGCP registers gcloud credentials and discovers projects.
+ */
+export function AddGCP(alias: string): $CancellablePromise<core$0.Session[] | null> {
+    return $Call.ByID(2235238980, alias);
+}
+
+/**
+ * AddGCPImpersonation creates a service account impersonation session.
+ */
+export function AddGCPImpersonation($in: app$0.AddGCPImpersonationInput): $CancellablePromise<core$0.Session> {
+    return $Call.ByID(1206622824, $in);
+}
+
+/**
  * AddIAMUser creates a session backed by an access key.
  */
 export function AddIAMUser($in: $models.IAMUserInput): $CancellablePromise<core$0.Session> {
     return $Call.ByID(3912635692, $in);
+}
+
+/**
+ * AzureLogin opens the browser sign-in, then discovers subscriptions.
+ */
+export function AzureLogin(ref: string): $CancellablePromise<core$0.Session[] | null> {
+    return $Call.ByID(577656563, ref);
+}
+
+/**
+ * AzureLogout signs out of a tenant.
+ */
+export function AzureLogout(ref: string): $CancellablePromise<void> {
+    return $Call.ByID(3688204768, ref);
 }
 
 /**
@@ -54,6 +89,20 @@ export function CompleteOnboarding(): $CancellablePromise<void> {
  */
 export function Credentials(ref: string): $CancellablePromise<core$0.Credentials> {
     return $Call.ByID(34508111, ref);
+}
+
+/**
+ * EnvText returns shell export lines for an active session.
+ */
+export function EnvText(ref: string): $CancellablePromise<string> {
+    return $Call.ByID(3197417657, ref);
+}
+
+/**
+ * GCPStatus checks for local gcloud credentials.
+ */
+export function GCPStatus(): $CancellablePromise<$models.GCPStatus> {
+    return $Call.ByID(4139794677);
 }
 
 /**
@@ -117,6 +166,20 @@ export function StartSSOLogin(ref: string): $CancellablePromise<$models.DeviceLo
  */
 export function Stop(ref: string): $CancellablePromise<void> {
     return $Call.ByID(95473271, ref);
+}
+
+/**
+ * SyncAzure rediscovers subscriptions.
+ */
+export function SyncAzure(ref: string): $CancellablePromise<core$0.Session[] | null> {
+    return $Call.ByID(4041223311, ref);
+}
+
+/**
+ * SyncGCP rediscovers projects.
+ */
+export function SyncGCP(ref: string): $CancellablePromise<core$0.Session[] | null> {
+    return $Call.ByID(2268681726, ref);
 }
 
 /**
