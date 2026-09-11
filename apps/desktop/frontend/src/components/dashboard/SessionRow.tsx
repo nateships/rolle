@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Clipboard, ExternalLink, Loader2, MoreHorizontal, Pencil, Play, Square, Terminal, Trash2 } from "lucide-react";
+import { Clipboard, ExternalLink, Loader2, MoreHorizontal, Pencil, Play, Square, Star, Terminal, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Clipboard as WailsClipboard } from "@wailsio/runtime";
 import { Button } from "@/components/ui/button";
@@ -74,6 +74,14 @@ export function SessionRow({ session: s, workspace }: { session: Session; worksp
       className={cn("group flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 transition-colors hover:bg-accent/60", active && "border-emerald-500/40")}
     >
       <span className={cn("relative size-2 shrink-0 rounded-full", active ? "bg-emerald-400 text-emerald-400 pulse-ring" : "bg-muted-foreground/30")} />
+      <button
+        type="button"
+        aria-label={s.favorite ? "Remove from favorites" : "Add to favorites"}
+        onClick={() => api.SetFavorite(s.id, !s.favorite).catch((e) => toast.error(errorMessage(e)))}
+        className={cn("shrink-0 rounded p-0.5 transition-opacity", s.favorite ? "text-brand-orange" : "text-muted-foreground/50 opacity-0 hover:text-foreground group-hover:opacity-100 group-focus-within:opacity-100")}
+      >
+        <Star className={cn("size-4", s.favorite && "fill-current")} />
+      </button>
       <CloudGlyph cloud={cloudOf(s.kind)} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -97,6 +105,7 @@ export function SessionRow({ session: s, workspace }: { session: Session; worksp
         <DropdownMenu>
           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm"><MoreHorizontal /></Button></DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-56">
+            <DropdownMenuItem onClick={() => api.SetFavorite(s.id, !s.favorite).catch((e) => toast.error(errorMessage(e)))}><Star /> {s.favorite ? "Remove from favorites" : "Add to favorites"}</DropdownMenuItem>
             <DropdownMenuItem onClick={() => setRenaming(true)}><Pencil /> Rename</DropdownMenuItem>
             {isAWS && <DropdownMenuItem onClick={() => copy("profile")}><Terminal /> Copy profile command</DropdownMenuItem>}
             {isAWS && <DropdownMenuSeparator />}

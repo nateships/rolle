@@ -152,6 +152,18 @@ func (s *SSO) storeToken(t ssoToken) error {
 	return s.Secrets.Set(ssoTokenKey(s.Integration.ID), string(data))
 }
 
+// StoreImportedToken saves a token obtained elsewhere, for example the AWS CLI
+// cache, so this integration can be used without a fresh device login.
+func (s *SSO) StoreImportedToken(accessToken, refreshToken, clientID, clientSecret, region string, expires time.Time) error {
+	if region == "" {
+		region = s.Integration.AWSSSO.Region
+	}
+	return s.storeToken(ssoToken{
+		AccessToken: accessToken, RefreshToken: refreshToken, ClientID: clientID, ClientSecret: clientSecret,
+		Expires: expires.UTC(), Region: region,
+	})
+}
+
 // Logout removes the cached token.
 func (s *SSO) Logout() error { return s.Secrets.Delete(ssoTokenKey(s.Integration.ID)) }
 

@@ -733,3 +733,17 @@ func (s *Service) RenameSession(ref, name string) error {
 	}
 	return s.Save(w)
 }
+
+// SetFavorite pins or unpins a session.
+func (s *Service) SetFavorite(ref string, favorite bool) error {
+	w, err := s.Load()
+	if err != nil {
+		return err
+	}
+	sess, err := FindSession(w, ref)
+	if err != nil {
+		return err
+	}
+	sess.Favorite = favorite
+	return s.Save(w)
+}

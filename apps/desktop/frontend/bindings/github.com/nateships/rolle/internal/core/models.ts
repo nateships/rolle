@@ -184,6 +184,11 @@ export interface Session {
     "status": Status;
 
     /**
+     * Favorite pins the session to the favorites panel.
+     */
+    "favorite"?: boolean;
+
+    /**
      * Expires is when the current credentials stop working. Nil when inactive.
      */
     "expires"?: string | null;

@@ -97,6 +97,8 @@ type Session struct {
 	// IntegrationID links the session to the integration that authenticates it.
 	IntegrationID string `json:"integrationId,omitempty"`
 	Status        Status `json:"status"`
+	// Favorite pins the session to the favorites panel.
+	Favorite bool `json:"favorite,omitempty"`
 	// Expires is when the current credentials stop working. Nil when inactive.
 	Expires *time.Time `json:"expires,omitempty"`
 

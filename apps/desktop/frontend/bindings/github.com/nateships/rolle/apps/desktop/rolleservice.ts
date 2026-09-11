@@ -16,6 +16,9 @@ import * as app$0 from "../../internal/app/models.js";
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
 import * as core$0 from "../../internal/core/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import * as discover$0 from "../../internal/discover/models.js";
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
@@ -99,6 +102,13 @@ export function DevMode(): $CancellablePromise<boolean> {
 }
 
 /**
+ * Discover reports identities other tools already configured on this machine.
+ */
+export function Discover(): $CancellablePromise<discover$0.Result> {
+    return $Call.ByID(3579054332);
+}
+
+/**
  * EnvText returns shell export lines for an active session.
  */
 export function EnvText(ref: string): $CancellablePromise<string> {
@@ -118,6 +128,13 @@ export function GCPStatus(): $CancellablePromise<$models.GCPStatus> {
  */
 export function GCloudLogin(): $CancellablePromise<void> {
     return $Call.ByID(3266413918);
+}
+
+/**
+ * ImportAWSSSO registers a portal from the AWS CLI config, reusing its token when valid.
+ */
+export function ImportAWSSSO(alias: string, startURL: string, region: string): $CancellablePromise<app$0.ImportResult> {
+    return $Call.ByID(168745974, alias, startURL, region);
 }
 
 /**
@@ -196,6 +213,13 @@ export function Reset(): $CancellablePromise<void> {
  */
 export function SSOLogout(ref: string): $CancellablePromise<void> {
     return $Call.ByID(816108696, ref);
+}
+
+/**
+ * SetFavorite pins or unpins a session.
+ */
+export function SetFavorite(ref: string, favorite: boolean): $CancellablePromise<void> {
+    return $Call.ByID(141333789, ref, favorite);
 }
 
 /**

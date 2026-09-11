@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Cloud, KeyRound, LogIn, LogOut, MoreHorizontal, Pencil, Plus, RefreshCw, Search, Settings as SettingsIcon, ShieldCheck, Trash2, UserCog, Waypoints } from "lucide-react";
+import { Cloud, KeyRound, LogIn, LogOut, MoreHorizontal, Pencil, Plus, RefreshCw, Search, Settings as SettingsIcon, ShieldCheck, Star, Trash2, UserCog, Waypoints } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Lockup, CloudGlyph } from "@/components/Brand";
+import { Lockup, Mark } from "@/components/Brand";
 import { SessionRow } from "./SessionRow";
 import { DevTools } from "@/components/DevTools";
 import { SettingsDialog } from "@/components/dialogs/SettingsDialog";
@@ -39,13 +39,17 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   const sessions = useMemo(() => {
     const q = query.trim().toLowerCase();
     return workspace.sessions
-      .filter((s) => (filter === null ? true : filter === "manual" ? !s.integrationId : s.integrationId === filter))
+      .filter((s) => (filter === null ? true : filter === "manual" ? !s.integrationId : filter === "favorites" ? s.favorite : s.integrationId === filter))
       .filter((s) => !q || s.name.toLowerCase().includes(q) || (s.aws?.accountId ?? "").includes(q) || (s.aws?.roleName ?? "").toLowerCase().includes(q))
       .sort((a, b) => Number(b.status === Status.StatusActive) - Number(a.status === Status.StatusActive) || a.name.localeCompare(b.name));
   }, [workspace.sessions, query, filter]);
 
   const active = workspace.sessions.filter((s) => s.status === Status.StatusActive).length;
   const manualCount = workspace.sessions.filter((s) => !s.integrationId).length;
+  const favorites = sessions.filter((s) => s.favorite);
+  // Favorites get their own panel on the unfiltered list; elsewhere they sit inline.
+  const showFavoritesPanel = filter === null && favorites.length > 0;
+  const rest = showFavoritesPanel ? sessions.filter((s) => !s.favorite) : sessions;
 
   async function run(label: string, fn: () => Promise<unknown>) {
     try {
@@ -65,6 +69,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
         <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-2">
           <div>
             <SideItem active={filter === null} onClick={() => setFilter(null)} label="All sessions" count={workspace.sessions.length} />
+            {workspace.sessions.some((s) => s.favorite) && <SideItem active={filter === "favorites"} onClick={() => setFilter("favorites")} label="Favorites" count={workspace.sessions.filter((s) => s.favorite).length} icon={<Star className="size-3.5 fill-current text-brand-orange" />} />}
             {manualCount > 0 && <SideItem active={filter === "manual"} onClick={() => setFilter("manual")} label="Manual" count={manualCount} />}
           </div>
           {CLOUD_SECTIONS.map((sec) => {
@@ -155,13 +160,26 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
           {sessions.length === 0 ? (
             <Empty hasAny={workspace.sessions.length > 0} onAdd={() => setDialog({ kind: "sso" })} />
           ) : (
-            <motion.ul layout className="space-y-1.5">
-              <AnimatePresence initial={false}>
-                {sessions.map((s) => (
-                  <SessionRow key={s.id} session={s} workspace={workspace} />
-                ))}
-              </AnimatePresence>
-            </motion.ul>
+            <div className="space-y-5">
+              {showFavoritesPanel && (
+                <section>
+                  <h2 className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground"><Star className="size-3 fill-current text-brand-orange" /> Favorites</h2>
+                  <motion.ul layout className="space-y-1.5">
+                    <AnimatePresence initial={false}>
+                      {favorites.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} />)}
+                    </AnimatePresence>
+                  </motion.ul>
+                </section>
+              )}
+              <section>
+                {showFavoritesPanel && <h2 className="mb-2 px-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">All sessions</h2>}
+                <motion.ul layout className="space-y-1.5">
+                  <AnimatePresence initial={false}>
+                    {rest.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} />)}
+                  </AnimatePresence>
+                </motion.ul>
+              </section>
+            </div>
           )}
         </div>
       </section>
@@ -182,9 +200,10 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   );
 }
 
-function SideItem({ active, onClick, label, count, dot }: { active: boolean; onClick: () => void; label: string; count?: number; dot?: "ok" | "off" }) {
+function SideItem({ active, onClick, label, count, dot, icon }: { active: boolean; onClick: () => void; label: string; count?: number; dot?: "ok" | "off"; icon?: React.ReactNode }) {
   return (
     <button type="button" onClick={onClick} className={cn("flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors", active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground")}>
+      {icon}
       {dot && <span className={cn("size-1.5 rounded-full", dot === "ok" ? "bg-emerald-400" : "bg-muted-foreground/40")} />}
       <span className="flex-1 truncate text-left">{label}</span>
       {count !== undefined && <span className="text-xs tabular-nums text-muted-foreground/70">{count}</span>}
@@ -195,7 +214,7 @@ function SideItem({ active, onClick, label, count, dot }: { active: boolean; onC
 function Empty({ hasAny, onAdd }: { hasAny: boolean; onAdd: () => void }) {
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
-      <CloudGlyph cloud="aws" className="size-12 p-2" />
+      <div className="rounded-2xl bg-card p-4"><Mark className="size-10" /></div>
       <h3 className="mt-5 text-lg font-medium">{hasAny ? "Nothing matches" : "No sessions yet"}</h3>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">{hasAny ? "Try a different search or filter." : "Connect an Identity Center portal to discover every role you can reach."}</p>
       {!hasAny && <Button className="mt-5 gap-1.5" onClick={onAdd}><Plus className="size-4" /> Add portal</Button>}

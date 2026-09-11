@@ -8,10 +8,52 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/nateships/rolle/internal/debug"
+
 	"github.com/nateships/rolle/internal/azure"
 	"github.com/nateships/rolle/internal/core"
+	"github.com/nateships/rolle/internal/discover"
 	"github.com/nateships/rolle/internal/gcp"
 )
+
+// Discover reports identities other tools already configured on this machine.
+func (s *Service) Discover(ctx context.Context) discover.Result { return discover.Scan(ctx) }
+
+// ImportResult describes an imported Identity Center portal.
+type ImportResult struct {
+	Integration core.Integration `json:"integration"`
+	// LoggedIn is true when a valid AWS CLI token was reused and roles were discovered.
+	LoggedIn bool           `json:"loggedIn"`
+	Sessions []core.Session `json:"sessions"`
+}
+
+// ImportAWSSSO registers a portal found in the AWS CLI config. When the CLI
+// holds a valid token for it, the token is reused and roles are discovered
+// immediately; otherwise the caller runs the normal device login.
+func (s *Service) ImportAWSSSO(ctx context.Context, alias, startURL, region string) (ImportResult, error) {
+	in, err := s.AddAWSSSO(alias, startURL, region)
+	if err != nil {
+		return ImportResult{}, err
+	}
+	res := ImportResult{Integration: in}
+	tok, ok := discover.AWSCLITokenFor(startURL)
+	if !ok {
+		return res, nil
+	}
+	if err := s.sso(in).StoreImportedToken(tok.AccessToken, tok.RefreshToken, tok.ClientID, tok.ClientSecret, tok.Region, tok.ExpiresAt); err != nil {
+		return res, err
+	}
+	sessions, err := s.FinishSSOLogin(ctx, in.ID)
+	if err != nil {
+		// The CLI token was not usable; drop it and fall back to a login.
+		_ = s.sso(in).Logout()
+		debug.Logf("discover", "cli token for %s rejected: %v", startURL, err)
+		return res, nil
+	}
+	res.LoggedIn = true
+	res.Sessions = sessions
+	return res, nil
+}
 
 // AddAzure registers an Entra ID tenant. tenantID may be empty to sign in to
 // the user's home tenant.

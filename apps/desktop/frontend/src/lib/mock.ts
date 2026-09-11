@@ -23,13 +23,13 @@ function seed() {
   state.integrations = [sso, az, gcp];
   const s = (o: Record<string, unknown>): Session => ({ id: id(), status: "inactive", ...o }) as unknown as Session;
   state.sessions = [
-    s({ name: "Acme Prod/AdministratorAccess", kind: "aws-sso-role", region: "us-east-1", integrationId: "acme", aws: { accountId: "123456789012", roleName: "AdministratorAccess" }, status: "active", expires: new Date(Date.now() + 47 * 60e3).toISOString() }),
+    s({ name: "Acme Prod/AdministratorAccess", kind: "aws-sso-role", region: "us-east-1", integrationId: "acme", aws: { accountId: "123456789012", roleName: "AdministratorAccess" }, status: "active", favorite: true, expires: new Date(Date.now() + 47 * 60e3).toISOString() }),
     s({ name: "Acme Dev/PowerUser", kind: "aws-sso-role", region: "us-east-1", integrationId: "acme", aws: { accountId: "210987654321", roleName: "PowerUserAccess" } }),
     s({ name: "prod-admin", kind: "aws-assume-role", region: "eu-west-1", aws: { roleArn: "arn:aws:iam::123456789012:role/Admin", sourceSessionId: "x" } }),
     s({ name: "personal", kind: "aws-iam-user", region: "us-west-2", aws: { mfaDevice: "arn:aws:iam::1:mfa/me" } }),
     s({ name: "Contoso Production", kind: "azure", integrationId: "contoso", azure: { subscriptionId: "0f1e2d3c-4b5a-6978-8a9b-0c1d2e3f4a5b", tenantId: "t-1" }, status: "active", expires: new Date(Date.now() + 3.2e6).toISOString() }),
     s({ name: "data-platform", kind: "gcp", integrationId: "gcp", gcp: { projectId: "data-platform-4821" } }),
-    s({ name: "deployer", kind: "gcp", integrationId: "gcp", gcp: { projectId: "data-platform-4821", serviceAccount: "deployer@data-platform-4821.iam.gserviceaccount.com" } }),
+    s({ name: "deployer", kind: "gcp", integrationId: "gcp", favorite: true, gcp: { projectId: "data-platform-4821", serviceAccount: "deployer@data-platform-4821.iam.gserviceaccount.com" } }),
   ];
 }
 if (state.onboarded) seed();
@@ -74,6 +74,18 @@ export const mockApi = {
   Info: async () => ({ version: "0.0.1-dev", workspacePath: "~/.config/rolle/workspace.json", cacheDir: "~/.cache/rolle/credentials", awsConfigPath: "~/.aws/config" }),
   ReplayOnboarding: async () => { state.onboarded = false; emit(); },
   Reset: async () => { state.onboarded = false; state.integrations = []; state.sessions = []; emit(); },
+  Discover: async () => { await wait(400); const q = new URLSearchParams(location.search); if (q.get("found") === "none") return { awsPortals: [], azureTenants: [], gcp: null }; return {
+    awsPortals: [
+      { alias: "Engineering", startUrl: "https://engineering.awsapps.com/start", region: "us-east-1", profiles: ["AWS_Dev", "AWS_Prod"], hasToken: true },
+      { alias: "timescale", startUrl: "https://timescale.awsapps.com/start", region: "us-west-2", profiles: ["timescale-prod"], hasToken: false },
+    ],
+    azureTenants: [{ tenantId: "72f988bf-86f1-41af-91ab-2d7cd011db47", account: "nate@contoso.com" }],
+    gcp: { account: "nate@example.com" },
+  }; },
+  ImportAWSSSO: async (alias: string, startUrl: string, region: string) => { await wait(900); const i = { id: id(), alias, cloud: "aws", awsSso: { startUrl, region, tokenExpires: new Date(Date.now() + 8 * 3.6e6).toISOString() } } as Integration; state.integrations.push(i); const loggedIn = startUrl.includes("engineering"); const sessions = loggedIn ? ["Engineering Prod/AdministratorAccess", "Engineering Dev/PowerUserAccess"].map((name) => ({ id: id(), name, kind: "aws-sso-role", region, integrationId: i.id, status: "inactive", aws: { accountId: "123456789012", roleName: name.split("/")[1] } }) as unknown as Session) : []; state.sessions.push(...sessions); emit(); return { integration: i, loggedIn, sessions }; },
+  SetFavorite: async (ref: string, fav: boolean) => { const x = state.sessions.find((s) => s.id === ref); if (x) (x as unknown as { favorite: boolean }).favorite = fav; emit(); },
+  RenameSession: async (ref: string, name: string) => { const x = state.sessions.find((s) => s.id === ref); if (x) x.name = name; emit(); },
+  RenameIntegration: async (ref: string, alias: string) => { const x = state.integrations.find((i) => i.id === ref); if (x) x.alias = alias; emit(); },
   DevMode: async () => true,
   onChange: (cb: () => void) => { listeners.add(cb); return () => listeners.delete(cb); },
 };

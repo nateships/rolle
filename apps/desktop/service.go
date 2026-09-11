@@ -14,6 +14,7 @@ import (
 	"github.com/nateships/rolle/internal/browser"
 	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/debug"
+	"github.com/nateships/rolle/internal/discover"
 	"github.com/nateships/rolle/internal/gcp"
 	"github.com/nateships/rolle/internal/version"
 )
@@ -379,9 +380,32 @@ func (r *RolleService) Reset() error {
 	return err
 }
 
+// Discover reports identities other tools already configured on this machine.
+func (r *RolleService) Discover() discover.Result {
+	c, cancel := ctx()
+	defer cancel()
+	return r.svc.Discover(c)
+}
+
+// ImportAWSSSO registers a portal from the AWS CLI config, reusing its token when valid.
+func (r *RolleService) ImportAWSSSO(alias, startURL, region string) (app.ImportResult, error) {
+	c, cancel := ctx()
+	defer cancel()
+	res, err := r.svc.ImportAWSSSO(c, alias, startURL, region)
+	r.changed()
+	return res, err
+}
+
 // RenameIntegration changes an integration's display name.
 func (r *RolleService) RenameIntegration(ref, alias string) error {
 	err := r.svc.RenameIntegration(ref, alias)
+	r.changed()
+	return err
+}
+
+// SetFavorite pins or unpins a session.
+func (r *RolleService) SetFavorite(ref string, favorite bool) error {
+	err := r.svc.SetFavorite(ref, favorite)
 	r.changed()
 	return err
 }
