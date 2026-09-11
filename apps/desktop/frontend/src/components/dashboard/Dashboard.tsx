@@ -11,9 +11,9 @@ import { DevTools } from "@/components/DevTools";
 import { SettingsDialog } from "@/components/dialogs/SettingsDialog";
 import { RenameDialog } from "@/components/dialogs/RenameDialog";
 import { ImportDialog } from "@/components/dialogs/ImportDialog";
-import { inWails } from "@/lib/api";
 import { AddSSODialog, AddAssumeRoleDialog, AddIAMUserDialog, AddAzureDialog, AddGCPDialog, AddGCPImpersonationDialog, LoginDialog } from "@/components/dialogs/Dialogs";
-import { api, errorMessage, Cloud as CloudKind, Status, type Integration, type Workspace } from "@/lib/api";
+import { api, errorMessage, inWails, Cloud as CloudKind, Status, type Integration, type Workspace } from "@/lib/api";
+import { useNow } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 type Dialog = null | { kind: "sso" } | { kind: "assume" } | { kind: "iam" } | { kind: "azure" } | { kind: "gcp" } | { kind: "gcp-impersonate" } | { kind: "login"; integration: Integration } | { kind: "settings" } | { kind: "rename"; integration: Integration } | { kind: "import" };
@@ -33,13 +33,21 @@ const CLOUD_SECTIONS: { cloud: string; title: string; addKind: Dialog }[] = [
 
 export function Dashboard({ workspace }: { workspace: Workspace }) {
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<string | null>(null);
+  const [chosenFilter, setFilter] = useState<string | null>(null);
+  const now = useNow();
   // ?settings=1 opens the settings dialog in the browser preview.
   const [dialog, setDialog] = useState<Dialog>(() => {
     if (inWails) return null;
     const q = new URLSearchParams(location.search);
     return q.get("settings") ? { kind: "settings" } : q.get("import") ? { kind: "import" } : null;
   });
+
+  const active = workspace.sessions.filter((s) => s.status === Status.StatusActive).length;
+  const manualCount = workspace.sessions.filter((s) => !s.integrationId).length;
+  const favoriteCount = workspace.sessions.filter((s) => s.favorite).length;
+  // A filter whose sidebar item is gone falls back to "All sessions".
+  const filterExists = chosenFilter === null || (chosenFilter === "manual" && manualCount > 0) || (chosenFilter === "favorites" && favoriteCount > 0) || workspace.integrations.some((i) => i.id === chosenFilter);
+  const filter = filterExists ? chosenFilter : null;
 
   const sessions = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -49,8 +57,6 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
       .sort((a, b) => Number(b.status === Status.StatusActive) - Number(a.status === Status.StatusActive) || a.name.localeCompare(b.name));
   }, [workspace.sessions, query, filter]);
 
-  const active = workspace.sessions.filter((s) => s.status === Status.StatusActive).length;
-  const manualCount = workspace.sessions.filter((s) => !s.integrationId).length;
   const favorites = sessions.filter((s) => s.favorite);
   // Favorites get their own panel on the unfiltered list; elsewhere they sit inline.
   const showFavoritesPanel = filter === null && favorites.length > 0;
@@ -74,7 +80,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
         <nav className="flex-1 space-y-4 overflow-y-auto px-2 py-2">
           <div>
             <SideItem active={filter === null} onClick={() => setFilter(null)} label="All sessions" count={workspace.sessions.length} />
-            {workspace.sessions.some((s) => s.favorite) && <SideItem active={filter === "favorites"} onClick={() => setFilter("favorites")} label="Favorites" count={workspace.sessions.filter((s) => s.favorite).length} icon={<Star className="size-3.5 fill-current text-brand-orange" />} />}
+            {favoriteCount > 0 && <SideItem active={filter === "favorites"} onClick={() => setFilter("favorites")} label="Favorites" count={favoriteCount} icon={<Star className="size-3.5 fill-current text-brand-orange" />} />}
             {manualCount > 0 && <SideItem active={filter === "manual"} onClick={() => setFilter("manual")} label="Manual" count={manualCount} />}
           </div>
           {CLOUD_SECTIONS.map((sec) => {
@@ -175,7 +181,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                   <h2 className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground"><Star className="size-3 fill-current text-brand-orange" /> Favorites</h2>
                   <motion.ul layout className="space-y-1.5">
                     <AnimatePresence initial={false}>
-                      {favorites.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} />)}
+                      {favorites.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} now={now} />)}
                     </AnimatePresence>
                   </motion.ul>
                 </section>
@@ -184,7 +190,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 {showFavoritesPanel && <h2 className="mb-2 px-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">All sessions</h2>}
                 <motion.ul layout className="space-y-1.5">
                   <AnimatePresence initial={false}>
-                    {rest.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} />)}
+                    {rest.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} now={now} />)}
                   </AnimatePresence>
                 </motion.ul>
               </section>

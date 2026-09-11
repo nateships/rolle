@@ -11,7 +11,7 @@ import { RegionSelect } from "@/components/RegionSelect";
 import { DevTools } from "@/components/DevTools";
 import { FoundList, tenantAlias, useDiscovery, type FoundPortal, type FoundTenant } from "@/components/discovery/FoundList";
 import { Events } from "@wailsio/runtime";
-import { api, errorMessage, inWails, type Session, type Workspace } from "@/lib/api";
+import { api, errorMessage, inWails, type Session, type Workspace, type DeviceLogin, type GCPStatus } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
 import { copyText } from "@/lib/clipboard";
 import { cloudOf } from "@/lib/format";
@@ -44,7 +44,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
   const [cloud, setCloud] = useState<CloudChoice>((["aws", "azure", "gcp"].includes(params.get("cloud") ?? "") ? params.get("cloud") : "aws") as CloudChoice);
   const [method, setMethod] = useState<"sso" | "key">("sso");
   const [alias, setAlias] = useState("");
-  const [login, setLogin] = useState<{ verificationUri: string; userCode: string } | null>(params.get("step") === "approve" && params.get("cloud") !== "azure" ? { verificationUri: "#", userCode: "MOCK-CODE" } : null);
+  const [login, setLogin] = useState<DeviceLogin | null>(params.get("step") === "approve" && params.get("cloud") !== "azure" ? { verificationUri: "#", userCode: "MOCK-CODE" } : null);
   const [discovered, setDiscovered] = useState<Session[]>(params.get("step") === "roles" || params.get("step") === "done" ? (workspace.sessions.length ? workspace.sessions : []) : []);
   const [busy, setBusy] = useState(false);
 
@@ -161,7 +161,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
       const from = stepRef.current;
       const target = dir === "back" ? BACK[from] : FORWARD[from];
       if (target && !busyRef.current) setStep(target);
-      else history.pushState({ step: from }, ""); // stay put, keep an entry ahead of us
+      else history.pushState({ step: from }, ""); // Keep the step. Push one entry so the next gesture has a target.
     };
     const onPop = (e: PopStateEvent) => {
       const wanted = (e.state as { step?: Step } | null)?.step;
@@ -381,7 +381,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
 
           {step === "approve" && (
             <motion.section key="approve" {...slide} className="flex w-full max-w-lg flex-col items-center text-center">
-              <StepTitle eyebrow="Step 3" title={login ? "Approve in your browser" : "Sign in with Microsoft"} hint={login ? `We opened ${alias}. Confirm this code when it asks.` : `A browser window is open for ${alias}. Finish signing in there.`} center accent="green" highlight={login ? "browser" : "Microsoft"} />
+              <StepTitle eyebrow="Step 3" title={login ? "Approve in your browser" : "Sign in with Microsoft"} hint={login ? `The ${alias} sign-in page is open in your browser. Enter this code when the page asks for it.` : `A browser window is open for ${alias}. Finish signing in there.`} center accent="green" highlight={login ? "browser" : "Microsoft"} />
               {login ? (
                 <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="mt-8 rounded-2xl border border-brand-green/50 bg-card px-8 py-5 font-mono text-4xl font-semibold tracking-[0.3em]">
                   {login.userCode}
@@ -599,7 +599,7 @@ export function AzureForm({ busy, onSubmit, submitLabel = "Sign in with Microsof
 
 export function GCPConnect({ busy, onSubmit }: { busy: boolean; onSubmit: (alias: string) => void }) {
   const [alias, setAlias] = useState("gcp");
-  const [status, setStatus] = useState<{ ready: boolean; account: string; loginCommand: string; gcloudFound: boolean; installUrl: string } | null>(null);
+  const [status, setStatus] = useState<GCPStatus | null>(null);
   const [checking, setChecking] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
   const [checkedAt, setCheckedAt] = useState<number | null>(null);

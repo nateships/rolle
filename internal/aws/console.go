@@ -29,7 +29,9 @@ func ConsoleURL(ctx context.Context, client *http.Client, c core.Credentials, re
 		return "", err
 	}
 	federation := "https://signin.aws.amazon.com/federation"
-	q := url.Values{"Action": {"getSigninToken"}, "SessionDuration": {"43200"}, "Session": {string(sess)}}
+	// No SessionDuration: the console session then lasts as long as the
+	// credentials, and role-chained credentials are accepted.
+	q := url.Values{"Action": {"getSigninToken"}, "Session": {string(sess)}}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, federation+"?"+q.Encode(), nil)
 	if err != nil {
 		return "", err

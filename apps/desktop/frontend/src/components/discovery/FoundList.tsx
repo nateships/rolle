@@ -83,7 +83,8 @@ function FoundRow({ cloud, title, subtitle, badge, badgeOk, busy, disabled, onIm
   );
 }
 
-/** Derive an alias for an Azure tenant from the signed-in account. */
+/** Derive an alias for an Azure tenant: the account's domain, or the name another tool gave it. */
 export function tenantAlias(t: FoundTenant): string {
-  return t.account.includes("@") ? t.account.split("@")[1].split(".")[0] : "azure";
+  if (t.account.includes("@")) return t.account.split("@")[1].split(".")[0];
+  return t.account || "azure";
 }

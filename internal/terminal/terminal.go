@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -23,7 +22,6 @@ const (
 	Ghostty    App = "ghostty"
 	Warp       App = "warp"
 	Cmux       App = "cmux"
-	WindowsWT  App = "wt"
 	PowerShell App = "powershell"
 )
 
@@ -56,33 +54,59 @@ func Open(o Options) error {
 
 func shQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'" }
 
+// Exports formats env as shell assignments, one per line, for eval in a POSIX
+// shell or in PowerShell. Empty values are skipped.
+func Exports(env [][2]string, powershell bool) string {
+	var b strings.Builder
+	for _, kv := range env {
+		if kv[1] == "" {
+			continue
+		}
+		if powershell {
+			fmt.Fprintf(&b, "$env:%s = %s\n", kv[0], psQuote(kv[1]))
+		} else {
+			fmt.Fprintf(&b, "export %s=%s\n", kv[0], shQuote(kv[1]))
+		}
+	}
+	return b.String()
+}
+
 // posixScript exports the environment, removes itself, and execs a login shell.
 func posixScript(o Options) string {
 	var b strings.Builder
 	b.WriteString("#!/bin/sh\n")
 	b.WriteString("rm -f \"$0\"\n")
-	for _, kv := range o.Env {
-		if kv[1] == "" {
-			continue
-		}
-		fmt.Fprintf(&b, "export %s=%s\n", kv[0], shQuote(kv[1]))
-	}
+	b.WriteString(Exports(o.Env, false))
 	fmt.Fprintf(&b, "export ROLLE_SESSION=%s\n", shQuote(o.Title))
-	fmt.Fprintf(&b, "printf '\\033[1mRolle:\\033[0m %s ready\\n'\n", shQuote(o.Title))
+	fmt.Fprintf(&b, "printf '\\033[1mRolle:\\033[0m %%s ready\\n' %s\n", shQuote(o.Title))
 	b.WriteString("exec \"${SHELL:-/bin/sh}\" -l\n")
 	return b.String()
 }
 
-func writeScript(dir, name, body string) (string, error) {
-	path := filepath.Join(dir, name)
-	if err := os.WriteFile(path, []byte(body), 0o700); err != nil {
+// writeScript writes body to a new private file in dir. pattern names the
+// file; its "*" becomes a random string so concurrent launches do not collide.
+func writeScript(dir, pattern, body string) (string, error) {
+	f, err := os.CreateTemp(dir, pattern)
+	if err != nil {
+		return "", err
+	}
+	path := f.Name()
+	err = f.Chmod(0o700)
+	if err == nil {
+		_, err = f.WriteString(body)
+	}
+	if cerr := f.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		_ = os.Remove(path)
 		return "", err
 	}
 	return path, nil
 }
 
 func openDarwin(o Options) error {
-	path, err := writeScript(o.Dir, "rolle-session.command", posixScript(o))
+	path, err := writeScript(o.Dir, "rolle-session-*.command", posixScript(o))
 	if err != nil {
 		return err
 	}
@@ -130,7 +154,8 @@ func openCmux(o Options, script string) error {
 
 func appleQuote(s string) string { return `"` + strings.ReplaceAll(s, `"`, `\"`) + `"` }
 
-// detectDarwin prefers the terminal the user likely runs, falling back to Terminal.app.
+// detectDarwin picks the terminal named in TERM_PROGRAM, then the first
+// installed app from cmux, Ghostty, iTerm, and Warp, then Terminal.app.
 func detectDarwin() App {
 	if tp := os.Getenv("TERM_PROGRAM"); tp != "" {
 		switch {
@@ -156,19 +181,21 @@ func detectDarwin() App {
 }
 
 func openLinux(o Options) error {
-	path, err := writeScript(o.Dir, "rolle-session.sh", posixScript(o))
+	path, err := writeScript(o.Dir, "rolle-session-*.sh", posixScript(o))
 	if err != nil {
 		return err
 	}
+	// The script is executable, so every emulator gets one argument. This
+	// also fits emulators whose -e takes a single string.
 	if t := os.Getenv("TERMINAL"); t != "" {
-		return exec.Command(t, "-e", "/bin/sh", path).Start()
+		return exec.Command(t, "-e", path).Start()
 	}
 	for _, t := range []string{"x-terminal-emulator", "gnome-terminal", "konsole", "xfce4-terminal", "alacritty", "kitty", "xterm"} {
 		if p, err := exec.LookPath(t); err == nil {
 			if t == "gnome-terminal" {
-				return exec.Command(p, "--", "/bin/sh", path).Start()
+				return exec.Command(p, "--", path).Start()
 			}
-			return exec.Command(p, "-e", "/bin/sh", path).Start()
+			return exec.Command(p, "-e", path).Start()
 		}
 	}
 	return fmt.Errorf("no terminal emulator found; set the TERMINAL environment variable")
@@ -179,15 +206,10 @@ func psQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", "''") + 
 func openWindows(o Options) error {
 	var b strings.Builder
 	b.WriteString("Remove-Item -LiteralPath $PSCommandPath -Force\n")
-	for _, kv := range o.Env {
-		if kv[1] == "" {
-			continue
-		}
-		fmt.Fprintf(&b, "$env:%s = %s\n", kv[0], psQuote(kv[1]))
-	}
+	b.WriteString(Exports(o.Env, true))
 	fmt.Fprintf(&b, "$env:ROLLE_SESSION = %s\n", psQuote(o.Title))
 	fmt.Fprintf(&b, "Write-Host ('Rolle: ' + %s + ' ready')\n", psQuote(o.Title))
-	path, err := writeScript(o.Dir, "rolle-session.ps1", b.String())
+	path, err := writeScript(o.Dir, "rolle-session-*.ps1", b.String())
 	if err != nil {
 		return err
 	}

@@ -11,6 +11,7 @@ import (
 	"github.com/zalando/go-keyring"
 
 	"github.com/nateships/rolle/internal/aws"
+	"github.com/nateships/rolle/internal/awsconfig"
 	"github.com/nateships/rolle/internal/azure"
 	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/debug"
@@ -25,7 +26,7 @@ func (s *Service) Discover(ctx context.Context) discover.Result { return discove
 // ImportResult describes an imported Identity Center portal.
 type ImportResult struct {
 	Integration core.Integration `json:"integration"`
-	// LoggedIn is true when a valid AWS CLI token was reused and roles were discovered.
+	// LoggedIn is true when Rolle reuses a valid AWS CLI token and discovers roles.
 	LoggedIn bool           `json:"loggedIn"`
 	Sessions []core.Session `json:"sessions"`
 }
@@ -48,8 +49,8 @@ func (s *Service) ImportAWSSSO(ctx context.Context, alias, startURL, region stri
 	}
 	sessions, err := s.FinishSSOLogin(ctx, in.ID)
 	if err != nil {
-		// The CLI token was not usable; drop it and fall back to a login.
-		_ = s.sso(in).Logout()
+		// The CLI token is not usable. Drop it so the caller runs a login.
+		_ = s.SSOLogout(in.ID)
 		debug.Logf("discover", "cli token for %s rejected: %v", startURL, err)
 		return res, nil
 	}
@@ -74,18 +75,51 @@ func (s *Service) azureAuth(in core.Integration) *azure.Auth {
 	return &azure.Auth{Integration: in, Secrets: s.Secrets}
 }
 
-// AzureLogin signs in through the browser, records the account, and discovers subscriptions.
-func (s *Service) AzureLogin(ctx context.Context, ref string) ([]core.Session, error) {
-	w, err := s.Load()
-	if err != nil {
-		return nil, err
-	}
+// azureIntegration resolves ref to an Entra ID tenant.
+func azureIntegration(w *core.Workspace, ref string) (*core.Integration, error) {
 	in, err := FindIntegration(w, ref)
 	if err != nil {
 		return nil, err
 	}
 	if in.Azure == nil {
 		return nil, fmt.Errorf("integration %q is not an Azure tenant", in.Alias)
+	}
+	return in, nil
+}
+
+// gcpIntegration resolves ref to a Google Cloud account.
+func gcpIntegration(w *core.Workspace, ref string) (*core.Integration, error) {
+	in, err := FindIntegration(w, ref)
+	if err != nil {
+		return nil, err
+	}
+	if in.GCP == nil {
+		return nil, fmt.Errorf("integration %q is not a Google Cloud account", in.Alias)
+	}
+	return in, nil
+}
+
+// forgetIntegration deletes the tokens an integration holds in the secret store.
+func (s *Service) forgetIntegration(in core.Integration) {
+	switch {
+	case in.AWSSSO != nil:
+		_ = s.sso(in).Logout()
+	case in.Azure != nil:
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		_ = s.azureAuth(in).Logout(ctx)
+	}
+}
+
+// AzureLogin signs in through the browser, records the account, and discovers subscriptions.
+func (s *Service) AzureLogin(ctx context.Context, ref string) ([]core.Session, error) {
+	w, err := s.Load()
+	if err != nil {
+		return nil, err
+	}
+	in, err := azureIntegration(w, ref)
+	if err != nil {
+		return nil, err
 	}
 	account, err := s.azureAuth(*in).Login(ctx)
 	if err != nil {
@@ -104,12 +138,9 @@ func (s *Service) AzureDeviceLogin(ctx context.Context, ref string) (*azure.Devi
 	if err != nil {
 		return nil, err
 	}
-	in, err := FindIntegration(w, ref)
+	in, err := azureIntegration(w, ref)
 	if err != nil {
 		return nil, err
-	}
-	if in.Azure == nil {
-		return nil, fmt.Errorf("integration %q is not an Azure tenant", in.Alias)
 	}
 	return s.azureAuth(*in).StartDeviceLogin(ctx)
 }
@@ -120,7 +151,7 @@ func (s *Service) FinishAzureLogin(ctx context.Context, ref, account string) ([]
 	if err != nil {
 		return nil, err
 	}
-	in, err := FindIntegration(w, ref)
+	in, err := azureIntegration(w, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +168,7 @@ func (s *Service) AzureLogout(ctx context.Context, ref string) error {
 	if err != nil {
 		return err
 	}
-	in, err := FindIntegration(w, ref)
+	in, err := azureIntegration(w, ref)
 	if err != nil {
 		return err
 	}
@@ -159,7 +190,7 @@ func (s *Service) SyncAzure(ctx context.Context, ref string) ([]core.Session, er
 	if err != nil {
 		return nil, err
 	}
-	in, err := FindIntegration(w, ref)
+	in, err := azureIntegration(w, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -232,12 +263,9 @@ func (s *Service) SyncGCP(ctx context.Context, ref string) ([]core.Session, erro
 	if err != nil {
 		return nil, err
 	}
-	in, err := FindIntegration(w, ref)
+	in, err := gcpIntegration(w, ref)
 	if err != nil {
 		return nil, err
-	}
-	if in.GCP == nil {
-		return nil, fmt.Errorf("integration %q is not a Google Cloud account", in.Alias)
 	}
 	tok, err := gcp.SourceToken(ctx)
 	if err != nil {
@@ -288,12 +316,9 @@ func (s *Service) AddGCPImpersonation(in AddGCPImpersonationInput) (core.Session
 	if err != nil {
 		return core.Session{}, err
 	}
-	integ, err := FindIntegration(w, in.IntegrationRef)
+	integ, err := gcpIntegration(w, in.IntegrationRef)
 	if err != nil {
 		return core.Session{}, err
-	}
-	if integ.GCP == nil {
-		return core.Session{}, fmt.Errorf("integration %q is not a Google Cloud account", integ.Alias)
 	}
 	sess := core.Session{
 		ID: newID(), Name: in.Name, Kind: core.KindGCP, IntegrationID: integ.ID, Status: core.StatusInactive,
@@ -356,10 +381,15 @@ func (s *Service) adcPath(sess *core.Session) string {
 	return filepath.Join(s.Cache.Dir, "gcp", sess.ID+".json")
 }
 
-// writeCloudFiles creates per-session files other tools read, for example the
-// impersonated ADC file for GCP service account sessions.
+// writeCloudFiles creates the files other tools read for a session: the AWS
+// profile, or the impersonated ADC file for a GCP service account session.
 func (s *Service) writeCloudFiles(sess *core.Session) error {
-	if sess.Kind == core.KindGCP && sess.GCP != nil && sess.GCP.ServiceAccount != "" {
+	switch {
+	case sess.Kind.Cloud() == core.CloudAWS:
+		return awsconfig.Write(s.AWSConfigPath, awsconfig.Profile{
+			Name: ProfileName(sess), Region: sess.Region, SessionID: sess.ID, Executable: s.Executable,
+		})
+	case sess.Kind == core.KindGCP && sess.GCP.ServiceAccount != "":
 		return gcp.WriteImpersonatedADC(s.adcPath(sess), sess.GCP.ServiceAccount)
 	}
 	return nil
@@ -367,7 +397,10 @@ func (s *Service) writeCloudFiles(sess *core.Session) error {
 
 // removeCloudFiles deletes what writeCloudFiles created.
 func (s *Service) removeCloudFiles(sess *core.Session) error {
-	if sess.Kind == core.KindGCP {
+	switch sess.Kind.Cloud() {
+	case core.CloudAWS:
+		return awsconfig.Remove(s.AWSConfigPath, ProfileName(sess), sess.ID)
+	case core.CloudGCP:
 		if err := os.Remove(s.adcPath(sess)); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return err
 		}
@@ -419,20 +452,34 @@ func EnvVars(sess *core.Session, creds core.Credentials) [][2]string {
 	return nil
 }
 
-// TerminalEnv returns what a shell needs for a session. AWS sessions use the
+// SessionEnv returns the environment variables for an active session with
+// fresh credentials.
+func (s *Service) SessionEnv(ctx context.Context, ref string) ([][2]string, error) {
+	w, err := s.Load()
+	if err != nil {
+		return nil, err
+	}
+	sess, err := FindSession(w, ref)
+	if err != nil {
+		return nil, err
+	}
+	creds, err := s.credentials(ctx, w, sess)
+	if err != nil {
+		return nil, err
+	}
+	return s.EnvVars(sess, creds), nil
+}
+
+// terminalEnv returns what a shell needs for a session. AWS sessions use the
 // profile so no secret is written; Azure and GCP export their short-lived
 // tokens.
-func (s *Service) TerminalEnv(ctx context.Context, sess *core.Session) ([][2]string, error) {
+func (s *Service) terminalEnv(ctx context.Context, w *core.Workspace, sess *core.Session) ([][2]string, error) {
 	if sess.Kind.Cloud() == core.CloudAWS {
 		vars := [][2]string{{"AWS_PROFILE", ProfileName(sess)}}
 		if sess.Region != "" {
 			vars = append(vars, [2]string{"AWS_REGION", sess.Region}, [2]string{"AWS_DEFAULT_REGION", sess.Region})
 		}
 		return vars, nil
-	}
-	w, err := s.Load()
-	if err != nil {
-		return nil, err
 	}
 	creds, err := s.credentials(ctx, w, sess)
 	if err != nil {
@@ -454,7 +501,7 @@ func (s *Service) OpenTerminal(ctx context.Context, ref string) error {
 	if sess.Status != core.StatusActive {
 		return fmt.Errorf("%s: %w", sess.Name, ErrSessionInactive)
 	}
-	env, err := s.TerminalEnv(ctx, sess)
+	env, err := s.terminalEnv(ctx, w, sess)
 	if err != nil {
 		return err
 	}
@@ -485,12 +532,12 @@ func (s *Service) ImportLeappSessions(lw *discover.LeappWorkspace) (LeappImportR
 	if err != nil {
 		return res, err
 	}
-	exists := func(name string) bool {
-		_, err := FindSession(w, name)
-		return err == nil
+	names := map[string]bool{}
+	for _, sess := range w.Sessions {
+		names[sess.Name] = true
 	}
 	for _, u := range lw.IAMUsers {
-		if exists(u.Name) {
+		if names[u.Name] {
 			res.Skipped = append(res.Skipped, u.Name+": already exists")
 			continue
 		}
@@ -507,14 +554,14 @@ func (s *Service) ImportLeappSessions(lw *discover.LeappWorkspace) (LeappImportR
 			continue
 		}
 		res.Sessions = append(res.Sessions, sess)
-		w, _ = s.Load()
+		names[u.Name] = true
 	}
 	for _, r := range lw.ChainedRoles {
-		if exists(r.Name) {
+		if names[r.Name] {
 			res.Skipped = append(res.Skipped, r.Name+": already exists")
 			continue
 		}
-		if !exists(r.ParentName) {
+		if !names[r.ParentName] {
 			res.Skipped = append(res.Skipped, r.Name+": source session "+r.ParentName+" is not in Rolle yet")
 			continue
 		}
@@ -524,7 +571,7 @@ func (s *Service) ImportLeappSessions(lw *discover.LeappWorkspace) (LeappImportR
 			continue
 		}
 		res.Sessions = append(res.Sessions, sess)
-		w, _ = s.Load()
+		names[r.Name] = true
 	}
 	debug.Logf("discover", "leapp import: %d sessions, %d skipped", len(res.Sessions), len(res.Skipped))
 	return res, nil

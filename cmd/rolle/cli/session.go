@@ -10,7 +10,6 @@ import (
 	"golang.org/x/term"
 
 	"github.com/nateships/rolle/internal/app"
-	"github.com/nateships/rolle/internal/aws"
 	"github.com/nateships/rolle/internal/core"
 )
 
@@ -117,5 +116,3 @@ func sessionRemoveCmd() *cobra.Command {
 		RunE:  func(_ *cobra.Command, args []string) error { return svc.RemoveSession(args[0]) },
 	}
 }
-
-var _ = aws.AccessKey{}

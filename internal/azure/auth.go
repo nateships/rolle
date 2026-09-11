@@ -115,19 +115,6 @@ func (d *DeviceCode) Wait(ctx context.Context) (string, error) {
 	return res.Account.PreferredUsername, nil
 }
 
-// Account returns the cached account name, or "" when logged out.
-func (a *Auth) Account(ctx context.Context) string {
-	client, err := a.client()
-	if err != nil {
-		return ""
-	}
-	accts, err := client.Accounts(ctx)
-	if err != nil || len(accts) == 0 {
-		return ""
-	}
-	return accts[0].PreferredUsername
-}
-
 // Token returns an ARM access token, refreshing silently.
 func (a *Auth) Token(ctx context.Context) (core.Credentials, error) {
 	client, err := a.client()

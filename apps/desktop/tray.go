@@ -10,6 +10,7 @@ import (
 
 	"github.com/nateships/rolle/internal/app"
 	"github.com/nateships/rolle/internal/core"
+	"github.com/nateships/rolle/internal/debug"
 )
 
 //go:embed build/trayicon.png
@@ -20,12 +21,11 @@ type tray struct {
 	app    *application.App
 	svc    *app.Service
 	window *application.WebviewWindow
-	rolle  *RolleService
 	item   *application.SystemTray
 }
 
-func newTray(a *application.App, svc *app.Service, rolle *RolleService, window *application.WebviewWindow) *tray {
-	t := &tray{app: a, svc: svc, window: window, rolle: rolle}
+func newTray(a *application.App, svc *app.Service, window *application.WebviewWindow) *tray {
+	t := &tray{app: a, svc: svc, window: window}
 	t.item = a.SystemTray.New()
 	t.item.SetTemplateIcon(trayIcon)
 	t.item.SetTooltip("Rolle")
@@ -83,12 +83,15 @@ func (t *tray) rebuild() {
 func (t *tray) toggle(sess core.Session) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
+	var err error
 	if sess.Status == core.StatusActive {
-		_ = t.svc.Stop(sess.ID)
+		err = t.svc.Stop(sess.ID)
 	} else {
-		_, _ = t.svc.Start(ctx, sess.ID, app.StartOptions{})
+		_, err = t.svc.Start(ctx, sess.ID, app.StartOptions{})
 	}
-	t.rolle.changed()
+	if err != nil {
+		debug.Logf("tray", "%s: %v", sess.Name, err)
+	}
 }
 
 // needsInput reports whether starting the session needs an MFA code, which the
@@ -98,12 +101,14 @@ func needsInput(s core.Session) bool {
 }
 
 func until(exp time.Time) string {
-	d := time.Until(exp).Truncate(time.Minute)
-	if d <= 0 {
+	d := time.Until(exp)
+	switch {
+	case d <= 0:
 		return "expired"
-	}
-	if d >= time.Hour {
+	case d >= time.Hour:
 		return fmt.Sprintf("%dh %02dm", int(d.Hours()), int(d.Minutes())%60)
+	case d >= time.Minute:
+		return fmt.Sprintf("%dm", int(d.Minutes()))
 	}
-	return fmt.Sprintf("%dm", int(d.Minutes()))
+	return "<1m"
 }

@@ -1,5 +1,5 @@
 // Package app orchestrates the workspace, secret store, credential cache, and
-// cloud providers. The CLI, daemon, and desktop app all call into it.
+// cloud providers. The CLI and desktop app call into it.
 package app
 
 import (
@@ -30,6 +30,8 @@ type Service struct {
 	Secrets    secrets.Store
 	Cache      *credcache.Cache
 	Now        func() time.Time
+	// OnChange runs after every workspace write. Nil means no listener.
+	OnChange func()
 }
 
 // Default builds a Service with production paths.
@@ -54,8 +56,20 @@ func Default() (*Service, error) {
 // Load reads the workspace.
 func (s *Service) Load() (*core.Workspace, error) { return workspace.Load(s.WorkspacePath) }
 
-// Save writes the workspace.
-func (s *Service) Save(w *core.Workspace) error { return workspace.Save(s.WorkspacePath, w) }
+// Save writes the workspace and notifies OnChange.
+func (s *Service) Save(w *core.Workspace) error {
+	if err := workspace.Save(s.WorkspacePath, w); err != nil {
+		return err
+	}
+	s.notify()
+	return nil
+}
+
+func (s *Service) notify() {
+	if s.OnChange != nil {
+		s.OnChange()
+	}
+}
 
 // ErrAmbiguous is returned when a name or ID prefix matches more than one item.
 var ErrAmbiguous = errors.New("ambiguous reference")
@@ -104,6 +118,18 @@ func FindIntegration(w *core.Workspace, ref string) (*core.Integration, error) {
 
 func newID() string { return uuid.NewString() }
 
+// ssoIntegration resolves ref to an Identity Center portal.
+func ssoIntegration(w *core.Workspace, ref string) (*core.Integration, error) {
+	in, err := FindIntegration(w, ref)
+	if err != nil {
+		return nil, err
+	}
+	if in.AWSSSO == nil {
+		return nil, fmt.Errorf("integration %q is not an AWS IAM Identity Center portal", in.Alias)
+	}
+	return in, nil
+}
+
 // AddAWSSSO registers an IAM Identity Center portal.
 func (s *Service) AddAWSSSO(alias, startURL, region string) (core.Integration, error) {
 	w, err := s.Load()
@@ -130,9 +156,7 @@ func (s *Service) RemoveIntegration(ref string) error {
 	if err != nil {
 		return err
 	}
-	if in.AWSSSO != nil {
-		_ = (&aws.SSO{Integration: *in, Secrets: s.Secrets}).Logout()
-	}
+	s.forgetIntegration(*in)
 	for _, sess := range w.Sessions {
 		if sess.IntegrationID == in.ID {
 			_ = s.deactivate(&sess)
@@ -156,12 +180,9 @@ func (s *Service) SSOLogin(ctx context.Context, ref string) (*aws.DeviceAuthoriz
 	if err != nil {
 		return nil, err
 	}
-	in, err := FindIntegration(w, ref)
+	in, err := ssoIntegration(w, ref)
 	if err != nil {
 		return nil, err
-	}
-	if in.AWSSSO == nil {
-		return nil, fmt.Errorf("integration %q is not an AWS IAM Identity Center portal", in.Alias)
 	}
 	return s.sso(*in).StartLogin(ctx)
 }
@@ -172,7 +193,7 @@ func (s *Service) FinishSSOLogin(ctx context.Context, ref string) ([]core.Sessio
 	if err != nil {
 		return nil, err
 	}
-	in, err := FindIntegration(w, ref)
+	in, err := ssoIntegration(w, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -189,7 +210,7 @@ func (s *Service) SSOLogout(ref string) error {
 	if err != nil {
 		return err
 	}
-	in, err := FindIntegration(w, ref)
+	in, err := ssoIntegration(w, ref)
 	if err != nil {
 		return err
 	}
@@ -212,7 +233,7 @@ func (s *Service) SyncSSO(ctx context.Context, ref string) ([]core.Session, erro
 	if err != nil {
 		return nil, err
 	}
-	in, err := FindIntegration(w, ref)
+	in, err := ssoIntegration(w, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -360,7 +381,10 @@ func ProfileName(sess *core.Session) string {
 	if sess.AWS != nil && sess.AWS.Profile != "" {
 		return sess.AWS.Profile
 	}
-	return sanitizeProfile(sess.Name)
+	if p := sanitizeProfile(sess.Name); p != "" {
+		return p
+	}
+	return sess.ID
 }
 
 func sanitizeProfile(name string) string {
@@ -407,14 +431,6 @@ func (s *Service) Start(ctx context.Context, ref string, opts StartOptions) (cor
 	if err := s.writeCloudFiles(sess); err != nil {
 		return core.Credentials{}, err
 	}
-	if sess.Kind.Cloud() == core.CloudAWS {
-		err := awsconfig.Write(s.AWSConfigPath, awsconfig.Profile{
-			Name: ProfileName(sess), Region: sess.Region, SessionID: sess.ID, Executable: s.Executable,
-		})
-		if err != nil {
-			return core.Credentials{}, err
-		}
-	}
 	return creds, s.Save(w)
 }
 
@@ -440,11 +456,6 @@ func (s *Service) deactivate(sess *core.Session) error {
 	}
 	if err := s.removeCloudFiles(sess); err != nil {
 		return err
-	}
-	if sess.Kind.Cloud() == core.CloudAWS {
-		if err := awsconfig.Remove(s.AWSConfigPath, ProfileName(sess)); err != nil {
-			return err
-		}
 	}
 	sess.Status = core.StatusInactive
 	sess.Expires = nil
@@ -507,11 +518,16 @@ func (s *Service) fetch(ctx context.Context, w *core.Workspace, sess *core.Sessi
 		if err != nil {
 			return core.Credentials{}, err
 		}
+		duration := time.Duration(w.EffectiveSettings().AssumeRoleMinutes) * time.Minute
+		// STS caps role chaining at one hour.
+		if src.Kind != core.KindAWSIAMUser && duration > time.Hour {
+			duration = time.Hour
+		}
 		return aws.AssumeRole(ctx, aws.AssumeRoleInput{
 			Source:      source,
 			Region:      sess.Region,
 			RoleARN:     sess.AWS.RoleARN,
-			Duration:    time.Duration(w.EffectiveSettings().AssumeRoleMinutes) * time.Minute,
+			Duration:    duration,
 			SessionName: "rolle-" + sanitizeProfile(sess.Name),
 			ExternalID:  sess.AWS.ExternalID,
 			MFADevice:   sess.AWS.MFADevice,
@@ -546,6 +562,9 @@ func (s *Service) ConsoleURL(ctx context.Context, ref string) (string, error) {
 	if sess.Kind.Cloud() != core.CloudAWS {
 		return "", fmt.Errorf("console links are only available for AWS sessions")
 	}
+	if sess.Kind == core.KindAWSIAMUser {
+		return "", fmt.Errorf("%s: console sign-in needs a role; add an assume-role session", sess.Name)
+	}
 	creds, err := s.credentials(ctx, w, sess)
 	if err != nil {
 		return "", err
@@ -562,9 +581,12 @@ func (s *Service) Refresh() (*core.Workspace, error) {
 	if err != nil {
 		return nil, err
 	}
-	changed := false
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
+	// Renewals take network time. Collect the results first, then apply them
+	// to a fresh copy of the workspace so a concurrent change is not lost.
+	renewed := map[string]*time.Time{}
+	expired := map[string]bool{}
 	for i := range w.Sessions {
 		sess := &w.Sessions[i]
 		if sess.Status != core.StatusActive {
@@ -575,28 +597,40 @@ func (s *Service) Refresh() (*core.Workspace, error) {
 		}
 		if !s.renewable(sess) {
 			debug.Logf("refresh", "%s expired and needs input, deactivating", sess.Name)
-			_ = s.deactivate(sess)
-			changed = true
+			expired[sess.ID] = true
 			continue
 		}
 		creds, err := s.fetch(ctx, w, sess, "")
 		if err != nil {
 			debug.Logf("refresh", "%s renewal failed, deactivating: %v", sess.Name, err)
-			_ = s.deactivate(sess)
-			changed = true
+			expired[sess.ID] = true
 			continue
 		}
 		debug.Logf("refresh", "%s renewed until %v", sess.Name, creds.Expiration)
 		if err := s.Cache.Put(sess.ID, creds); err != nil {
 			return nil, err
 		}
-		sess.Expires = creds.Expiration
-		changed = true
+		renewed[sess.ID] = creds.Expiration
 	}
-	if changed {
-		return w, s.Save(w)
+	if len(renewed) == 0 && len(expired) == 0 {
+		return w, nil
 	}
-	return w, nil
+	if w, err = s.Load(); err != nil {
+		return nil, err
+	}
+	for i := range w.Sessions {
+		sess := &w.Sessions[i]
+		if sess.Status != core.StatusActive {
+			continue
+		}
+		if exp, ok := renewed[sess.ID]; ok {
+			sess.Expires = exp
+		}
+		if expired[sess.ID] {
+			_ = s.deactivate(sess)
+		}
+	}
+	return w, s.Save(w)
 }
 
 // renewable reports whether a session can refresh without user input.
@@ -627,23 +661,15 @@ func (s *Service) ResetAll() error {
 	if err != nil {
 		return err
 	}
-	// Sessions first: sources must outlive the sessions that chain from them,
-	// so remove in reverse dependency order by retrying until nothing is left.
-	for len(w.Sessions) > 0 {
-		before := len(w.Sessions)
-		for _, sess := range append([]core.Session(nil), w.Sessions...) {
-			if err := s.RemoveSession(sess.ID); err == nil {
-				w, _ = s.Load()
-			}
-		}
-		if len(w.Sessions) == before {
-			return fmt.Errorf("reset: could not remove sessions: %v", names(w.Sessions))
+	for i := range w.Sessions {
+		sess := &w.Sessions[i]
+		_ = s.deactivate(sess)
+		if sess.Kind == core.KindAWSIAMUser {
+			_ = aws.DeleteAccessKey(s.Secrets, sess.ID)
 		}
 	}
-	for _, in := range append([]core.Integration(nil), w.Integrations...) {
-		if err := s.RemoveIntegration(in.ID); err != nil {
-			return err
-		}
+	for _, in := range w.Integrations {
+		s.forgetIntegration(in)
 	}
 	if err := os.RemoveAll(s.Cache.Dir); err != nil {
 		return err
@@ -652,15 +678,8 @@ func (s *Service) ResetAll() error {
 		return err
 	}
 	debug.Logf("reset", "workspace, cache, secrets, and profiles removed")
+	s.notify()
 	return nil
-}
-
-func names(sessions []core.Session) []string {
-	out := make([]string, 0, len(sessions))
-	for _, s := range sessions {
-		out = append(out, s.Name)
-	}
-	return out
 }
 
 // Settings returns the effective user preferences.
@@ -724,10 +743,10 @@ func (s *Service) RenameSession(ref, name string) error {
 	oldProfile := ProfileName(sess)
 	sess.Name = name
 	if sess.Status == core.StatusActive && sess.Kind.Cloud() == core.CloudAWS && ProfileName(sess) != oldProfile {
-		if err := awsconfig.Remove(s.AWSConfigPath, oldProfile); err != nil {
+		if err := s.writeCloudFiles(sess); err != nil {
 			return err
 		}
-		if err := awsconfig.Write(s.AWSConfigPath, awsconfig.Profile{Name: ProfileName(sess), Region: sess.Region, SessionID: sess.ID, Executable: s.Executable}); err != nil {
+		if err := awsconfig.Remove(s.AWSConfigPath, oldProfile, sess.ID); err != nil {
 			return err
 		}
 	}

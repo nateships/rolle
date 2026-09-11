@@ -77,6 +77,15 @@ credential_process = granted credential-process --profile granted-prod
 	}
 }
 
+func TestNormalizeStartURL(t *testing.T) {
+	want := "https://acme.awsapps.com/start"
+	for _, raw := range []string{"https://acme.awsapps.com/start/#/", " https://acme.awsapps.com/start/ ", want} {
+		if got := normalizeStartURL(raw); got != want {
+			t.Fatalf("normalizeStartURL(%q) = %q", raw, got)
+		}
+	}
+}
+
 func TestCLITokenIgnoresExpired(t *testing.T) {
 	cache := t.TempDir()
 	past := time.Now().Add(-time.Hour).UTC().Format(time.RFC3339)

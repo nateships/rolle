@@ -19,14 +19,16 @@ tools without writing a secret to disk. It covers AWS, Azure, and Google Cloud.
   subscription becomes a session that yields Azure Resource Manager tokens.
 - **Google Cloud**: reuse the credentials `gcloud` already has. Every project
   becomes a session, and you can impersonate service accounts.
-- **Desktop app**: dark by default, guided onboarding, a dashboard with live
-  expiry countdowns, one-click console links, and copy-to-clipboard credentials.
+- **Desktop app**: dark or light theme, guided onboarding, a dashboard with live
+  expiry countdowns, favorites, one-click console and terminal actions, and
+  signed self-updates.
 - **Secrets** live in the OS keychain. Short-lived credentials are cached with
   owner-only permissions and expire on their own.
 
-Rolle is a successor to [Leapp](https://github.com/Noovolari/leapp), which is no
-longer maintained. It does not replicate browser multi-session tooling; AWS now
-ships that natively.
+Rolle imports what your machine already has: Identity Center portals from the
+AWS CLI and Granted, Azure tenants from the az CLI, gcloud credentials, and
+sessions from a [Leapp](https://github.com/Noovolari/leapp) workspace. Browser
+multi-session tooling is out of scope. The AWS console provides it.
 
 ## CLI
 
@@ -54,6 +56,7 @@ rolle session add gcp-impersonate --name deployer --project my-project --service
 # Any cloud
 rolle start <session>
 eval "$(rolle env <session>)"         # exports credentials into the shell
+rolle shell <session>                 # opens a terminal with them ready
 rolle console <session>               # opens the cloud console
 rolle stop <session>
 ```
@@ -63,7 +66,9 @@ rolle stop <session>
 - `internal/core`: domain model (integrations, sessions, credentials, workspace)
 - `internal/app`: application layer shared by the CLI and desktop app
 - `internal/aws`, `internal/azure`, `internal/gcp`: cloud providers
+- `internal/discover`: import sources (AWS CLI, Granted, az CLI, gcloud, Leapp)
 - `internal/awsconfig`, `internal/credcache`, `internal/secrets`, `internal/workspace`: storage
+- `internal/terminal`: opens a terminal with a session's environment
 - `cmd/rolle`: CLI
 - `apps/desktop`: Wails v3 desktop app (React, Tailwind v4, shadcn/ui)
 
@@ -88,5 +93,7 @@ mise run desktop
 Tools come from mise. Frontend packages use [aube](https://aube.sh).
 
 Set `ROLLE_DEBUG=1` (or pass `rolle --debug`) for verbose diagnostics from the
-CLI and the desktop app: credential fetches and cache hits, session renewals,
-UI events, and raw mouse and keyboard navigation events on macOS.
+CLI and the desktop app. `mise run reset` wipes the local workspace, secrets,
+cache, and AWS profiles.
+
+See [docs/ROADMAP.md](docs/ROADMAP.md) for what works and what does not.

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AzureForm, Field, GCPConnect, KeyForm, SSOForm } from "@/components/onboarding/Onboarding";
 import { CloudGlyph } from "@/components/Brand";
 import { RegionSelect } from "@/components/RegionSelect";
-import { api, errorMessage, Cloud, type Integration, type Session, type Workspace } from "@/lib/api";
+import { api, errorMessage, Cloud, type Integration, type Session, type Workspace, type DeviceLogin } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
 
 export function AddSSODialog({ open, onClose, onLogin }: { open: boolean; onClose: () => void; onLogin: (i: Integration) => void }) {
@@ -41,7 +41,7 @@ export function AddSSODialog({ open, onClose, onLogin }: { open: boolean; onClos
 }
 
 export function LoginDialog({ integration, onClose }: { integration: Integration | null; onClose: () => void }) {
-  const [login, setLogin] = useState<{ verificationUri: string; userCode: string } | null>(null);
+  const [login, setLogin] = useState<DeviceLogin | null>(null);
   const [added, setAdded] = useState<Session[] | null>(null);
 
   useEffect(() => {
@@ -279,7 +279,9 @@ export function AddGCPImpersonationDialog({ open, onClose, workspace }: { open: 
   const gcpIntegrations = workspace.integrations.filter((i) => i.gcp);
   const projects = Array.from(new Set(workspace.sessions.filter((s) => s.gcp).map((s) => s.gcp!.projectId))).sort();
   const [name, setName] = useState("");
-  const [integrationRef, setIntegrationRef] = useState(gcpIntegrations[0]?.id ?? "");
+  const [chosenIntegration, setIntegrationRef] = useState("");
+  // The dialog mounts before any account exists, so derive the default on render.
+  const integrationRef = chosenIntegration || (gcpIntegrations[0]?.id ?? "");
   const [projectId, setProjectId] = useState("");
   const [serviceAccount, setServiceAccount] = useState("");
   const [busy, setBusy] = useState(false);

@@ -22,24 +22,10 @@ type Subscription struct {
 	TenantID string `json:"tenantId"`
 }
 
-// Tenant is one directory the user belongs to.
-type Tenant struct {
-	ID            string `json:"tenantId"`
-	Name          string `json:"displayName"`
-	DefaultDomain string `json:"defaultDomain"`
-}
-
 // ListSubscriptions returns subscriptions the token can see.
 func ListSubscriptions(ctx context.Context, client *http.Client, token string) ([]Subscription, error) {
 	var out []Subscription
 	err := armList(ctx, client, token, armBase+"/subscriptions?api-version=2022-12-01", &out)
-	return out, err
-}
-
-// ListTenants returns directories the token can see.
-func ListTenants(ctx context.Context, client *http.Client, token string) ([]Tenant, error) {
-	var out []Tenant
-	err := armList(ctx, client, token, armBase+"/tenants?api-version=2022-12-01", &out)
 	return out, err
 }
 

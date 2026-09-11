@@ -75,11 +75,21 @@ func (c *Cache) Put(sessionID string, creds core.Credentials) error {
 	if err != nil {
 		return err
 	}
-	tmp := c.path(sessionID) + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o600); err != nil {
+	// A unique temp file keeps concurrent credential_process calls apart.
+	f, err := os.CreateTemp(c.Dir, sessionID+".*.tmp")
+	if err != nil {
 		return err
 	}
-	return os.Rename(tmp, c.path(sessionID))
+	if _, err := f.Write(data); err != nil {
+		_ = f.Close()
+		_ = os.Remove(f.Name())
+		return err
+	}
+	if err := f.Close(); err != nil {
+		_ = os.Remove(f.Name())
+		return err
+	}
+	return os.Rename(f.Name(), c.path(sessionID))
 }
 
 // Delete removes cached credentials for a session.

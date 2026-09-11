@@ -143,6 +143,9 @@ func TestSanitizeProfile(t *testing.T) {
 	if got := sanitizeProfile("--x--"); got != "x" {
 		t.Fatalf("got %q", got)
 	}
+	if got := ProfileName(&core.Session{ID: "id-1", Name: "***"}); got != "id-1" {
+		t.Fatalf("empty profile fallback = %q", got)
+	}
 }
 
 func TestRefreshRenewsExpiredIAMUserWithoutMFA(t *testing.T) {

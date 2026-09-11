@@ -3,7 +3,7 @@ import { Mark } from "@/components/Brand";
 
 type State = { error: Error | null };
 
-/** Last line of defence: show the error instead of a black window. */
+/** Catches render errors and shows the message instead of a blank window. */
 export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
   state: State = { error: null };
   static getDerivedStateFromError(error: Error): State { return { error }; }

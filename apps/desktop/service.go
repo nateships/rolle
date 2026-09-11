@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
@@ -13,13 +12,13 @@ import (
 	"github.com/nateships/rolle/internal/aws"
 	"github.com/nateships/rolle/internal/browser"
 	"github.com/nateships/rolle/internal/core"
-	"github.com/nateships/rolle/internal/debug"
 	"github.com/nateships/rolle/internal/discover"
 	"github.com/nateships/rolle/internal/gcp"
+	"github.com/nateships/rolle/internal/terminal"
 	"github.com/nateships/rolle/internal/version"
 )
 
-// EventWorkspaceChanged is emitted after any mutation so the UI can reload.
+// EventWorkspaceChanged is emitted after every workspace write so the UI can reload.
 const EventWorkspaceChanged = "workspace:changed"
 
 // RolleService exposes the application to the frontend.
@@ -42,13 +41,6 @@ func (r *RolleService) ServiceStartup(_ context.Context, _ application.ServiceOp
 	return nil
 }
 
-func (r *RolleService) changed() {
-	debug.Logf("ui", "workspace changed")
-	if r.app != nil {
-		r.app.Event.Emit(EventWorkspaceChanged, struct{}{})
-	}
-}
-
 // ServiceName lets Wails and debug output identify this service.
 func (r *RolleService) ServiceName() string { return "rolle" }
 
@@ -66,20 +58,12 @@ func (r *RolleService) CompleteOnboarding() error {
 		return err
 	}
 	w.Onboarded = true
-	if err := r.svc.Save(w); err != nil {
-		return err
-	}
-	r.changed()
-	return nil
+	return r.svc.Save(w)
 }
 
 // AddAWSSSO registers an IAM Identity Center portal.
 func (r *RolleService) AddAWSSSO(alias, startURL, region string) (core.Integration, error) {
-	in, err := r.svc.AddAWSSSO(alias, startURL, region)
-	if err == nil {
-		r.changed()
-	}
-	return in, err
+	return r.svc.AddAWSSSO(alias, startURL, region)
 }
 
 // DeviceLogin is what the user must do to approve a login.
@@ -117,39 +101,29 @@ func (r *RolleService) WaitSSOLogin(ref string) ([]core.Session, error) {
 	if err := auth.Wait(c); err != nil {
 		return nil, err
 	}
-	added, err := r.svc.FinishSSOLogin(c, ref)
-	r.changed()
-	return added, err
+	return r.svc.FinishSSOLogin(c, ref)
 }
 
 // SSOLogout signs out of a portal.
 func (r *RolleService) SSOLogout(ref string) error {
-	err := r.svc.SSOLogout(ref)
-	r.changed()
-	return err
+	return r.svc.SSOLogout(ref)
 }
 
 // SyncSSO rediscovers roles.
 func (r *RolleService) SyncSSO(ref string) ([]core.Session, error) {
 	c, cancel := ctx()
 	defer cancel()
-	added, err := r.svc.SyncSSO(c, ref)
-	r.changed()
-	return added, err
+	return r.svc.SyncSSO(c, ref)
 }
 
 // RemoveIntegration deletes a portal and its sessions.
 func (r *RolleService) RemoveIntegration(ref string) error {
-	err := r.svc.RemoveIntegration(ref)
-	r.changed()
-	return err
+	return r.svc.RemoveIntegration(ref)
 }
 
 // AddAssumeRole creates a role-chaining session.
 func (r *RolleService) AddAssumeRole(in app.AddAssumeRoleInput) (core.Session, error) {
-	s, err := r.svc.AddAssumeRole(in)
-	r.changed()
-	return s, err
+	return r.svc.AddAssumeRole(in)
 }
 
 // IAMUserInput is the frontend shape for a new IAM user session.
@@ -163,35 +137,27 @@ type IAMUserInput struct {
 
 // AddIAMUser creates a session backed by an access key.
 func (r *RolleService) AddIAMUser(in IAMUserInput) (core.Session, error) {
-	s, err := r.svc.AddIAMUser(app.AddIAMUserInput{
+	return r.svc.AddIAMUser(app.AddIAMUserInput{
 		Name: in.Name, Region: in.Region, MFADevice: in.MFADevice,
 		Key: aws.AccessKey{AccessKeyID: in.AccessKeyID, SecretAccessKey: in.SecretAccessKey},
 	})
-	r.changed()
-	return s, err
 }
 
 // RemoveSession deletes a session.
 func (r *RolleService) RemoveSession(ref string) error {
-	err := r.svc.RemoveSession(ref)
-	r.changed()
-	return err
+	return r.svc.RemoveSession(ref)
 }
 
 // Start activates a session. mfaCode may be empty.
 func (r *RolleService) Start(ref, mfaCode string) (core.Credentials, error) {
 	c, cancel := ctx()
 	defer cancel()
-	creds, err := r.svc.Start(c, ref, app.StartOptions{MFACode: mfaCode})
-	r.changed()
-	return creds, err
+	return r.svc.Start(c, ref, app.StartOptions{MFACode: mfaCode})
 }
 
 // Stop deactivates a session.
 func (r *RolleService) Stop(ref string) error {
-	err := r.svc.Stop(ref)
-	r.changed()
-	return err
+	return r.svc.Stop(ref)
 }
 
 // Credentials returns fresh credentials for an active session.
@@ -229,59 +195,37 @@ func (r *RolleService) OpenConsole(ref string) error {
 func (r *RolleService) EnvText(ref string) (string, error) {
 	c, cancel := ctx()
 	defer cancel()
-	w, err := r.svc.Load()
+	env, err := r.svc.SessionEnv(c, ref)
 	if err != nil {
 		return "", err
 	}
-	sess, err := app.FindSession(w, ref)
-	if err != nil {
-		return "", err
-	}
-	creds, err := r.svc.Credentials(c, ref)
-	if err != nil {
-		return "", err
-	}
-	var b strings.Builder
-	for _, kv := range r.svc.EnvVars(sess, creds) {
-		if kv[1] != "" {
-			fmt.Fprintf(&b, "export %s=%q\n", kv[0], kv[1])
-		}
-	}
-	return b.String(), nil
+	return terminal.Exports(env, false), nil
 }
 
 // AddAzure registers an Entra ID tenant.
 func (r *RolleService) AddAzure(alias, tenantID string) (core.Integration, error) {
-	in, err := r.svc.AddAzure(alias, tenantID)
-	r.changed()
-	return in, err
+	return r.svc.AddAzure(alias, tenantID)
 }
 
 // AzureLogin opens the browser sign-in, then discovers subscriptions.
 func (r *RolleService) AzureLogin(ref string) ([]core.Session, error) {
 	c, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
-	added, err := r.svc.AzureLogin(c, ref)
-	r.changed()
-	return added, err
+	return r.svc.AzureLogin(c, ref)
 }
 
 // AzureLogout signs out of a tenant.
 func (r *RolleService) AzureLogout(ref string) error {
 	c, cancel := ctx()
 	defer cancel()
-	err := r.svc.AzureLogout(c, ref)
-	r.changed()
-	return err
+	return r.svc.AzureLogout(c, ref)
 }
 
 // SyncAzure rediscovers subscriptions.
 func (r *RolleService) SyncAzure(ref string) ([]core.Session, error) {
 	c, cancel := ctx()
 	defer cancel()
-	added, err := r.svc.SyncAzure(c, ref)
-	r.changed()
-	return added, err
+	return r.svc.SyncAzure(c, ref)
 }
 
 // GCPStatus reports whether gcloud Application Default Credentials exist and
@@ -322,7 +266,6 @@ func (r *RolleService) AddGCP(alias string) ([]core.Session, error) {
 	c, cancel := ctx()
 	defer cancel()
 	_, added, err := r.svc.AddGCP(c, alias)
-	r.changed()
 	return added, err
 }
 
@@ -330,16 +273,12 @@ func (r *RolleService) AddGCP(alias string) ([]core.Session, error) {
 func (r *RolleService) SyncGCP(ref string) ([]core.Session, error) {
 	c, cancel := ctx()
 	defer cancel()
-	added, err := r.svc.SyncGCP(c, ref)
-	r.changed()
-	return added, err
+	return r.svc.SyncGCP(c, ref)
 }
 
 // AddGCPImpersonation creates a service account impersonation session.
 func (r *RolleService) AddGCPImpersonation(in app.AddGCPImpersonationInput) (core.Session, error) {
-	s, err := r.svc.AddGCPImpersonation(in)
-	r.changed()
-	return s, err
+	return r.svc.AddGCPImpersonation(in)
 }
 
 // Settings returns the effective user preferences.
@@ -347,9 +286,7 @@ func (r *RolleService) Settings() (core.Settings, error) { return r.svc.Settings
 
 // UpdateSettings stores preferences.
 func (r *RolleService) UpdateSettings(in core.Settings) (core.Settings, error) {
-	out, err := r.svc.UpdateSettings(in)
-	r.changed()
-	return out, err
+	return r.svc.UpdateSettings(in)
 }
 
 // AppInfo describes this build and where it keeps its files.
@@ -367,17 +304,13 @@ func (r *RolleService) Info() AppInfo {
 
 // ReplayOnboarding shows the walkthrough again without removing sessions.
 func (r *RolleService) ReplayOnboarding() error {
-	err := r.svc.ReplayOnboarding()
-	r.changed()
-	return err
+	return r.svc.ReplayOnboarding()
 }
 
 // Reset removes every session, integration, secret, cached credential, and
 // Rolle-owned AWS profile. The UI confirms before calling this.
 func (r *RolleService) Reset() error {
-	err := r.svc.ResetAll()
-	r.changed()
-	return err
+	return r.svc.ResetAll()
 }
 
 // Discover reports identities other tools already configured on this machine.
@@ -393,39 +326,29 @@ func (r *RolleService) ImportLeappSessions() (app.LeappImportResult, error) {
 	if err != nil {
 		return app.LeappImportResult{}, err
 	}
-	res, err := r.svc.ImportLeappSessions(lw)
-	r.changed()
-	return res, err
+	return r.svc.ImportLeappSessions(lw)
 }
 
 // ImportAWSSSO registers a portal from the AWS CLI config, reusing its token when valid.
 func (r *RolleService) ImportAWSSSO(alias, startURL, region string) (app.ImportResult, error) {
 	c, cancel := ctx()
 	defer cancel()
-	res, err := r.svc.ImportAWSSSO(c, alias, startURL, region)
-	r.changed()
-	return res, err
+	return r.svc.ImportAWSSSO(c, alias, startURL, region)
 }
 
 // RenameIntegration changes an integration's display name.
 func (r *RolleService) RenameIntegration(ref, alias string) error {
-	err := r.svc.RenameIntegration(ref, alias)
-	r.changed()
-	return err
+	return r.svc.RenameIntegration(ref, alias)
 }
 
 // SetFavorite pins or unpins a session.
 func (r *RolleService) SetFavorite(ref string, favorite bool) error {
-	err := r.svc.SetFavorite(ref, favorite)
-	r.changed()
-	return err
+	return r.svc.SetFavorite(ref, favorite)
 }
 
 // RenameSession changes a session's name.
 func (r *RolleService) RenameSession(ref, name string) error {
-	err := r.svc.RenameSession(ref, name)
-	r.changed()
-	return err
+	return r.svc.RenameSession(ref, name)
 }
 
 // DevMode reports whether in-app dev tools are compiled in.

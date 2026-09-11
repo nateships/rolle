@@ -53,9 +53,7 @@ type adc struct {
 
 // Account reports which Google account the ADC file belongs to, when known.
 type Account struct {
-	Path  string
 	Email string
-	Type  string
 }
 
 // DetectAccount reads the ADC file and returns its identity.
@@ -75,7 +73,7 @@ func DetectAccount(ctx context.Context) (Account, error) {
 	if err := json.Unmarshal(data, &a); err != nil {
 		return Account{}, fmt.Errorf("parse %s: %w", path, err)
 	}
-	acct := Account{Path: path, Type: a.Type, Email: a.Account}
+	acct := Account{Email: a.Account}
 	if acct.Email == "" {
 		if email, err := userEmail(ctx, path, data); err == nil {
 			acct.Email = email

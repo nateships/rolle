@@ -65,7 +65,7 @@ func LeappPath() string {
 }
 
 // ReadLeapp decrypts and parses the Leapp workspace. It returns nil, nil when
-// Leapp was never installed.
+// no Leapp workspace file exists.
 func ReadLeapp() (*LeappWorkspace, error) {
 	path := LeappPath()
 	data, err := os.ReadFile(path)
@@ -236,12 +236,12 @@ func decryptCryptoJS(b64, passphrase string) ([]byte, error) {
 	cipher.NewCBCDecrypter(block, iv).CryptBlocks(plain, body)
 	pad := int(plain[len(plain)-1])
 	if pad == 0 || pad > aes.BlockSize || pad > len(plain) {
-		return nil, errors.New("bad padding; wrong machine id?")
+		return nil, errors.New("bad padding: the machine id does not match the workspace")
 	}
 	return plain[:len(plain)-pad], nil
 }
 
-// encryptCryptoJS is the inverse, used by tests to build fixtures.
+// encryptCryptoJS encrypts plain in the crypto-js format. Tests use it to build fixtures.
 func encryptCryptoJS(plain []byte, passphrase string, salt []byte) string {
 	key, iv := evpBytesToKey([]byte(passphrase), salt, 32, 16)
 	block, _ := aes.NewCipher(key)
@@ -252,7 +252,7 @@ func encryptCryptoJS(plain []byte, passphrase string, salt []byte) string {
 	return base64.StdEncoding.EncodeToString(append(append([]byte("Salted__"), salt...), out...))
 }
 
-// evpBytesToKey is OpenSSL's legacy KDF with MD5 and one iteration.
+// evpBytesToKey implements OpenSSL EVP_BytesToKey with MD5 and one iteration.
 func evpBytesToKey(pass, salt []byte, keyLen, ivLen int) (key, iv []byte) {
 	var d, prev []byte
 	for len(d) < keyLen+ivLen {

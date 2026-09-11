@@ -12,6 +12,7 @@ import (
 	"github.com/nateships/rolle/internal/app"
 	"github.com/nateships/rolle/internal/browser"
 	"github.com/nateships/rolle/internal/core"
+	"github.com/nateships/rolle/internal/terminal"
 )
 
 func startCmd() *cobra.Command {
@@ -99,37 +100,16 @@ func envCmd() *cobra.Command {
 		Long:  "Print credentials as shell exports. Use with eval \"$(rolle env prod)\".",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			creds, err := svc.Credentials(cmd.Context(), args[0])
+			env, err := svc.SessionEnv(cmd.Context(), args[0])
 			if err != nil {
 				return err
 			}
-			w, err := svc.Load()
-			if err != nil {
-				return err
-			}
-			sess, err := app.FindSession(w, args[0])
-			if err != nil {
-				return err
-			}
-			return printEnv(sess, creds, powershell)
+			fmt.Print(terminal.Exports(env, powershell))
+			return nil
 		},
 	}
 	cmd.Flags().BoolVar(&powershell, "powershell", false, "emit PowerShell syntax")
 	return cmd
-}
-
-func printEnv(sess *core.Session, creds core.Credentials, powershell bool) error {
-	for _, kv := range svc.EnvVars(sess, creds) {
-		if kv[1] == "" {
-			continue
-		}
-		if powershell {
-			fmt.Printf("$env:%s = \"%s\"\n", kv[0], kv[1])
-		} else {
-			fmt.Printf("export %s=%q\n", kv[0], kv[1])
-		}
-	}
-	return nil
 }
 
 func consoleCmd() *cobra.Command {

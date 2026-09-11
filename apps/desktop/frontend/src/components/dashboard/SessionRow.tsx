@@ -2,7 +2,6 @@ import { useState } from "react";
 import { motion } from "motion/react";
 import { Clipboard, ExternalLink, Loader2, MoreHorizontal, Pencil, Play, Square, SquareTerminal, Star, Terminal, Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { Clipboard as WailsClipboard } from "@wailsio/runtime";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -12,11 +11,11 @@ import { MFADialog } from "@/components/dialogs/Dialogs";
 import { RenameDialog } from "@/components/dialogs/RenameDialog";
 import { api, errorMessage, Kind, Status, type Session, type Workspace } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
-import { cloudOf, kindLabel, remaining, sessionSubtitle, useNow } from "@/lib/format";
+import { copyText } from "@/lib/clipboard";
+import { cloudOf, kindLabel, remaining, sessionSubtitle } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-export function SessionRow({ session: s, workspace }: { session: Session; workspace: Workspace }) {
-  const now = useNow();
+export function SessionRow({ session: s, workspace, now }: { session: Session; workspace: Workspace; now: number }) {
   const [busy, setBusy] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -57,7 +56,7 @@ export function SessionRow({ session: s, workspace }: { session: Session; worksp
   async function copy(kind: "env" | "profile") {
     try {
       const text = kind === "profile" ? `aws --profile ${await api.ProfileName(s.id)}` : await api.EnvText(s.id);
-      await WailsClipboard.SetText(text);
+      await copyText(text);
       toast.success(kind === "profile" ? "Profile command copied" : "Credentials copied", { description: kind === "env" ? "Paste into a shell. They expire on their own." : undefined });
     } catch (e) {
       toast.error(errorMessage(e));

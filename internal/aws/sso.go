@@ -196,9 +196,8 @@ func (s *SSO) token() (ssoToken, error) {
 
 // Account is an AWS account visible through the portal.
 type Account struct {
-	ID    string
-	Name  string
-	Email string
+	ID   string
+	Name string
 }
 
 // Role is a permission set assignment in one account.
@@ -226,7 +225,7 @@ func (s *SSO) ListAccounts(ctx context.Context) ([]Account, error) {
 			return nil, fmt.Errorf("list accounts: %w", err)
 		}
 		for _, a := range page.AccountList {
-			out = append(out, Account{ID: aws.ToString(a.AccountId), Name: aws.ToString(a.AccountName), Email: aws.ToString(a.EmailAddress)})
+			out = append(out, Account{ID: aws.ToString(a.AccountId), Name: aws.ToString(a.AccountName)})
 		}
 	}
 	return out, nil

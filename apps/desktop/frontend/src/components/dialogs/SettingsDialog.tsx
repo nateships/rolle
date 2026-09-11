@@ -8,12 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { RegionSelect } from "@/components/RegionSelect";
-import { api, errorMessage } from "@/lib/api";
+import { api, errorMessage, type AppInfo, type Settings, type UpdateInfo } from "@/lib/api";
 import { copyText } from "@/lib/clipboard";
 import { applyTheme, type Theme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
-
-type Settings = { theme: string; defaultRegion: string; assumeRoleMinutes: number; hideOnClose: boolean; verboseLogging: boolean; autoUpdateOff: boolean; terminal?: string };
 
 const IS_MAC = /Macintosh/.test(navigator.userAgent);
 const IS_WIN = /Windows/.test(navigator.userAgent);
@@ -22,14 +20,12 @@ const TERMINALS: { value: string; label: string }[] = IS_MAC
   : IS_WIN
     ? [{ value: "auto", label: "Windows Terminal if installed" }, { value: "powershell", label: "PowerShell window" }]
     : [{ value: "auto", label: "$TERMINAL or the system default" }];
-type UpdateInfo = { enabled: boolean; currentVersion: string; available: boolean; version?: string; notes?: string; state: string };
-type Info = { version: string; workspacePath: string; cacheDir: string; awsConfigPath: string };
 
 const DURATIONS = [60, 120, 240, 480, 720];
 
 export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [info, setInfo] = useState<Info | null>(null);
+  const [info, setInfo] = useState<AppInfo | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
@@ -39,7 +35,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
   const checkUpdates = async () => {
     setChecking(true);
     try {
-      const info = (await api.CheckForUpdates()) as UpdateInfo;
+      const info = await api.CheckForUpdates();
       setUpdateInfo(info);
       if (!info.enabled) toast.info("Updates are disabled in development builds");
       else if (info.available) toast.success(`Rolle ${info.version} is available`);
@@ -64,8 +60,8 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
 
   useEffect(() => {
     if (!open) { setConfirmReset(false); return; }
-    api.Settings().then((s) => setSettings(s as Settings)).catch((e) => toast.error(errorMessage(e)));
-    api.Info().then((i) => setInfo(i as Info)).catch(() => setInfo(null));
+    api.Settings().then(setSettings).catch((e) => toast.error(errorMessage(e)));
+    api.Info().then(setInfo).catch(() => setInfo(null));
   }, [open]);
 
   const update = async (patch: Partial<Settings>) => {
@@ -75,8 +71,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
     if (patch.theme) applyTheme(patch.theme as Theme);
     setSaving(true);
     try {
-      const saved = (await api.UpdateSettings(next)) as Settings;
-      setSettings(saved);
+      setSettings(await api.UpdateSettings(next));
     } catch (e) {
       toast.error(errorMessage(e));
     } finally {

@@ -54,11 +54,11 @@ type Result struct {
 }
 
 // Scan inspects the AWS CLI config and SSO cache, the az CLI profile, and
-// gcloud credentials. Missing tools are simply absent from the result.
+// gcloud credentials. Missing tools are absent from the result.
 func Scan(ctx context.Context) Result {
 	var r Result
 	if path, err := awsconfig.DefaultPath(); err == nil {
-		r.AWSPortals = awsPortals(path, ssoCacheDir(path))
+		r.AWSPortals = awsPortals(path, ssoCacheDir())
 	}
 	r.AzureTenants = azureTenants(azureProfilePath())
 	if acct, err := gcp.DetectAccount(ctx); err == nil {
@@ -98,17 +98,17 @@ func (r *Result) mergeLeapp(lw *LeappWorkspace) {
 	}
 }
 
-// awsPortals groups sso-session blocks and legacy sso profiles by start URL.
+// awsPortals groups sso-session blocks and profiles that set sso_start_url
+// directly, by start URL.
 func awsPortals(configPath, cacheDir string) []AWSPortal {
-	f, err := ini.LoadSources(ini.LoadOptions{SkipUnrecognizableLines: true}, configPath)
+	f, err := ini.LoadSources(ini.LoadOptions{SkipUnrecognizableLines: true, IgnoreInlineComment: true}, configPath)
 	if err != nil {
 		return nil
 	}
 	byURL := map[string]*AWSPortal{}
 	sessions := map[string]*AWSPortal{}
 	add := func(startURL, region, alias, source string) *AWSPortal {
-		// Trailing slashes vary between hand-written blocks; treat them as one portal.
-		startURL = strings.TrimRight(strings.TrimSpace(startURL), "/")
+		startURL = normalizeStartURL(startURL)
 		if startURL == "" {
 			return nil
 		}
@@ -202,8 +202,25 @@ func aliasFromURL(raw string) string {
 	return host
 }
 
-func ssoCacheDir(configPath string) string {
-	return filepath.Join(filepath.Dir(configPath), "sso", "cache")
+// ssoCacheDir is where the AWS CLI keeps Identity Center tokens. The CLI
+// does not move it with AWS_CONFIG_FILE.
+func ssoCacheDir() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(home, ".aws", "sso", "cache")
+}
+
+// normalizeStartURL drops the fragment and trailing slashes, so the forms a
+// portal URL takes in config files and token caches compare equal.
+func normalizeStartURL(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if u, err := url.Parse(raw); err == nil {
+		u.Fragment, u.RawFragment = "", ""
+		raw = u.String()
+	}
+	return strings.TrimRight(raw, "/")
 }
 
 // Token is the AWS CLI's cached Identity Center token.
@@ -232,7 +249,7 @@ func CLIToken(cacheDir, startURL string) (Token, bool) {
 		if json.Unmarshal(data, &t) != nil || t.AccessToken == "" {
 			continue
 		}
-		if strings.TrimRight(t.StartURL, "/") != strings.TrimRight(startURL, "/") {
+		if normalizeStartURL(t.StartURL) != normalizeStartURL(startURL) {
 			continue
 		}
 		if !t.ExpiresAt.After(time.Now().Add(2 * time.Minute)) {
@@ -243,13 +260,9 @@ func CLIToken(cacheDir, startURL string) (Token, bool) {
 	return Token{}, false
 }
 
-// AWSCLITokenFor is CLIToken against the default AWS CLI cache location.
+// AWSCLITokenFor is CLIToken against the AWS CLI cache location.
 func AWSCLITokenFor(startURL string) (Token, bool) {
-	path, err := awsconfig.DefaultPath()
-	if err != nil {
-		return Token{}, false
-	}
-	return CLIToken(ssoCacheDir(path), startURL)
+	return CLIToken(ssoCacheDir(), startURL)
 }
 
 func azureProfilePath() string {

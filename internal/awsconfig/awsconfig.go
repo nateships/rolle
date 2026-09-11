@@ -40,13 +40,17 @@ func init() {
 	ini.PrettyEqual = true
 }
 
-// Write adds or replaces the profile in the config file at path.
+// Write adds or replaces the profile in the config file at path. A profile
+// that Rolle does not own is not touched.
 func Write(path string, p Profile) error {
 	f, err := load(path)
 	if err != nil {
 		return err
 	}
 	name := sectionName(p.Name)
+	if sec, err := f.GetSection(name); err == nil && !sec.HasKey(marker) {
+		return fmt.Errorf("profile %q already exists in %s and is not managed by rolle", p.Name, path)
+	}
 	f.DeleteSection(name)
 	sec, err := f.NewSection(name)
 	if err != nil {
@@ -60,18 +64,16 @@ func Write(path string, p Profile) error {
 	return save(path, f)
 }
 
-// Remove deletes the profile if Rolle owns it. Foreign profiles are left alone.
-func Remove(path, name string) error {
+// Remove deletes the profile if it belongs to sessionID. Other profiles are
+// left alone.
+func Remove(path, name, sessionID string) error {
 	f, err := load(path)
 	if err != nil {
 		return err
 	}
 	sec, err := f.GetSection(sectionName(name))
-	if err != nil {
+	if err != nil || sec.Key(marker).String() != sessionID {
 		return nil
-	}
-	if !sec.HasKey(marker) {
-		return fmt.Errorf("profile %q is not managed by rolle", name)
 	}
 	f.DeleteSection(sec.Name())
 	return save(path, f)
@@ -94,7 +96,9 @@ func quote(s string) string {
 }
 
 func load(path string) (*ini.File, error) {
-	opts := ini.LoadOptions{AllowNestedValues: true, SkipUnrecognizableLines: true}
+	// The AWS CLI does not treat # or ; inside a value as a comment, so URLs
+	// such as https://acme.awsapps.com/start/#/ must survive a round trip.
+	opts := ini.LoadOptions{AllowNestedValues: true, SkipUnrecognizableLines: true, IgnoreInlineComment: true}
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return ini.LoadSources(opts, []byte{})
 	}

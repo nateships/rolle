@@ -1,4 +1,4 @@
-// Package core defines the domain model shared by the CLI, daemon, and desktop app:
+// Package core defines the domain model shared by the CLI and desktop app:
 // integrations (identity sources), sessions (a role or identity you can assume),
 // and the credentials a session yields.
 package core
@@ -51,7 +51,6 @@ type Status string
 
 const (
 	StatusInactive Status = "inactive"
-	StatusPending  Status = "pending"
 	StatusActive   Status = "active"
 )
 

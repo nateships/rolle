@@ -248,7 +248,6 @@ export enum Status {
     $zero = "",
 
     StatusInactive = "inactive",
-    StatusPending = "pending",
     StatusActive = "active",
 };
 

@@ -9,25 +9,34 @@ import (
 
 func TestWriteThenRemoveKeepsForeignProfiles(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config")
-	if err := os.WriteFile(path, []byte("[profile mine]\nregion = eu-west-1\n"), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte("[profile mine]\nregion = eu-west-1\nsso_start_url = https://acme.awsapps.com/start/#/\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	err := Write(path, Profile{Name: "prod", Region: "us-east-1", SessionID: "abc", Executable: "/usr/local/bin/rolle"})
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := Write(path, Profile{Name: "mine", SessionID: "abc", Executable: "/usr/local/bin/rolle"}); err == nil {
+		t.Fatal("expected refusal to overwrite foreign profile")
+	}
 	data, _ := os.ReadFile(path)
 	s := string(data)
-	for _, want := range []string{"[profile prod]", "credential_process = /usr/local/bin/rolle creds --session abc", "rolle_session = abc", "[profile mine]"} {
+	for _, want := range []string{"[profile prod]", "credential_process = /usr/local/bin/rolle creds --session abc", "rolle_session = abc", "[profile mine]", "sso_start_url = https://acme.awsapps.com/start/#/"} {
 		if !strings.Contains(s, want) {
 			t.Fatalf("config missing %q:\n%s", want, s)
 		}
 	}
-	if err := Remove(path, "prod"); err != nil {
+	if err := Remove(path, "prod", "other"); err != nil {
 		t.Fatal(err)
 	}
-	if err := Remove(path, "mine"); err == nil {
-		t.Fatal("expected refusal to remove foreign profile")
+	if data, _ := os.ReadFile(path); !strings.Contains(string(data), "[profile prod]") {
+		t.Fatalf("profile of another session removed:\n%s", data)
+	}
+	if err := Remove(path, "prod", "abc"); err != nil {
+		t.Fatal(err)
+	}
+	if err := Remove(path, "mine", "abc"); err != nil {
+		t.Fatal(err)
 	}
 	data, _ = os.ReadFile(path)
 	if strings.Contains(string(data), "prod") || !strings.Contains(string(data), "[profile mine]") {

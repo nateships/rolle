@@ -26,7 +26,7 @@ var cards = []string{
 
 const tile = "M 128 16 L 384 16 Q 496 16 496 128 L 496 384 Q 496 496 384 496 L 128 496 Q 16 496 16 384 L 16 128 Q 16 16 128 16 Z"
 
-// Back to front: Original Circuit: cobalt blue, orange and green; flat fills only.
+// cloudCards holds the Original Circuit palette from back to front: cobalt blue, orange, green.
 var cloudCards = [3]color.NRGBA{{36, 76, 255, 255}, {255, 121, 0, 255}, {0, 206, 120, 255}}
 var charcoal = color.NRGBA{24, 26, 30, 255}
 var ivory = color.NRGBA{244, 240, 232, 255}
@@ -97,7 +97,7 @@ func svg(inks [3]color.NRGBA, background color.NRGBA) string {
 
 type point struct{ x, y float64 }
 
-// Flatten the small uppercase M/L/Q/Z path vocabulary used by our masters.
+// polygon flattens a path that uses the uppercase M, L, Q, and Z commands.
 func polygon(path string) []point {
 	tokens := strings.Fields(path)
 	var points []point
@@ -128,8 +128,8 @@ func polygon(path string) []point {
 	return points
 }
 
-// Scanline rasterization at 4x resolution supplies stable antialiasing without
-// extra libraries, font files, network requests or platform drawing APIs.
+// fill rasterizes a path with 4x scanline supersampling. It needs no extra
+// libraries, fonts, network access, or platform drawing APIs.
 func fill(img *image.NRGBA, path string, ink color.NRGBA) {
 	points := polygon(path)
 	scale := float64(img.Bounds().Dx()) / 512

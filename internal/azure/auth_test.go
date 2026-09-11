@@ -13,9 +13,6 @@ func TestTokenWithoutLoginFails(t *testing.T) {
 	if _, err := a.Token(context.Background()); err == nil {
 		t.Fatal("expected login required")
 	}
-	if got := a.Account(context.Background()); got != "" {
-		t.Fatalf("account = %q", got)
-	}
 	if err := a.Logout(context.Background()); err != nil {
 		t.Fatal(err)
 	}

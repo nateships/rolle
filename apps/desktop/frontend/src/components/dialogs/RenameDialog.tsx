@@ -10,7 +10,9 @@ import { errorMessage } from "@/lib/api";
 export function RenameDialog({ target, onClose }: { target: { kind: "integration" | "session"; id: string; name: string; save: (name: string) => Promise<unknown> } | null; onClose: () => void }) {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
-  useEffect(() => { setName(target?.name ?? ""); }, [target]);
+  const targetId = target?.id;
+  const targetName = target?.name;
+  useEffect(() => { setName(targetName ?? ""); }, [targetId, targetName]);
   const valid = name.trim().length > 0 && name.trim() !== target?.name;
   return (
     <Dialog open={!!target} onOpenChange={(o) => !o && onClose()}>

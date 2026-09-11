@@ -1,35 +1,44 @@
-# Roadmap
+# Status
 
-Scope: role assumption across AWS, Azure, and GCP with a CLI and a desktop app.
-Out of scope: browser multi-session tooling (AWS provides this natively).
+Rolle manages short-lived credentials for AWS, Azure, and Google Cloud from a
+CLI and a desktop app. This page lists what works and what does not.
 
-## 1. Core and CLI
-- [x] Domain model: integrations, sessions, credentials, workspace
-- [x] Workspace file (versioned JSON, atomic writes)
-- [x] Secret store (OS keychain, in-memory for tests)
-- [x] AWS IAM Identity Center: device-flow login, list accounts and roles, role credentials
-- [x] AWS AssumeRole with session chaining and optional external ID
-- [x] AWS IAM user with optional MFA
-- [x] `credential_process` entry point and `~/.aws/config` profile management
-- [x] Credential cache with expiry
-- [x] CLI: integration, session, start, stop, creds, env, console
-- [x] Silent renewal of expired sessions on refresh
+## Works
 
-## 2. Desktop app
-- [x] Dark mode default, design tokens
-- [x] Walkthrough onboarding with animations and completion celebration
-- [x] Sessions dashboard: start, stop, copy credentials, open console
-- [x] Integration management
+- **AWS**: IAM Identity Center sign-in with role discovery, `AssumeRole`
+  chaining with optional external ID, IAM users with optional MFA, federated
+  console links, `credential_process` profiles in `~/.aws/config`.
+- **Azure**: Entra ID sign-in through the browser or a device code,
+  subscription discovery, Azure Resource Manager tokens, portal links.
+- **Google Cloud**: reuse of gcloud Application Default Credentials, project
+  discovery, service account impersonation with an impersonated ADC file,
+  console links.
+- **Import**: Identity Center portals from the AWS CLI config and Granted,
+  Azure tenants from the az CLI, gcloud credentials, and IAM users, chained
+  roles, portals, and tenants from a Leapp workspace. A valid AWS CLI SSO token
+  is reused so no second sign-in is needed.
+- **Sessions**: start, stop, silent renewal, favorites, rename, copy
+  credentials, open a terminal with the environment set, open the console.
+- **Desktop app**: guided onboarding, dashboard, system tray with session
+  toggles, settings (theme, default region, assume-role duration, terminal
+  app, tray behaviour, logging, updates), signed self-updates from GitHub
+  releases in release builds.
+- **CLI**: `integration`, `session`, `start`, `stop`, `env`, `shell`,
+  `console`, `status`, `reset`, and the hidden `creds` used by
+  `credential_process`.
+- **Release**: goreleaser for the CLI, per-platform desktop packages, and a
+  signed update manifest, all from a tag push.
 
-## 3. Azure
-- [x] Entra ID login (MSAL), subscription discovery, ARM tokens
-- [ ] Export tokens into the az CLI cache
+## Does not work yet
 
-## 4. GCP
-- [x] gcloud ADC reuse, project discovery, service account impersonation
-- [x] Write impersonated ADC file for SDKs without env support
+- Export of Azure tokens into the az CLI token cache. Use `rolle env` or the
+  terminal action instead.
+- Session expiry notifications. macOS requires a signed bundle for
+  notifications.
+- Code signing and notarization. Release builds are unsigned until the Apple
+  and Windows signing secrets exist.
+- Cascading removal of chained roles when their source session disappears.
 
-## 5. Release
-- [ ] goreleaser for the CLI, desktop packaging, signing
-- [x] System tray with quick start and stop
-- [ ] Expiry notifications (needs a signed bundle on macOS)
+## Out of scope
+
+- Browser multi-session tooling. The AWS console provides it.

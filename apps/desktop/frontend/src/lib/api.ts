@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Events } from "@wailsio/runtime";
 import { RolleService } from "../../bindings/github.com/nateships/rolle/apps/desktop";
 import type { Integration, Session, Workspace as CoreWorkspace } from "../../bindings/github.com/nateships/rolle/internal/core";
@@ -23,7 +23,8 @@ export const inWails = (() => {
 // Outside Wails (plain `aube run dev`) fall back to an in-memory mock so the UI
 // can be designed and demoed without the Go backend.
 export const api: typeof RolleService = inWails ? RolleService : (mockApi as unknown as typeof RolleService);
-export type { Session, Integration, Credentials } from "../../bindings/github.com/nateships/rolle/internal/core";
+export type { Session, Integration, Credentials, Settings } from "../../bindings/github.com/nateships/rolle/internal/core";
+export type { AppInfo, DeviceLogin, GCPStatus, UpdateInfo } from "../../bindings/github.com/nateships/rolle/apps/desktop";
 export { Kind, Status, Cloud } from "../../bindings/github.com/nateships/rolle/internal/core";
 
 export const WORKSPACE_CHANGED = "workspace:changed";
@@ -32,14 +33,18 @@ export const WORKSPACE_CHANGED = "workspace:changed";
 export function useWorkspace() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Only the newest request may update state; a slow older one is stale.
+  const seq = useRef(0);
 
   const reload = useCallback(async () => {
+    const mine = ++seq.current;
     try {
       const w = await api.Workspace();
+      if (mine !== seq.current) return;
       setWorkspace(normalise(w));
       setError(null);
     } catch (e) {
-      setError(errorMessage(e));
+      if (mine === seq.current) setError(errorMessage(e));
     }
   }, []);
 
