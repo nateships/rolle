@@ -64,6 +64,7 @@ func main() {
 		e.Cancel()
 	})
 	newTray(a, svc, rolle, window)
+	installMouseNav(a)
 
 	// Reconcile expiring sessions and nudge the UI so countdowns stay honest.
 	go func() {

@@ -8,7 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Mark, Lockup, CloudGlyph } from "@/components/Brand";
 import { RegionSelect } from "@/components/RegionSelect";
-import { api, errorMessage, type Session, type Workspace } from "@/lib/api";
+import { Events } from "@wailsio/runtime";
+import { api, errorMessage, inWails, type Session, type Workspace } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
 import { copyText } from "@/lib/clipboard";
 import { cloudOf } from "@/lib/format";
@@ -92,10 +93,15 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
     window.addEventListener("popstate", onPop);
     window.addEventListener("keydown", onKey);
     window.addEventListener("mouseup", onMouseUp);
+    // Native side forwards mouse buttons the webview swallows.
+    const offBack = inWails ? Events.On("nav:back", () => move("back")) : () => {};
+    const offForward = inWails ? Events.On("nav:forward", () => move("forward")) : () => {};
     return () => {
       window.removeEventListener("popstate", onPop);
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("mouseup", onMouseUp);
+      offBack();
+      offForward();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
