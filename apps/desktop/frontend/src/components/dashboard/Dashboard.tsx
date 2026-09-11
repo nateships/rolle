@@ -28,6 +28,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { ActionItems, type Action } from "@/components/ActionMenu";
 import { Lockup, Mark } from "@/components/Brand";
 import { SessionTable, useColumnWidths } from "./SessionTable";
 import { DevTools } from "@/components/DevTools";
@@ -200,67 +202,87 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                         ? api.SyncGCP
                         : api.SyncSSO;
                   const logout = integ.cloud === CloudKind.CloudAzure ? api.AzureLogout : api.SSOLogout;
+                  const actions: Action[] = [
+                    {
+                      label: "Rename",
+                      icon: <Pencil />,
+                      onSelect: () => setDialog({ kind: "rename", integration: integ }),
+                    },
+                    ...(loggedIn
+                      ? ([
+                          {
+                            label: "Sync",
+                            icon: <RefreshCw />,
+                            onSelect: () => void run("Synced", () => sync(integ.id)),
+                          },
+                          ...(integ.cloud !== CloudKind.CloudGCP
+                            ? [
+                                {
+                                  label: "Sign out",
+                                  icon: <LogOut />,
+                                  onSelect: () => void run("Signed out", () => logout(integ.id)),
+                                },
+                              ]
+                            : []),
+                        ] as Action[])
+                      : [
+                          {
+                            label: "Sign in",
+                            icon: <LogIn />,
+                            onSelect: () =>
+                              integ.cloud === CloudKind.CloudGCP
+                                ? void run("Synced", () => api.SyncGCP(integ.id))
+                                : setDialog({ kind: "login", integration: integ }),
+                          },
+                        ]),
+                    ...(integ.cloud === CloudKind.CloudGCP
+                      ? [
+                          {
+                            label: "Impersonate service account",
+                            icon: <UserCog />,
+                            onSelect: () => setDialog({ kind: "gcp-impersonate" }),
+                          },
+                        ]
+                      : []),
+                    "separator",
+                    {
+                      label: "Remove",
+                      icon: <Trash2 />,
+                      destructive: true,
+                      onSelect: () => void run("Removed", () => api.RemoveIntegration(integ.id)),
+                    },
+                  ];
                   return (
-                    <SideItem
-                      key={integ.id}
-                      active={filter === integ.id}
-                      onClick={() => setFilter(integ.id)}
-                      label={integ.alias}
-                      dot={loggedIn ? "ok" : "off"}
-                      trailing={
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon-xs"
-                              className="text-muted-foreground opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
-                              aria-label={`${integ.alias} options`}
-                            >
-                              <MoreHorizontal className="size-3.5" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" side="right" className="min-w-56">
-                            <DropdownMenuItem onClick={() => setDialog({ kind: "rename", integration: integ })}>
-                              <Pencil /> Rename
-                            </DropdownMenuItem>
-                            {loggedIn ? (
-                              <>
-                                <DropdownMenuItem onClick={() => run("Synced", () => sync(integ.id))}>
-                                  <RefreshCw /> Sync
-                                </DropdownMenuItem>
-                                {integ.cloud !== CloudKind.CloudGCP && (
-                                  <DropdownMenuItem onClick={() => run("Signed out", () => logout(integ.id))}>
-                                    <LogOut /> Sign out
-                                  </DropdownMenuItem>
-                                )}
-                              </>
-                            ) : (
-                              <DropdownMenuItem
-                                onClick={() =>
-                                  integ.cloud === CloudKind.CloudGCP
-                                    ? run("Synced", () => api.SyncGCP(integ.id))
-                                    : setDialog({ kind: "login", integration: integ })
-                                }
-                              >
-                                <LogIn /> Sign in
-                              </DropdownMenuItem>
-                            )}
-                            {integ.cloud === CloudKind.CloudGCP && (
-                              <DropdownMenuItem onClick={() => setDialog({ kind: "gcp-impersonate" })}>
-                                <UserCog /> Impersonate service account
-                              </DropdownMenuItem>
-                            )}
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              variant="destructive"
-                              onClick={() => run("Removed", () => api.RemoveIntegration(integ.id))}
-                            >
-                              <Trash2 /> Remove
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      }
-                    />
+                    <ContextMenu key={integ.id}>
+                      <ContextMenuTrigger asChild>
+                        <SideItem
+                          active={filter === integ.id}
+                          onClick={() => setFilter(integ.id)}
+                          label={integ.alias}
+                          dot={loggedIn ? "ok" : "off"}
+                          trailing={
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon-xs"
+                                  className="text-muted-foreground opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
+                                  aria-label={`${integ.alias} options`}
+                                >
+                                  <MoreHorizontal className="size-3.5" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start" side="right" className="min-w-56">
+                                <ActionItems actions={actions} menu="dropdown" />
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          }
+                        />
+                      </ContextMenuTrigger>
+                      <ContextMenuContent className="min-w-56">
+                        <ActionItems actions={actions} menu="context" />
+                      </ContextMenuContent>
+                    </ContextMenu>
                   );
                 })}
               </div>
@@ -493,6 +515,7 @@ function SideItem({
   dot,
   icon,
   trailing,
+  ...rest
 }: {
   active: boolean;
   onClick: () => void;
@@ -501,9 +524,10 @@ function SideItem({
   dot?: "ok" | "off";
   icon?: React.ReactNode;
   trailing?: React.ReactNode;
-}) {
+} & React.ComponentProps<"div">) {
   return (
     <div
+      {...rest}
       className={cn(
         "group flex items-center rounded-md pr-1 transition-colors",
         active

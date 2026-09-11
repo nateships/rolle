@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ChevronsDownUp, ChevronsUpDown, Copy } from "lucide-react";
+import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { ActionItems, type Action } from "@/components/ActionMenu";
+import { copyText } from "@/lib/clipboard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CloudGlyph } from "@/components/Brand";
 import { SessionRow } from "./SessionRow";
@@ -176,34 +179,48 @@ export function SessionTable({ sessions, workspace, searching, flat, widths, onW
 
 function AccountRow({ row, open, onToggle }: { row: Row & { group: true }; open: boolean; onToggle: () => void }) {
   const active = row.sessions.filter((s) => s.status === Status.StatusActive).length;
+  const actions: Action[] = [
+    { label: open ? "Collapse" : "Expand", icon: open ? <ChevronsDownUp /> : <ChevronsUpDown />, onSelect: onToggle },
+    { label: "Copy account ID", icon: <Copy />, onSelect: () => void copyText(row.accountId) },
+  ];
   return (
-    <motion.tr
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.15 }}
-      onClick={onToggle}
-      className={cn(
-        "cursor-pointer select-none border-b bg-muted/20 transition-colors hover:bg-muted/50",
-        active > 0 && "bg-emerald-500/[0.04]",
-      )}
-    >
-      <TableCell className="pr-0">
-        <ChevronRight
-          className={cn("ml-1.5 inline-block size-4 text-muted-foreground transition-transform", open && "rotate-90")}
-        />
-      </TableCell>
-      <TableCell colSpan={5}>
-        <div className="flex items-center gap-2.5">
-          <CloudGlyph cloud="aws" />
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{row.label}</p>
-            <p className="truncate font-mono text-[11px] text-muted-foreground">
-              {row.accountId} · {row.sessions.length} {row.sessions.length === 1 ? "role" : "roles"}
-              {active > 0 ? ` · ${active} active` : ""}
-            </p>
-          </div>
-        </div>
-      </TableCell>
-    </motion.tr>
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <motion.tr
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.15 }}
+          onClick={onToggle}
+          className={cn(
+            "cursor-pointer select-none border-b bg-muted/20 transition-colors hover:bg-muted/50",
+            active > 0 && "bg-emerald-500/[0.04]",
+          )}
+        >
+          <TableCell className="pr-0">
+            <ChevronRight
+              className={cn(
+                "ml-1.5 inline-block size-4 text-muted-foreground transition-transform",
+                open && "rotate-90",
+              )}
+            />
+          </TableCell>
+          <TableCell colSpan={5}>
+            <div className="flex items-center gap-2.5">
+              <CloudGlyph cloud="aws" />
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium">{row.label}</p>
+                <p className="truncate font-mono text-[11px] text-muted-foreground">
+                  {row.accountId} · {row.sessions.length} {row.sessions.length === 1 ? "role" : "roles"}
+                  {active > 0 ? ` · ${active} active` : ""}
+                </p>
+              </div>
+            </div>
+          </TableCell>
+        </motion.tr>
+      </ContextMenuTrigger>
+      <ContextMenuContent className="min-w-48">
+        <ActionItems actions={actions} menu="context" />
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }

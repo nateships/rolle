@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionRow } from "@/components/dashboard/SessionRow";
@@ -70,5 +70,14 @@ describe("SessionRow", () => {
 
     renderRow(session({ name: "data", kind: Kind.KindGCP, gcp: { projectId: "proj" } }));
     expect(screen.getAllByText("—")).toHaveLength(2);
+  });
+
+  it("opens the same actions from a right-click", async () => {
+    renderRow(session({ name: "personal", kind: Kind.KindAWSIAMUser }));
+    fireEvent.contextMenu(screen.getByText("personal"));
+    expect(await screen.findByRole("menuitem", { name: /^start$/i })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /rename/i })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /change region/i })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /remove$/i })).toBeInTheDocument();
   });
 });

@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./index.css";
 import { applyTheme, cachedTheme } from "./lib/theme";
+import { inWails } from "./lib/api";
 
 // Apply the remembered theme before the first paint; settings refine it after load.
 const preview = new URLSearchParams(location.search).get("theme");
@@ -15,6 +16,9 @@ applyTheme(preview === "light" || preview === "dark" || preview === "system" ? p
 // macOS draws its window controls over the top-left of the web view. Mark the
 // document so headers can inset their leading content past them.
 if (/Macintosh/.test(navigator.userAgent)) document.documentElement.classList.add("mac");
+
+// Release builds show only Rolle's own context menus. Dev builds keep the web view's for Inspect.
+if (inWails && import.meta.env.PROD) document.addEventListener("contextmenu", (e) => e.preventDefault());
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
