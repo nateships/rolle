@@ -81,6 +81,13 @@ export function AzureLogout(ref: string): $CancellablePromise<void> {
 }
 
 /**
+ * CancelSSOLogin abandons a login that WaitSSOLogin is waiting on.
+ */
+export function CancelSSOLogin(ref: string): $CancellablePromise<void> {
+    return $Call.ByID(596805525, ref);
+}
+
+/**
  * CheckForUpdates asks the release feed for a newer version.
  */
 export function CheckForUpdates(): $CancellablePromise<$models.UpdateInfo> {

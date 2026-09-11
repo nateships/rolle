@@ -94,6 +94,17 @@ func (r *RolleService) StartSSOLogin(ref string) (DeviceLogin, error) {
 	return DeviceLogin{VerificationURI: auth.VerificationURI, UserCode: auth.UserCode}, nil
 }
 
+// CancelSSOLogin abandons a login that WaitSSOLogin is waiting on.
+func (r *RolleService) CancelSSOLogin(ref string) {
+	r.mu.Lock()
+	auth := r.pending[ref]
+	delete(r.pending, ref)
+	r.mu.Unlock()
+	if auth != nil {
+		auth.Cancel()
+	}
+}
+
 // WaitSSOLogin blocks until the user approves, then discovers roles.
 func (r *RolleService) WaitSSOLogin(ref string) ([]core.Session, error) {
 	r.mu.Lock()

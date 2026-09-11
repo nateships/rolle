@@ -174,6 +174,8 @@ type Settings struct {
 	ProxyURL string `json:"proxyUrl,omitempty"`
 	// CABundle is a PEM file of extra roots, added to the OS trust store.
 	CABundle string `json:"caBundle,omitempty"`
+	// UpdateChannel is "beta" to install pre-releases. Empty means stable.
+	UpdateChannel string `json:"updateChannel,omitempty"`
 }
 
 // DefaultSettings are used until the user changes something.
@@ -198,6 +200,9 @@ func (s Settings) Normalize() Settings {
 	}
 	s.ProxyURL = strings.TrimSpace(s.ProxyURL)
 	s.CABundle = strings.TrimSpace(s.CABundle)
+	if s.UpdateChannel != "beta" {
+		s.UpdateChannel = ""
+	}
 	return s
 }
 

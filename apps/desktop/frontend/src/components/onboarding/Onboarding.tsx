@@ -121,14 +121,18 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
         go("roles");
       } else {
         setCloud("aws");
+        loginRef.current = res.integration.id;
+        cancelledRef.current = false;
         const dl = await api.StartSSOLogin(res.integration.id);
         setLogin(dl);
         go("approve");
         const added = (await api.WaitSSOLogin(res.integration.id)) ?? [];
+        loginRef.current = null;
         setDiscovered((prev) => [...prev, ...added]);
         go("roles");
       }
     } catch (e) {
+      if (cancelledRef.current) return;
       toast.error(errorMessage(e));
       go("cloud");
     } finally {
@@ -199,31 +203,61 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
   // popstate drives the step. Keyboard: Cmd/Ctrl+[ ], Alt+Left/Right.
   // Steps that need a completed sign-in are never skipped into, and a pending
   // approval is never abandoned.
-  const BACK: Partial<Record<Step, Step>> = { cloud: "welcome", connect: "cloud", roles: "cloud", done: "roles" };
+  const BACK: Partial<Record<Step, Step>> = {
+    cloud: "welcome",
+    connect: "cloud",
+    approve: "connect",
+    roles: "cloud",
+    done: "roles",
+  };
   const FORWARD: Partial<Record<Step, Step>> = { welcome: "cloud", cloud: "connect", roles: "done" };
   const stepRef = useRef(step);
   stepRef.current = step;
   const busyRef = useRef(busy);
   busyRef.current = busy;
 
+  // Every history entry carries a sequence number. A popstate compares the
+  // popped number with the current one, which gives the direction even when
+  // the flow loops back to an earlier step.
+  const seqRef = useRef(0);
+  const curSeqRef = useRef(0);
+  const push = (s: Step) => {
+    seqRef.current += 1;
+    curSeqRef.current = seqRef.current;
+    history.pushState({ step: s, n: seqRef.current }, "");
+  };
   useEffect(() => {
-    // Mirror the current step into history so the webview has entries to move through.
     const current = (history.state as { step?: Step } | null)?.step;
-    if (current !== step) history.pushState({ step }, "");
+    if (current !== step) push(step);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
+  // The integration whose sign-in the approve step is waiting on.
+  const loginRef = useRef<string | null>(null);
+  const cancelledRef = useRef(false);
+  const cancelLogin = () => {
+    if (!loginRef.current) return;
+    cancelledRef.current = true;
+    void api.CancelSSOLogin(loginRef.current);
+    loginRef.current = null;
+  };
 
   useEffect(() => {
     const move = (dir: "back" | "forward") => {
       const from = stepRef.current;
       const target = dir === "back" ? BACK[from] : FORWARD[from];
+      // Leaving the approve step abandons the sign-in; the approve step itself is not busy.
+      if (from === "approve" && dir === "back" && target) {
+        cancelLogin();
+        setStep(target);
+        return;
+      }
       if (target && !busyRef.current) setStep(target);
-      else history.pushState({ step: from }, ""); // Keep the step. Push one entry so the next gesture has a target.
+      else push(from); // Keep the step. Push one entry so the next gesture has a target.
     };
     const onPop = (e: PopStateEvent) => {
-      const wanted = (e.state as { step?: Step } | null)?.step;
-      const from = stepRef.current;
-      const fromIdx = ORDER.indexOf(from);
-      const dir = wanted && ORDER.indexOf(wanted) > fromIdx ? "forward" : "back";
+      const n = (e.state as { n?: number } | null)?.n ?? 0;
+      const dir = n < curSeqRef.current ? "back" : "forward";
+      curSeqRef.current = n;
       move(dir);
     };
     const onKey = (e: KeyboardEvent) => {
@@ -455,13 +489,17 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                       try {
                         const integ = await api.AddAWSSSO(v.alias, v.startUrl, v.region);
                         setAlias(integ.alias);
+                        loginRef.current = integ.id;
+                        cancelledRef.current = false;
                         const dl = await api.StartSSOLogin(integ.id);
                         setLogin(dl);
                         go("approve");
                         const added = (await api.WaitSSOLogin(integ.id)) ?? [];
+                        loginRef.current = null;
                         setDiscovered((prev) => [...prev, ...added]);
                         go("roles");
                       } catch (e) {
+                        if (cancelledRef.current) return;
                         toast.error(errorMessage(e));
                         go("connect");
                       } finally {
@@ -594,13 +632,25 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                 <Loader2 className="size-4 animate-spin" /> Waiting for approval…
               </div>
               {login && (
-                <Button
-                  variant="link"
-                  className="mt-2 gap-1 text-muted-foreground"
-                  onClick={() => void api.OpenURL(login.verificationUri)}
-                >
-                  Reopen the page <ExternalLink className="size-3" />
-                </Button>
+                <div className="mt-2 flex items-center gap-4">
+                  <Button
+                    variant="link"
+                    className="gap-1 text-muted-foreground"
+                    onClick={() => void api.OpenURL(login.verificationUri)}
+                  >
+                    Reopen the page <ExternalLink className="size-3" />
+                  </Button>
+                  <Button
+                    variant="link"
+                    className="text-muted-foreground"
+                    onClick={() => {
+                      cancelLogin();
+                      go("connect");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
               )}
             </motion.section>
           )}

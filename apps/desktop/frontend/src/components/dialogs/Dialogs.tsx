@@ -98,8 +98,13 @@ export function LoginDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [integration?.id]);
 
+  const cancel = () => {
+    if (integration && integration.cloud !== Cloud.CloudAzure) void api.CancelSSOLogin(integration.id);
+    onClose();
+  };
+
   return (
-    <Dialog open={!!integration} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={!!integration} onOpenChange={(o) => !o && cancel()}>
       <DialogContent className="text-center">
         <DialogHeader className="items-center">
           <DialogTitle>Sign in to {integration?.alias ?? ""}</DialogTitle>
@@ -125,13 +130,18 @@ export function LoginDialog({
             <Loader2 className="size-4 animate-spin" /> Waiting for approval…
           </div>
           {login && (
-            <Button
-              variant="link"
-              className="gap-1 text-muted-foreground"
-              onClick={() => void api.OpenURL(login.verificationUri)}
-            >
-              Reopen the page <ExternalLink className="size-3" />
-            </Button>
+            <div className="flex items-center gap-4">
+              <Button
+                variant="link"
+                className="gap-1 text-muted-foreground"
+                onClick={() => void api.OpenURL(login.verificationUri)}
+              >
+                Reopen the page <ExternalLink className="size-3" />
+              </Button>
+              <Button variant="link" className="text-muted-foreground" onClick={cancel}>
+                Cancel
+              </Button>
+            </div>
           )}
         </div>
       </DialogContent>

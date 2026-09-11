@@ -35,7 +35,7 @@ describe("Onboarding", () => {
     await user.click(screen.getByRole("button", { name: /get started/i }));
     expect(await screen.findByRole("heading", { level: 2 })).toHaveTextContent("Where do your roles live?");
     expect(screen.queryByRole("button", { name: /get started/i })).not.toBeInTheDocument();
-    expect(history.state).toEqual({ step: "cloud" });
+    expect(history.state).toMatchObject({ step: "cloud" });
   });
 
   it("jumps to a step named in the query string", () => {

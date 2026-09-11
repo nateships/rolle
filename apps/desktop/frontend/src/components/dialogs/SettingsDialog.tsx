@@ -47,6 +47,13 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
   const [settings, setSettings] = useState<Settings | null>(null);
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [saving, setSaving] = useState(false);
+  // Shows "Saved" for a moment after each successful write.
+  const [justSaved, setJustSaved] = useState(false);
+  useEffect(() => {
+    if (!justSaved) return;
+    const id = setTimeout(() => setJustSaved(false), 1500);
+    return () => clearTimeout(id);
+  }, [justSaved]);
   const [confirmReset, setConfirmReset] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [checking, setChecking] = useState(false);
@@ -103,6 +110,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
       const saved = await api.UpdateSettings(next);
       // Merge: a toggle that raced this call keeps its own value.
       setSettings((cur) => ({ ...saved, ...(cur ? diff(cur, next) : {}) }));
+      setJustSaved(true);
     } catch (e) {
       // The backend kept the old settings; show them again.
       setSettings(prev);
@@ -128,7 +136,14 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
       <DialogContent className="overflow-hidden sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            Settings {saving && <Loader2 className="size-3.5 animate-spin text-muted-foreground" />}
+            Settings{" "}
+            {saving ? (
+              <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+            ) : justSaved ? (
+              <span className="flex items-center gap-1 text-xs font-normal text-emerald-400">
+                <Check className="size-3.5" /> Saved
+              </span>
+            ) : null}
           </DialogTitle>
           <DialogDescription>Preferences are saved as you change them.</DialogDescription>
         </DialogHeader>
@@ -252,6 +267,20 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                   </Button>
                 )}
               </div>
+              <Row label="Update channel" hint="Beta installs pre-releases as they ship. Applies at the next check.">
+                <Select
+                  value={settings.updateChannel || "stable"}
+                  onValueChange={(v) => update({ updateChannel: v === "beta" ? "beta" : "" })}
+                >
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="stable">Stable</SelectItem>
+                    <SelectItem value="beta">Beta</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Row>
               <PathRow label="Version" value={info?.version ?? "…"} />
               <PathRow label="Workspace" value={info?.workspacePath ?? "…"} copy />
               <PathRow label="Credential cache" value={info?.cacheDir ?? "…"} copy />

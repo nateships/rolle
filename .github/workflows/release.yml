@@ -171,7 +171,8 @@ jobs:
           ROLLE_UPDATER_KEY: ${{ secrets.ROLLE_UPDATER_KEY }}
       - name: Build and verify the signed manifest
         run: |
-          wails3 updater manifest -version "${VERSION}" -channel stable -key updater.key \
+          channel=stable; case "$GITHUB_REF_NAME" in *-*) channel=beta;; esac
+          wails3 updater manifest -version "${VERSION}" -channel "$channel" -key updater.key \
             -url-prefix "https://github.com/nateships/rolle/releases/download/${GITHUB_REF_NAME}/" \
             -output artifacts/manifest.json artifacts
           wails3 updater verify -manifest artifacts/manifest.json -publickey apps/desktop/build/updater.pub
@@ -210,6 +211,8 @@ jobs:
   # tap updates. A missing tap token skips this job instead of failing the release.
   tap:
     needs: cli
+    # Pre-release tags (v1.2.0-rc.1) stay off Homebrew.
+    if: ${{ !contains(github.ref_name, '-') }}
     runs-on: ubuntu-latest
     steps:
       - name: Strip the v prefix from the tag

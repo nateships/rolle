@@ -247,6 +247,11 @@ export interface Settings {
      * CABundle is a PEM file of extra roots, added to the OS trust store.
      */
     "caBundle"?: string;
+
+    /**
+     * UpdateChannel is "beta" to install pre-releases. Empty means stable.
+     */
+    "updateChannel"?: string;
 }
 
 /**

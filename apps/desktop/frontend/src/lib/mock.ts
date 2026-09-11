@@ -29,6 +29,7 @@ const state: Workspace = {
     hideOnClose: true,
     verboseLogging: false,
     autoUpdateOff: false,
+    updateChannel: "",
   },
 } as unknown as Workspace;
 
@@ -140,6 +141,7 @@ export const mockApi = {
     emit();
     return i;
   },
+  CancelSSOLogin: async () => {},
   StartSSOLogin: async () => {
     await wait(600);
     return { verificationUri: "https://oidc.us-east-1.amazonaws.com/authorize?client_id=mock", userCode: "" };
