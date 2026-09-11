@@ -1,6 +1,11 @@
 /* Brand overrides layered on Blume's tokens. */
 
-/* The header lockup carries the gopher artwork; give it room. */
+/* The header lockup carries the gopher artwork; size it for the 4rem header
+   and keep clear space around it. */
+header a[href="/"] {
+  padding: 0.75rem 0.5rem 0.75rem 0.25rem;
+}
+
 header a[href="/"] img {
-  height: 2.75rem;
+  height: 2.25rem;
 }
