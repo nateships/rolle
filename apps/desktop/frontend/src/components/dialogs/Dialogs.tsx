@@ -40,14 +40,12 @@ export function AddSSODialog({ open, onClose, onLogin }: { open: boolean; onClos
   );
 }
 
-export function LoginDialog({ integration, onClose }: { integration: Integration | null; onClose: () => void }) {
+export function LoginDialog({ integration, onClose, onDone }: { integration: Integration | null; onClose: () => void; onDone?: (integration: Integration, sessions: Session[]) => void }) {
   const [login, setLogin] = useState<DeviceLogin | null>(null);
-  const [added, setAdded] = useState<Session[] | null>(null);
 
   useEffect(() => {
     if (!integration) {
       setLogin(null);
-      setAdded(null);
       return;
     }
     let cancelled = false;
@@ -63,8 +61,10 @@ export function LoginDialog({ integration, onClose }: { integration: Integration
           sessions = (await api.WaitSSOLogin(integration.id)) ?? [];
         }
         if (cancelled) return;
-        setAdded(sessions);
         if (sessions.length > 0) celebrate("small");
+        toast.success(`Signed in to ${integration.alias}`, { description: sessions.length ? `${sessions.length} new session${sessions.length === 1 ? "" : "s"} discovered.` : "No new sessions." });
+        onDone?.(integration, sessions);
+        onClose();
       } catch (e) {
         if (!cancelled) {
           toast.error(errorMessage(e));
@@ -82,32 +82,24 @@ export function LoginDialog({ integration, onClose }: { integration: Integration
     <Dialog open={!!integration} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="text-center">
         <DialogHeader className="items-center">
-          <DialogTitle>{added ? "Signed in" : `Sign in to ${integration?.alias ?? ""}`}</DialogTitle>
-          <DialogDescription>{added ? `${added.length} new session${added.length === 1 ? "" : "s"} discovered.` : integration?.cloud === Cloud.CloudAzure ? "Finish signing in with Microsoft in your browser." : "Approve the request in your browser and confirm this code."}</DialogDescription>
+          <DialogTitle>Sign in to {integration?.alias ?? ""}</DialogTitle>
+          <DialogDescription>{integration?.cloud === Cloud.CloudAzure ? "Finish signing in with Microsoft in your browser." : "Approve the request in your browser and confirm this code."}</DialogDescription>
         </DialogHeader>
-        {!added && (
-          <div className="flex flex-col items-center gap-4 py-2">
-            {integration?.cloud === Cloud.CloudAzure ? (
-              <div className="rounded-2xl bg-card p-5"><CloudGlyph cloud="azure" className="size-14 p-2.5" /></div>
-            ) : (
-              <div className="rounded-2xl border border-primary/40 bg-card px-6 py-4 font-mono text-3xl font-semibold tracking-[0.3em]">
-                {login?.userCode ?? "····-····"}
-              </div>
-            )}
-            <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Waiting for approval…</div>
-            {login && (
-              <Button variant="link" className="gap-1 text-muted-foreground" onClick={() => void api.OpenURL(login.verificationUri)}>
-                Reopen the page <ExternalLink className="size-3" />
-              </Button>
-            )}
-          </div>
-        )}
-        {added && (
-          <ul className="max-h-48 space-y-1 overflow-y-auto text-left text-sm">
-            {added.map((s) => <li key={s.id} className="truncate rounded-md border px-2 py-1">{s.name}</li>)}
-          </ul>
-        )}
-        {added && <Button onClick={onClose}>Done</Button>}
+        <div className="flex flex-col items-center gap-4 py-2">
+          {integration?.cloud === Cloud.CloudAzure ? (
+            <div className="rounded-2xl bg-card p-5"><CloudGlyph cloud="azure" className="size-14 p-2.5" /></div>
+          ) : (
+            <div className="rounded-2xl border border-brand-green/50 bg-card px-6 py-4 font-mono text-3xl font-semibold tracking-[0.3em]">
+              {login?.userCode ?? "····-····"}
+            </div>
+          )}
+          <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Waiting for approval…</div>
+          {login && (
+            <Button variant="link" className="gap-1 text-muted-foreground" onClick={() => void api.OpenURL(login.verificationUri)}>
+              Reopen the page <ExternalLink className="size-3" />
+            </Button>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

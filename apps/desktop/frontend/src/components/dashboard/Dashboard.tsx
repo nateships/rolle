@@ -223,7 +223,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
       <AddAzureDialog open={dialog?.kind === "azure"} onClose={() => setDialog(null)} onLogin={(integ) => setDialog({ kind: "login", integration: integ })} />
       <AddGCPDialog open={dialog?.kind === "gcp"} onClose={() => setDialog(null)} />
       <AddGCPImpersonationDialog open={dialog?.kind === "gcp-impersonate"} onClose={() => setDialog(null)} workspace={workspace} />
-      <LoginDialog integration={dialog?.kind === "login" ? dialog.integration : null} onClose={() => setDialog(null)} />
+      <LoginDialog integration={dialog?.kind === "login" ? dialog.integration : null} onClose={() => setDialog(null)} onDone={(integ) => setFilter(integ.id)} />
       <SettingsDialog open={dialog?.kind === "settings"} onClose={() => setDialog(null)} />
       <ImportDialog open={dialog?.kind === "import"} onClose={() => setDialog(null)} workspace={workspace} onLogin={(integ) => setDialog({ kind: "login", integration: integ })} />
       <RenameDialog
