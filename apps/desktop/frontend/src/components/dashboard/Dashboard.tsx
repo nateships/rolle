@@ -55,8 +55,8 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   return (
     <div className="flex h-full">
       <aside className="flex w-64 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
-        <div className="drag mac-inset flex h-14 items-center px-4 pt-2">
-          <Lockup className="h-5" markClassName="size-5" />
+        <div className="drag flex h-14 items-center justify-end px-4 pt-2">
+          <Lockup className="h-7" markClassName="size-7" />
         </div>
         <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-2">
           <div>
