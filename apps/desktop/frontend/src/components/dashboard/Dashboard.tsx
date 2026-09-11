@@ -27,7 +27,6 @@ const CLOUD_SECTIONS: { cloud: string; title: string; addKind: Dialog }[] = [
 
 export function Dashboard({ workspace }: { workspace: Workspace }) {
   const [query, setQuery] = useState("");
-  const [activeOnly, setActiveOnly] = useState(false);
   const [widths, setWidths] = useColumnWidths();
   const [chosenFilter, setFilter] = useState<string | null>(() => (!inWails ? new URLSearchParams(location.search).get("filter") : null));
   // ?settings=1 opens the settings dialog in the browser preview.
@@ -43,16 +42,15 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   const manualCount = workspace.sessions.filter((s) => !s.integrationId).length;
   const favoriteCount = workspace.sessions.filter((s) => s.favorite).length;
   // A filter whose sidebar item is gone falls back to "All sessions".
-  const filterExists = chosenFilter === null || (chosenFilter === "manual" && manualCount > 0) || (chosenFilter === "favorites" && favoriteCount > 0) || workspace.integrations.some((i) => i.id === chosenFilter);
+  const filterExists = chosenFilter === null || (chosenFilter === "manual" && manualCount > 0) || (chosenFilter === "favorites" && favoriteCount > 0) || (chosenFilter === "active" && active > 0) || workspace.integrations.some((i) => i.id === chosenFilter);
   const filter = filterExists ? chosenFilter : null;
 
   const sessions = useMemo(() => {
     const q = query.trim().toLowerCase();
     return workspace.sessions
-      .filter((s) => (filter === null ? true : filter === "manual" ? !s.integrationId : filter === "favorites" ? s.favorite : s.integrationId === filter))
-      .filter((s) => !activeOnly || s.status === Status.StatusActive)
+      .filter((s) => (filter === null ? true : filter === "manual" ? !s.integrationId : filter === "favorites" ? s.favorite : filter === "active" ? s.status === Status.StatusActive : s.integrationId === filter))
       .filter((s) => !q || [s.name, s.aws?.accountId, s.aws?.roleName, s.aws?.profile, s.region].some((v) => (v ?? "").toLowerCase().includes(q)));
-  }, [workspace.sessions, query, filter, activeOnly]);
+  }, [workspace.sessions, query, filter]);
 
   const favorites = sessions.filter((s) => s.favorite);
   // Favorites get a shortcut panel on the unfiltered list; account groups below stay complete.
@@ -76,6 +74,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
         <nav className="flex-1 space-y-4 overflow-y-auto px-2 py-2">
           <div>
             <SideItem active={filter === null} onClick={() => setFilter(null)} label="All sessions" count={workspace.sessions.length} />
+            {active > 0 && <SideItem active={filter === "active"} onClick={() => setFilter("active")} label="Active" count={active} dot="ok" />}
             {favoriteCount > 0 && <SideItem active={filter === "favorites"} onClick={() => setFilter("favorites")} label="Favorites" count={favoriteCount} icon={<Star className="size-3.5 fill-current text-brand-orange" />} />}
             {manualCount > 0 && <SideItem active={filter === "manual"} onClick={() => setFilter("manual")} label="Manual" count={manualCount} />}
           </div>
@@ -147,7 +146,6 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search sessions" className="h-8 pl-8" />
           </div>
-          <Button variant={activeOnly ? "secondary" : "outline"} size="sm" className="no-drag h-8" aria-pressed={activeOnly} onClick={() => setActiveOnly((v) => !v)}>Active only</Button>
           <div className="flex-1" />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -168,7 +166,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
           </DropdownMenu>
         </header>
 
-        <motion.div key={`${filter ?? "all"}:${activeOnly}`} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.16, ease: "easeOut" }} className="flex-1 overflow-y-auto p-4">
+        <motion.div key={filter ?? "all"} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.16, ease: "easeOut" }} className="flex-1 overflow-y-auto p-4">
           {(() => {
             const integ = workspace.integrations.find((i) => i.id === filter);
             if (!integ || isLoggedIn(integ) || sessions.length === 0) return null;
