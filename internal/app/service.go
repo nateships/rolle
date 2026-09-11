@@ -48,7 +48,7 @@ func Default() (*Service, error) {
 		WorkspacePath: workspace.DefaultPath(),
 		AWSConfigPath: awsPath,
 		Executable:    exe,
-		Secrets:       secrets.Keychain{},
+		Secrets:       secrets.NewKeychain(),
 		Cache:         credcache.Default(),
 	}, nil
 }
