@@ -17,7 +17,17 @@ export function useDiscovery(workspace: Workspace, enabled = true) {
   const [found, setFound] = useState<Found | null>(null);
   useEffect(() => {
     if (!enabled || found) return;
-    api.Discover().then((r) => setFound((r as unknown as Found) ?? EMPTY)).catch(() => setFound(EMPTY));
+    // Go nil slices arrive as null; normalise every list before anything calls .filter or .length.
+    api.Discover()
+      .then((r) => {
+        const raw = (r ?? {}) as Partial<{ awsPortals: Partial<FoundPortal>[] | null; azureTenants: FoundTenant[] | null; gcp: { account: string } | null }>;
+        setFound({
+          awsPortals: (raw.awsPortals ?? []).map((p) => ({ alias: p.alias ?? "aws", startUrl: p.startUrl ?? "", region: p.region ?? "us-east-1", profiles: p.profiles ?? [], hasToken: !!p.hasToken })),
+          azureTenants: raw.azureTenants ?? [],
+          gcp: raw.gcp ?? null,
+        });
+      })
+      .catch(() => setFound(EMPTY));
   }, [enabled, found]);
 
   const trim = (u: string) => u.replace(/\/$/, "");
