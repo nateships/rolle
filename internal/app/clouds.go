@@ -8,10 +8,12 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/nateships/rolle/internal/debug"
+	"github.com/zalando/go-keyring"
 
+	"github.com/nateships/rolle/internal/aws"
 	"github.com/nateships/rolle/internal/azure"
 	"github.com/nateships/rolle/internal/core"
+	"github.com/nateships/rolle/internal/debug"
 	"github.com/nateships/rolle/internal/discover"
 	"github.com/nateships/rolle/internal/gcp"
 	"github.com/nateships/rolle/internal/terminal"
@@ -463,3 +465,70 @@ func (s *Service) OpenTerminal(ctx context.Context, ref string) error {
 		App:   terminal.App(w.EffectiveSettings().Terminal),
 	})
 }
+
+// LeappImportResult reports what was recreated from a Leapp workspace.
+type LeappImportResult struct {
+	Sessions []core.Session `json:"sessions"`
+	// Skipped lists sessions that could not be recreated and why.
+	Skipped []string `json:"skipped"`
+}
+
+// ImportLeappSessions recreates IAM users and chained roles from the Leapp
+// workspace. IAM user keys are copied from Leapp's keychain entries when the
+// OS allows it; portals and tenants are imported through the normal paths.
+func (s *Service) ImportLeappSessions(lw *discover.LeappWorkspace) (LeappImportResult, error) {
+	var res LeappImportResult
+	if lw == nil {
+		return res, nil
+	}
+	w, err := s.Load()
+	if err != nil {
+		return res, err
+	}
+	exists := func(name string) bool {
+		_, err := FindSession(w, name)
+		return err == nil
+	}
+	for _, u := range lw.IAMUsers {
+		if exists(u.Name) {
+			res.Skipped = append(res.Skipped, u.Name+": already exists")
+			continue
+		}
+		idKey, secretKey := discover.LeappKeychainKeys(u.ID)
+		accessKeyID, err1 := keyringGet(discover.LeappKeychainService, idKey)
+		secret, err2 := keyringGet(discover.LeappKeychainService, secretKey)
+		if err1 != nil || err2 != nil || accessKeyID == "" || secret == "" {
+			res.Skipped = append(res.Skipped, u.Name+": access key not found in the Leapp keychain")
+			continue
+		}
+		sess, err := s.AddIAMUser(AddIAMUserInput{Name: u.Name, Region: u.Region, MFADevice: u.MFADevice, Profile: u.Profile, Key: aws.AccessKey{AccessKeyID: accessKeyID, SecretAccessKey: secret}})
+		if err != nil {
+			res.Skipped = append(res.Skipped, u.Name+": "+err.Error())
+			continue
+		}
+		res.Sessions = append(res.Sessions, sess)
+		w, _ = s.Load()
+	}
+	for _, r := range lw.ChainedRoles {
+		if exists(r.Name) {
+			res.Skipped = append(res.Skipped, r.Name+": already exists")
+			continue
+		}
+		if !exists(r.ParentName) {
+			res.Skipped = append(res.Skipped, r.Name+": source session "+r.ParentName+" is not in Rolle yet")
+			continue
+		}
+		sess, err := s.AddAssumeRole(AddAssumeRoleInput{Name: r.Name, Region: r.Region, RoleARN: r.RoleARN, SourceRef: r.ParentName, Profile: r.Profile})
+		if err != nil {
+			res.Skipped = append(res.Skipped, r.Name+": "+err.Error())
+			continue
+		}
+		res.Sessions = append(res.Sessions, sess)
+		w, _ = s.Load()
+	}
+	debug.Logf("discover", "leapp import: %d sessions, %d skipped", len(res.Sessions), len(res.Skipped))
+	return res, nil
+}
+
+// keyringGet reads another application's keychain entry. Overridable in tests.
+var keyringGet = func(service, key string) (string, error) { return keyring.Get(service, key) }

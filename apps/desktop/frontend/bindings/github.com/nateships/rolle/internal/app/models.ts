@@ -39,3 +39,15 @@ export interface ImportResult {
     "loggedIn": boolean;
     "sessions": core$0.Session[] | null;
 }
+
+/**
+ * LeappImportResult reports what was recreated from a Leapp workspace.
+ */
+export interface LeappImportResult {
+    "sessions": core$0.Session[] | null;
+
+    /**
+     * Skipped lists sessions that could not be recreated and why.
+     */
+    "skipped": string[] | null;
+}

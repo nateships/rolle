@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 )
 
 // App names a terminal emulator. "auto" picks the best installed one.
@@ -21,6 +22,7 @@ const (
 	ITerm      App = "iterm"
 	Ghostty    App = "ghostty"
 	Warp       App = "warp"
+	Cmux       App = "cmux"
 	WindowsWT  App = "wt"
 	PowerShell App = "powershell"
 )
@@ -89,6 +91,8 @@ func openDarwin(o Options) error {
 		app = detectDarwin()
 	}
 	switch app {
+	case Cmux:
+		return openCmux(o, path)
 	case ITerm:
 		return exec.Command("osascript", "-e", `tell application "iTerm" to create window with default profile command `+appleQuote("/bin/sh "+shQuote(path))).Start()
 	case Ghostty:
@@ -100,6 +104,30 @@ func openDarwin(o Options) error {
 	}
 }
 
+// openCmux creates a cmux workspace running the launcher. cmux is driven over
+// its socket, so the app is started first when it is not running.
+func openCmux(o Options, script string) error {
+	cli, err := exec.LookPath("cmux")
+	if err != nil {
+		cli = "/opt/homebrew/bin/cmux"
+	}
+	args := []string{"new-workspace", "--name", "Rolle: " + o.Title, "--command", "/bin/sh " + shQuote(script)}
+	if err := exec.Command(cli, args...).Run(); err == nil {
+		return nil
+	}
+	if err := exec.Command("open", "-a", "cmux").Run(); err != nil {
+		return fmt.Errorf("cmux: %w", err)
+	}
+	var last error
+	for i := 0; i < 20; i++ {
+		time.Sleep(500 * time.Millisecond)
+		if last = exec.Command(cli, args...).Run(); last == nil {
+			return nil
+		}
+	}
+	return fmt.Errorf("cmux did not accept the workspace: %w", last)
+}
+
 func appleQuote(s string) string { return `"` + strings.ReplaceAll(s, `"`, `\"`) + `"` }
 
 // detectDarwin prefers the terminal the user likely runs, falling back to Terminal.app.
@@ -108,6 +136,8 @@ func detectDarwin() App {
 		switch {
 		case strings.Contains(tp, "iTerm"):
 			return ITerm
+		case strings.Contains(tp, "cmux"):
+			return Cmux
 		case strings.Contains(tp, "ghostty"):
 			return Ghostty
 		case strings.Contains(tp, "Warp"):
@@ -117,7 +147,7 @@ func detectDarwin() App {
 	for _, c := range []struct {
 		path string
 		app  App
-	}{{"/Applications/Ghostty.app", Ghostty}, {"/Applications/iTerm.app", ITerm}, {"/Applications/Warp.app", Warp}} {
+	}{{"/Applications/cmux.app", Cmux}, {"/Applications/Ghostty.app", Ghostty}, {"/Applications/iTerm.app", ITerm}, {"/Applications/Warp.app", Warp}} {
 		if _, err := os.Stat(c.path); err == nil {
 			return c.app
 		}

@@ -6,11 +6,14 @@ import { CloudGlyph } from "@/components/Brand";
 import { api, type Workspace } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-export type FoundPortal = { alias: string; startUrl: string; region: string; profiles: string[]; hasToken: boolean };
-export type FoundTenant = { tenantId: string; account: string };
-export type Found = { awsPortals: FoundPortal[]; azureTenants: FoundTenant[]; gcp: { account: string } | null };
+export type FoundPortal = { alias: string; startUrl: string; region: string; profiles: string[]; hasToken: boolean; source: string };
+export type FoundTenant = { tenantId: string; account: string; source: string };
+export type FoundLeapp = { iamUsers: { name: string }[]; chainedRoles: { name: string }[]; ssoRoles: number };
+export type Found = { awsPortals: FoundPortal[]; azureTenants: FoundTenant[]; gcp: { account: string } | null; leapp: FoundLeapp | null };
 
-const EMPTY: Found = { awsPortals: [], azureTenants: [], gcp: null };
+const EMPTY: Found = { awsPortals: [], azureTenants: [], gcp: null, leapp: null };
+
+const SOURCE_LABEL: Record<string, string> = { "aws-cli": "AWS CLI", granted: "Granted", leapp: "Leapp", az: "az CLI" };
 
 /** Scan the machine once and filter out identities the workspace already has. */
 export function useDiscovery(workspace: Workspace, enabled = true) {
@@ -20,11 +23,12 @@ export function useDiscovery(workspace: Workspace, enabled = true) {
     // Go nil slices arrive as null; normalise every list before anything calls .filter or .length.
     api.Discover()
       .then((r) => {
-        const raw = (r ?? {}) as Partial<{ awsPortals: Partial<FoundPortal>[] | null; azureTenants: FoundTenant[] | null; gcp: { account: string } | null }>;
+        const raw = (r ?? {}) as Partial<{ awsPortals: Partial<FoundPortal>[] | null; azureTenants: Partial<FoundTenant>[] | null; gcp: { account: string } | null; leapp: Partial<{ iamUsers: { name: string }[] | null; chainedRoles: { name: string }[] | null; ssoRoles: number }> | null }>;
         setFound({
-          awsPortals: (raw.awsPortals ?? []).map((p) => ({ alias: p.alias ?? "aws", startUrl: p.startUrl ?? "", region: p.region ?? "us-east-1", profiles: p.profiles ?? [], hasToken: !!p.hasToken })),
-          azureTenants: raw.azureTenants ?? [],
+          awsPortals: (raw.awsPortals ?? []).map((p) => ({ alias: p.alias ?? "aws", startUrl: p.startUrl ?? "", region: p.region ?? "us-east-1", profiles: p.profiles ?? [], hasToken: !!p.hasToken, source: p.source ?? "aws-cli" })),
+          azureTenants: (raw.azureTenants ?? []).map((t) => ({ tenantId: t.tenantId ?? "", account: t.account ?? "", source: t.source ?? "az" })),
           gcp: raw.gcp ?? null,
+          leapp: raw.leapp ? { iamUsers: raw.leapp.iamUsers ?? [], chainedRoles: raw.leapp.chainedRoles ?? [], ssoRoles: raw.leapp.ssoRoles ?? 0 } : null,
         });
       })
       .catch(() => setFound(EMPTY));
@@ -34,23 +38,29 @@ export function useDiscovery(workspace: Workspace, enabled = true) {
   const portals = (found?.awsPortals ?? []).filter((p) => !workspace.integrations.some((i) => i.awsSso?.startUrl && trim(i.awsSso.startUrl) === trim(p.startUrl)));
   const tenants = (found?.azureTenants ?? []).filter((t) => !workspace.integrations.some((i) => i.azure?.tenantId === t.tenantId));
   const gcp = found?.gcp && !workspace.integrations.some((i) => i.gcp) ? found.gcp : null;
-  return { loading: found === null, portals, tenants, gcp, count: portals.length + tenants.length + (gcp ? 1 : 0), rescan: () => setFound(null) };
+  // Leapp sessions worth importing: users and chained roles not already present by name.
+  const leapp = found?.leapp && [...found.leapp.iamUsers, ...found.leapp.chainedRoles].some((x) => !workspace.sessions.some((s) => s.name === x.name)) ? found.leapp : null;
+  return { loading: found === null, portals, tenants, gcp, leapp, count: portals.length + tenants.length + (gcp ? 1 : 0) + (leapp ? 1 : 0), rescan: () => setFound(null) };
 }
 
-export function FoundList({ portals, tenants, gcp, importing, disabled, onAWS, onAzure, onGCP }: {
-  portals: FoundPortal[]; tenants: FoundTenant[]; gcp: { account: string } | null;
+export function FoundList({ portals, tenants, gcp, leapp, importing, disabled, onAWS, onAzure, onGCP, onLeapp }: {
+  portals: FoundPortal[]; tenants: FoundTenant[]; gcp: { account: string } | null; leapp?: FoundLeapp | null;
   importing: string | null; disabled: boolean;
-  onAWS: (p: FoundPortal) => void; onAzure: (t: FoundTenant) => void; onGCP: () => void;
+  onAWS: (p: FoundPortal) => void; onAzure: (t: FoundTenant) => void; onGCP: () => void; onLeapp?: () => void;
 }) {
+  const leappCount = leapp ? leapp.iamUsers.length + leapp.chainedRoles.length : 0;
   return (
     <ul className="space-y-2">
       {portals.map((p) => (
-        <FoundRow key={p.startUrl} cloud="aws" title={p.alias} subtitle={`${p.startUrl} · ${p.region}${p.profiles.length ? ` · ${p.profiles.length} profile${p.profiles.length === 1 ? "" : "s"}` : ""}`} badge={p.hasToken ? "Signed in via AWS CLI" : "Needs sign-in"} badgeOk={p.hasToken} busy={importing === p.startUrl} disabled={disabled} onImport={() => onAWS(p)} />
+        <FoundRow key={p.startUrl} cloud="aws" title={p.alias} subtitle={`${p.startUrl} · ${p.region}${p.profiles.length ? ` · ${p.profiles.length} profile${p.profiles.length === 1 ? "" : "s"}` : ""}`} badge={p.hasToken ? "Signed in via AWS CLI" : `From ${SOURCE_LABEL[p.source] ?? p.source}`} badgeOk={p.hasToken} busy={importing === p.startUrl} disabled={disabled} onImport={() => onAWS(p)} />
       ))}
       {tenants.map((t) => (
-        <FoundRow key={t.tenantId} cloud="azure" title={t.account || "Azure tenant"} subtitle={t.tenantId} badge="From az CLI" badgeOk busy={importing === t.tenantId} disabled={disabled} onImport={() => onAzure(t)} />
+        <FoundRow key={t.tenantId} cloud="azure" title={t.account || "Azure tenant"} subtitle={t.tenantId} badge={`From ${SOURCE_LABEL[t.source] ?? t.source}`} badgeOk busy={importing === t.tenantId} disabled={disabled} onImport={() => onAzure(t)} />
       ))}
       {gcp && <FoundRow cloud="gcp" title={gcp.account || "Google account"} subtitle="gcloud Application Default Credentials" badge="Signed in via gcloud" badgeOk busy={importing === "gcp"} disabled={disabled} onImport={onGCP} />}
+      {leapp && onLeapp && leappCount > 0 && (
+        <FoundRow cloud="aws" title={`${leappCount} Leapp session${leappCount === 1 ? "" : "s"}`} subtitle={[leapp.iamUsers.length ? `${leapp.iamUsers.length} IAM user${leapp.iamUsers.length === 1 ? "" : "s"}` : "", leapp.chainedRoles.length ? `${leapp.chainedRoles.length} chained role${leapp.chainedRoles.length === 1 ? "" : "s"}` : "", leapp.ssoRoles ? `${leapp.ssoRoles} SSO roles return when you sync the portal` : ""].filter(Boolean).join(" · ")} badge="From Leapp" badgeOk busy={importing === "leapp"} disabled={disabled} onImport={onLeapp} />
+      )}
     </ul>
   );
 }

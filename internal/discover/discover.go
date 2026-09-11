@@ -27,12 +27,16 @@ type AWSPortal struct {
 	Profiles []string `json:"profiles"`
 	// HasToken means the AWS CLI holds a valid SSO token for this portal.
 	HasToken bool `json:"hasToken"`
+	// Source is which tool the portal came from: aws-cli, granted, or leapp.
+	Source string `json:"source"`
 }
 
 // AzureTenant is a directory the az CLI has signed in to.
 type AzureTenant struct {
 	TenantID string `json:"tenantId"`
 	Account  string `json:"account"`
+	// Source is which tool the tenant came from: az or leapp.
+	Source string `json:"source"`
 }
 
 // GCPAccount is the gcloud Application Default Credentials identity.
@@ -45,6 +49,8 @@ type Result struct {
 	AWSPortals   []AWSPortal   `json:"awsPortals"`
 	AzureTenants []AzureTenant `json:"azureTenants"`
 	GCP          *GCPAccount   `json:"gcp,omitempty"`
+	// Leapp holds sessions from a Leapp workspace that Rolle can recreate.
+	Leapp *LeappWorkspace `json:"leapp,omitempty"`
 }
 
 // Scan inspects the AWS CLI config and SSO cache, the az CLI profile, and
@@ -58,7 +64,38 @@ func Scan(ctx context.Context) Result {
 	if acct, err := gcp.DetectAccount(ctx); err == nil {
 		r.GCP = &GCPAccount{Account: acct.Email}
 	}
+	if lw, err := ReadLeapp(); err == nil && lw != nil {
+		r.mergeLeapp(lw)
+	}
 	return r
+}
+
+// mergeLeapp adds Leapp portals and tenants not already found elsewhere and
+// keeps the remaining sessions for a separate import.
+func (r *Result) mergeLeapp(lw *LeappWorkspace) {
+	have := map[string]bool{}
+	for _, p := range r.AWSPortals {
+		have[p.StartURL] = true
+	}
+	for _, p := range lw.Portals {
+		if !have[p.StartURL] {
+			r.AWSPortals = append(r.AWSPortals, p)
+			have[p.StartURL] = true
+		}
+	}
+	tenants := map[string]bool{}
+	for _, t := range r.AzureTenants {
+		tenants[t.TenantID] = true
+	}
+	for _, t := range lw.Tenants {
+		if !tenants[t.TenantID] {
+			r.AzureTenants = append(r.AzureTenants, t)
+			tenants[t.TenantID] = true
+		}
+	}
+	if len(lw.IAMUsers) > 0 || len(lw.ChainedRoles) > 0 || lw.SSORoles > 0 {
+		r.Leapp = lw
+	}
 }
 
 // awsPortals groups sso-session blocks and legacy sso profiles by start URL.
@@ -69,7 +106,7 @@ func awsPortals(configPath, cacheDir string) []AWSPortal {
 	}
 	byURL := map[string]*AWSPortal{}
 	sessions := map[string]*AWSPortal{}
-	add := func(startURL, region, alias string) *AWSPortal {
+	add := func(startURL, region, alias, source string) *AWSPortal {
 		// Trailing slashes vary between hand-written blocks; treat them as one portal.
 		startURL = strings.TrimRight(strings.TrimSpace(startURL), "/")
 		if startURL == "" {
@@ -77,8 +114,11 @@ func awsPortals(configPath, cacheDir string) []AWSPortal {
 		}
 		p, ok := byURL[startURL]
 		if !ok {
-			p = &AWSPortal{StartURL: startURL, Region: region, Alias: alias}
+			p = &AWSPortal{StartURL: startURL, Region: region, Alias: alias, Source: source}
 			byURL[startURL] = p
+		}
+		if source == "granted" {
+			p.Source = source
 		}
 		if p.Region == "" {
 			p.Region = region
@@ -93,7 +133,7 @@ func awsPortals(configPath, cacheDir string) []AWSPortal {
 		switch {
 		case strings.HasPrefix(name, "sso-session "):
 			alias := strings.TrimPrefix(name, "sso-session ")
-			if p := add(sec.Key("sso_start_url").String(), sec.Key("sso_region").String(), alias); p != nil {
+			if p := add(sec.Key("sso_start_url").String(), sec.Key("sso_region").String(), alias, "aws-cli"); p != nil {
 				sessions[alias] = p
 			}
 		}
@@ -110,10 +150,21 @@ func awsPortals(configPath, cacheDir string) []AWSPortal {
 			continue
 		}
 		var p *AWSPortal
+		granted := strings.Contains(sec.Key("credential_process").String(), "granted")
+		source := "aws-cli"
+		if granted {
+			source = "granted"
+		}
 		if ref := sec.Key("sso_session").String(); ref != "" {
 			p = sessions[ref]
+			if p != nil && granted {
+				p.Source = "granted"
+			}
 		} else if u := sec.Key("sso_start_url").String(); u != "" {
-			p = add(u, sec.Key("sso_region").String(), aliasFromURL(u))
+			p = add(u, sec.Key("sso_region").String(), aliasFromURL(u), source)
+		} else if u := sec.Key("granted_sso_start_url").String(); u != "" {
+			// Granted's own profile keys, used by its `granted sso populate`.
+			p = add(u, sec.Key("granted_sso_region").String(), aliasFromURL(u), "granted")
 		}
 		if p != nil {
 			p.Profiles = append(p.Profiles, profile)

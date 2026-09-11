@@ -76,12 +76,14 @@ export const mockApi = {
   Reset: async () => { state.onboarded = false; state.integrations = []; state.sessions = []; emit(); },
   Discover: async () => { await wait(400); const q = new URLSearchParams(location.search); if (q.get("found") === "none") return { awsPortals: [], azureTenants: [], gcp: null }; return {
     awsPortals: [
-      { alias: "Engineering", startUrl: "https://engineering.awsapps.com/start", region: "us-east-1", profiles: ["AWS_Dev", "AWS_Prod"], hasToken: true },
-      { alias: "timescale", startUrl: "https://timescale.awsapps.com/start", region: "us-west-2", profiles: ["timescale-prod"], hasToken: false },
+      { alias: "Engineering", startUrl: "https://engineering.awsapps.com/start", region: "us-east-1", profiles: ["AWS_Dev", "AWS_Prod"], hasToken: true, source: "aws-cli" },
+      { alias: "timescale", startUrl: "https://timescale.awsapps.com/start", region: "us-west-2", profiles: ["timescale-prod"], hasToken: false, source: "granted" },
     ],
-    azureTenants: [{ tenantId: "72f988bf-86f1-41af-91ab-2d7cd011db47", account: "nate@contoso.com" }],
+    azureTenants: [{ tenantId: "72f988bf-86f1-41af-91ab-2d7cd011db47", account: "nate@contoso.com", source: "az" }],
     gcp: { account: "nate@example.com" },
+    leapp: { iamUsers: [{ name: "personal-old" }], chainedRoles: [{ name: "prod-admin-old" }], ssoRoles: 28 },
   }; },
+  ImportLeappSessions: async () => { await wait(700); const added = ["personal-old", "prod-admin-old"].map((name) => ({ id: id(), name, kind: name.startsWith("personal") ? "aws-iam-user" : "aws-assume-role", region: "us-east-1", status: "inactive", aws: {} }) as unknown as Session); state.sessions.push(...added); emit(); return { sessions: added, skipped: [] }; },
   ImportAWSSSO: async (alias: string, startUrl: string, region: string) => { await wait(900); const i = { id: id(), alias, cloud: "aws", awsSso: { startUrl, region, tokenExpires: new Date(Date.now() + 8 * 3.6e6).toISOString() } } as Integration; state.integrations.push(i); const loggedIn = startUrl.includes("engineering"); const sessions = loggedIn ? ["Engineering Prod/AdministratorAccess", "Engineering Dev/PowerUserAccess"].map((name) => ({ id: id(), name, kind: "aws-sso-role", region, integrationId: i.id, status: "inactive", aws: { accountId: "123456789012", roleName: name.split("/")[1] } }) as unknown as Session) : []; state.sessions.push(...sessions); emit(); return { integration: i, loggedIn, sessions }; },
   SetFavorite: async (ref: string, fav: boolean) => { const x = state.sessions.find((s) => s.id === ref); if (x) (x as unknown as { favorite: boolean }).favorite = fav; emit(); },
   RenameSession: async (ref: string, name: string) => { const x = state.sessions.find((s) => s.id === ref); if (x) x.name = name; emit(); },

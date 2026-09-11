@@ -18,7 +18,7 @@ type Settings = { theme: string; defaultRegion: string; assumeRoleMinutes: numbe
 const IS_MAC = /Macintosh/.test(navigator.userAgent);
 const IS_WIN = /Windows/.test(navigator.userAgent);
 const TERMINALS: { value: string; label: string }[] = IS_MAC
-  ? [{ value: "auto", label: "Detect (Ghostty, iTerm, Warp, Terminal)" }, { value: "terminal", label: "Terminal" }, { value: "iterm", label: "iTerm2" }, { value: "ghostty", label: "Ghostty" }, { value: "warp", label: "Warp" }]
+  ? [{ value: "auto", label: "Detect (cmux, Ghostty, iTerm, Warp, Terminal)" }, { value: "cmux", label: "cmux" }, { value: "ghostty", label: "Ghostty" }, { value: "iterm", label: "iTerm2" }, { value: "warp", label: "Warp" }, { value: "terminal", label: "Terminal" }]
   : IS_WIN
     ? [{ value: "auto", label: "Windows Terminal if installed" }, { value: "powershell", label: "PowerShell window" }]
     : [{ value: "auto", label: "$TERMINAL or the system default" }];

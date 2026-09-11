@@ -145,6 +145,13 @@ export function ImportAWSSSO(alias: string, startURL: string, region: string): $
 }
 
 /**
+ * ImportLeappSessions recreates IAM users and chained roles from a Leapp workspace.
+ */
+export function ImportLeappSessions(): $CancellablePromise<app$0.LeappImportResult> {
+    return $Call.ByID(2452436981);
+}
+
+/**
  * Info returns version and file locations for the settings screen.
  */
 export function Info(): $CancellablePromise<$models.AppInfo> {

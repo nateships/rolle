@@ -5,5 +5,8 @@ export type {
     AWSPortal,
     AzureTenant,
     GCPAccount,
+    LeappChainedRole,
+    LeappIAMUser,
+    LeappWorkspace,
     Result
 } from "./models.js";

@@ -1,9 +1,11 @@
 package app
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/nateships/rolle/internal/core"
+	"github.com/nateships/rolle/internal/discover"
 )
 
 func TestAddAzureAndImpersonationSessions(t *testing.T) {
@@ -50,5 +52,40 @@ func TestEnvVarsPerCloud(t *testing.T) {
 	}
 	if EnvVars(&core.Session{Kind: core.Kind("bogus")}, core.Credentials{}) != nil {
 		t.Fatal("expected nil for unknown kind")
+	}
+}
+
+func TestImportLeappSessions(t *testing.T) {
+	s := testService(t)
+	keys := map[string]string{"u1-iam-user-aws-session-access-key-id": "AKIA", "u1-iam-user-aws-session-secret-access-key": "secret"}
+	old := keyringGet
+	keyringGet = func(service, key string) (string, error) {
+		if service != "Leapp" {
+			t.Fatalf("service = %s", service)
+		}
+		v, ok := keys[key]
+		if !ok {
+			return "", errors.New("not found")
+		}
+		return v, nil
+	}
+	defer func() { keyringGet = old }()
+	lw := &discover.LeappWorkspace{
+		IAMUsers:     []discover.LeappIAMUser{{ID: "u1", Name: "personal", Region: "us-east-1"}, {ID: "u2", Name: "nokey", Region: "us-east-1"}},
+		ChainedRoles: []discover.LeappChainedRole{{Name: "prod-admin", Region: "us-east-1", RoleARN: "arn:aws:iam::1:role/Admin", ParentName: "personal"}, {Name: "orphan", Region: "us-east-1", RoleARN: "arn:aws:iam::1:role/X", ParentName: "Acme/Admin"}},
+	}
+	res, err := s.ImportLeappSessions(lw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Sessions) != 2 || res.Sessions[0].Name != "personal" || res.Sessions[1].Name != "prod-admin" {
+		t.Fatalf("sessions = %+v", res.Sessions)
+	}
+	if len(res.Skipped) != 2 {
+		t.Fatalf("skipped = %v", res.Skipped)
+	}
+	again, _ := s.ImportLeappSessions(lw)
+	if len(again.Sessions) != 0 {
+		t.Fatal("re-import should skip existing sessions")
 	}
 }

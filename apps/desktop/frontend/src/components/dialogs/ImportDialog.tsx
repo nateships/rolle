@@ -42,6 +42,7 @@ export function ImportDialog({ open, onClose, workspace, onLogin }: { open: bool
             portals={d.portals}
             tenants={d.tenants}
             gcp={d.gcp}
+            leapp={d.leapp}
             importing={importing}
             disabled={importing !== null}
             onAWS={(p) => guard(p.startUrl, async () => {
@@ -58,6 +59,13 @@ export function ImportDialog({ open, onClose, workspace, onLogin }: { open: bool
               const integ = await api.AddAzure(tenantAlias(t), t.tenantId);
               onClose();
               onLogin(integ);
+            })}
+            onLeapp={() => guard("leapp", async () => {
+              const res = await api.ImportLeappSessions();
+              const n = res.sessions?.length ?? 0;
+              toast.success(`Imported ${n} session${n === 1 ? "" : "s"} from Leapp`, { description: res.skipped?.length ? `${res.skipped.length} skipped: ${res.skipped[0]}${res.skipped.length > 1 ? "…" : ""}` : undefined });
+              if (n > 0) celebrate("small");
+              d.rescan();
             })}
             onGCP={() => guard("gcp", async () => {
               const added = (await api.AddGCP("gcp")) ?? [];

@@ -387,6 +387,17 @@ func (r *RolleService) Discover() discover.Result {
 	return r.svc.Discover(c)
 }
 
+// ImportLeappSessions recreates IAM users and chained roles from a Leapp workspace.
+func (r *RolleService) ImportLeappSessions() (app.LeappImportResult, error) {
+	lw, err := discover.ReadLeapp()
+	if err != nil {
+		return app.LeappImportResult{}, err
+	}
+	res, err := r.svc.ImportLeappSessions(lw)
+	r.changed()
+	return res, err
+}
+
 // ImportAWSSSO registers a portal from the AWS CLI config, reusing its token when valid.
 func (r *RolleService) ImportAWSSSO(alias, startURL, region string) (app.ImportResult, error) {
 	c, cancel := ctx()

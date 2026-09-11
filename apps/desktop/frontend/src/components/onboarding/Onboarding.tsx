@@ -105,6 +105,24 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
     }
   }
 
+  async function importLeapp() {
+    setImporting("leapp");
+    setBusy(true);
+    try {
+      const res = await api.ImportLeappSessions();
+      const added = res.sessions ?? [];
+      setDiscovered((prev) => [...prev, ...added]);
+      if (res.skipped?.length) toast.info(`${res.skipped.length} Leapp session${res.skipped.length === 1 ? "" : "s"} skipped`, { description: res.skipped[0] });
+      if (added.length) go("roles");
+      else found.rescan();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setImporting(null);
+      setBusy(false);
+    }
+  }
+
   async function importGCP() {
     setImporting("gcp");
     setBusy(true);
@@ -233,9 +251,9 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                   <div className="mb-3 flex items-center gap-2">
                     <Import className="size-4 text-brand-green" />
                     <p className="text-sm font-medium">Found on this machine</p>
-                    <span className="text-xs text-muted-foreground">Import what your CLIs already know.</span>
+                    <span className="text-xs text-muted-foreground">From the AWS, Azure, and Google CLIs, Granted, and Leapp.</span>
                   </div>
-                  <FoundList portals={found.portals} tenants={found.tenants} gcp={found.gcp} importing={importing} disabled={busy} onAWS={importPortal} onAzure={importAzure} onGCP={importGCP} />
+                  <FoundList portals={found.portals} tenants={found.tenants} gcp={found.gcp} leapp={found.leapp} importing={importing} disabled={busy} onAWS={importPortal} onAzure={importAzure} onGCP={importGCP} onLeapp={importLeapp} />
                 </div>
               )}
               <p className="mt-6 text-xs font-medium uppercase tracking-widest text-muted-foreground">{!found.loading && found.count > 0 ? "Or connect something new" : ""}</p>

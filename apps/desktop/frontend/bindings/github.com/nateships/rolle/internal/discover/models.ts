@@ -14,6 +14,11 @@ export interface AWSPortal {
      * HasToken means the AWS CLI holds a valid SSO token for this portal.
      */
     "hasToken": boolean;
+
+    /**
+     * Source is which tool the portal came from: aws-cli, granted, or leapp.
+     */
+    "source": string;
 }
 
 /**
@@ -22,6 +27,11 @@ export interface AWSPortal {
 export interface AzureTenant {
     "tenantId": string;
     "account": string;
+
+    /**
+     * Source is which tool the tenant came from: az or leapp.
+     */
+    "source": string;
 }
 
 /**
@@ -32,10 +42,53 @@ export interface GCPAccount {
 }
 
 /**
+ * LeappChainedRole is an AssumeRole session whose source is another session.
+ */
+export interface LeappChainedRole {
+    "name": string;
+    "region": string;
+    "roleArn": string;
+    "parentName": string;
+    "profile"?: string;
+}
+
+/**
+ * LeappIAMUser is an IAM user session from Leapp. Access keys live in the OS
+ * keychain under the "Leapp" service and are read at import time.
+ */
+export interface LeappIAMUser {
+    "id": string;
+    "name": string;
+    "region": string;
+    "mfaDevice"?: string;
+    "profile"?: string;
+}
+
+/**
+ * LeappWorkspace is the subset of a Leapp workspace Rolle can import.
+ */
+export interface LeappWorkspace {
+    "portals": AWSPortal[] | null;
+    "tenants": AzureTenant[] | null;
+    "iamUsers": LeappIAMUser[] | null;
+    "chainedRoles": LeappChainedRole[] | null;
+
+    /**
+     * SSORoles counts sessions that Rolle rediscovers by syncing the portal.
+     */
+    "ssoRoles": number;
+}
+
+/**
  * Result is everything found on the machine.
  */
 export interface Result {
     "awsPortals": AWSPortal[] | null;
     "azureTenants": AzureTenant[] | null;
     "gcp"?: GCPAccount | null;
+
+    /**
+     * Leapp holds sessions from a Leapp workspace that Rolle can recreate.
+     */
+    "leapp"?: LeappWorkspace | null;
 }
