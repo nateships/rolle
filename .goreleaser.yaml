@@ -22,6 +22,21 @@ archives:
 checksum:
   name_template: checksums.txt
 
+# Keyless Sigstore signature over the checksum file. The GitHub Actions OIDC
+# identity of the release workflow is the signer; there is no key to manage.
+# Verify with the command in docs/content/install.mdx.
+signs:
+  - cmd: cosign
+    artifacts: checksum
+    output: true
+    certificate: "${artifact}.pem"
+    args:
+      - sign-blob
+      - --output-certificate=${certificate}
+      - --output-signature=${signature}
+      - ${artifact}
+      - --yes
+
 changelog:
   use: github
   sort: asc

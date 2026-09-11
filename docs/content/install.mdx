@@ -31,6 +31,17 @@ description: Install the Rolle desktop app with Homebrew, a signed DMG, the Wind
 
 Every release ships `rolle_<version>_<os>_<arch>.tar.gz` (zip on Windows) for `darwin`, `linux`, and `windows` on `amd64` and `arm64`, with a `checksums.txt`. Put the `rolle` binary on your `PATH`.
 
+`checksums.txt` carries a keyless [Sigstore](https://www.sigstore.dev/) signature made by the release workflow. To verify an archive, download the three files next to it and run:
+
+```sh
+cosign verify-blob checksums.txt \
+  --signature checksums.txt.sig \
+  --certificate checksums.txt.pem \
+  --certificate-identity-regexp '^https://github.com/nateships/rolle/' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+sha256sum --check --ignore-missing checksums.txt
+```
+
 ## Updates
 
 The desktop app checks for a signed update every six hours and installs it when you confirm. Turn this off in **Settings → General → Automatic updates**. With Homebrew, run `brew upgrade rolle-cli` for the CLI and `brew upgrade --greedy rolle` for the app. A plain `brew upgrade` skips the app because the app updates itself.

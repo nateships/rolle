@@ -27,7 +27,7 @@ Rolle verifies TLS against the OS trust store: the macOS Keychain, the Windows c
 
 ## Signed updates
 
-An Ed25519 key signs every release manifest. The desktop app verifies the signature before it installs an update. A Developer ID certificate signs the macOS builds, and Apple notarizes them.
+An Ed25519 key signs every release manifest. The desktop app verifies the signature before it installs an update. A Developer ID certificate signs the macOS builds, and Apple notarizes them. The CLI checksum file carries a keyless Sigstore signature from the release workflow; [Install](/install#cli-archives) shows how to verify it.
 
 ## Reset
 
