@@ -39,8 +39,8 @@ describe("Dashboard", () => {
     expect(workspace.sessions).toHaveLength(8);
     expect(screen.getByText("All sessions", { selector: "span" })).toBeInTheDocument();
     for (const alias of ["acme", "contoso", "gcp", "acme-eu"]) expect(screen.getByText(alias)).toBeInTheDocument();
-    // Account groups and standalone rows from the seed.
-    expect(screen.getByText("Acme Prod")).toBeInTheDocument();
+    // Account groups and standalone rows from the seed. Acme Prod also heads the favorites panel.
+    expect(screen.getAllByText("Acme Prod")).toHaveLength(2);
     expect(screen.getByText("Acme Dev")).toBeInTheDocument();
     expect(screen.getByText("Contoso Production")).toBeInTheDocument();
     expect(screen.getByText("data-platform")).toBeInTheDocument();

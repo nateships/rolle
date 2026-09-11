@@ -442,7 +442,6 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                   <SessionTable
                     sessions={favorites}
                     workspace={workspace}
-                    flat
                     widths={widths}
                     onWidths={setWidths}
                     onNeedsLogin={needsLogin}
@@ -577,7 +576,12 @@ function SideItem({
         )}
         <span className="truncate">{label}</span>
         {count !== undefined && (
-          <span className="rounded-full bg-muted px-1.5 py-px text-[10px] tabular-nums text-muted-foreground">
+          <span
+            className={cn(
+              "rounded-full px-1.5 py-px text-[10px] tabular-nums",
+              active ? "bg-background/70 text-foreground/70" : "bg-muted text-muted-foreground",
+            )}
+          >
             {count}
           </span>
         )}

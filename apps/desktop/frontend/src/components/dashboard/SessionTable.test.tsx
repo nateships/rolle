@@ -74,16 +74,6 @@ describe("SessionTable", () => {
     expect(screen.getByText("ReadOnly")).toBeInTheDocument();
   });
 
-  it("renders no account rows when flat", () => {
-    renderTable(roles, { flat: true });
-    expect(screen.queryByText("Acme Prod")).not.toBeInTheDocument();
-    expect(screen.queryByText(/2 roles/)).not.toBeInTheDocument();
-    expect(bodyRows()).toHaveLength(2);
-    // Flat rows carry the full session name.
-    expect(screen.getByText("Acme Prod/Admin")).toBeInTheDocument();
-    expect(screen.getByText("Acme Prod/ReadOnly")).toBeInTheDocument();
-  });
-
   it("takes the Profile and Region column widths from the widths prop", () => {
     const { container } = renderTable([iam], { widths: { profile: 210, region: 95, state: 130 } });
     const cols = container.querySelectorAll("col");

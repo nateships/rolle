@@ -103,22 +103,14 @@ type TableProps = {
   workspace: Workspace;
   /** A search is in progress: every account shows its matching roles. */
   searching?: boolean;
-  /** Favorites list rows flat, without account groups. */
-  flat?: boolean;
   widths: ColumnWidths;
   onWidths: (w: ColumnWidths) => void;
   onNeedsLogin: (i: Integration, startId?: string) => void;
 };
 
-export function SessionTable({ sessions, workspace, searching, flat, widths, onWidths, onNeedsLogin }: TableProps) {
+export function SessionTable({ sessions, workspace, searching, widths, onWidths, onNeedsLogin }: TableProps) {
   const [collapsed, toggle] = useCollapsed();
-  const rows = useMemo(
-    () =>
-      flat
-        ? sessions.map<Row>((s) => ({ key: s.id, label: s.name, group: false, session: s }))
-        : groupSessions(sessions),
-    [sessions, flat],
-  );
+  const rows = useMemo(() => groupSessions(sessions), [sessions]);
 
   function resizer(col: keyof ColumnWidths) {
     return (
