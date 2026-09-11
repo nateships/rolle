@@ -19,6 +19,9 @@ const ORDER: Step[] = ["welcome", "cloud", "connect", "approve", "roles", "done"
 type Accent = "blue" | "orange" | "green";
 /** Each step borrows one of the three stack colors. */
 const ACCENT: Record<Step, Accent> = { welcome: "blue", cloud: "blue", connect: "orange", approve: "green", roles: "blue", done: "green" };
+/** The connect step takes the color of the chosen cloud. */
+const CLOUD_ACCENT: Record<CloudChoice, Accent> = { aws: "orange", azure: "blue", gcp: "green" };
+const accentFor = (step: Step, cloud: CloudChoice): Accent => (step === "connect" ? CLOUD_ACCENT[cloud] : ACCENT[step]);
 const ACCENT_TEXT: Record<Accent, string> = { blue: "text-brand-blue-text", orange: "text-brand-orange", green: "text-brand-green" };
 const ACCENT_BG: Record<Accent, string> = { blue: "bg-brand-blue-text", orange: "bg-brand-orange", green: "bg-brand-green" };
 
@@ -60,7 +63,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
             <motion.span
               key={s}
               layout
-              className={cn("h-1.5 rounded-full bg-muted-foreground/30", i === index && ACCENT_BG[ACCENT[step]], i < index && "bg-foreground/50")}
+              className={cn("h-1.5 rounded-full bg-muted-foreground/30", i === index && ACCENT_BG[accentFor(step, cloud)], i < index && "bg-foreground/50")}
               animate={{ width: i === index ? 24 : 8 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
             />
@@ -155,7 +158,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
 
           {step === "connect" && cloud === "azure" && (
             <motion.section key="connect-azure" {...slide} className="w-full max-w-lg">
-              <StepTitle eyebrow="Step 2" title="Connect to Azure" hint="Sign in with your Microsoft account. Rolle discovers every subscription you can see." accent="orange" highlight="Azure" />
+              <StepTitle eyebrow="Step 2" title="Connect to Azure" hint="Sign in with your Microsoft account. Rolle discovers every subscription you can see." accent="blue" highlight="Azure" />
               <div className="mt-6">
                 <AzureForm
                   busy={busy}
@@ -183,7 +186,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
 
           {step === "connect" && cloud === "gcp" && (
             <motion.section key="connect-gcp" {...slide} className="w-full max-w-lg">
-              <StepTitle eyebrow="Step 2" title="Connect to Google Cloud" hint="Rolle uses the credentials gcloud already has on this machine." accent="orange" highlight="Google Cloud" />
+              <StepTitle eyebrow="Step 2" title="Connect to Google Cloud" hint="Rolle uses the credentials gcloud already has on this machine." accent="green" highlight="Google Cloud" />
               <div className="mt-6">
                 <GCPConnect
                   busy={busy}
