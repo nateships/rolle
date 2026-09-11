@@ -142,7 +142,7 @@ export function SessionTable({ sessions, workspace, searching, flat, widths, onW
           <col style={{ width: widths.profile }} />
           <col style={{ width: widths.region }} />
           <col style={{ width: widths.state }} />
-          <col style={{ width: 256 }} />
+          <col style={{ width: 208 }} />
         </colgroup>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
@@ -187,10 +187,12 @@ function AccountRow({ row, open, onToggle }: { row: Row & { group: true }; open:
         active > 0 && "bg-emerald-500/[0.04]",
       )}
     >
-      <TableCell className="pr-0">
-        <ChevronRight className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-90")} />
+      <TableCell className="pr-0 text-center">
+        <ChevronRight
+          className={cn("inline-block size-4 text-muted-foreground transition-transform", open && "rotate-90")}
+        />
       </TableCell>
-      <TableCell colSpan={4}>
+      <TableCell colSpan={5}>
         <div className="flex items-center gap-2.5">
           <CloudGlyph cloud="aws" />
           <div className="min-w-0">
@@ -202,7 +204,6 @@ function AccountRow({ row, open, onToggle }: { row: Row & { group: true }; open:
           </div>
         </div>
       </TableCell>
-      <TableCell />
     </motion.tr>
   );
 }
