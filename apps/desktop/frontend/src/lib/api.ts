@@ -12,8 +12,13 @@ function normalise(w: CoreWorkspace | null): Workspace | null {
 }
 import { mockApi } from "./mock";
 
-/** True when running inside the Wails webview rather than a plain browser. */
-const inWails = typeof window !== "undefined" && "_wails" in window;
+/** True when running inside the Wails webview rather than a plain browser.
+ *  Mirrors the runtime's own transport detection: WebView2, WKWebView, or Android. */
+const inWails = (() => {
+  if (typeof window === "undefined") return false;
+  const w = window as unknown as { chrome?: { webview?: { postMessage?: unknown } }; webkit?: { messageHandlers?: { external?: { postMessage?: unknown } } }; wails?: { invoke?: unknown } };
+  return !!(w.chrome?.webview?.postMessage || w.webkit?.messageHandlers?.external?.postMessage || w.wails?.invoke);
+})();
 
 // Outside Wails (plain `aube run dev`) fall back to an in-memory mock so the UI
 // can be designed and demoed without the Go backend.
