@@ -10,6 +10,7 @@ declare module "@wailsio/runtime" {
         interface CustomEvents {
             "nav:back": {};
             "nav:forward": {};
+            "settings:open": {};
             "workspace:changed": {};
         }
     }

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Cloud,
   Import,
@@ -18,6 +18,7 @@ import {
   Waypoints,
 } from "lucide-react";
 import { motion } from "motion/react";
+import { Events } from "@wailsio/runtime";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +46,16 @@ import {
   AddGCPImpersonationDialog,
   LoginDialog,
 } from "@/components/dialogs/Dialogs";
-import { api, errorMessage, inWails, Cloud as CloudKind, Status, type Integration, type Workspace } from "@/lib/api";
+import {
+  api,
+  errorMessage,
+  inWails,
+  Cloud as CloudKind,
+  Status,
+  type Integration,
+  type Workspace,
+  OPEN_SETTINGS,
+} from "@/lib/api";
 import { isLoggedIn } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -82,6 +92,11 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     const q = new URLSearchParams(location.search);
     return q.get("settings") ? { kind: "settings" } : q.get("import") ? { kind: "import" } : null;
   });
+  // The tray's Settings entry opens the dialog.
+  useEffect(() => {
+    if (!inWails) return;
+    return Events.On(OPEN_SETTINGS, () => setDialog({ kind: "settings" }));
+  }, []);
 
   const active = workspace.sessions.filter((s) => s.status === Status.StatusActive).length;
   const manualCount = workspace.sessions.filter((s) => !s.integrationId).length;

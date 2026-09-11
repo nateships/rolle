@@ -60,6 +60,29 @@ func main() {
 		must(writePNG(filepath.Join(out, "icons", fmt.Sprintf("icon-%d.png", size)), render(size, cloudCards, charcoal)))
 	}
 	must(writePNG(filepath.Join(out, "icons", "tray-22.png"), render(22, templateCards, color.NRGBA{})))
+	// Windows and Linux trays show color. The active variant adds a green dot.
+	colorTray := render(44, cloudCards, color.NRGBA{})
+	must(writePNG(filepath.Join(out, "trayicon-color.png"), colorTray))
+	must(writePNG(filepath.Join(out, "trayicon-color-active.png"), withDot(render(44, cloudCards, color.NRGBA{}))))
+}
+
+// withDot draws a green status dot with a charcoal ring in the bottom-right corner.
+func withDot(img *image.NRGBA) *image.NRGBA {
+	size := img.Bounds().Dx()
+	r := float64(size) / 5
+	cx, cy := float64(size)-r-1, float64(size)-r-1
+	for y := 0; y < size; y++ {
+		for x := 0; x < size; x++ {
+			d := math.Hypot(float64(x)+0.5-cx, float64(y)+0.5-cy)
+			switch {
+			case d <= r:
+				img.SetNRGBA(x, y, cloudCards[2])
+			case d <= r+1.5:
+				img.SetNRGBA(x, y, charcoal)
+			}
+		}
+	}
+	return img
 }
 
 func must(err error) {

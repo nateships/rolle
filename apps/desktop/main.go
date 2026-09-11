@@ -24,6 +24,7 @@ var assets embed.FS
 
 func init() {
 	application.RegisterEvent[struct{}](EventWorkspaceChanged)
+	application.RegisterEvent[struct{}](EventOpenSettings)
 }
 
 func main() {
