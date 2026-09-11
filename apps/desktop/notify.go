@@ -66,6 +66,9 @@ type notifier struct {
 
 func newNotifier(ns *notifications.NotificationService) *notifier {
 	n := &notifier{svc: ns, warned: map[string]time.Time{}}
+	if ns == nil {
+		return n
+	}
 	go func() {
 		if ok, err := ns.RequestNotificationAuthorization(); err != nil || !ok {
 			debug.Logf("notify", "authorization: ok=%v err=%v", ok, err)
@@ -79,7 +82,7 @@ func (n *notifier) tick(w *core.Workspace, st core.Settings) {
 	if w == nil {
 		return
 	}
-	if st.NotifyOff {
+	if st.NotifyOff || n.svc == nil {
 		n.prev = w.Sessions
 		return
 	}

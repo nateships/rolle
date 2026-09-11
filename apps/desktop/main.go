@@ -7,6 +7,8 @@ import (
 	"log"
 	"log/slog"
 	"os"
+	"runtime"
+	"strings"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
@@ -79,15 +81,18 @@ func main() {
 	}
 
 	rolle := NewRolleService(svc)
-	notify := notifications.New()
+	services := []application.Service{application.NewService(rolle)}
+	// macOS delivers notifications only from an app bundle; a bare binary aborts on init.
+	var notify *notifications.NotificationService
+	if inBundle() {
+		notify = notifications.New()
+		services = append(services, application.NewService(notify))
+	}
 	a := application.New(application.Options{
 		Name:        "Rolle",
 		Description: "Assume any role, any cloud",
 		LogLevel:    logLevel,
-		Services: []application.Service{
-			application.NewService(rolle),
-			application.NewService(notify),
-		},
+		Services:    services,
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
 		},
@@ -169,4 +174,14 @@ func currentSettings(svc *app.Service) core.Settings {
 		return core.DefaultSettings()
 	}
 	return st
+}
+
+// inBundle reports whether this process runs from a macOS .app bundle. Other
+// platforms always qualify.
+func inBundle() bool {
+	if runtime.GOOS != "darwin" {
+		return true
+	}
+	exe, err := os.Executable()
+	return err == nil && strings.Contains(exe, ".app/Contents/MacOS/")
 }
