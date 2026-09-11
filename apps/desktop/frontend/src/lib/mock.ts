@@ -27,6 +27,7 @@ const state: Workspace = {
     defaultRegion: "us-east-1",
     assumeRoleMinutes: 60,
     hideOnClose: true,
+    notifyOff: false,
     verboseLogging: false,
     autoUpdateOff: false,
     updateChannel: "",

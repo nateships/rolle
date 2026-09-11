@@ -202,6 +202,12 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
               <Row label="Keep running in the tray" hint="Closing the window hides it instead of quitting.">
                 <Switch checked={settings.hideOnClose} onCheckedChange={(v) => update({ hideOnClose: v })} />
               </Row>
+              <Row
+                label="Expiry notifications"
+                hint="A system notification two minutes before a session expires, and when it does."
+              >
+                <Switch checked={!settings.notifyOff} onCheckedChange={(v) => update({ notifyOff: !v })} />
+              </Row>
               <Row label="Verbose logging" hint="Same as ROLLE_DEBUG=1. Prints diagnostics to the app log.">
                 <Switch checked={settings.verboseLogging} onCheckedChange={(v) => update({ verboseLogging: v })} />
               </Row>

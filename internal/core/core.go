@@ -162,6 +162,9 @@ type Settings struct {
 	AssumeRoleMinutes int `json:"assumeRoleMinutes"`
 	// HideOnClose keeps the desktop app running in the tray when its window closes.
 	HideOnClose bool `json:"hideOnClose"`
+	// NotifyOff silences the desktop notifications that warn before a session
+	// expires. Stored inverted so the default (zero value) keeps them on.
+	NotifyOff bool `json:"notifyOff,omitempty"`
 	// VerboseLogging turns on diagnostic output, the same as ROLLE_DEBUG=1.
 	VerboseLogging bool `json:"verboseLogging"`
 	// AutoUpdateOff disables background update checks. Stored inverted so

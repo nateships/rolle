@@ -222,6 +222,12 @@ export interface Settings {
     "hideOnClose": boolean;
 
     /**
+     * NotifyOff silences the desktop notifications that warn before a session
+     * expires. Stored inverted so the default (zero value) keeps them on.
+     */
+    "notifyOff"?: boolean;
+
+    /**
      * VerboseLogging turns on diagnostic output, the same as ROLLE_DEBUG=1.
      */
     "verboseLogging": boolean;

@@ -11,9 +11,11 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
+	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 
 	"github.com/nateships/rolle/cmd/rolle/cli"
 	"github.com/nateships/rolle/internal/app"
+	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/debug"
 )
 
@@ -77,12 +79,14 @@ func main() {
 	}
 
 	rolle := NewRolleService(svc)
+	notify := notifications.New()
 	a := application.New(application.Options{
 		Name:        "Rolle",
 		Description: "Assume any role, any cloud",
 		LogLevel:    logLevel,
 		Services: []application.Service{
 			application.NewService(rolle),
+			application.NewService(notify),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -138,13 +142,16 @@ func main() {
 		if err := svc.ReconcileProfiles(); err != nil {
 			debug.Logf("app", "reconcile profiles: %v", err)
 		}
-		_, _ = svc.Refresh()
+		alerts := newNotifier(notify)
+		w, _ := svc.Refresh()
+		alerts.tick(w, currentSettings(svc))
 		seen := modTime(svc.WorkspacePath)
 		for range time.Tick(30 * time.Second) {
 			if now := modTime(svc.WorkspacePath); !now.Equal(seen) {
 				svc.OnChange()
 			}
-			_, _ = svc.Refresh()
+			w, _ := svc.Refresh()
+			alerts.tick(w, currentSettings(svc))
 			seen = modTime(svc.WorkspacePath)
 		}
 	}()
@@ -152,4 +159,14 @@ func main() {
 	if err := a.Run(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+// currentSettings reads the settings, falling back to defaults when the
+// workspace cannot be read.
+func currentSettings(svc *app.Service) core.Settings {
+	st, err := svc.Settings()
+	if err != nil {
+		return core.DefaultSettings()
+	}
+	return st
 }
