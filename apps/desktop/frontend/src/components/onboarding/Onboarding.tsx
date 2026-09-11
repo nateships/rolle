@@ -55,12 +55,12 @@ const ACCENT: Record<Step, Accent> = {
 const CLOUD_ACCENT: Record<CloudChoice, Accent> = { aws: "orange", azure: "blue", gcp: "green" };
 const accentFor = (step: Step, cloud: CloudChoice): Accent => (step === "connect" ? CLOUD_ACCENT[cloud] : ACCENT[step]);
 const ACCENT_TEXT: Record<Accent, string> = {
-  blue: "text-brand-blue-text",
+  blue: "text-brand-blue",
   orange: "text-brand-orange",
   green: "text-brand-green",
 };
 const ACCENT_BG: Record<Accent, string> = {
-  blue: "bg-brand-blue-text",
+  blue: "bg-brand-blue",
   orange: "bg-brand-orange",
   green: "bg-brand-green",
 };

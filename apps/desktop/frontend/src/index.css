@@ -5,9 +5,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  /* Brand stack colors (docs/brand/tokens.json). Blue text uses the focus tint for contrast on charcoal. */
+  /* Brand stack colors (docs/brand/tokens.json). Same in both themes. */
   --color-brand-blue: #244cff;
-  --color-brand-blue-text: var(--brand-blue-text);
   --color-brand-orange: #ff7900;
   --color-brand-green: #00ce78;
 }
@@ -59,7 +58,6 @@
 
 :root {
   /* Rolle light theme: warm ivory ground, charcoal text, cobalt focus. */
-  --brand-blue-text: #244cff;
   --background: #f4f0e8;
   --foreground: #181a1e;
   --card: #fffdf9;
@@ -95,7 +93,6 @@
 }
 
 .dark {
-  --brand-blue-text: #8ba9ff;
   /* Rolle brand palette (docs/brand/tokens.json), tuned for stronger dark-mode contrast:
        neutral charcoal, lifted surfaces, brighter borders and secondary text. */
   --background: #101114;
