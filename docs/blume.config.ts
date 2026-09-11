@@ -11,5 +11,6 @@ export default defineConfig({
   },
   theme: { accent: "#00CE78", radius: "md", mode: "system" },
   ai: { llmsTxt: true },
+  analytics: { vercel: true },
   deployment: { output: "static", site: "https://getrolle.com" },
 });
