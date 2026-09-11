@@ -6,7 +6,7 @@ Read [README.md](README.md), [ICONS.md](ICONS.md) and [TYPOGRAPHY.md](TYPOGRAPHY
 
 `tools/icons/main.go` is the source for the stack geometry and three card colors. It generates SVGs and antialiased PNG files in `apps/desktop/build/`. The desktop build task also generates Windows ICO and macOS ICNS; Linux consumes the PNG. The tray uses a 44px black template mark.
 
-After changing the generator, refresh the build assets and matching copies in `docs/brand/icons/`. Check transparent corners, the open r cutout and small sizes. Keep desktop and tray artwork free of the gopher and wordmark.
+After changing the generator, refresh the build assets and the matching SVGs in `docs/brand/icons/`. Check transparent corners, the open r cutout and small sizes. Keep desktop and tray artwork free of the gopher and wordmark.
 
 ## Wordmark and mascot
 
@@ -18,6 +18,6 @@ The root README uses `docs/brand/readme-gopher.png`. Preserve the Renee French c
 
 `apps/desktop/frontend/src/index.css` maps the brand palette to the React/Tailwind/shadcn dark theme. Keep it synchronized with `docs/brand/tokens.json` and `tokens.css`.
 
-`apps/desktop/frontend/src/components/Brand.tsx` contains the React mark and wordmark. Its card paths and colors must match the Go icon generator; its wordmark paths must match the outlined SVG master.
+`apps/desktop/frontend/src/components/Brand.tsx` renders the gopher lockup from `src/assets/brand/`: the gopher PNG plus the ivory and charcoal wordmark SVGs copied from `docs/brand/wordmark/`.
 
 Use neutral surfaces and controls with strong text contrast. Preserve functional success, warning and error semantics, and identify credential states with explicit labels.

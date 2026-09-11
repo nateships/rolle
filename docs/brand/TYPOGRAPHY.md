@@ -31,7 +31,7 @@ Install the dependency in wordmark/requirements.txt in a Python environment, the
 python wordmark/build_wordmark.py fonts/MuseoModerno-Variable.ttf icons/mark.svg wordmark
 ```
 
-The builder checks the source icon's r geometry and stops if it has changed. Its SVG preview is editable; the PNG preview is a rendered copy. No image-generation model was used to draw these font or icon outlines.
+The builder checks the source icon's r geometry and stops if it has changed. Its SVG preview is editable; the PNG preview is a rendered copy.
 
 ## Sources and license
 
