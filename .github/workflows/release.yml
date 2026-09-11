@@ -11,7 +11,7 @@ permissions: {}
 #
 # Flow: every desktop runner builds and signs its own package and stores it as
 # a workflow artifact. The manifest job signs the update manifest over those
-# files. The cli job then downloads everything and goreleaser creates the
+# files. The publish job then downloads everything and goreleaser creates the
 # GitHub release in one step, with the CLI archives, the desktop packages, the
 # manifest, and the notes. Nothing is uploaded to GitHub before that point.
 
@@ -223,7 +223,7 @@ jobs:
 
   # Builds the CLI archives, then creates the GitHub release with every desktop
   # package and the manifest attached, and writes Casks/rolle-cli.rb into the tap.
-  cli:
+  publish:
     needs: manifest
     runs-on: ubuntu-latest
     permissions:
@@ -256,7 +256,7 @@ jobs:
   # Runs after the release is public, so the cask URL resolves as soon as the
   # tap updates. A missing tap token skips this job instead of failing the release.
   tap:
-    needs: cli
+    needs: publish
     # Pre-release tags (v1.2.0-rc.1) stay off Homebrew.
     if: ${{ !contains(github.ref_name, '-') }}
     runs-on: ubuntu-latest

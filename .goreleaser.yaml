@@ -29,11 +29,11 @@ signs:
   - cmd: cosign
     artifacts: checksum
     output: true
-    certificate: "${artifact}.pem"
+    # cosign 3 writes one Sigstore bundle with the signature and certificate.
+    signature: "${artifact}.sigstore.json"
     args:
       - sign-blob
-      - --output-certificate=${certificate}
-      - --output-signature=${signature}
+      - --bundle=${signature}
       - ${artifact}
       - --yes
 
