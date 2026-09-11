@@ -35,7 +35,7 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-            task: darwin:package:universal
+            task: darwin:package:universal darwin:create:dmg
             artifact: apps/desktop/bin/Rolle.app
           - os: windows-latest
             task: windows:package
@@ -79,7 +79,7 @@ jobs:
         shell: bash
         run: |
           shopt -s nullglob
-          files=(apps/desktop/bin/Rolle-macos-universal.zip apps/desktop/bin/Rolle-windows-amd64.zip apps/desktop/bin/*.exe apps/desktop/bin/*.AppImage apps/desktop/bin/*.deb apps/desktop/bin/*.rpm)
+          files=(apps/desktop/bin/Rolle-macos-universal.zip apps/desktop/bin/*.dmg apps/desktop/bin/Rolle-windows-amd64.zip apps/desktop/bin/*.exe apps/desktop/bin/*.AppImage apps/desktop/bin/*.deb apps/desktop/bin/*.rpm)
           gh release upload "${GITHUB_REF_NAME}" "${files[@]}" --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
