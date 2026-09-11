@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { Toaster } from "@/components/ui/sonner";
-import { MotionConfig } from "motion/react";
+import { MotionConfig, MotionGlobalConfig } from "motion/react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./index.css";
@@ -12,6 +12,9 @@ import { inWails } from "./lib/api";
 // Apply the remembered theme before the first paint; settings refine it after load.
 const preview = new URLSearchParams(location.search).get("theme");
 applyTheme(preview === "light" || preview === "dark" || preview === "system" ? preview : cachedTheme());
+
+// ?shot=1 renders every animation at its final frame, for screenshots.
+if (new URLSearchParams(location.search).get("shot") === "1") MotionGlobalConfig.skipAnimations = true;
 
 // macOS draws its window controls over the top-left of the web view. Mark the
 // document so headers can inset their leading content past them.
