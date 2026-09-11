@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Mark, Lockup, CloudGlyph } from "@/components/Brand";
+import { Mark, GopherLockup, CloudGlyph } from "@/components/Brand";
 import { RegionSelect } from "@/components/RegionSelect";
 import { DevTools } from "@/components/DevTools";
 import {
@@ -309,7 +309,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
     <div className="relative flex h-full flex-col overflow-hidden">
       <header className="drag relative z-10 flex items-center justify-between px-6 pt-5">
         <div className="mac-inset">
-          <Lockup className="h-6" />
+          <GopherLockup className="h-9" />
         </div>
         <div className="no-drag flex items-center gap-1.5">
           {ORDER.map((s, i) => (

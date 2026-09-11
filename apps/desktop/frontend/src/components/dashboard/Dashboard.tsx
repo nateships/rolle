@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { ActionItems, type Action } from "@/components/ActionMenu";
-import { Lockup, Mark } from "@/components/Brand";
+import { GopherLockup, Mark } from "@/components/Brand";
 import { SessionTable, useColumnWidths } from "./SessionTable";
 import { DevTools } from "@/components/DevTools";
 import { SettingsDialog } from "@/components/dialogs/SettingsDialog";
@@ -162,8 +162,8 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   return (
     <div className="flex h-full">
       <aside className="flex w-64 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
-        <div className="drag flex h-14 items-center justify-end px-4 pt-2">
-          <Lockup className="h-7" markClassName="size-7" />
+        <div className="drag flex h-16 items-center justify-end px-4 pt-2">
+          <GopherLockup className="h-10" />
         </div>
         <nav className="flex-1 space-y-4 overflow-y-auto px-2 py-2">
           <div>

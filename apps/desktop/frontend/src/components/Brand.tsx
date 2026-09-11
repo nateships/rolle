@@ -1,5 +1,7 @@
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
+import logoDark from "@/assets/brand/logo-dark.svg";
+import logoLight from "@/assets/brand/logo-light.svg";
 import awsLogoDark from "@/assets/vendors/aws-dark.svg";
 import awsLogoLight from "@/assets/vendors/aws-light.svg";
 import azureLogo from "@/assets/vendors/azure.svg";
@@ -76,6 +78,21 @@ export function Lockup({ className, markClassName }: { className?: string; markC
       <Mark className={cn("size-6 text-primary", markClassName)} />
       <Wordmark className="h-[0.9em] text-foreground" />
     </span>
+  );
+}
+
+/** The gopher artwork with the wordmark, one file per theme. Height comes from className. */
+export function GopherLockup({ className }: { className?: string }) {
+  return (
+    <>
+      <img src={logoLight} alt="Rolle" className={cn("w-auto select-none dark:hidden", className)} draggable={false} />
+      <img
+        src={logoDark}
+        alt="Rolle"
+        className={cn("hidden w-auto select-none dark:block", className)}
+        draggable={false}
+      />
+    </>
   );
 }
 
