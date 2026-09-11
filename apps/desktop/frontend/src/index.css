@@ -86,38 +86,38 @@
 
 .dark {
     /* Rolle brand palette (docs/brand/tokens.json), tuned for stronger dark-mode contrast:
-       deeper base, lifted surfaces, brighter borders and secondary text. */
-    --background: #100E14;
+       neutral charcoal, lifted surfaces, brighter borders and secondary text. */
+    --background: #101114;
     --foreground: #F4F0E8;
-    --card: #1E1B26;
+    --card: #1E2024;
     --card-foreground: #F4F0E8;
-    --popover: #1E1B26;
+    --popover: #1E2024;
     --popover-foreground: #F4F0E8;
-    --primary: #B8A1F2;
-    --primary-foreground: #17151D;
-    --secondary: #2A2634;
+    --primary: #E8EAED;
+    --primary-foreground: #181A1E;
+    --secondary: #292C31;
     --secondary-foreground: #F4F0E8;
-    --muted: #2A2634;
-    --muted-foreground: #B4ACC0;
-    --accent: #2F2B3A;
+    --muted: #292C31;
+    --muted-foreground: #B4B8C0;
+    --accent: #2E3238;
     --accent-foreground: #F4F0E8;
     --destructive: oklch(0.704 0.191 22.216);
-    --border: #3F3849;
-    --input: #443C4F;
-    --ring: #B8A1F2;
-    --chart-1: #B8A1F2;
-    --chart-2: #B4ACC0;
-    --chart-3: #8A8099;
-    --chart-4: #5E566F;
-    --chart-5: #3F3849;
-    --sidebar: #17151D;
+    --border: #3F4248;
+    --input: #444850;
+    --ring: #8BA9FF;
+    --chart-1: #244CFF;
+    --chart-2: #FF7900;
+    --chart-3: #00CE78;
+    --chart-4: #5C626C;
+    --chart-5: #3F4248;
+    --sidebar: #181A1E;
     --sidebar-foreground: #F4F0E8;
-    --sidebar-primary: #B8A1F2;
-    --sidebar-primary-foreground: #17151D;
-    --sidebar-accent: #2A2634;
+    --sidebar-primary: #E8EAED;
+    --sidebar-primary-foreground: #181A1E;
+    --sidebar-accent: #292C31;
     --sidebar-accent-foreground: #F4F0E8;
-    --sidebar-border: #3F3849;
-    --sidebar-ring: #B8A1F2;
+    --sidebar-border: #3F4248;
+    --sidebar-ring: #8BA9FF;
 }
 
 @layer base {

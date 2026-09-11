@@ -1,19 +1,23 @@
-# Coding-agent handoff
+# Brand integration
 
-Read README.md, ICONS.md and TYPOGRAPHY.md in this folder first.
+Read [README.md](README.md), [ICONS.md](ICONS.md) and [TYPOGRAPHY.md](TYPOGRAPHY.md) for the identity and asset rules. Code paths below are relative to the repository root.
 
-## Delivered
+## Icons
 
-The desktop icon source is tools/icons/main.go. It generates the stack/r SVG and PNG exports without a gopher or lettering. The build's icon task generates Windows ICO and macOS ICNS, and Linux uses the PNG. The existing tray Go embed continues to consume the new 44px black template icon. Desktop build files and the brand kit contain matching exported copies.
+`tools/icons/main.go` is the source for the stack geometry and three card colors. It generates SVGs and antialiased PNGs in `apps/desktop/build/`. The desktop build task also generates Windows ICO and macOS ICNS; Linux consumes the PNG. The tray uses a 44px black template mark.
 
-The GitHub README uses readme-gopher.png. This generated raster artwork contains the actual Go gopher with the stack/r mark and no old wordmark. Keep its credit in the README and ATTRIBUTION.md. Do not substitute the gopher version into launcher or tray assets.
+After changing the generator, refresh the build assets and matching copies in `docs/brand/icons/`. Check transparent corners, the open r cutout and small sizes. Keep desktop and tray artwork free of the gopher and wordmark.
 
-## Remaining work
+## Wordmark and mascot
 
-Wordmark SVG masters and light/dark lockups are now in wordmark/. Use them directly: they combine the icon’s exact r with MuseoModerno Bold outlines. Space Grotesk is superseded. The unmodified MuseoModerno variable font, local font-face CSS and license are bundled in fonts/ for typeset brand text. See TYPOGRAPHY.md for regeneration and optical spacing. Do not trace lettering from the old generated board or retype the custom logo.
+Use the outlined masters in `docs/brand/wordmark/`. They combine the icon’s exact r with MuseoModerno Bold outlines. The font, local font-face CSS and license are bundled in `docs/brand/fonts/` for typeset brand text.
 
-Map the supplied semantic color tokens into the existing React/Tailwind/shadcn theme when implementing the broader brand refresh. Review onboarding, tables, dialogs, credential countdowns, focus states and provider labels. Preserve functional success/warning/error semantics. Do not make unverified claims about how secrets or credential caches are stored.
+The root README uses `docs/brand/readme-gopher.png`. Preserve the Renee French credit, CC BY 4.0 link and adaptation notice in the README and `ATTRIBUTION.md`.
 
-For a future icon change, edit the Go generator and regenerate both build assets and the docs copies. Compare SVG/PNG rendering, transparent corners, the open r cutout and actual small sizes. Run relevant repository checks for any accompanying code change. Use ICONS.md rather than the superseded gopher app-icon mockup as the desktop source of truth.
+## Interface
 
-No application theme rewrite, full app build, signing, git commit or push was performed for this asset handoff.
+`apps/desktop/frontend/src/index.css` maps the brand palette to the React/Tailwind/shadcn dark theme. Keep it synchronized with `docs/brand/tokens.json` and `tokens.css`.
+
+`apps/desktop/frontend/src/components/Brand.tsx` contains the React mark and wordmark. Its card paths and colors must match the Go icon generator; its wordmark paths must match the outlined SVG master.
+
+Use neutral surfaces and controls with strong text contrast. Preserve functional success, warning and error semantics, and identify credential states with explicit labels.

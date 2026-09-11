@@ -12,7 +12,9 @@ const CARDS = [
   "M 216 194 L 402 194 Q 432 194 432 224 L 432 384 Q 432 414 402 414 L 312 414 L 312 346 Q 312 316 342 316 L 366 316 L 366 282 L 336 282 Q 264 282 264 354 L 264 414 L 216 414 Q 186 414 186 384 L 186 224 Q 186 194 216 194 Z",
 ];
 
-/** Rolle mark: three stacked credential cards with an open r cutout. Fills with currentColor. */
+const CARD_COLORS = ["#244CFF", "#FF7900", "#00CE78"] as const;
+
+/** Rolle mark: flat blue, amber and green cards with an open r cutout. */
 export function Mark({ className, animate = false }: { className?: string; animate?: boolean }) {
   return (
     <svg viewBox="0 0 512 512" className={cn("size-10", className)} aria-hidden fill="currentColor">
@@ -20,6 +22,7 @@ export function Mark({ className, animate = false }: { className?: string; anima
         <motion.path
           key={i}
           d={d}
+          fill={CARD_COLORS[i]}
           initial={animate ? { opacity: 0, x: -24 + i * 8, y: -16 + i * 6 } : false}
           animate={animate ? { opacity: 1, x: 0, y: 0 } : undefined}
           transition={animate ? { delay: 0.08 * i, type: "spring", stiffness: 220, damping: 22 } : undefined}
@@ -44,7 +47,7 @@ export function Wordmark({ className }: { className?: string }) {
   );
 }
 
-/** Mark and wordmark side by side. Mark takes the accent, wordmark takes the text color. */
+/** Mark and wordmark side by side. Mark uses its three brand colors; wordmark takes the text color. */
 export function Lockup({ className, markClassName }: { className?: string; markClassName?: string }) {
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>

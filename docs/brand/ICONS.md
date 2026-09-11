@@ -4,9 +4,10 @@ Desktop icons use only the credential stack and open r. The gopher is reserved f
 
 ## Files
 
-- icons/appicon.svg and appicon.png: primary dark stack on a lavender rounded tile, with transparent outer corners.
-- icons/appicon-dark.svg and appicon-dark.png: alternate lavender stack on a dark tile.
-- icons/mark.svg and mark.png: standalone lavender mark on transparency.
+- icons/appicon.svg and appicon.png: primary three-color stack on a charcoal rounded tile, with transparent outer corners.
+- icons/appicon-dark.svg and appicon-dark.png: alias of the primary dark-tile icon.
+- icons/appicon-light.svg and appicon-light.png: three-color stack on a warm ivory tile.
+- icons/mark.svg and mark.png: standalone three-color mark on transparency.
 - icons/trayicon.svg and trayicon.png: black template mark on transparency; PNG is 44px for the existing tray integration.
 - icons/rolle.icns: native macOS icon container.
 - icons/rolle.ico: Windows sizes 16, 24, 32, 48, 64, 128 and 256px.
@@ -30,7 +31,7 @@ wails3 task common:generate:icons
 
 The Wails task also runs the Go generator itself, so the second command is sufficient for a full rebuild. The generator uses only the Go standard library and writes SVG and antialiased PNG from the same path definitions. Edit tools/icons/main.go as the source of truth, then refresh docs/brand/icons/ from the generated build files if the mark changes.
 
-macOS uses the ICNS path in Info.plist. The obsolete Icon Composer source/catalog has been removed; it previously contained an unrelated template mark. Bundle tasks clear stale Assets.car files in reused output bundles. New Icon Composer support can be added later using the same stack-only vector if required; it is not needed for these desktop icons.
+macOS uses the ICNS path in Info.plist. Bundle tasks clear stale Assets.car files in reused output bundles so the ICNS icon is used.
 
 ## Verification
 

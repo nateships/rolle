@@ -1,8 +1,6 @@
 # Rolle typography: match the icon r
 
-The project owner's latest direction is to match the font to the r already in the icon. **MuseoModerno Bold (700)** is the closest font basis found in the comparison. The **custom wordmark uses the exact icon r**, followed by MuseoModerno's o, l, l, and e outlines.
-
-This refinement supersedes Space Grotesk and the earlier generated lettering. It does not change the desktop icon or the README gopher. The custom logo artwork is not a new installable font: the bundled MuseoModerno font is unmodified.
+The custom wordmark uses the exact icon r, followed by **MuseoModerno Bold (700)** o, l, l, and e outlines. The bundled MuseoModerno font is unmodified; use the SVG master for the custom logo.
 
 ![Matched wordmark](wordmark/wordmark-preview.png)
 
@@ -10,9 +8,9 @@ This refinement supersedes Space Grotesk and the earlier generated lettering. It
 
 - wordmark/wordmark-ivory.svg: standalone wordmark for dark surfaces.
 - wordmark/wordmark-charcoal.svg: standalone wordmark for light surfaces.
-- wordmark/wordmark-lavender.svg: accent-color wordmark.
+- wordmark/wordmark-blue.svg: optional cobalt wordmark; prefer ivory on dark surfaces.
 - wordmark/lockup-dark.svg: stack plus ivory wordmark, transparent canvas.
-- wordmark/lockup-light.svg: charcoal stack plus charcoal wordmark, transparent canvas.
+- wordmark/lockup-light.svg: three-color stack plus charcoal wordmark, transparent canvas.
 - wordmark/icon-r.svg: exact positive shape of the icon's negative-space r.
 
 These SVGs contain paths and need no runtime font. Use the supplied master rather than retyping the logo, as the font's stock r is similar but not identical. The logo has explicit optical spacing built into the paths; CSS tracking does not apply to the SVG.

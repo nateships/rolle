@@ -26,8 +26,11 @@ var cards = []string{
 
 const tile = "M 128 16 L 384 16 Q 496 16 496 128 L 496 384 Q 496 496 384 496 L 128 496 Q 16 496 16 384 L 16 128 Q 16 16 128 16 Z"
 
-var lavender = color.NRGBA{184, 161, 242, 255}
-var charcoal = color.NRGBA{23, 21, 29, 255}
+// Back to front: Original Circuit: cobalt blue, orange and green; flat fills only.
+var cloudCards = [3]color.NRGBA{{36, 76, 255, 255}, {255, 121, 0, 255}, {0, 206, 120, 255}}
+var charcoal = color.NRGBA{24, 26, 30, 255}
+var ivory = color.NRGBA{244, 240, 232, 255}
+var templateCards = [3]color.NRGBA{{0, 0, 0, 255}, {0, 0, 0, 255}, {0, 0, 0, 255}}
 
 func main() {
 	out := "apps/desktop/build"
@@ -36,25 +39,27 @@ func main() {
 	}
 	must(os.MkdirAll(filepath.Join(out, "icons"), 0755))
 	for _, variant := range []struct {
-		name            string
-		ink, background color.NRGBA
+		name       string
+		inks       [3]color.NRGBA
+		background color.NRGBA
 	}{
-		{"appicon", charcoal, lavender},
-		{"appicon-dark", lavender, charcoal},
-		{"mark", lavender, color.NRGBA{}},
-		{"trayicon", color.NRGBA{0, 0, 0, 255}, color.NRGBA{}},
+		{"appicon", cloudCards, charcoal},
+		{"appicon-dark", cloudCards, charcoal},
+		{"appicon-light", cloudCards, ivory},
+		{"mark", cloudCards, color.NRGBA{}},
+		{"trayicon", templateCards, color.NRGBA{}},
 	} {
-		must(os.WriteFile(filepath.Join(out, variant.name+".svg"), []byte(svg(variant.ink, variant.background)), 0644))
+		must(os.WriteFile(filepath.Join(out, variant.name+".svg"), []byte(svg(variant.inks, variant.background)), 0644))
 		size := 1024
 		if variant.name == "trayicon" {
 			size = 44
 		}
-		must(writePNG(filepath.Join(out, variant.name+".png"), render(size, variant.ink, variant.background)))
+		must(writePNG(filepath.Join(out, variant.name+".png"), render(size, variant.inks, variant.background)))
 	}
 	for _, size := range []int{16, 24, 32, 48, 64, 128, 256, 512, 1024} {
-		must(writePNG(filepath.Join(out, "icons", fmt.Sprintf("icon-%d.png", size)), render(size, charcoal, lavender)))
+		must(writePNG(filepath.Join(out, "icons", fmt.Sprintf("icon-%d.png", size)), render(size, cloudCards, charcoal)))
 	}
-	must(writePNG(filepath.Join(out, "icons", "tray-22.png"), render(22, color.NRGBA{0, 0, 0, 255}, color.NRGBA{})))
+	must(writePNG(filepath.Join(out, "icons", "tray-22.png"), render(22, templateCards, color.NRGBA{})))
 }
 
 func must(err error) {
@@ -77,14 +82,14 @@ func writePNG(path string, img image.Image) error {
 
 func hex(c color.NRGBA) string { return fmt.Sprintf("#%02X%02X%02X", c.R, c.G, c.B) }
 
-func svg(ink, background color.NRGBA) string {
+func svg(inks [3]color.NRGBA, background color.NRGBA) string {
 	var b strings.Builder
 	b.WriteString("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1024\" height=\"1024\" viewBox=\"0 0 512 512\" role=\"img\" aria-label=\"Rolle credential stack with r cutout\">\n")
 	if background.A != 0 {
 		fmt.Fprintf(&b, "  <path fill=\"%s\" d=\"%s\"/>\n", hex(background), tile)
 	}
-	for _, path := range cards {
-		fmt.Fprintf(&b, "  <path fill=\"%s\" d=\"%s\"/>\n", hex(ink), path)
+	for i, path := range cards {
+		fmt.Fprintf(&b, "  <path fill=\"%s\" d=\"%s\"/>\n", hex(inks[i]), path)
 	}
 	b.WriteString("</svg>\n")
 	return b.String()
@@ -153,14 +158,14 @@ func fill(img *image.NRGBA, path string, ink color.NRGBA) {
 	}
 }
 
-func render(size int, ink, background color.NRGBA) *image.NRGBA {
+func render(size int, inks [3]color.NRGBA, background color.NRGBA) *image.NRGBA {
 	const aa = 4
 	high := image.NewNRGBA(image.Rect(0, 0, size*aa, size*aa))
 	if background.A != 0 {
 		fill(high, tile, background)
 	}
-	for _, path := range cards {
-		fill(high, path, ink)
+	for i, path := range cards {
+		fill(high, path, inks[i])
 	}
 	out := image.NewNRGBA(image.Rect(0, 0, size, size))
 	for y := 0; y < size; y++ {

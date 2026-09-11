@@ -1,13 +1,20 @@
 :root {
   color-scheme: dark;
-  --rolle-background: #17151D;
-  --rolle-surface: #23202B;
-  --rolle-primary: #B8A1F2;
+  --rolle-background: #101114;
+  --rolle-surface: #1E2024;
+  --rolle-primary: #E8EAED;
   --rolle-text: #F4F0E8;
-  --rolle-muted: #A9A2B4;
-  --rolle-border: #393242;
-  --rolle-on-primary: #17151D;
-  --rolle-focus: #B8A1F2;
+  --rolle-muted: #B4B8C0;
+  --rolle-border: #3F4248;
+  --rolle-on-primary: #181A1E;
+  --rolle-focus: #8BA9FF;
+  --rolle-stack-back: #244CFF;
+  --rolle-stack-middle: #FF7900;
+  --rolle-stack-front: #00CE78;
+  --rolle-secondary: #292C31;
+  --rolle-accent: #2E3238;
+  --rolle-input: #444850;
+  --rolle-sidebar: #181A1E;
   /* For typeset brand text. Use outlined SVGs for the exact custom logo. */
   --rolle-font-wordmark: "MuseoModerno", sans-serif;
   --rolle-wordmark-weight: 700;
