@@ -24,12 +24,14 @@ const slide = {
 };
 
 export function Onboarding({ workspace }: { workspace: Workspace }) {
-  const [step, setStep] = useState<Step>("welcome");
-  const [cloud, setCloud] = useState<CloudChoice>("aws");
+  // ?step= and ?cloud= let the browser preview jump into a step.
+  const params = new URLSearchParams(location.search);
+  const [step, setStep] = useState<Step>((ORDER as string[]).includes(params.get("step") ?? "") ? (params.get("step") as Step) : "welcome");
+  const [cloud, setCloud] = useState<CloudChoice>((["aws", "azure", "gcp"].includes(params.get("cloud") ?? "") ? params.get("cloud") : "aws") as CloudChoice);
   const [method, setMethod] = useState<"sso" | "key">("sso");
   const [alias, setAlias] = useState("");
-  const [login, setLogin] = useState<{ verificationUri: string; userCode: string } | null>(null);
-  const [discovered, setDiscovered] = useState<Session[]>([]);
+  const [login, setLogin] = useState<{ verificationUri: string; userCode: string } | null>(params.get("step") === "approve" && params.get("cloud") !== "azure" ? { verificationUri: "#", userCode: "MOCK-CODE" } : null);
+  const [discovered, setDiscovered] = useState<Session[]>(params.get("step") === "roles" || params.get("step") === "done" ? (workspace.sessions.length ? workspace.sessions : []) : []);
   const [busy, setBusy] = useState(false);
 
   const index = ORDER.indexOf(step);
