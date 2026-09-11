@@ -83,95 +83,46 @@ func (s *Service) notify() {
 // ErrAmbiguous is returned when a name or ID prefix matches more than one item.
 var ErrAmbiguous = errors.New("ambiguous reference")
 
-// FindSession resolves a session by exact ID, unique exact name, or unique ID prefix.
+// FindSession resolves a session by exact ID, exact name, or unique ID prefix.
 func FindSession(w *core.Workspace, ref string) (*core.Session, error) {
-	var byName, byPrefix []*core.Session
+	var matches []*core.Session
 	for i := range w.Sessions {
 		sess := &w.Sessions[i]
-		if sess.ID == ref {
+		if sess.ID == ref || sess.Name == ref {
 			return sess, nil
 		}
-		if sess.Name == ref {
-			byName = append(byName, sess)
-		}
 		if strings.HasPrefix(sess.ID, ref) {
-			byPrefix = append(byPrefix, sess)
+			matches = append(matches, sess)
 		}
 	}
-	return pick("session", ref, byName, byPrefix)
+	switch len(matches) {
+	case 0:
+		return nil, fmt.Errorf("session %q: %w", ref, core.ErrNotFound)
+	case 1:
+		return matches[0], nil
+	}
+	return nil, fmt.Errorf("session %q: %w", ref, ErrAmbiguous)
 }
 
-// FindIntegration resolves an integration by exact ID, unique alias, or unique ID prefix.
+// FindIntegration resolves an integration by exact ID, alias, or unique ID prefix.
 func FindIntegration(w *core.Workspace, ref string) (*core.Integration, error) {
-	var byName, byPrefix []*core.Integration
+	var matches []*core.Integration
 	for i := range w.Integrations {
 		in := &w.Integrations[i]
-		if in.ID == ref {
+		if in.ID == ref || in.Alias == ref {
 			return in, nil
 		}
-		if in.Alias == ref {
-			byName = append(byName, in)
-		}
 		if strings.HasPrefix(in.ID, ref) {
-			byPrefix = append(byPrefix, in)
+			matches = append(matches, in)
 		}
 	}
-	return pick("integration", ref, byName, byPrefix)
-}
-
-// pick returns the single name match, else the single ID prefix match. Two
-// items with one name are ambiguous: the caller must use the ID.
-func pick[T any](kind, ref string, byName, byPrefix []*T) (*T, error) {
-	if len(byName) == 1 {
-		return byName[0], nil
-	}
-	if len(byName) > 1 {
-		return nil, fmt.Errorf("%s %q: %w (use the ID)", kind, ref, ErrAmbiguous)
-	}
-	switch len(byPrefix) {
+	switch len(matches) {
 	case 0:
-		return nil, fmt.Errorf("%s %q: %w", kind, ref, core.ErrNotFound)
+		return nil, fmt.Errorf("integration %q: %w", ref, core.ErrNotFound)
 	case 1:
-		return byPrefix[0], nil
+		return matches[0], nil
 	}
-	return nil, fmt.Errorf("%s %q: %w", kind, ref, ErrAmbiguous)
-}
-
-// checkSessionName rejects an empty name or a name another session uses.
-func checkSessionName(w *core.Workspace, name, exceptID string) error {
-	if strings.TrimSpace(name) == "" {
-		return errors.New("name cannot be empty")
-	}
-	for _, sess := range w.Sessions {
-		if sess.Name == name && sess.ID != exceptID {
-			return fmt.Errorf("a session named %q already exists", name)
-		}
-	}
-	return nil
-}
-
-// checkAlias rejects an empty alias or an alias another integration uses.
-func checkAlias(w *core.Workspace, alias, exceptID string) error {
-	if strings.TrimSpace(alias) == "" {
-		return errors.New("name cannot be empty")
-	}
-	for _, in := range w.Integrations {
-		if in.Alias == alias && in.ID != exceptID {
-			return fmt.Errorf("an integration named %q already exists", alias)
-		}
-	}
-	return nil
-}
-
-var profileNameRe = regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
-
-// checkProfile rejects a profile name that is not a valid INI section name.
-// Empty means the default profile.
-func checkProfile(profile string) error {
-	if profile != "" && !profileNameRe.MatchString(profile) {
-		return errors.New("profile names may contain letters, digits, '.', '-', and '_'")
-	}
-	return nil
+	return nil, fmt.Errorf("integration %q: %w", ref, ErrAmbiguous)
 }
 
 func newID() string { return uuid.NewString() }
@@ -192,9 +143,6 @@ func ssoIntegration(w *core.Workspace, ref string) (*core.Integration, error) {
 func (s *Service) AddAWSSSO(alias, startURL, region string) (core.Integration, error) {
 	w, err := s.Load()
 	if err != nil {
-		return core.Integration{}, err
-	}
-	if err := checkAlias(w, alias, ""); err != nil {
 		return core.Integration{}, err
 	}
 	in := core.Integration{
@@ -218,37 +166,15 @@ func (s *Service) RemoveIntegration(ref string) error {
 		return err
 	}
 	s.forgetIntegration(*in)
-	for i := range w.Sessions {
-		if w.Sessions[i].IntegrationID == in.ID {
-			_ = s.deactivate(&w.Sessions[i])
-		}
-	}
 	for _, sess := range w.Sessions {
 		if sess.IntegrationID == in.ID {
-			s.dropDependents(w, sess.ID)
+			_ = s.deactivate(&sess)
 		}
 	}
 	if err := w.RemoveIntegration(in.ID); err != nil {
 		return err
 	}
 	return s.Save(w)
-}
-
-// dropDependents deactivates and removes every assume-role session whose
-// source is sourceID, recursively. A chain without its source cannot start.
-func (s *Service) dropDependents(w *core.Workspace, sourceID string) {
-	for i := 0; i < len(w.Sessions); i++ {
-		sess := &w.Sessions[i]
-		if sess.AWS == nil || sess.AWS.SourceSessionID != sourceID {
-			continue
-		}
-		debug.Logf("session", "remove %s: its source session is gone", sess.Name)
-		_ = s.deactivate(sess)
-		id := sess.ID
-		w.Sessions = append(w.Sessions[:i], w.Sessions[i+1:]...)
-		i--
-		s.dropDependents(w, id)
-	}
 }
 
 func (s *Service) sso(in core.Integration) *aws.SSO {
