@@ -6,6 +6,10 @@
 
 Assume any role, any cloud.
 
+<p align="center">
+  <img src="docs/public/screenshots/dashboard-dark.png" alt="Rolle dashboard: AWS accounts with their roles, an Azure subscription, and Google Cloud projects, two sessions active" width="900">
+</p>
+
 Rolle is a desktop app and CLI that hands short-lived cloud credentials to your
 tools without writing a secret to disk. It covers AWS, Azure, and Google Cloud.
 
@@ -67,6 +71,7 @@ mise run check          # go vet, lint, tests
 mise run check:frontend # typecheck, lint, format, tests
 mise run hooks          # every pre-commit hook on the whole tree
 mise run desktop        # run the desktop app in dev mode
+mise run desktop:demo   # same, on fictional data; nothing real is touched
 mise run docs           # serve the docs site
 ```
 

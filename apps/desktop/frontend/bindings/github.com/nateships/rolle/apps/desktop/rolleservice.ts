@@ -102,6 +102,13 @@ export function CompleteOnboarding(): $CancellablePromise<void> {
 }
 
 /**
+ * DemoMode reports whether this process runs on fictional data.
+ */
+export function DemoMode(): $CancellablePromise<boolean> {
+    return $Call.ByID(934183271);
+}
+
+/**
  * DevMode reports whether in-app dev tools are compiled in.
  */
 export function DevMode(): $CancellablePromise<boolean> {
@@ -185,6 +192,14 @@ export function OpenTerminal(ref: string): $CancellablePromise<void> {
  */
 export function OpenURL(u: string): $CancellablePromise<void> {
     return $Call.ByID(3697858276, u);
+}
+
+/**
+ * Relaunch starts a second copy of this app, on fictional data when demo is
+ * true and on the real workspace otherwise, then quits this one. Dev builds only.
+ */
+export function Relaunch(demo: boolean): $CancellablePromise<void> {
+    return $Call.ByID(3931302737, demo);
 }
 
 /**

@@ -42,6 +42,12 @@ description = "Run the desktop app in dev mode"
 run = "wails3 dev"
 dir = "apps/desktop"
 
+[tasks."desktop:demo"]
+description = "Run the desktop app on fictional data (no real workspace, keychain, or AWS config)"
+run = "wails3 dev"
+dir = "apps/desktop"
+env = { ROLLE_DEMO = "1" }
+
 [tasks."desktop:build"]
 description = "Build the desktop app"
 run = "wails3 build"

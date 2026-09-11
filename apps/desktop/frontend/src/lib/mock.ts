@@ -142,6 +142,8 @@ export const mockApi = {
     return i;
   },
   CancelSSOLogin: async () => {},
+  Relaunch: async () => {},
+  DemoMode: async () => false,
   StartSSOLogin: async () => {
     await wait(600);
     return { verificationUri: "https://oidc.us-east-1.amazonaws.com/authorize?client_id=mock", userCode: "" };
@@ -348,10 +350,10 @@ export const mockApi = {
           source: "aws-cli",
         },
         {
-          alias: "timescale",
-          startUrl: "https://timescale.awsapps.com/start",
+          alias: "globex",
+          startUrl: "https://globex.awsapps.com/start",
           region: "us-west-2",
-          profiles: ["timescale-prod"],
+          profiles: ["globex-prod"],
           hasToken: false,
           source: "granted",
         },

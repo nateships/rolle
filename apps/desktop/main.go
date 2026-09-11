@@ -38,7 +38,15 @@ func main() {
 		return
 	}
 
-	svc, err := app.Default()
+	// ROLLE_DEMO=1 runs on fictional data in a temp directory: no real
+	// workspace, keychain, or AWS config. For screenshots and UI work.
+	newService := app.Default
+	title := "Rolle"
+	if os.Getenv("ROLLE_DEMO") == "1" {
+		newService = app.Demo
+		title = "Rolle · demo data"
+	}
+	svc, err := newService()
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -77,7 +85,7 @@ func main() {
 	})
 
 	window := a.Window.NewWithOptions(application.WebviewWindowOptions{
-		Title:     "Rolle",
+		Title:     title,
 		Width:     1280,
 		Height:    720,
 		MinWidth:  980,

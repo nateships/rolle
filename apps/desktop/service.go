@@ -2,7 +2,11 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
+	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
@@ -358,6 +362,37 @@ func (r *RolleService) RenameSession(ref, name string) error {
 
 // DevMode reports whether in-app dev tools are compiled in.
 func (r *RolleService) DevMode() bool { return devMode }
+
+// DemoMode reports whether this process runs on fictional data.
+func (r *RolleService) DemoMode() bool { return os.Getenv("ROLLE_DEMO") == "1" }
+
+// Relaunch starts a second copy of this app, on fictional data when demo is
+// true and on the real workspace otherwise, then quits this one. Dev builds only.
+func (r *RolleService) Relaunch(demo bool) error {
+	if !devMode {
+		return errors.New("relaunch is available in dev builds only")
+	}
+	exe, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	cmd := exec.Command(exe)
+	for _, kv := range os.Environ() {
+		if !strings.HasPrefix(kv, "ROLLE_DEMO=") {
+			cmd.Env = append(cmd.Env, kv)
+		}
+	}
+	if demo {
+		cmd.Env = append(cmd.Env, "ROLLE_DEMO=1")
+	}
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	if r.app != nil {
+		go r.app.Quit()
+	}
+	return nil
+}
 
 // OpenTerminal opens the user's terminal with the session's environment ready.
 func (r *RolleService) OpenTerminal(ref string) error {
