@@ -340,5 +340,8 @@ func (r *RolleService) AddGCPImpersonation(in app.AddGCPImpersonationInput) (cor
 	return s, err
 }
 
+// DevMode reports whether in-app dev tools are compiled in.
+func (r *RolleService) DevMode() bool { return devMode }
+
 // OpenURL opens a link in the default browser.
 func (r *RolleService) OpenURL(u string) error { return browser.Open(u) }

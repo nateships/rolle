@@ -27,3 +27,7 @@ dir = "apps/desktop"
 description = "Build the desktop app"
 run = "wails3 build"
 dir = "apps/desktop"
+
+[tasks.reset]
+description = "Wipe the local Rolle workspace, secrets, cache, and AWS profiles (back to onboarding)"
+run = "go run ./cmd/rolle reset --yes"

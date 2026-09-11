@@ -608,3 +608,56 @@ func (s *Service) renewable(sess *core.Session) bool {
 	}
 	return true
 }
+
+// ReplayOnboarding shows the walkthrough again without touching sessions.
+func (s *Service) ReplayOnboarding() error {
+	w, err := s.Load()
+	if err != nil {
+		return err
+	}
+	w.Onboarded = false
+	return s.Save(w)
+}
+
+// ResetAll removes every integration and session, their secrets, cached
+// credentials, and Rolle-owned AWS profiles, then deletes the workspace file.
+func (s *Service) ResetAll() error {
+	w, err := s.Load()
+	if err != nil {
+		return err
+	}
+	// Sessions first: sources must outlive the sessions that chain from them,
+	// so remove in reverse dependency order by retrying until nothing is left.
+	for len(w.Sessions) > 0 {
+		before := len(w.Sessions)
+		for _, sess := range append([]core.Session(nil), w.Sessions...) {
+			if err := s.RemoveSession(sess.ID); err == nil {
+				w, _ = s.Load()
+			}
+		}
+		if len(w.Sessions) == before {
+			return fmt.Errorf("reset: could not remove sessions: %v", names(w.Sessions))
+		}
+	}
+	for _, in := range append([]core.Integration(nil), w.Integrations...) {
+		if err := s.RemoveIntegration(in.ID); err != nil {
+			return err
+		}
+	}
+	if err := os.RemoveAll(s.Cache.Dir); err != nil {
+		return err
+	}
+	if err := os.Remove(s.WorkspacePath); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	debug.Logf("reset", "workspace, cache, secrets, and profiles removed")
+	return nil
+}
+
+func names(sessions []core.Session) []string {
+	out := make([]string, 0, len(sessions))
+	for _, s := range sessions {
+		out = append(out, s.Name)
+	}
+	return out
+}

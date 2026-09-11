@@ -92,6 +92,27 @@ export function Credentials(ref: string): $CancellablePromise<core$0.Credentials
 }
 
 /**
+ * DevMode reports whether in-app dev tools are compiled in.
+ */
+export function DevMode(): $CancellablePromise<boolean> {
+    return $Call.ByID(571411941);
+}
+
+/**
+ * DevReplayOnboarding is disabled in release builds.
+ */
+export function DevReplayOnboarding(): $CancellablePromise<void> {
+    return $Call.ByID(3909585596);
+}
+
+/**
+ * DevReset is disabled in release builds.
+ */
+export function DevReset(): $CancellablePromise<void> {
+    return $Call.ByID(1069092241);
+}
+
+/**
  * EnvText returns shell export lines for an active session.
  */
 export function EnvText(ref: string): $CancellablePromise<string> {

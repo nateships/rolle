@@ -2,6 +2,7 @@ package cli
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -175,4 +176,29 @@ func statusCmd() *cobra.Command {
 			return printSessions(active)
 		},
 	}
+}
+
+func resetCmd() *cobra.Command {
+	var yes bool
+	cmd := &cobra.Command{
+		Use:   "reset",
+		Short: "Remove every session, integration, secret, and cached credential",
+		RunE: func(_ *cobra.Command, _ []string) error {
+			if !yes {
+				fmt.Fprint(os.Stderr, "This removes all Rolle sessions, integrations, keychain secrets, cached credentials, and Rolle-owned AWS profiles. Continue? [y/N] ")
+				var answer string
+				_, _ = fmt.Scanln(&answer)
+				if answer != "y" && answer != "Y" {
+					return errors.New("aborted")
+				}
+			}
+			if err := svc.ResetAll(); err != nil {
+				return err
+			}
+			fmt.Println("Rolle reset. The desktop app will show onboarding again.")
+			return nil
+		},
+	}
+	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "do not ask for confirmation")
+	return cmd
 }

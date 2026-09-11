@@ -188,3 +188,36 @@ func TestRefreshDeactivatesExpiredMFASession(t *testing.T) {
 		t.Fatalf("status = %s", w.Sessions[0].Status)
 	}
 }
+
+func TestResetAllClearsEverything(t *testing.T) {
+	s := testService(t)
+	src, err := s.AddIAMUser(AddIAMUserInput{Name: "src", Region: "us-east-1", Key: aws.AccessKey{AccessKeyID: "A", SecretAccessKey: "B"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AddAssumeRole(AddAssumeRoleInput{Name: "admin", Region: "us-east-1", RoleARN: "arn:aws:iam::1:role/admin", SourceRef: "src"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AddAWSSSO("acme", "https://acme.awsapps.com/start", "us-east-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Start(context.Background(), src.ID, StartOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.ResetAll(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(s.WorkspacePath); !os.IsNotExist(err) {
+		t.Fatalf("workspace still present: %v", err)
+	}
+	if _, err := aws.LoadAccessKey(s.Secrets, src.ID); err != aws.ErrNoAccessKey {
+		t.Fatalf("secret not removed: %v", err)
+	}
+	if data, _ := os.ReadFile(s.AWSConfigPath); strings.Contains(string(data), "rolle_session") {
+		t.Fatalf("aws profile not removed:\n%s", data)
+	}
+	w, err := s.Load()
+	if err != nil || len(w.Sessions) != 0 || len(w.Integrations) != 0 || w.Onboarded {
+		t.Fatalf("workspace after reset = %+v, %v", w, err)
+	}
+}

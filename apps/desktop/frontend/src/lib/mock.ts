@@ -68,5 +68,8 @@ export const mockApi = {
   AddGCP: async (alias: string) => { await wait(800); const i = { id: id(), alias, cloud: "gcp", gcp: { account: "nate@example.com" } } as Integration; state.integrations.push(i); const added = [{ id: id(), name: "data-platform", kind: "gcp", integrationId: i.id, status: "inactive", gcp: { projectId: "data-platform-4821" } }] as Session[]; state.sessions.push(...added); emit(); return added; },
   SyncGCP: async () => [],
   AddGCPImpersonation: async (v: { name: string; integrationRef: string; projectId: string; serviceAccount: string }) => { const s = { id: id(), name: v.name, kind: "gcp", integrationId: v.integrationRef, status: "inactive", gcp: { projectId: v.projectId, serviceAccount: v.serviceAccount } } as Session; state.sessions.push(s); emit(); return s; },
+  DevMode: async () => true,
+  DevReplayOnboarding: async () => { state.onboarded = false; emit(); },
+  DevReset: async () => { state.onboarded = false; state.integrations = []; state.sessions = []; emit(); },
   onChange: (cb: () => void) => { listeners.add(cb); return () => listeners.delete(cb); },
 };
