@@ -4,9 +4,9 @@
   "version": "0.0.1",
   "identifier": "dev.nateships.rolle",
   "build": {
-    "beforeDevCommand": "bun run dev",
+    "beforeDevCommand": "aubr dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "bun run build",
+    "beforeBuildCommand": "aubr build",
     "frontendDist": "../build"
   },
   "app": {

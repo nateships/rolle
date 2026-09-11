@@ -1,7 +1,7 @@
 {
   "name": "rolle-desktop",
-  "version": "0.1.0",
-  "description": "",
+  "version": "0.0.1",
+  "description": "Rolle desktop app",
   "type": "module",
   "scripts": {
     "dev": "vite dev",

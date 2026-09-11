@@ -21,4 +21,4 @@ mise run check
 mise run desktop
 ```
 
-Cargo builds run through [mr. boxington](https://mr-boxington.jdx.dev/) via mise.
+Cargo builds run through [mr. boxington](https://mr-boxington.jdx.dev/). Frontend packages use [aube](https://aube.sh). Both come from mise.
