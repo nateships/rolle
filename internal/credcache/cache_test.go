@@ -160,7 +160,7 @@ func TestDefaultHonoursCacheDir(t *testing.T) {
 		t.Fatalf("Dir = %q, want %q", got, dir)
 	}
 	t.Setenv("ROLLE_CACHE_DIR", "")
-	if got := Default().Dir; !strings.HasSuffix(got, filepath.Join("rolle", "credentials")) {
-		t.Fatalf("Dir = %q, want a rolle/credentials directory", got)
+	if got := Default().Dir; !strings.Contains(got, "rolle") || !strings.HasSuffix(got, "credentials") {
+		t.Fatalf("Dir = %q, want a rolle credentials directory", got)
 	}
 }

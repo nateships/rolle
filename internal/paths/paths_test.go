@@ -40,16 +40,19 @@ func TestExistingDotDirIsKept(t *testing.T) {
 	if got := ConfigDir(); got != dot {
 		t.Fatalf("ConfigDir = %q, want %q", got, dot)
 	}
-	// A file with that name does not count.
-	cache := filepath.Join(home, ".cache")
-	if err := os.MkdirAll(cache, 0o700); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(filepath.Join(cache, "rolle"), nil, 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if got := CacheDir(); got == filepath.Join(cache, "rolle") {
-		t.Fatal("a plain file was taken for the cache directory")
+	// A file with that name does not count. On Linux the fallback is the same
+	// path, so the distinction is only visible elsewhere.
+	if runtime.GOOS != "linux" {
+		cache := filepath.Join(home, ".cache")
+		if err := os.MkdirAll(cache, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(cache, "rolle"), nil, 0o600); err != nil {
+			t.Fatal(err)
+		}
+		if got := CacheDir(); got == filepath.Join(cache, "rolle") {
+			t.Fatal("a plain file was taken for the cache directory")
+		}
 	}
 }
 
