@@ -70,7 +70,8 @@ func awsPortals(configPath, cacheDir string) []AWSPortal {
 	byURL := map[string]*AWSPortal{}
 	sessions := map[string]*AWSPortal{}
 	add := func(startURL, region, alias string) *AWSPortal {
-		startURL = strings.TrimSpace(startURL)
+		// Trailing slashes vary between hand-written blocks; treat them as one portal.
+		startURL = strings.TrimRight(strings.TrimSpace(startURL), "/")
 		if startURL == "" {
 			return nil
 		}

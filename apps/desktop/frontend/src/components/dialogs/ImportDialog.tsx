@@ -25,7 +25,7 @@ export function ImportDialog({ open, onClose, workspace, onLogin }: { open: bool
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>Import from this machine</DialogTitle>
           <DialogDescription>Identities the AWS, Azure, and Google CLIs already know about.</DialogDescription>

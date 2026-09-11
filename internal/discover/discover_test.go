@@ -33,6 +33,10 @@ sso_start_url = https://d-1234567890.awsapps.com/start
 sso_region = us-east-1
 sso_account_id = 2
 
+[sso-session acme-slash]
+sso_start_url = https://acme.awsapps.com/start/
+sso_region = eu-west-1
+
 [profile plain]
 region = us-east-1
 `)
@@ -48,7 +52,7 @@ region = us-east-1
 		t.Fatalf("portals = %+v", got)
 	}
 	acme := got[0]
-	if acme.Alias != "acme" || acme.Region != "eu-west-1" || len(acme.Profiles) != 2 || !acme.HasToken {
+	if acme.Alias != "acme" || acme.Region != "eu-west-1" || len(acme.Profiles) != 2 || !acme.HasToken || acme.StartURL != "https://acme.awsapps.com/start" {
 		t.Fatalf("acme = %+v", acme)
 	}
 	legacy := got[1]

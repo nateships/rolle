@@ -105,7 +105,6 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                   ))}
                 </div>
               </Row>
-              <p className="text-[11px] text-muted-foreground">Bright color stays in the logo and provider marks. Session state is always labelled in text.</p>
             </TabsContent>
 
             <TabsContent value="about" className="mt-4 min-h-64 space-y-2 text-xs">

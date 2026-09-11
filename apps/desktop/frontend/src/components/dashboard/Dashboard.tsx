@@ -71,7 +71,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
         <div className="drag flex h-14 items-center justify-end px-4 pt-2">
           <Lockup className="h-7" markClassName="size-7" />
         </div>
-        <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-2">
+        <nav className="flex-1 space-y-4 overflow-y-auto px-2 py-2">
           <div>
             <SideItem active={filter === null} onClick={() => setFilter(null)} label="All sessions" count={workspace.sessions.length} />
             {workspace.sessions.some((s) => s.favorite) && <SideItem active={filter === "favorites"} onClick={() => setFilter("favorites")} label="Favorites" count={workspace.sessions.filter((s) => s.favorite).length} icon={<Star className="size-3.5 fill-current text-brand-orange" />} />}
@@ -81,44 +81,47 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
             const items = workspace.integrations.filter((i) => i.cloud === sec.cloud);
             return (
               <div key={sec.cloud}>
-                <div className="mb-1 flex items-center justify-between pl-2 pr-2">
-                  <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{sec.title}</p>
-                  <Button variant="ghost" size="icon-xs" className="text-muted-foreground" onClick={() => setDialog(sec.addKind)} title="Add"><Plus className="size-3.5" /></Button>
+                <div className="flex items-center pr-1">
+                  <p className="flex-1 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{sec.title}</p>
+                  <span className="flex size-6 items-center justify-center">
+                    <Button variant="ghost" size="icon-xs" className="text-muted-foreground" onClick={() => setDialog(sec.addKind)} title="Add"><Plus className="size-3.5" /></Button>
+                  </span>
                 </div>
-                {items.length === 0 && <p className="px-2 py-1 text-xs text-muted-foreground/70">None yet.</p>}
+                {items.length === 0 && <p className="px-2 py-1 text-xs text-muted-foreground/60">None yet</p>}
                 {items.map((integ) => {
                   const loggedIn = isLoggedIn(integ);
                   const sync = integ.cloud === CloudKind.CloudAzure ? api.SyncAzure : integ.cloud === CloudKind.CloudGCP ? api.SyncGCP : api.SyncSSO;
                   const logout = integ.cloud === CloudKind.CloudAzure ? api.AzureLogout : api.SSOLogout;
                   return (
-                    <div key={integ.id} className="group flex items-center gap-1 pr-2">
-                      <SideItem
-                        active={filter === integ.id}
-                        onClick={() => setFilter(integ.id)}
-                        label={integ.alias}
-                        dot={loggedIn ? "ok" : "off"}
-                        count={workspace.sessions.filter((s) => s.integrationId === integ.id).length}
-                      />
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon-xs" className="opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"><MoreHorizontal className="size-3.5" /></Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" side="right" className="min-w-56">
-                          <DropdownMenuItem onClick={() => setDialog({ kind: "rename", integration: integ })}><Pencil /> Rename</DropdownMenuItem>
-                          {loggedIn ? (
-                            <>
-                              <DropdownMenuItem onClick={() => run("Synced", () => sync(integ.id))}><RefreshCw /> Sync</DropdownMenuItem>
-                              {integ.cloud !== CloudKind.CloudGCP && <DropdownMenuItem onClick={() => run("Signed out", () => logout(integ.id))}><LogOut /> Sign out</DropdownMenuItem>}
-                            </>
-                          ) : (
-                            <DropdownMenuItem onClick={() => (integ.cloud === CloudKind.CloudGCP ? run("Synced", () => api.SyncGCP(integ.id)) : setDialog({ kind: "login", integration: integ }))}><LogIn /> Sign in</DropdownMenuItem>
-                          )}
-                          {integ.cloud === CloudKind.CloudGCP && <DropdownMenuItem onClick={() => setDialog({ kind: "gcp-impersonate" })}><UserCog /> Impersonate service account</DropdownMenuItem>}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem variant="destructive" onClick={() => run("Removed", () => api.RemoveIntegration(integ.id))}><Trash2 /> Remove</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                    <SideItem
+                      key={integ.id}
+                      active={filter === integ.id}
+                      onClick={() => setFilter(integ.id)}
+                      label={integ.alias}
+                      dot={loggedIn ? "ok" : "off"}
+                      count={workspace.sessions.filter((s) => s.integrationId === integ.id).length}
+                      trailing={
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon-xs" className="text-muted-foreground opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100" aria-label={`${integ.alias} options`}><MoreHorizontal className="size-3.5" /></Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" side="right" className="min-w-56">
+                            <DropdownMenuItem onClick={() => setDialog({ kind: "rename", integration: integ })}><Pencil /> Rename</DropdownMenuItem>
+                            {loggedIn ? (
+                              <>
+                                <DropdownMenuItem onClick={() => run("Synced", () => sync(integ.id))}><RefreshCw /> Sync</DropdownMenuItem>
+                                {integ.cloud !== CloudKind.CloudGCP && <DropdownMenuItem onClick={() => run("Signed out", () => logout(integ.id))}><LogOut /> Sign out</DropdownMenuItem>}
+                              </>
+                            ) : (
+                              <DropdownMenuItem onClick={() => (integ.cloud === CloudKind.CloudGCP ? run("Synced", () => api.SyncGCP(integ.id)) : setDialog({ kind: "login", integration: integ }))}><LogIn /> Sign in</DropdownMenuItem>
+                            )}
+                            {integ.cloud === CloudKind.CloudGCP && <DropdownMenuItem onClick={() => setDialog({ kind: "gcp-impersonate" })}><UserCog /> Impersonate service account</DropdownMenuItem>}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem variant="destructive" onClick={() => run("Removed", () => api.RemoveIntegration(integ.id))}><Trash2 /> Remove</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      }
+                    />
                   );
                 })}
               </div>
@@ -208,14 +211,18 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   );
 }
 
-function SideItem({ active, onClick, label, count, dot, icon }: { active: boolean; onClick: () => void; label: string; count?: number; dot?: "ok" | "off"; icon?: React.ReactNode }) {
+function SideItem({ active, onClick, label, count, dot, icon, trailing }: { active: boolean; onClick: () => void; label: string; count?: number; dot?: "ok" | "off"; icon?: React.ReactNode; trailing?: React.ReactNode }) {
   return (
-    <button type="button" onClick={onClick} className={cn("flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors", active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground")}>
-      {icon}
-      {dot && <span className={cn("size-1.5 rounded-full", dot === "ok" ? "bg-emerald-400" : "bg-muted-foreground/40")} />}
-      <span className="flex-1 truncate text-left">{label}</span>
-      {count !== undefined && <span className="text-xs tabular-nums text-muted-foreground/70">{count}</span>}
-    </button>
+    <div className={cn("group flex items-center rounded-md pr-1 transition-colors", active ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground")}>
+      <button type="button" onClick={onClick} className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-sm">
+        {icon}
+        {dot && <span className={cn("size-1.5 shrink-0 rounded-full", dot === "ok" ? "bg-emerald-400" : "bg-muted-foreground/40")} />}
+        <span className="flex-1 truncate">{label}</span>
+        {count !== undefined && <span className="text-xs tabular-nums text-muted-foreground/70">{count}</span>}
+      </button>
+      {/* Fixed slot keeps counts aligned whether or not a row has a control. */}
+      <span className="flex size-6 shrink-0 items-center justify-center">{trailing}</span>
+    </div>
   );
 }
 

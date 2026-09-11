@@ -57,7 +57,7 @@ export function FoundList({ portals, tenants, gcp, importing, disabled, onAWS, o
 
 function FoundRow({ cloud, title, subtitle, badge, badgeOk, busy, disabled, onImport }: { cloud: "aws" | "azure" | "gcp"; title: string; subtitle: string; badge: string; badgeOk?: boolean; busy: boolean; disabled: boolean; onImport: () => void }) {
   return (
-    <li className="flex items-center gap-3 rounded-lg border bg-background/60 px-3 py-2">
+    <li className="flex items-center gap-3 rounded-lg border bg-background/60 px-3 py-2.5">
       <CloudGlyph cloud={cloud} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
