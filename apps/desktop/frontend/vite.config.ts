@@ -12,7 +12,7 @@ export default defineConfig({
     strictPort: true,
   },
   resolve: {
-    alias: { "@": path.resolve(__dirname, "./src") },
+    alias: { "@": path.resolve(import.meta.dirname, "./src") },
   },
   plugins: [react(), tailwindcss(), wails("./bindings")],
 });
