@@ -86,3 +86,7 @@ mise run desktop
 ```
 
 Tools come from mise. Frontend packages use [aube](https://aube.sh).
+
+Set `ROLLE_DEBUG=1` (or pass `rolle --debug`) for verbose diagnostics from the
+CLI and the desktop app: credential fetches and cache hits, session renewals,
+UI events, and raw mouse and keyboard navigation events on macOS.

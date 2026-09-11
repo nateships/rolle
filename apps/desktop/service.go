@@ -13,6 +13,7 @@ import (
 	"github.com/nateships/rolle/internal/aws"
 	"github.com/nateships/rolle/internal/browser"
 	"github.com/nateships/rolle/internal/core"
+	"github.com/nateships/rolle/internal/debug"
 	"github.com/nateships/rolle/internal/gcp"
 )
 
@@ -40,10 +41,14 @@ func (r *RolleService) ServiceStartup(_ context.Context, _ application.ServiceOp
 }
 
 func (r *RolleService) changed() {
+	debug.Logf("ui", "workspace changed")
 	if r.app != nil {
 		r.app.Event.Emit(EventWorkspaceChanged, struct{}{})
 	}
 }
+
+// ServiceName lets Wails and debug output identify this service.
+func (r *RolleService) ServiceName() string { return "rolle" }
 
 func ctx() (context.Context, context.CancelFunc) {
 	return context.WithTimeout(context.Background(), 2*time.Minute)

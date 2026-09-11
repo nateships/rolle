@@ -4,12 +4,14 @@ package main
 import (
 	"embed"
 	"log"
+	"log/slog"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
 
 	"github.com/nateships/rolle/internal/app"
+	"github.com/nateships/rolle/internal/debug"
 )
 
 // Frontend files are built into frontend/dist and embedded here.
@@ -27,10 +29,18 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// One switch for everything: ROLLE_DEBUG=1 also raises the Wails runtime log level.
+	logLevel := slog.LevelWarn
+	if debug.Enabled() {
+		logLevel = slog.LevelDebug
+		debug.Logf("app", "debug mode on")
+	}
+
 	rolle := NewRolleService(svc)
 	a := application.New(application.Options{
 		Name:        "Rolle",
 		Description: "Assume any role, any cloud",
+		LogLevel:    logLevel,
 		Services: []application.Service{
 			application.NewService(rolle),
 		},

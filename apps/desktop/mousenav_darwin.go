@@ -40,10 +40,9 @@ static void rolleInstallMouseNavMonitor(void) {
 import "C"
 
 import (
-	"log"
-	"os"
-
 	"github.com/wailsapp/wails/v3/pkg/application"
+
+	"github.com/nateships/rolle/internal/debug"
 )
 
 const (
@@ -55,9 +54,6 @@ const (
 
 var navApp *application.App
 
-// navDebug logs every candidate event so unusual mice can be mapped. Enable with ROLLE_NAV_DEBUG=1.
-var navDebug = os.Getenv("ROLLE_NAV_DEBUG") != ""
-
 func init() {
 	application.RegisterEvent[struct{}](EventNavBack)
 	application.RegisterEvent[struct{}](EventNavForward)
@@ -67,16 +63,12 @@ func init() {
 func installMouseNav(a *application.App) {
 	navApp = a
 	C.rolleInstallMouseNavMonitor()
-	if navDebug {
-		log.Println("[mousenav] monitor installed; press your mouse buttons")
-	}
+	debug.Logf("mousenav", "monitor installed")
 }
 
 //export rolleMouseNav
 func rolleMouseNav(kind, button C.int, deltaX C.double, keyCode C.int, flags C.ulong) {
-	if navDebug {
-		log.Printf("[mousenav] kind=%d button=%d deltaX=%.2f keyCode=%d flags=%#x", int(kind), int(button), float64(deltaX), int(keyCode), uint64(flags))
-	}
+	debug.Logf("mousenav", "kind=%d button=%d deltaX=%.2f keyCode=%d flags=%#x", int(kind), int(button), float64(deltaX), int(keyCode), uint64(flags))
 	if navApp == nil {
 		return
 	}

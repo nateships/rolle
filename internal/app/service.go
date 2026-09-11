@@ -16,6 +16,7 @@ import (
 	"github.com/nateships/rolle/internal/awsconfig"
 	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/credcache"
+	"github.com/nateships/rolle/internal/debug"
 	"github.com/nateships/rolle/internal/secrets"
 	"github.com/nateships/rolle/internal/workspace"
 )
@@ -392,8 +393,10 @@ func (s *Service) Start(ctx context.Context, ref string, opts StartOptions) (cor
 	if err != nil {
 		return core.Credentials{}, err
 	}
+	debug.Logf("session", "start %s (%s)", sess.Name, sess.Kind)
 	creds, err := s.fetch(ctx, w, sess, opts.MFACode)
 	if err != nil {
+		debug.Logf("session", "start %s failed: %v", sess.Name, err)
 		return core.Credentials{}, err
 	}
 	if err := s.Cache.Put(sess.ID, creds); err != nil {
@@ -470,10 +473,13 @@ func (s *Service) credentials(ctx context.Context, w *core.Workspace, sess *core
 		return core.Credentials{}, fmt.Errorf("%s: %w", sess.Name, ErrSessionInactive)
 	}
 	if creds, err := s.Cache.Get(sess.ID); err == nil {
+		debug.Logf("creds", "%s served from cache", sess.Name)
 		return creds, nil
 	}
+	debug.Logf("creds", "%s cache miss, refreshing", sess.Name)
 	creds, err := s.fetch(ctx, w, sess, "")
 	if err != nil {
+		debug.Logf("creds", "%s refresh failed: %v", sess.Name, err)
 		return core.Credentials{}, err
 	}
 	if err := s.Cache.Put(sess.ID, creds); err != nil {
@@ -567,16 +573,19 @@ func (s *Service) Refresh() (*core.Workspace, error) {
 			continue
 		}
 		if !s.renewable(sess) {
+			debug.Logf("refresh", "%s expired and needs input, deactivating", sess.Name)
 			_ = s.deactivate(sess)
 			changed = true
 			continue
 		}
 		creds, err := s.fetch(ctx, w, sess, "")
 		if err != nil {
+			debug.Logf("refresh", "%s renewal failed, deactivating: %v", sess.Name, err)
 			_ = s.deactivate(sess)
 			changed = true
 			continue
 		}
+		debug.Logf("refresh", "%s renewed until %v", sess.Name, creds.Expiration)
 		if err := s.Cache.Put(sess.ID, creds); err != nil {
 			return nil, err
 		}
