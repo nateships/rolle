@@ -5,3 +5,7 @@ docs/dist
 docs/.blume
 docs/.mise
 .task/
+
+# The release workflow downloads the desktop packages here before goreleaser
+# attaches them. goreleaser refuses a dirty tree, so the directory is ignored.
+/release-assets/
