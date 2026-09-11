@@ -87,9 +87,9 @@ export function LoginDialog({ integration, onClose }: { integration: Integration
         {!added && (
           <div className="flex flex-col items-center gap-4 py-2">
             {integration?.cloud === Cloud.CloudAzure ? (
-              <div className="rounded-full bg-sky-500/10 p-5 glow"><CloudGlyph cloud="azure" className="size-12 text-sm" /></div>
+              <div className="rounded-2xl bg-card p-5"><CloudGlyph cloud="azure" className="size-12 text-sm" /></div>
             ) : (
-              <div className="rounded-xl border bg-card px-6 py-4 font-mono text-3xl font-semibold tracking-[0.3em] glow">
+              <div className="rounded-2xl border border-primary/40 bg-card px-6 py-4 font-mono text-3xl font-semibold tracking-[0.3em]">
                 {login?.userCode ?? "····-····"}
               </div>
             )}

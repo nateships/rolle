@@ -1,23 +1,60 @@
-// Command icons renders the Rolle mark as PNG files: the app icon and a
-// monochrome template icon for the system tray.
+// Command icons renders Rolle's desktop mark: three credential cards with an r
+// cutout. The Go gopher belongs to the README artwork, never the desktop icons.
+// Run from the repository root: go run ./tools/icons [output-directory]
 package main
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/png"
 	"math"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
+	"strings"
 )
+
+// Paths share a 512-unit canvas. Keep these as the single source for SVG and
+// raster exports. The open r counter is geometry, not a font-dependent glyph.
+var cards = []string{
+	"M 110 98 L 276 98 Q 294 98 300 116 L 306 132 L 138 132 Q 120 132 120 150 L 120 336 L 102 330 Q 80 324 80 302 L 80 128 Q 80 98 110 98 Z",
+	"M 164 146 L 328 146 Q 346 146 352 164 L 358 180 L 192 180 Q 174 180 174 198 L 174 370 L 156 364 Q 134 358 134 336 L 134 176 Q 134 146 164 146 Z",
+	"M 216 194 L 402 194 Q 432 194 432 224 L 432 384 Q 432 414 402 414 L 312 414 L 312 346 Q 312 316 342 316 L 366 316 L 366 282 L 336 282 Q 264 282 264 354 L 264 414 L 216 414 Q 186 414 186 384 L 186 224 Q 186 194 216 194 Z",
+}
+
+const tile = "M 128 16 L 384 16 Q 496 16 496 128 L 496 384 Q 496 496 384 496 L 128 496 Q 16 496 16 384 L 16 128 Q 16 16 128 16 Z"
+
+var lavender = color.NRGBA{184, 161, 242, 255}
+var charcoal = color.NRGBA{23, 21, 29, 255}
 
 func main() {
 	out := "apps/desktop/build"
 	if len(os.Args) > 1 {
 		out = os.Args[1]
 	}
-	must(write(filepath.Join(out, "appicon.png"), render(1024, false)))
-	must(write(filepath.Join(out, "trayicon.png"), render(44, true)))
+	must(os.MkdirAll(filepath.Join(out, "icons"), 0755))
+	for _, variant := range []struct {
+		name            string
+		ink, background color.NRGBA
+	}{
+		{"appicon", charcoal, lavender},
+		{"appicon-dark", lavender, charcoal},
+		{"mark", lavender, color.NRGBA{}},
+		{"trayicon", color.NRGBA{0, 0, 0, 255}, color.NRGBA{}},
+	} {
+		must(os.WriteFile(filepath.Join(out, variant.name+".svg"), []byte(svg(variant.ink, variant.background)), 0644))
+		size := 1024
+		if variant.name == "trayicon" {
+			size = 44
+		}
+		must(writePNG(filepath.Join(out, variant.name+".png"), render(size, variant.ink, variant.background)))
+	}
+	for _, size := range []int{16, 24, 32, 48, 64, 128, 256, 512, 1024} {
+		must(writePNG(filepath.Join(out, "icons", fmt.Sprintf("icon-%d.png", size)), render(size, charcoal, lavender)))
+	}
+	must(writePNG(filepath.Join(out, "icons", "tray-22.png"), render(22, color.NRGBA{0, 0, 0, 255}, color.NRGBA{})))
 }
 
 func must(err error) {
@@ -26,105 +63,122 @@ func must(err error) {
 	}
 }
 
-func write(path string, img image.Image) error {
+func writePNG(path string, img image.Image) error {
 	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
-	if err := png.Encode(f, img); err != nil {
+	if err = png.Encode(f, img); err != nil {
 		_ = f.Close()
 		return err
 	}
 	return f.Close()
 }
 
-// render draws three concentric dashed rings and a centre dot. Template icons
-// are black on transparent; the app icon sits on a rounded dark tile.
-func render(size int, template bool) *image.RGBA {
-	img := image.NewRGBA(image.Rect(0, 0, size, size))
-	s := float64(size)
-	c := s / 2
-	if !template {
-		fillRoundedRect(img, s*0.22, color.RGBA{9, 9, 11, 255})
+func hex(c color.NRGBA) string { return fmt.Sprintf("#%02X%02X%02X", c.R, c.G, c.B) }
+
+func svg(ink, background color.NRGBA) string {
+	var b strings.Builder
+	b.WriteString("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1024\" height=\"1024\" viewBox=\"0 0 512 512\" role=\"img\" aria-label=\"Rolle credential stack with r cutout\">\n")
+	if background.A != 0 {
+		fmt.Fprintf(&b, "  <path fill=\"%s\" d=\"%s\"/>\n", hex(background), tile)
 	}
-	ink := color.RGBA{0, 0, 0, 255}
-	if !template {
-		ink = color.RGBA{245, 158, 11, 255}
+	for _, path := range cards {
+		fmt.Fprintf(&b, "  <path fill=\"%s\" d=\"%s\"/>\n", hex(ink), path)
 	}
-	rings := []struct{ r, w, gap, start float64 }{
-		{0.40, 0.045, 0.30, 0.10},
-		{0.28, 0.045, 0.40, 0.55},
-		{0.16, 0.055, 0.45, 0.20},
-	}
-	for i, ring := range rings {
-		alpha := 1.0 - float64(i)*0.22
-		drawRing(img, c, c, ring.r*s, ring.w*s, ring.gap, ring.start, fade(ink, alpha))
-	}
-	drawDisc(img, c, c, s*0.045, ink)
-	return img
+	b.WriteString("</svg>\n")
+	return b.String()
 }
 
-func fade(c color.RGBA, a float64) color.RGBA {
-	return color.RGBA{c.R, c.G, c.B, uint8(float64(c.A) * a)}
-}
+type point struct{ x, y float64 }
 
-func drawDisc(img *image.RGBA, cx, cy, r float64, col color.RGBA) {
-	drawRing(img, cx, cy, r/2, r, 0, 0, col)
-}
-
-// drawRing paints an anti-aliased ring of radius r and stroke width w. gap is the
-// fraction of the circumference left blank, starting at angle start (turns).
-func drawRing(img *image.RGBA, cx, cy, r, w, gap, start float64, col color.RGBA) {
-	b := img.Bounds()
-	inner, outer := r-w/2, r+w/2
-	for y := b.Min.Y; y < b.Max.Y; y++ {
-		for x := b.Min.X; x < b.Max.X; x++ {
-			dx, dy := float64(x)+0.5-cx, float64(y)+0.5-cy
-			d := math.Hypot(dx, dy)
-			if d < inner-1 || d > outer+1 {
-				continue
+// Flatten the small uppercase M/L/Q/Z path vocabulary used by our masters.
+func polygon(path string) []point {
+	tokens := strings.Fields(path)
+	var points []point
+	var current point
+	i := 0
+	number := func() float64 { n, err := strconv.ParseFloat(tokens[i], 64); must(err); i++; return n }
+	for i < len(tokens) {
+		command := tokens[i]
+		i++
+		switch command {
+		case "M", "L":
+			current = point{number(), number()}
+			points = append(points, current)
+		case "Q":
+			control, end := point{number(), number()}, point{number(), number()}
+			start := current
+			for step := 1; step <= 64; step++ {
+				t := float64(step) / 64
+				u := 1 - t
+				points = append(points, point{u*u*start.x + 2*u*t*control.x + t*t*end.x, u*u*start.y + 2*u*t*control.y + t*t*end.y})
 			}
-			cover := clamp(math.Min(d-inner, outer-d)+0.5, 0, 1)
-			if gap > 0 {
-				turn := math.Mod(math.Atan2(dy, dx)/(2*math.Pi)+1-start, 1)
-				if turn > 1-gap {
-					continue
+			current = end
+		case "Z":
+		default:
+			panic("unsupported SVG path command: " + command)
+		}
+	}
+	return points
+}
+
+// Scanline rasterization at 4x resolution supplies stable antialiasing without
+// extra libraries, font files, network requests or platform drawing APIs.
+func fill(img *image.NRGBA, path string, ink color.NRGBA) {
+	points := polygon(path)
+	scale := float64(img.Bounds().Dx()) / 512
+	for i := range points {
+		points[i].x *= scale
+		points[i].y *= scale
+	}
+	for y := 0; y < img.Bounds().Dy(); y++ {
+		py := float64(y) + 0.5
+		var hits []float64
+		previous := points[len(points)-1]
+		for _, next := range points {
+			if (previous.y <= py && next.y > py) || (next.y <= py && previous.y > py) {
+				hits = append(hits, previous.x+(py-previous.y)*(next.x-previous.x)/(next.y-previous.y))
+			}
+			previous = next
+		}
+		sort.Float64s(hits)
+		for i := 0; i+1 < len(hits); i += 2 {
+			left := max(0, int(math.Ceil(hits[i]-0.5)))
+			right := min(img.Bounds().Dx(), int(math.Ceil(hits[i+1]-0.5)))
+			for x := left; x < right; x++ {
+				img.SetNRGBA(x, y, ink)
+			}
+		}
+	}
+}
+
+func render(size int, ink, background color.NRGBA) *image.NRGBA {
+	const aa = 4
+	high := image.NewNRGBA(image.Rect(0, 0, size*aa, size*aa))
+	if background.A != 0 {
+		fill(high, tile, background)
+	}
+	for _, path := range cards {
+		fill(high, path, ink)
+	}
+	out := image.NewNRGBA(image.Rect(0, 0, size, size))
+	for y := 0; y < size; y++ {
+		for x := 0; x < size; x++ {
+			var r, g, b, a uint32
+			for dy := 0; dy < aa; dy++ {
+				for dx := 0; dx < aa; dx++ {
+					c := high.NRGBAAt(x*aa+dx, y*aa+dy)
+					a += uint32(c.A)
+					r += uint32(c.R) * uint32(c.A)
+					g += uint32(c.G) * uint32(c.A)
+					b += uint32(c.B) * uint32(c.A)
 				}
 			}
-			blend(img, x, y, col, cover)
+			if a != 0 {
+				out.SetNRGBA(x, y, color.NRGBA{uint8(r / a), uint8(g / a), uint8(b / a), uint8((a + aa*aa/2) / (aa * aa))})
+			}
 		}
 	}
+	return out
 }
-
-func fillRoundedRect(img *image.RGBA, radius float64, col color.RGBA) {
-	b := img.Bounds()
-	w, h := float64(b.Dx()), float64(b.Dy())
-	for y := b.Min.Y; y < b.Max.Y; y++ {
-		for x := b.Min.X; x < b.Max.X; x++ {
-			px, py := float64(x)+0.5, float64(y)+0.5
-			qx := math.Max(math.Abs(px-w/2)-(w/2-radius), 0)
-			qy := math.Max(math.Abs(py-h/2)-(h/2-radius), 0)
-			d := math.Hypot(qx, qy) - radius
-			blend(img, x, y, col, clamp(0.5-d, 0, 1))
-		}
-	}
-}
-
-func blend(img *image.RGBA, x, y int, col color.RGBA, cover float64) {
-	if cover <= 0 {
-		return
-	}
-	a := float64(col.A) / 255 * cover
-	dst := img.RGBAAt(x, y)
-	da := float64(dst.A) / 255
-	outA := a + da*(1-a)
-	mix := func(s, d uint8) uint8 {
-		if outA == 0 {
-			return 0
-		}
-		return uint8((float64(s)*a + float64(d)*da*(1-a)) / outA)
-	}
-	img.SetRGBA(x, y, color.RGBA{mix(col.R, dst.R), mix(col.G, dst.G), mix(col.B, dst.B), uint8(outA * 255)})
-}
-
-func clamp(v, lo, hi float64) float64 { return math.Max(lo, math.Min(hi, v)) }

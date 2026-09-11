@@ -8,8 +8,6 @@
 		<string>Cloud credential and role manager</string>
 		<key>CFBundleIconFile</key>
 		<string>icons</string>
-		<key>CFBundleIconName</key>
-		<string>appicon</string>
 		<key>CFBundleIdentifier</key>
 		<string>dev.nateships.rolle</string>
 		<key>CFBundleName</key>

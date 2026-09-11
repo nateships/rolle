@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Mark, CloudGlyph } from "@/components/Brand";
+import { Lockup, CloudGlyph } from "@/components/Brand";
 import { SessionRow } from "./SessionRow";
 import { AddSSODialog, AddAssumeRoleDialog, AddIAMUserDialog, AddAzureDialog, AddGCPDialog, AddGCPImpersonationDialog, LoginDialog } from "@/components/dialogs/Dialogs";
 import { api, errorMessage, Cloud as CloudKind, Status, type Integration, type Workspace } from "@/lib/api";
@@ -54,9 +54,8 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   return (
     <div className="flex h-full">
       <aside className="flex w-64 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
-        <div className="drag flex h-14 items-center gap-2 px-4 pt-2 text-primary">
-          <Mark className="size-5" />
-          <span className="text-sm font-semibold tracking-tight text-foreground">Rolle</span>
+        <div className="drag flex h-14 items-center px-4 pt-2">
+          <Lockup className="h-5" markClassName="size-5" />
         </div>
         <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-2">
           <div>
@@ -181,7 +180,6 @@ function SideItem({ active, onClick, label, count, dot }: { active: boolean; onC
 function Empty({ hasAny, onAdd }: { hasAny: boolean; onAdd: () => void }) {
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
-      <div className="grid-bg absolute inset-0 -z-10" />
       <CloudGlyph cloud="aws" className="size-12 text-sm" />
       <h3 className="mt-5 text-lg font-medium">{hasAny ? "Nothing matches" : "No sessions yet"}</h3>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">{hasAny ? "Try a different search or filter." : "Connect an Identity Center portal to discover every role you can reach."}</p>

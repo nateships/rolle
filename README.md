@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/brand/readme-gopher.png" alt="Go gopher with Rolle credential cards and an r cutout" width="280">
+</p>
+
 # Rolle
 
 Assume any role, any cloud.
@@ -62,6 +66,15 @@ rolle stop <session>
 - `internal/awsconfig`, `internal/credcache`, `internal/secrets`, `internal/workspace`: storage
 - `cmd/rolle`: CLI
 - `apps/desktop`: Wails v3 desktop app (React, Tailwind v4, shadcn/ui)
+
+## Brand kit
+
+The selected visual identity and coding-agent handoff live in
+[docs/brand/README.md](docs/brand/README.md). Start there before changing logos,
+app icons, typography, or brand colors.
+
+README Go gopher artwork by [Renee French](https://go.dev/blog/gopher),
+adapted for Rolle under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 
 ## Develop
 

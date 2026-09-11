@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Mark, CloudGlyph } from "@/components/Brand";
+import { Mark, Lockup, CloudGlyph } from "@/components/Brand";
 import { api, errorMessage, type Session, type Workspace } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
 import { cloudOf } from "@/lib/format";
@@ -47,12 +47,8 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden">
-      <div className="grid-bg pointer-events-none absolute inset-0" />
       <header className="drag relative z-10 flex items-center justify-between px-6 pt-5">
-        <div className="flex items-center gap-2 text-primary">
-          <Mark className="size-6" />
-          <span className="text-sm font-semibold tracking-tight text-foreground">Rolle</span>
-        </div>
+        <Lockup className="h-6" />
         <div className="no-drag flex items-center gap-1.5">
           {ORDER.map((s, i) => (
             <motion.span
@@ -73,7 +69,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
         <AnimatePresence mode="wait">
           {step === "welcome" && (
             <motion.section key="welcome" {...slide} className="flex max-w-xl flex-col items-center text-center">
-              <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 180, damping: 16 }} className="mb-8 rounded-full bg-primary/10 p-6 text-primary glow">
+              <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 180, damping: 16 }} className="mb-8 rounded-2xl bg-card p-6 text-primary">
                 <Mark className="size-20" animate />
               </motion.div>
               <h1 className="text-4xl font-semibold tracking-tight">Assume any role, any cloud.</h1>
@@ -204,11 +200,11 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
             <motion.section key="approve" {...slide} className="flex w-full max-w-lg flex-col items-center text-center">
               <StepTitle eyebrow="Step 3" title={login ? "Approve in your browser" : "Sign in with Microsoft"} hint={login ? `We opened ${alias}. Confirm this code when it asks.` : `A browser window is open for ${alias}. Finish signing in there.`} center />
               {login ? (
-                <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="mt-8 rounded-xl border bg-card px-8 py-5 font-mono text-4xl font-semibold tracking-[0.3em] glow">
+                <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="mt-8 rounded-2xl border border-primary/40 bg-card px-8 py-5 font-mono text-4xl font-semibold tracking-[0.3em]">
                   {login.userCode}
                 </motion.div>
               ) : (
-                <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="mt-8 rounded-full bg-sky-500/10 p-6 text-sky-300 glow">
+                <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="mt-8 rounded-2xl bg-card p-6">
                   <CloudGlyph cloud="azure" className="size-14 text-base" />
                 </motion.div>
               )}
@@ -233,7 +229,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: Math.min(i * 0.05, 0.6), type: "spring", stiffness: 260, damping: 24 }}
-                    className="flex items-center gap-3 rounded-lg border bg-card/60 px-3 py-2"
+                    className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2"
                   >
                     <CloudGlyph cloud={cloudOf(s.kind)} />
                     <div className="min-w-0 flex-1">
@@ -268,7 +264,7 @@ function Done({ count, onFinish }: { count: number; onFinish: () => void }) {
   }, []);
   return (
     <motion.section {...slide} className="flex max-w-lg flex-col items-center text-center">
-      <motion.div initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 200, damping: 12, delay: 0.1 }} className="mb-6 rounded-full bg-emerald-500/15 p-5 text-emerald-400 ring-1 ring-emerald-500/30">
+      <motion.div initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 200, damping: 12, delay: 0.1 }} className="mb-6 rounded-full bg-emerald-500/15 p-5 text-emerald-400">
         <Check className="size-12" strokeWidth={3} />
       </motion.div>
       <h2 className="text-3xl font-semibold tracking-tight">You're all set.</h2>
@@ -300,7 +296,7 @@ function CloudCard({ cloud, title, desc, soon, onClick }: { cloud: "aws" | "azur
       whileTap={soon ? undefined : { scale: 0.98 }}
       disabled={soon}
       onClick={onClick}
-      className={cn("flex flex-col items-start gap-3 rounded-xl border bg-card/70 p-5 text-left transition-colors", soon ? "opacity-60" : "hover:border-primary/50 hover:bg-card")}
+      className={cn("flex flex-col items-start gap-3 rounded-2xl border bg-card p-5 text-left transition-colors", soon ? "opacity-60" : "hover:border-primary/50 hover:bg-card")}
     >
       <div className="flex w-full items-center justify-between">
         <CloudGlyph cloud={cloud} />

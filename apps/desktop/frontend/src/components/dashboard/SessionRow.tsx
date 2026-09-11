@@ -66,7 +66,7 @@ export function SessionRow({ session: s, workspace }: { session: Session; worksp
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ type: "spring", stiffness: 320, damping: 28 }}
-      className={cn("group flex items-center gap-3 rounded-lg border bg-card/60 px-3 py-2.5 transition-colors hover:bg-card", active && "border-emerald-500/30 bg-emerald-500/[0.04]")}
+      className={cn("group flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5 transition-colors hover:bg-accent/60", active && "border-emerald-500/40")}
     >
       <span className={cn("relative size-2 shrink-0 rounded-full", active ? "bg-emerald-400 text-emerald-400 pulse-ring" : "bg-muted-foreground/30")} />
       <CloudGlyph cloud={cloudOf(s.kind)} />
@@ -78,7 +78,9 @@ export function SessionRow({ session: s, workspace }: { session: Session; worksp
         </div>
         <p className="truncate font-mono text-[11px] text-muted-foreground">{sessionSubtitle(s)}{source ? ` · via ${source.name}` : ""}</p>
       </div>
-      {active && <span className="w-16 text-right font-mono text-xs tabular-nums text-emerald-300/90">{remaining(s.expires, now)}</span>}
+      <span className={cn("flex w-28 items-center justify-end gap-1.5 font-mono text-xs tabular-nums", active ? "text-emerald-300" : "text-muted-foreground/70")}>
+        {active ? <><span className="font-sans font-medium">Active</span><span>{remaining(s.expires, now)}</span></> : <span className="font-sans">Inactive</span>}
+      </span>
       <div className={cn("flex items-center gap-0.5 transition-opacity", active ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100")}>
         {active && (
           <>

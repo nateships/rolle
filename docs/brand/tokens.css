@@ -1,0 +1,20 @@
+:root {
+  color-scheme: dark;
+  --rolle-background: #17151D;
+  --rolle-surface: #23202B;
+  --rolle-primary: #B8A1F2;
+  --rolle-text: #F4F0E8;
+  --rolle-muted: #A9A2B4;
+  --rolle-border: #393242;
+  --rolle-on-primary: #17151D;
+  --rolle-focus: #B8A1F2;
+  /* For typeset brand text. Use outlined SVGs for the exact custom logo. */
+  --rolle-font-wordmark: "MuseoModerno", sans-serif;
+  --rolle-wordmark-weight: 700;
+  --rolle-wordmark-letter-spacing: -0.025em;
+  --rolle-font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --rolle-font-mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --rolle-radius-control: 8px;
+  --rolle-radius-panel: 16px;
+}
+
