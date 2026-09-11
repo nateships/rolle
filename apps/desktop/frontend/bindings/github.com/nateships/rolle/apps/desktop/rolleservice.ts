@@ -99,10 +99,18 @@ export function EnvText(ref: string): $CancellablePromise<string> {
 }
 
 /**
- * GCPStatus checks for local gcloud credentials.
+ * GCPStatus checks for local gcloud credentials and the gcloud CLI.
  */
 export function GCPStatus(): $CancellablePromise<$models.GCPStatus> {
     return $Call.ByID(4139794677);
+}
+
+/**
+ * GCloudLogin runs the gcloud Application Default Credentials login, which
+ * opens the browser. Blocks until gcloud finishes.
+ */
+export function GCloudLogin(): $CancellablePromise<void> {
+    return $Call.ByID(3266413918);
 }
 
 /**

@@ -14,7 +14,7 @@ import { mockApi } from "./mock";
 
 /** True when running inside the Wails webview rather than a plain browser.
  *  Mirrors the runtime's own transport detection: WebView2, WKWebView, or Android. */
-const inWails = (() => {
+export const inWails = (() => {
   if (typeof window === "undefined") return false;
   const w = window as unknown as { chrome?: { webview?: { postMessage?: unknown } }; webkit?: { messageHandlers?: { external?: { postMessage?: unknown } } }; wails?: { invoke?: unknown } };
   return !!(w.chrome?.webview?.postMessage || w.webkit?.messageHandlers?.external?.postMessage || w.wails?.invoke);

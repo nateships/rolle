@@ -10,12 +10,16 @@ export interface DeviceLogin {
 }
 
 /**
- * GCPStatus reports whether gcloud Application Default Credentials exist.
+ * GCPStatus reports whether gcloud Application Default Credentials exist and
+ * whether the gcloud CLI itself is available.
  */
 export interface GCPStatus {
     "ready": boolean;
     "account": string;
     "loginCommand": string;
+    "gcloudFound": boolean;
+    "gcloudPath": string;
+    "installUrl": string;
 }
 
 /**

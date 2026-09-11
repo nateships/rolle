@@ -33,6 +33,11 @@ function seed() {
 }
 if (state.onboarded) seed();
 
+// ?gcp=missing simulates a machine without gcloud credentials.
+let gcpReady = new URLSearchParams(location.search).get("gcp") !== "missing";
+// ?gcloud=none simulates a machine without the gcloud CLI.
+const gcloudFound = new URLSearchParams(location.search).get("gcloud") !== "none";
+
 const creds: Credentials = { accessKeyId: "ASIAMOCK", secretAccessKey: "mock", sessionToken: "mock", expiration: new Date(Date.now() + 3.6e6).toISOString() } as Credentials;
 
 export const mockApi = {
@@ -58,7 +63,8 @@ export const mockApi = {
   AzureLogin: async (ref: string) => { await wait(2500); const i = state.integrations.find((x) => x.id === ref)!; i.azure!.account = "nate@contoso.com"; const added = [{ id: id(), name: "Contoso Production", kind: "azure", integrationId: ref, status: "inactive", azure: { subscriptionId: "0f1e2d3c-4b5a-6978-8a9b-0c1d2e3f4a5b", tenantId: "t-1" } }] as Session[]; state.sessions.push(...added); emit(); return added; },
   AzureLogout: async (ref: string) => { const i = state.integrations.find((x) => x.id === ref); if (i?.azure) i.azure.account = ""; emit(); },
   SyncAzure: async () => [],
-  GCPStatus: async () => ({ ready: true, account: "nate@example.com", loginCommand: "gcloud auth application-default login" }),
+  GCPStatus: async () => { await wait(500); return { ready: gcpReady, account: gcpReady ? "nate@example.com" : "", loginCommand: "gcloud auth application-default login", gcloudFound, gcloudPath: gcloudFound ? "/opt/homebrew/bin/gcloud" : "", installUrl: "https://cloud.google.com/sdk/docs/install" }; },
+  GCloudLogin: async () => { await wait(1500); gcpReady = true; },
   AddGCP: async (alias: string) => { await wait(800); const i = { id: id(), alias, cloud: "gcp", gcp: { account: "nate@example.com" } } as Integration; state.integrations.push(i); const added = [{ id: id(), name: "data-platform", kind: "gcp", integrationId: i.id, status: "inactive", gcp: { projectId: "data-platform-4821" } }] as Session[]; state.sessions.push(...added); emit(); return added; },
   SyncGCP: async () => [],
   AddGCPImpersonation: async (v: { name: string; integrationRef: string; projectId: string; serviceAccount: string }) => { const s = { id: id(), name: v.name, kind: "gcp", integrationId: v.integrationRef, status: "inactive", gcp: { projectId: v.projectId, serviceAccount: v.serviceAccount } } as Session; state.sessions.push(s); emit(); return s; },

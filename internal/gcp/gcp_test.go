@@ -3,6 +3,7 @@ package gcp
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -52,5 +53,18 @@ func TestTokenSourceRejectsNonUserCredentials(t *testing.T) {
 func TestConsoleURL(t *testing.T) {
 	if ConsoleURL("p1") != "https://console.cloud.google.com/home/dashboard?project=p1" {
 		t.Fatal("unexpected console url")
+	}
+}
+
+func TestIsShimAndSummarize(t *testing.T) {
+	if !isShim("/Users/x/.local/share/mise/shims/gcloud") || isShim("/opt/homebrew/bin/gcloud") {
+		t.Fatal("shim detection wrong")
+	}
+	got := summarize("mise WARN something\nmise ERROR No version is set for shim: gcloud\nSet a global default", errors.New("exit 1"))
+	if !strings.Contains(got, "No version is set") {
+		t.Fatalf("summarize = %q", got)
+	}
+	if summarize("", errors.New("exit 1")) != "exit 1" {
+		t.Fatal("empty stderr should fall back to the error")
 	}
 }

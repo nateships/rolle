@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowRight, Check, Cloud, ExternalLink, KeyRound, Loader2, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Cloud, Copy, Download, ExternalLink, KeyRound, Loader2, RefreshCw, ShieldCheck, Sparkles, Terminal } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Mark, Lockup, CloudGlyph } from "@/components/Brand";
+import { RegionSelect } from "@/components/RegionSelect";
 import { api, errorMessage, type Session, type Workspace } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
+import { copyText } from "@/lib/clipboard";
 import { cloudOf } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -45,6 +47,27 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
 
   const index = ORDER.indexOf(step);
   const go = (s: Step) => setStep(s);
+
+  // Mouse back (button 3) and forward (button 4) move between steps. Steps that
+  // depend on a completed sign-in are never skipped into, and a pending
+  // approval is never abandoned.
+  useEffect(() => {
+    const BACK: Partial<Record<Step, Step>> = { cloud: "welcome", connect: "cloud", roles: "cloud", done: "roles" };
+    const FORWARD: Partial<Record<Step, Step>> = { welcome: "cloud", cloud: "connect", roles: "done" };
+    const onMouseUp = (e: MouseEvent) => {
+      if (e.button !== 3 && e.button !== 4) return;
+      e.preventDefault();
+      const target = e.button === 3 ? BACK[step] : FORWARD[step];
+      if (target && !busy) setStep(target);
+    };
+    const swallow = (e: MouseEvent) => { if (e.button === 3 || e.button === 4) e.preventDefault(); };
+    window.addEventListener("mouseup", onMouseUp);
+    window.addEventListener("mousedown", swallow);
+    return () => {
+      window.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener("mousedown", swallow);
+    };
+  }, [step, busy]);
 
   async function finish() {
     try {
@@ -358,8 +381,8 @@ export function SSOForm({ busy, onSubmit, submitLabel = "Sign in" }: { busy: boo
       <Field label="Start URL">
         <Input value={startUrl} onChange={(e) => setStartUrl(e.target.value)} placeholder="https://acme.awsapps.com/start" />
       </Field>
-      <Field label="Portal region">
-        <Input value={region} onChange={(e) => setRegion(e.target.value)} placeholder="us-east-1" />
+      <Field label="Portal region" hint="The region shown in your Identity Center settings">
+        <RegionSelect value={region} onChange={setRegion} />
       </Field>
       <Button type="submit" className="w-full gap-2" disabled={!valid || busy}>
         {busy ? <Loader2 className="size-4 animate-spin" /> : <ExternalLink className="size-4" />} {submitLabel}
@@ -379,7 +402,7 @@ export function KeyForm({ busy, onSubmit }: { busy: boolean; onSubmit: (v: { nam
     <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (valid) onSubmit({ name: name.trim(), region: region.trim(), accessKeyId: accessKeyId.trim(), secretAccessKey, mfaDevice: mfaDevice.trim() }); }}>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Session name"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="personal" autoFocus /></Field>
-        <Field label="Region"><Input value={region} onChange={(e) => setRegion(e.target.value)} /></Field>
+        <Field label="Region"><RegionSelect value={region} onChange={setRegion} /></Field>
       </div>
       <Field label="Access key ID"><Input value={accessKeyId} onChange={(e) => setAccessKeyId(e.target.value)} placeholder="AKIA…" className="font-mono" /></Field>
       <Field label="Secret access key" hint="Stored in your OS keychain"><Input type="password" value={secretAccessKey} onChange={(e) => setSecret(e.target.value)} className="font-mono" /></Field>
@@ -420,23 +443,96 @@ export function AzureForm({ busy, onSubmit, submitLabel = "Sign in with Microsof
 
 export function GCPConnect({ busy, onSubmit }: { busy: boolean; onSubmit: (alias: string) => void }) {
   const [alias, setAlias] = useState("gcp");
-  const [status, setStatus] = useState<{ ready: boolean; account: string; loginCommand: string } | null>(null);
-  const check = async () => setStatus(await api.GCPStatus());
+  const [status, setStatus] = useState<{ ready: boolean; account: string; loginCommand: string; gcloudFound: boolean; installUrl: string } | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [loggingIn, setLoggingIn] = useState(false);
+  const [checkedAt, setCheckedAt] = useState<number | null>(null);
+
+  const check = async (announce = false) => {
+    setChecking(true);
+    try {
+      const next = await api.GCPStatus();
+      setStatus(next);
+      setCheckedAt(Date.now());
+      if (announce) {
+        if (next.ready) toast.success(`Found credentials for ${next.account || "your Google account"}`);
+        else toast.info("Still no credentials", { description: "Run the command, finish the browser sign-in, then check again." });
+      }
+      return next;
+    } catch (e) {
+      toast.error(errorMessage(e));
+      return null;
+    } finally {
+      setChecking(false);
+    }
+  };
   useEffect(() => { void check(); }, []);
+
+  const login = async () => {
+    setLoggingIn(true);
+    try {
+      await api.GCloudLogin();
+      const next = await check();
+      if (next?.ready) {
+        toast.success(`Signed in as ${next.account || "your Google account"}`);
+        celebrate("small");
+      }
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setLoggingIn(false);
+    }
+  };
+
+  const copy = async (cmd: string) => {
+    try {
+      await copyText(cmd);
+      toast.success("Command copied", { description: "Paste it into a terminal." });
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  };
+
   return (
     <div className="space-y-4">
       {status === null ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Looking for gcloud credentials…</div>
       ) : status.ready ? (
-        <div className="flex items-center gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-2 text-sm">
-          <Check className="size-4 text-emerald-400" />
+        <div className="flex items-center gap-3 rounded-lg border border-brand-green/40 bg-brand-green/5 px-3 py-2 text-sm">
+          <Check className="size-4 text-brand-green" />
           <span className="truncate">Signed in as <span className="font-medium">{status.account || "a Google account"}</span></span>
         </div>
       ) : (
-        <div className="space-y-2 rounded-lg border border-dashed p-3 text-sm">
-          <p>No Application Default Credentials found. Run this in a terminal, then check again:</p>
-          <code className="block rounded bg-muted px-2 py-1.5 font-mono text-xs">{status.loginCommand}</code>
-          <Button variant="secondary" size="sm" onClick={() => void check()}>Check again</Button>
+        <div className="space-y-3 rounded-lg border border-dashed p-3 text-sm">
+          {status.gcloudFound ? (
+            <>
+              <p>No Application Default Credentials yet. Sign in with gcloud and Rolle will pick them up.</p>
+              <Button className="w-full gap-2" onClick={login} disabled={loggingIn || checking}>
+                {loggingIn ? <Loader2 className="size-4 animate-spin" /> : <Terminal className="size-4" />}
+                {loggingIn ? "Waiting for gcloud…" : "Sign in with gcloud"}
+              </Button>
+            </>
+          ) : (
+            <>
+              <p>The gcloud CLI is not installed, so Rolle cannot sign you in. Install it, then come back and check again.</p>
+              <Button className="w-full gap-2" onClick={() => void api.OpenURL(status.installUrl)}>
+                <Download className="size-4" /> Install the gcloud CLI
+              </Button>
+            </>
+          )}
+          <div className="flex items-center gap-3 text-[11px] uppercase tracking-widest text-muted-foreground/70">
+            <span className="h-px flex-1 bg-border" />or run it yourself<span className="h-px flex-1 bg-border" />
+          </div>
+          <div className="flex items-center gap-2">
+            <code className="min-w-0 flex-1 truncate rounded bg-muted px-2 py-1.5 font-mono text-xs">{status.loginCommand}</code>
+            <Button variant="outline" size="icon-sm" onClick={() => copy(status.loginCommand)} aria-label="Copy command"><Copy /></Button>
+          </div>
+          <div className="flex items-center justify-between">
+            <Button variant="secondary" size="sm" className="gap-1.5" onClick={() => void check(true)} disabled={checking || loggingIn}>
+              {checking ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} {checking ? "Checking…" : "Check again"}
+            </Button>
+            {checkedAt && <span className="text-[11px] text-muted-foreground/70">Checked {new Date(checkedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>}
+          </div>
         </div>
       )}
       <Field label="Account name" hint="How it shows in the sidebar">

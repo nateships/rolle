@@ -41,7 +41,7 @@ func (r *RolleService) ServiceStartup(_ context.Context, _ application.ServiceOp
 
 func (r *RolleService) changed() {
 	if r.app != nil {
-		r.app.Event.Emit(EventWorkspaceChanged)
+		r.app.Event.Emit(EventWorkspaceChanged, struct{}{})
 	}
 }
 
@@ -277,22 +277,37 @@ func (r *RolleService) SyncAzure(ref string) ([]core.Session, error) {
 	return added, err
 }
 
-// GCPStatus reports whether gcloud Application Default Credentials exist.
+// GCPStatus reports whether gcloud Application Default Credentials exist and
+// whether the gcloud CLI itself is available.
 type GCPStatus struct {
 	Ready        bool   `json:"ready"`
 	Account      string `json:"account"`
 	LoginCommand string `json:"loginCommand"`
+	GCloudFound  bool   `json:"gcloudFound"`
+	GCloudPath   string `json:"gcloudPath"`
+	InstallURL   string `json:"installUrl"`
 }
 
-// GCPStatus checks for local gcloud credentials.
+// GCPStatus checks for local gcloud credentials and the gcloud CLI.
 func (r *RolleService) GCPStatus() GCPStatus {
 	c, cancel := ctx()
 	defer cancel()
-	acct, err := gcp.DetectAccount(c)
-	if err != nil {
-		return GCPStatus{LoginCommand: gcp.LoginCommand}
+	st := GCPStatus{LoginCommand: gcp.LoginCommand, InstallURL: gcp.InstallURL}
+	if p, err := gcp.FindGCloud(); err == nil {
+		st.GCloudFound, st.GCloudPath = true, p
 	}
-	return GCPStatus{Ready: true, Account: acct.Email, LoginCommand: gcp.LoginCommand}
+	if acct, err := gcp.DetectAccount(c); err == nil {
+		st.Ready, st.Account = true, acct.Email
+	}
+	return st
+}
+
+// GCloudLogin runs the gcloud Application Default Credentials login, which
+// opens the browser. Blocks until gcloud finishes.
+func (r *RolleService) GCloudLogin() error {
+	c, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+	return gcp.GCloudLogin(c)
 }
 
 // AddGCP registers gcloud credentials and discovers projects.

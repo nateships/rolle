@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AzureForm, Field, GCPConnect, KeyForm, SSOForm } from "@/components/onboarding/Onboarding";
 import { CloudGlyph } from "@/components/Brand";
+import { RegionSelect } from "@/components/RegionSelect";
 import { api, errorMessage, Cloud, type Integration, type Session, type Workspace } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
 
@@ -146,7 +147,7 @@ export function AddAssumeRoleDialog({ open, onClose, workspace }: { open: boolea
         >
           <div className="grid grid-cols-2 gap-3">
             <Field label="Session name"><Input value={name} onChange={(e) => setName(e.target.value)} placeholder="prod-admin" autoFocus /></Field>
-            <Field label="Region"><Input value={region} onChange={(e) => setRegion(e.target.value)} /></Field>
+            <Field label="Region"><RegionSelect value={region} onChange={setRegion} /></Field>
           </div>
           <Field label="Role ARN"><Input value={roleArn} onChange={(e) => setRoleArn(e.target.value)} placeholder="arn:aws:iam::123456789012:role/Admin" className="font-mono text-xs" /></Field>
           <Field label="Source session" hint="Provides the credentials for the AssumeRole call">
