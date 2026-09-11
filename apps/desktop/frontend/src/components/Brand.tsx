@@ -1,5 +1,7 @@
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
+import gopher from "@/assets/brand/gopher.png";
+import gopherLight from "@/assets/brand/gopher-light.svg";
 import logoDark from "@/assets/brand/logo-dark.svg";
 import logoLight from "@/assets/brand/logo-light.svg";
 import awsLogoDark from "@/assets/vendors/aws-dark.svg";
@@ -78,6 +80,28 @@ export function Lockup({ className, markClassName }: { className?: string; markC
       <Mark className={cn("size-6 text-primary", markClassName)} />
       <Wordmark className="h-[0.9em] text-foreground" />
     </span>
+  );
+}
+
+/** The gopher artwork alone. Light surfaces use the outlined variant so the ivory body stays visible. */
+export function GopherMark({ className }: { className?: string }) {
+  return (
+    <>
+      <img
+        src={gopherLight}
+        alt=""
+        aria-hidden
+        draggable={false}
+        className={cn("size-16 select-none object-contain dark:hidden", className)}
+      />
+      <img
+        src={gopher}
+        alt=""
+        aria-hidden
+        draggable={false}
+        className={cn("hidden size-16 select-none object-contain dark:block", className)}
+      />
+    </>
   );
 }
 

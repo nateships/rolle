@@ -6,7 +6,7 @@ Rolle uses the Original Circuit palette, a three-card stack with an open lowerca
 | --- | --- | --- |
 | Desktop launcher, Dock and taskbar | Three-color stack with r cutout | [icons/](icons/) |
 | System tray | Monochrome template stack | [icons/trayicon.svg](icons/trayicon.svg) |
-| GitHub README | Go gopher peeking over the stack | [readme-gopher.png](readme-gopher.png) |
+| Mascot lockup: README, docs site, app screens, social card | Go gopher peeking over the stack | [readme-gopher.png](readme-gopher.png) |
 | Logo lockup | Stack with ivory or charcoal wordmark | [wordmark/](wordmark/) |
 
 ## Palette
@@ -23,7 +23,7 @@ Exact values live in [tokens.json](tokens.json) and [tokens.css](tokens.css).
 
 The wordmark combines the icon’s exact r with MuseoModerno Bold (700) outlines. Use the supplied SVGs for the logo. Body/interface sans and command monospace have separate tokens. The unmodified font and license are in [fonts/](fonts/).
 
-Desktop and tray icons use the stack alone. The Go gopher is reserved for the README mascot. Preserve its creator attribution and adaptation notice.
+The app icon and the menu bar icon use the stack alone. Everywhere else the gopher lockup carries the brand. Preserve the creator attribution and adaptation notice.
 
 - [ICONS.md](ICONS.md): icon files, platform formats and regeneration.
 - [TYPOGRAPHY.md](TYPOGRAPHY.md): wordmark masters, font usage and regeneration.

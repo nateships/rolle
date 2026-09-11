@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Mark, GopherLockup, CloudGlyph } from "@/components/Brand";
+import { CloudGlyph, GopherLockup, GopherMark } from "@/components/Brand";
 import { RegionSelect } from "@/components/RegionSelect";
 import { DevTools } from "@/components/DevTools";
 import {
@@ -347,7 +347,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                 transition={{ type: "spring", stiffness: 180, damping: 16 }}
                 className="mb-8 rounded-2xl bg-card p-6 text-primary"
               >
-                <Mark className="size-20" animate />
+                <GopherMark className="size-28" />
               </motion.div>
               <h1 className="text-4xl font-semibold tracking-tight">
                 Assume any <span className="text-brand-orange">role</span>, any{" "}

@@ -4,7 +4,7 @@
 
 Go gopher by Renee French, licensed under [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/). Adapted for Rolle with stacked credential cards and an r cutout.
 
-This credit applies to `readme-gopher.png`. Retain the creator credit, license link and adaptation notice when using the mascot. The desktop icons contain only the credential stack.
+This credit covers the gopher artwork wherever Rolle shows it. Retain the creator credit, license link and adaptation notice. The app icon and menu bar icon contain only the credential stack.
 
 Source and attribution: [The Go Gopher](https://go.dev/blog/gopher), [original character image](https://go.dev/doc/gopher/frontpage.png).
 

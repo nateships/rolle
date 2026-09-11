@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { ActionItems, type Action } from "@/components/ActionMenu";
-import { GopherLockup, Mark } from "@/components/Brand";
+import { GopherLockup, GopherMark } from "@/components/Brand";
 import { SessionTable, useColumnWidths } from "./SessionTable";
 import { DevTools } from "@/components/DevTools";
 import { SettingsDialog } from "@/components/dialogs/SettingsDialog";
@@ -610,7 +610,7 @@ function Empty({
     return (
       <div className="flex h-full flex-col items-center justify-center text-center">
         <div className="rounded-2xl bg-card p-4">
-          <Mark className="size-10" />
+          <GopherMark className="size-20" />
         </div>
         <h3 className="mt-5 text-lg font-medium">
           {signedIn ? `No sessions in ${integration.alias}` : `${integration.alias} is signed out`}
@@ -635,7 +635,7 @@ function Empty({
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
       <div className="rounded-2xl bg-card p-4">
-        <Mark className="size-10" />
+        <GopherMark className="size-20" />
       </div>
       <h3 className="mt-5 text-lg font-medium">{hasAny ? "Nothing matches" : "No sessions yet"}</h3>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">

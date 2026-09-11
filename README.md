@@ -97,5 +97,5 @@ icons, typography, or brand colors.
 ## License
 
 [GPL-3.0-or-later](LICENSE). Forks and redistributions must stay open under the same terms.
-The Go gopher artwork in this README is by [Renee French](https://go.dev/blog/gopher),
+The Go gopher artwork is by [Renee French](https://go.dev/blog/gopher),
 adapted for Rolle under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).

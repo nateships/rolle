@@ -1,5 +1,5 @@
 import { Component, type ReactNode } from "react";
-import { Mark } from "@/components/Brand";
+import { GopherMark } from "@/components/Brand";
 
 type State = { error: Error | null };
 
@@ -16,7 +16,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
     if (!this.state.error) return this.props.children;
     return (
       <main className="flex h-full flex-col items-center justify-center gap-4 bg-background p-8 text-foreground">
-        <Mark className="size-12" />
+        <GopherMark className="size-16" />
         <h1 className="text-lg font-medium">Something broke in the interface</h1>
         <pre className="max-w-xl overflow-auto rounded-md bg-card p-3 font-mono text-xs text-muted-foreground">
           {this.state.error.message}
