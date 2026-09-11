@@ -11,7 +11,7 @@ Identity Center refresh tokens, Azure token caches, and IAM user access keys liv
 
 ## Short-lived credentials are cached, then expire
 
-Started sessions cache their temporary credentials in `~/.cache/rolle/credentials` with owner-only permissions. `credential_process` reads that cache. Entries carry their expiry and are refreshed or removed by the app.
+Started sessions cache their temporary credentials in the cache directory (`~/.cache/rolle/credentials`, or the platform cache location) with owner-only permissions. `credential_process` reads that cache. Entries carry their expiry and are refreshed or removed by the app.
 
 ## AWS config is written with care
 

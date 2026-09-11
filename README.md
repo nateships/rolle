@@ -115,3 +115,7 @@ CLI and the desktop app. `mise run reset` wipes the local workspace, secrets,
 cache, and AWS profiles.
 
 See [getrolle.com/roadmap](https://getrolle.com/roadmap) for what works and what does not.
+
+## License
+
+[MIT](LICENSE). The Go gopher artwork in the README is CC BY 4.0 (see above).

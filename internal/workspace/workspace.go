@@ -8,9 +8,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/adrg/xdg"
-
 	"github.com/nateships/rolle/internal/core"
+	"github.com/nateships/rolle/internal/paths"
 )
 
 // DefaultPath returns the workspace file location, honouring ROLLE_WORKSPACE.
@@ -18,7 +17,7 @@ func DefaultPath() string {
 	if p := os.Getenv("ROLLE_WORKSPACE"); p != "" {
 		return p
 	}
-	return filepath.Join(xdg.ConfigHome, "rolle", "workspace.json")
+	return filepath.Join(paths.ConfigDir(), "workspace.json")
 }
 
 // Load reads the workspace at path. A missing file yields an empty workspace.

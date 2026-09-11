@@ -9,9 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/adrg/xdg"
-
 	"github.com/nateships/rolle/internal/core"
+	"github.com/nateships/rolle/internal/paths"
 )
 
 // ErrMiss is returned when no fresh credentials are cached.
@@ -29,7 +28,7 @@ type Cache struct {
 func Default() *Cache {
 	dir := os.Getenv("ROLLE_CACHE_DIR")
 	if dir == "" {
-		dir = filepath.Join(xdg.CacheHome, "rolle", "credentials")
+		dir = filepath.Join(paths.CacheDir(), "credentials")
 	}
 	return &Cache{Dir: dir}
 }
