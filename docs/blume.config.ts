@@ -3,7 +3,8 @@ import { defineConfig } from "blume";
 export default defineConfig({
   title: "Rolle",
   description: "Assume any role, any cloud. Short-lived AWS, Azure, and Google Cloud credentials for your tools, without a secret on disk.",
-  logo: { image: "/mark.svg", text: "Rolle", href: "/" },
+  // The wordmark is artwork, never typed: the lockup carries the mark and the word.
+  logo: { image: { dark: "/lockup-dark.svg", light: "/lockup-light.svg", alt: "Rolle" }, text: "", href: "/" },
   content: { root: "content" },
   github: { owner: "nateships", repo: "rolle", branch: "main", dir: "docs" },
   navigation: {
