@@ -192,7 +192,7 @@ function AccountRow({ row, open, onToggle }: { row: Row & { group: true }; open:
           transition={{ duration: 0.15 }}
           onClick={onToggle}
           className={cn(
-            "cursor-pointer select-none border-b bg-muted/20 transition-colors hover:bg-muted/50",
+            "cursor-pointer select-none border-b bg-muted/40 transition-colors hover:bg-muted/60",
             active > 0 && "bg-emerald-500/[0.04]",
           )}
         >

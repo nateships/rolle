@@ -181,7 +181,11 @@ export function SessionRow({
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.15, ease: "easeOut" }}
-          className={cn("group border-b transition-colors hover:bg-muted/50", active && "bg-emerald-500/[0.04]")}
+          className={cn(
+            "group border-b transition-colors hover:bg-muted/50",
+            nested && "bg-muted/15",
+            active && "bg-emerald-500/[0.04]",
+          )}
         >
           <TableCell className="pr-0">
             <div className="flex items-center gap-1.5">
