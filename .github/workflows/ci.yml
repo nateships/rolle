@@ -32,6 +32,9 @@ jobs:
 
   hooks:
     runs-on: ubuntu-latest
+    env:
+      # wails3 needs GTK to compile; these jobs do not build the desktop app.
+      MISE_DISABLE_TOOLS: go:github.com/wailsapp/wails/v3/cmd/wails3
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -42,6 +45,9 @@ jobs:
 
   docs:
     runs-on: ubuntu-latest
+    env:
+      # wails3 needs GTK to compile; these jobs do not build the desktop app.
+      MISE_DISABLE_TOOLS: go:github.com/wailsapp/wails/v3/cmd/wails3
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:

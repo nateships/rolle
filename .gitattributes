@@ -1,0 +1,8 @@
+# Every checkout uses LF so formatters agree across platforms.
+* text=auto eol=lf
+*.png binary
+*.icns binary
+*.ico binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
