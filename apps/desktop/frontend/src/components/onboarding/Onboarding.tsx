@@ -48,7 +48,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
   return (
     <div className="relative flex h-full flex-col overflow-hidden">
       <header className="drag relative z-10 flex items-center justify-between px-6 pt-5">
-        <Lockup className="h-6" />
+        <div className="mac-inset"><Lockup className="h-6" /></div>
         <div className="no-drag flex items-center gap-1.5">
           {ORDER.map((s, i) => (
             <motion.span
@@ -205,7 +205,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                 </motion.div>
               ) : (
                 <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="mt-8 rounded-2xl bg-card p-6">
-                  <CloudGlyph cloud="azure" className="size-14 text-base" />
+                  <CloudGlyph cloud="azure" className="size-16 p-3" />
                 </motion.div>
               )}
               <div className="mt-6 flex items-center gap-2 text-sm text-muted-foreground">
@@ -299,7 +299,7 @@ function CloudCard({ cloud, title, desc, soon, onClick }: { cloud: "aws" | "azur
       className={cn("flex flex-col items-start gap-3 rounded-2xl border bg-card p-5 text-left transition-colors", soon ? "opacity-60" : "hover:border-primary/50 hover:bg-card")}
     >
       <div className="flex w-full items-center justify-between">
-        <CloudGlyph cloud={cloud} />
+        <CloudGlyph cloud={cloud} className="size-12 p-2" />
         {soon ? <Badge variant="secondary">Soon</Badge> : <Cloud className="size-4 text-muted-foreground" />}
       </div>
       <div>

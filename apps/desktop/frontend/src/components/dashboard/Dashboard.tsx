@@ -54,7 +54,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   return (
     <div className="flex h-full">
       <aside className="flex w-64 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
-        <div className="drag flex h-14 items-center px-4 pt-2">
+        <div className="drag mac-inset flex h-14 items-center px-4 pt-2">
           <Lockup className="h-5" markClassName="size-5" />
         </div>
         <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-2">
@@ -180,7 +180,7 @@ function SideItem({ active, onClick, label, count, dot }: { active: boolean; onC
 function Empty({ hasAny, onAdd }: { hasAny: boolean; onAdd: () => void }) {
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
-      <CloudGlyph cloud="aws" className="size-12 text-sm" />
+      <CloudGlyph cloud="aws" className="size-12 p-2" />
       <h3 className="mt-5 text-lg font-medium">{hasAny ? "Nothing matches" : "No sessions yet"}</h3>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">{hasAny ? "Try a different search or filter." : "Connect an Identity Center portal to discover every role you can reach."}</p>
       {!hasAny && <Button className="mt-5 gap-1.5" onClick={onAdd}><Plus className="size-4" /> Add portal</Button>}

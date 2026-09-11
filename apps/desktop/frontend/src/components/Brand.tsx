@@ -1,5 +1,8 @@
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
+import awsLogo from "@/assets/vendors/aws.svg";
+import azureLogo from "@/assets/vendors/azure.svg";
+import gcpLogo from "@/assets/vendors/gcp.svg";
 
 // Geometry is copied from docs/brand: icons/mark.svg and wordmark/wordmark-ivory.svg.
 // Regenerate with tools/icons and docs/brand/wordmark/build_wordmark.py; do not hand edit.
@@ -51,15 +54,19 @@ export function Lockup({ className, markClassName }: { className?: string; markC
   );
 }
 
-/** Provider label. Text carries the meaning; color stays on-brand and neutral. */
+
+const VENDORS = {
+  aws: { src: awsLogo, name: "Amazon Web Services" },
+  azure: { src: azureLogo, name: "Microsoft Azure" },
+  gcp: { src: gcpLogo, name: "Google Cloud" },
+} as const;
+
+/** Provider mark on a neutral tile. The logo identifies the vendor; state is never encoded here. */
 export function CloudGlyph({ cloud, className }: { cloud: "aws" | "azure" | "gcp"; className?: string }) {
-  const label = { aws: "AWS", azure: "AZ", gcp: "GCP" }[cloud];
+  const v = VENDORS[cloud];
   return (
-    <span
-      title={ { aws: "Amazon Web Services", azure: "Microsoft Azure", gcp: "Google Cloud" }[cloud] }
-      className={cn("inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-[10px] font-bold tracking-wide text-foreground", className)}
-    >
-      {label}
+    <span title={v.name} className={cn("inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-card p-1.5", className)}>
+      <img src={v.src} alt={v.name} className="size-full object-contain" draggable={false} />
     </span>
   );
 }

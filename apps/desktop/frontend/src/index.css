@@ -85,37 +85,38 @@
 }
 
 .dark {
-    /* Rolle brand: charcoal, lavender, warm ivory. Source: docs/brand/tokens.json */
-    --background: #17151D;
+    /* Rolle brand palette (docs/brand/tokens.json), tuned for stronger dark-mode contrast:
+       deeper base, lifted surfaces, brighter borders and secondary text. */
+    --background: #100E14;
     --foreground: #F4F0E8;
-    --card: #23202B;
+    --card: #1E1B26;
     --card-foreground: #F4F0E8;
-    --popover: #23202B;
+    --popover: #1E1B26;
     --popover-foreground: #F4F0E8;
     --primary: #B8A1F2;
     --primary-foreground: #17151D;
-    --secondary: #2D2937;
+    --secondary: #2A2634;
     --secondary-foreground: #F4F0E8;
-    --muted: #2D2937;
-    --muted-foreground: #A9A2B4;
-    --accent: #2D2937;
+    --muted: #2A2634;
+    --muted-foreground: #B4ACC0;
+    --accent: #2F2B3A;
     --accent-foreground: #F4F0E8;
     --destructive: oklch(0.704 0.191 22.216);
-    --border: #393242;
-    --input: #393242;
+    --border: #3F3849;
+    --input: #443C4F;
     --ring: #B8A1F2;
     --chart-1: #B8A1F2;
-    --chart-2: #A9A2B4;
-    --chart-3: #7F7590;
-    --chart-4: #57506A;
-    --chart-5: #393242;
-    --sidebar: #1C1923;
+    --chart-2: #B4ACC0;
+    --chart-3: #8A8099;
+    --chart-4: #5E566F;
+    --chart-5: #3F3849;
+    --sidebar: #17151D;
     --sidebar-foreground: #F4F0E8;
     --sidebar-primary: #B8A1F2;
     --sidebar-primary-foreground: #17151D;
-    --sidebar-accent: #2D2937;
+    --sidebar-accent: #2A2634;
     --sidebar-accent-foreground: #F4F0E8;
-    --sidebar-border: #393242;
+    --sidebar-border: #3F3849;
     --sidebar-ring: #B8A1F2;
 }
 
@@ -134,6 +135,8 @@
 html, body, #root { height: 100%; }
 body { overscroll-behavior: none; -webkit-font-smoothing: antialiased; }
 .drag { --wails-draggable: drag; }
+/* Leading header content moves right of the macOS traffic lights (hidden-inset title bar). */
+.mac .mac-inset { padding-left: 5.25rem; }
 .no-drag { --wails-draggable: no-drag; }
 @keyframes pulse-ring { 0% { transform: scale(1); opacity: .7 } 100% { transform: scale(2.2); opacity: 0 } }
 .pulse-ring::after { content: ""; position: absolute; inset: 0; border-radius: 9999px; background: currentColor; animation: pulse-ring 1.6s ease-out infinite; }

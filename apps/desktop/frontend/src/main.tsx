@@ -5,6 +5,10 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./index.css";
 
+// macOS draws its window controls over the top-left of the web view. Mark the
+// document so headers can inset their leading content past them.
+if (/Macintosh/.test(navigator.userAgent)) document.documentElement.classList.add("mac");
+
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <TooltipProvider delayDuration={300}>
