@@ -1,11 +1,19 @@
 /* Brand overrides layered on Blume's tokens. */
 
-/* The header lockup carries the gopher artwork; size it for the 4rem header
-   and keep clear space around it. */
+/* A taller header gives the gopher lockup room without shrinking it. The
+   sticky sidebar and table of contents offset follows the new height. */
+[data-blume-header] {
+  height: 5rem;
+}
+
+.top-16 {
+  top: 5rem;
+}
+
 header a[href="/"] {
-  padding: 0.75rem 0.5rem 0.75rem 0.25rem;
+  padding: 1rem 0.5rem 1rem 0.25rem;
 }
 
 header a[href="/"] img {
-  height: 2.25rem;
+  height: 3rem;
 }
