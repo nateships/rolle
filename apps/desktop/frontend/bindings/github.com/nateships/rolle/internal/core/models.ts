@@ -169,7 +169,7 @@ export enum Kind {
 };
 
 /**
- * Session is one identity or role that can be assumed.
+ * Session is one identity or role that the user assumes.
  */
 export interface Session {
     "id": string;

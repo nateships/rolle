@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/wailsapp/wails/v3/pkg/updater"
 )
 
 func TestParsePublicKeyPEMAndBase64(t *testing.T) {
@@ -56,5 +58,20 @@ func TestNewestManifestURLSkipsDraftsAndReleasesWithoutManifest(t *testing.T) {
 	defer empty.Close()
 	if _, err := newestManifestURL(context.Background(), empty.Client(), empty.URL); err == nil {
 		t.Fatal("no releases accepted")
+	}
+}
+
+func TestSignedRequiresASignature(t *testing.T) {
+	if !signed(nil) {
+		t.Fatal("no release is not a verification failure")
+	}
+	if signed(&updater.Release{Version: "1.0.0"}) {
+		t.Fatal("a manifest without verification must be refused")
+	}
+	if signed(&updater.Release{Verification: &updater.Verification{Digest: []byte{1}}}) {
+		t.Fatal("a digest-only manifest must be refused")
+	}
+	if !signed(&updater.Release{Verification: &updater.Verification{Signature: []byte{1}}}) {
+		t.Fatal("a signed manifest must pass")
 	}
 }

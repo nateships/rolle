@@ -54,7 +54,7 @@ export interface LeappChainedRole {
 
 /**
  * LeappIAMUser is an IAM user session from Leapp. Access keys live in the OS
- * keychain under the "Leapp" service and are read at import time.
+ * keychain under the "Leapp" service, and the import reads them.
  */
 export interface LeappIAMUser {
     "id": string;

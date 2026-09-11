@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -201,7 +202,7 @@ func (r *RolleService) EnvText(ref string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return terminal.Exports(env, false), nil
+	return terminal.Exports(env, runtime.GOOS == "windows"), nil
 }
 
 // AddAzure registers an Entra ID tenant.
@@ -258,6 +259,9 @@ func (r *RolleService) GCPStatus() GCPStatus {
 // GCloudLogin runs the gcloud Application Default Credentials login, which
 // opens the browser. Blocks until gcloud finishes.
 func (r *RolleService) GCloudLogin() error {
+	if r.DemoMode() {
+		return nil
+	}
 	c, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 	return gcp.GCloudLogin(c)
@@ -318,6 +322,10 @@ func (r *RolleService) Reset() error {
 
 // Discover reports identities other tools already configured on this machine.
 func (r *RolleService) Discover() discover.Result {
+	// Demo data stays fictional: do not read the real machine.
+	if r.DemoMode() {
+		return discover.Result{}
+	}
 	c, cancel := ctx()
 	defer cancel()
 	return r.svc.Discover(c)
@@ -325,6 +333,9 @@ func (r *RolleService) Discover() discover.Result {
 
 // ImportLeappSessions recreates IAM users and chained roles from a Leapp workspace.
 func (r *RolleService) ImportLeappSessions() (app.LeappImportResult, error) {
+	if r.DemoMode() {
+		return app.LeappImportResult{}, nil
+	}
 	lw, err := discover.ReadLeapp()
 	if err != nil {
 		return app.LeappImportResult{}, err

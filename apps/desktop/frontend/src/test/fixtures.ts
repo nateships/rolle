@@ -2,7 +2,7 @@ import { Kind, type Integration, type Session } from "@/lib/api";
 
 let n = 0;
 
-/** Build a session with defaults. Every field can be overridden. */
+/** Build a session with defaults. Callers override any field. */
 export function session(o: Partial<Session>): Session {
   n += 1;
   return {

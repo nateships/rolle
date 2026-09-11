@@ -103,15 +103,16 @@ func gcpIntegration(w *core.Workspace, ref string) (*core.Integration, error) {
 }
 
 // forgetIntegration deletes the tokens an integration holds in the secret store.
-func (s *Service) forgetIntegration(in core.Integration) {
+func (s *Service) forgetIntegration(in core.Integration) error {
 	switch {
 	case in.AWSSSO != nil:
-		_ = s.sso(in).Logout()
+		return s.sso(in).Logout()
 	case in.Azure != nil:
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		_ = s.azureAuth(in).Logout(ctx)
+		return s.azureAuth(in).Logout(ctx)
 	}
+	return nil
 }
 
 // AzureLogin signs in through the browser, records the account, and discovers subscriptions.
@@ -126,6 +127,14 @@ func (s *Service) AzureLogin(ctx context.Context, ref string) ([]core.Session, e
 	}
 	account, err := s.azureAuth(*in).Login(ctx)
 	if err != nil {
+		return nil, err
+	}
+	// The browser sign-in can take minutes. Record the account in a fresh
+	// copy of the workspace so a change made in the meantime is not lost.
+	if w, err = s.Load(); err != nil {
+		return nil, err
+	}
+	if in, err = azureIntegration(w, ref); err != nil {
 		return nil, err
 	}
 	in.Azure.Account = account
@@ -205,6 +214,14 @@ func (s *Service) SyncAzure(ctx context.Context, ref string) ([]core.Session, er
 	if err != nil {
 		return nil, err
 	}
+	// Apply the result to a fresh copy of the workspace so a change made
+	// during the network calls is not lost.
+	if w, err = s.Load(); err != nil {
+		return nil, err
+	}
+	if in, err = azureIntegration(w, ref); err != nil {
+		return nil, err
+	}
 	seen := map[string]bool{}
 	var added []core.Session
 	for _, sub := range subs {
@@ -221,7 +238,7 @@ func (s *Service) SyncAzure(ctx context.Context, ref string) ([]core.Session, er
 	}
 	kept := w.Sessions[:0]
 	for _, sess := range w.Sessions {
-		if sess.IntegrationID == in.ID && sess.Kind == core.KindAzure && !seen[sess.Azure.SubscriptionID] {
+		if sess.IntegrationID == in.ID && sess.Kind == core.KindAzure && (sess.Azure == nil || !seen[sess.Azure.SubscriptionID]) {
 			_ = s.deactivate(&sess)
 			continue
 		}
@@ -286,7 +303,7 @@ func (s *Service) SyncGCP(ctx context.Context, ref string) ([]core.Session, erro
 	}
 	var added []core.Session
 	for _, p := range projects {
-		if hasGCPProject(w, in.ID, p.ID, "") {
+		if hasGCPProject(w, in.ID, p.ID) {
 			continue
 		}
 		sess := core.Session{
@@ -299,9 +316,10 @@ func (s *Service) SyncGCP(ctx context.Context, ref string) ([]core.Session, erro
 	return added, s.Save(w)
 }
 
-func hasGCPProject(w *core.Workspace, integrationID, projectID, serviceAccount string) bool {
+// hasGCPProject reports whether the plain project session already exists.
+func hasGCPProject(w *core.Workspace, integrationID, projectID string) bool {
 	for _, sess := range w.Sessions {
-		if sess.IntegrationID == integrationID && sess.GCP != nil && sess.GCP.ProjectID == projectID && sess.GCP.ServiceAccount == serviceAccount {
+		if sess.IntegrationID == integrationID && sess.GCP != nil && sess.GCP.ProjectID == projectID && sess.GCP.ServiceAccount == "" {
 			return true
 		}
 	}
@@ -519,10 +537,10 @@ func (s *Service) OpenTerminal(ctx context.Context, ref string) error {
 	})
 }
 
-// LeappImportResult reports what was recreated from a Leapp workspace.
+// LeappImportResult reports what the import recreated from a Leapp workspace.
 type LeappImportResult struct {
 	Sessions []core.Session `json:"sessions"`
-	// Skipped lists sessions that could not be recreated and why.
+	// Skipped lists the sessions the import did not recreate, and the reason.
 	Skipped []string `json:"skipped"`
 }
 

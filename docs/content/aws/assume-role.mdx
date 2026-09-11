@@ -27,4 +27,4 @@ rolle start prod-admin
 
 The requested duration comes from **Settings → General → Assume role duration** (60 minutes by default). When the source is itself a temporary session, AWS caps the chained duration at one hour, and Rolle requests one hour.
 
-Starting an assume-role session starts its source when the source is inactive.
+Start the source session first. An assume-role session does not start its source, and both stay active while the role runs. The role and its source cannot write the same AWS profile: give one of them another profile before you start the role.

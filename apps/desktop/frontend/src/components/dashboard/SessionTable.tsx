@@ -32,7 +32,7 @@ export function groupSessions(sessions: Session[]): Row[] {
     if (!g) {
       g = {
         key,
-        label: s.name.split("/")[0] || s.aws.accountId,
+        label: s.aws.accountId,
         group: true,
         accountId: s.aws.accountId,
         sessions: [],
@@ -42,8 +42,15 @@ export function groupSessions(sessions: Session[]): Row[] {
     }
     g.sessions.push(s);
   }
-  for (const g of groups.values())
+  for (const g of groups.values()) {
+    // The account name is the prefix of any role that still carries its "account/role" name.
+    g.label =
+      g.sessions
+        .map((s) => s.name)
+        .find((n) => n.includes("/"))
+        ?.split("/")[0] || g.accountId;
     g.sessions.sort((a, b) => (a.aws?.roleName ?? a.name).localeCompare(b.aws?.roleName ?? b.name));
+  }
   const cloud = (r: Row) => cloudOf(r.group ? r.sessions[0].kind : r.session.kind);
   return rows.sort((a, b) => cloudOrder[cloud(a)] - cloudOrder[cloud(b)] || a.label.localeCompare(b.label));
 }

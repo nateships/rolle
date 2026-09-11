@@ -1,4 +1,4 @@
-// Browser-only mock of the Go service so the UI can be developed with
+// Browser-only mock of the Go service so developers run the UI with
 // `aube run dev` outside Wails. Never bundled into the desktop app path.
 import {
   Status,

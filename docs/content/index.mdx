@@ -49,7 +49,13 @@ Rolle is a desktop app and CLI that hands short-lived cloud credentials to your 
 | Refresh tokens and access keys | OS keychain, service `rolle` | Keychain access control |
 | Short-lived credentials | `credentials/` in the cache directory | Owner-only files that expire |
 
-The config directory is `$XDG_CONFIG_HOME/rolle` when that variable is set, `~/.config/rolle` when it exists, and otherwise the platform location: `~/.config/rolle` on Linux, `~/Library/Application Support/rolle` on macOS, `%APPDATA%\rolle` on Windows. The cache directory follows the same rule with `XDG_CACHE_HOME`, `~/.cache/rolle`, `~/Library/Caches/rolle`, and `%LOCALAPPDATA%\rolle\cache`. **Settings → About** shows the paths in use.
+Rolle picks the config directory in this order:
+
+1. `$XDG_CONFIG_HOME/rolle` when the variable is set.
+2. `~/.config/rolle` when it exists.
+3. The platform location: `~/.config/rolle` on Linux, `~/Library/Application Support/rolle` on macOS, `%APPDATA%\rolle` on Windows.
+
+The cache directory follows the same order with `XDG_CACHE_HOME`, `~/.cache/rolle`, and the platform location: `~/.cache/rolle` on Linux, `~/Library/Caches/rolle` on macOS, `%LOCALAPPDATA%\rolle\cache` on Windows. **Settings → About** shows the paths in use.
 
 ## No telemetry
 

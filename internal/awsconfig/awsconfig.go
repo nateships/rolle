@@ -61,7 +61,7 @@ func CredentialsPath(configPath string) string {
 
 // checkShadow fails when the shared credentials file holds static keys for the
 // profile. The SDK credential chain reads those before credential_process, so
-// the Rolle profile would never be used.
+// the SDK never uses the Rolle profile.
 func checkShadow(configPath, profile string) error {
 	credPath := CredentialsPath(configPath)
 	f, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, credPath)
@@ -98,8 +98,8 @@ func Write(path string, p Profile) error {
 			return err
 		}
 	case !sec.HasKey(marker):
-		// A plain section (region, output, ...) is taken over and restored on
-		// Remove. A section with credentials belongs to another tool.
+		// Rolle takes over a plain section (region, output, ...) and restores
+		// it on Remove. A section with credentials belongs to another tool.
 		for _, k := range credentialKeys {
 			if sec.HasKey(k) {
 				return fmt.Errorf("profile %q in %s is configured by another tool (%s)", p.Name, path, k)
@@ -164,8 +164,16 @@ func quote(s string) string {
 
 func load(path string) (*ini.File, error) {
 	// The AWS CLI does not treat # or ; inside a value as a comment, so URLs
-	// such as https://acme.awsapps.com/start/#/ must survive a round trip.
-	opts := ini.LoadOptions{AllowNestedValues: true, SkipUnrecognizableLines: true, IgnoreInlineComment: true}
+	// such as https://acme.awsapps.com/start/#/ must survive a round trip. It
+	// also keeps a trailing backslash and surrounding quotes as part of the
+	// value, so a foreign profile must round-trip with them intact.
+	opts := ini.LoadOptions{
+		AllowNestedValues:       true,
+		SkipUnrecognizableLines: true,
+		IgnoreInlineComment:     true,
+		IgnoreContinuation:      true,
+		PreserveSurroundedQuote: true,
+	}
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return ini.LoadSources(opts, []byte{})
 	}
@@ -187,6 +195,6 @@ func save(path string, f *ini.File) error {
 	return os.Rename(tmp, path)
 }
 
-// wroteRegion reports whether the region key was added by Rolle: a taken-over
+// wroteRegion reports whether Rolle added the region key: a taken-over
 // section without a saved previous region had none before.
 func wroteRegion(sec *ini.Section) bool { return !sec.HasKey(prevRegion) }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/cache"
 	"github.com/AzureAD/microsoft-authentication-library-for-go/apps/public"
@@ -128,12 +129,34 @@ func (a *Auth) Token(ctx context.Context) (core.Credentials, error) {
 	if len(accts) == 0 {
 		return core.Credentials{}, ErrLoginRequired
 	}
-	res, err := client.AcquireTokenSilent(ctx, []string{ARMScope}, public.WithSilentAccount(accts[0]))
+	// The cache can hold more than one account after a second login. Use
+	// the one the integration recorded.
+	acct := accts[0]
+	if a.Integration.Azure != nil {
+		for _, cand := range accts {
+			if cand.PreferredUsername == a.Integration.Azure.Account {
+				acct = cand
+				break
+			}
+		}
+	}
+	res, err := client.AcquireTokenSilent(ctx, []string{ARMScope}, public.WithSilentAccount(acct))
 	if err != nil {
+		if transient(err) {
+			return core.Credentials{}, fmt.Errorf("azure token: %w", err)
+		}
 		return core.Credentials{}, fmt.Errorf("%w: %v", ErrLoginRequired, err)
 	}
 	exp := res.ExpiresOn.UTC()
 	return core.Credentials{Token: res.AccessToken, Expiration: &exp}, nil
+}
+
+// transient reports whether a token request failed before the identity
+// service answered: a network error or a cancelled context. Such a failure
+// does not need a new login, and the next renewal retries it.
+func transient(err error) bool {
+	var urlErr *url.Error
+	return errors.As(err, &urlErr) || errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled)
 }
 
 // Logout forgets every cached account.

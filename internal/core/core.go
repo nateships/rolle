@@ -88,7 +88,7 @@ type GCPIntegration struct {
 	Account string `json:"account,omitempty"`
 }
 
-// Session is one identity or role that can be assumed.
+// Session is one identity or role that the user assumes.
 type Session struct {
 	ID     string `json:"id"`
 	Name   string `json:"name"`

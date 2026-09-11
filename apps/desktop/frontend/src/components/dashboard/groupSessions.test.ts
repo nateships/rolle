@@ -29,6 +29,14 @@ describe("groupSessions", () => {
     expect(rows.map((r) => r.key).sort()).toEqual(["acme-eu:111", "acme:111"]);
   });
 
+  it("keeps the account label when the first role was renamed", () => {
+    const [row] = groupSessions([
+      ssoRole("Acme Prod", "111", "Admin", { name: "prod-admin" }),
+      ssoRole("Acme Prod", "111", "ReadOnly"),
+    ]);
+    expect(row.label).toBe("Acme Prod");
+  });
+
   it("falls back to the account id when the name has no prefix", () => {
     const [row] = groupSessions([ssoRole("", "333", "Admin")]);
     expect(row.label).toBe("333");

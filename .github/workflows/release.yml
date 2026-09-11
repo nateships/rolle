@@ -137,7 +137,7 @@ jobs:
         shell: bash
         run: |
           shopt -s nullglob
-          files=(apps/desktop/bin/Rolle-macos-universal.zip apps/desktop/bin/*.dmg apps/desktop/bin/Rolle-windows-amd64.zip apps/desktop/bin/*.exe apps/desktop/bin/*.AppImage apps/desktop/bin/*.deb apps/desktop/bin/*.rpm)
+          files=(apps/desktop/bin/Rolle-macos-universal.zip apps/desktop/bin/*.dmg apps/desktop/bin/Rolle-windows-amd64.zip apps/desktop/bin/*-installer.exe apps/desktop/bin/*.AppImage apps/desktop/bin/*.deb apps/desktop/bin/*.rpm)
           gh release upload "${GITHUB_REF_NAME}" "${files[@]}" --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

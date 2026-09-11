@@ -14,7 +14,7 @@ import { copyText } from "@/lib/clipboard";
 import { applyTheme, type Theme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
-/** Fields of `cur` that differ from `base`: the edits made while a save was in flight. */
+/** Fields of `cur` that differ from `base`: the edits the user makes while a save runs. */
 function diff(cur: Settings, base: Settings): Partial<Settings> {
   const out: Partial<Settings> = {};
   for (const k of Object.keys(cur) as (keyof Settings)[]) {

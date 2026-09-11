@@ -32,7 +32,7 @@ export const inWails = (() => {
 })();
 
 // Outside Wails (plain `aube run dev`) fall back to an in-memory mock so the UI
-// can be designed and demoed without the Go backend.
+// runs without the Go backend.
 export const api: typeof RolleService = inWails ? RolleService : (mockApi as unknown as typeof RolleService);
 export type {
   Session,

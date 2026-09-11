@@ -12,10 +12,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { api, errorMessage } from "@/lib/api";
 
-/** Inline dev menu for layout footers. Only rendered when the backend was built without the production tag. */
+/** Inline dev menu for layout footers. Renders only when the backend build omits the production tag. */
 export function DevTools() {
   const [dev, setDev] = useState(false);
   const [demo, setDemo] = useState(false);
+  // Reset removes real secrets and profiles unless the app runs on demo data, so it takes two clicks.
+  const [armReset, setArmReset] = useState(false);
   // ?shot=1 hides the dev pill in the browser preview, for screenshots.
   const hidden = new URLSearchParams(location.search).get("shot") === "1";
   useEffect(() => {
@@ -41,7 +43,7 @@ export function DevTools() {
 
   return (
     <div className="no-drag">
-      <DropdownMenu>
+      <DropdownMenu onOpenChange={(o) => !o && setArmReset(false)}>
         <DropdownMenuTrigger asChild>
           <Button
             size="sm"
@@ -67,8 +69,18 @@ export function DevTools() {
           <DropdownMenuItem onClick={run("Onboarding will replay", () => api.ReplayOnboarding())}>
             <RotateCcw /> Replay onboarding
           </DropdownMenuItem>
-          <DropdownMenuItem variant="destructive" onClick={run("Workspace reset", () => api.Reset())}>
-            <Trash2 /> Reset workspace
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={(e) => {
+              if (!armReset) {
+                e.preventDefault();
+                setArmReset(true);
+                return;
+              }
+              void run("Workspace reset", () => api.Reset())();
+            }}
+          >
+            <Trash2 /> {armReset ? "Click again to reset" : "Reset workspace"}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

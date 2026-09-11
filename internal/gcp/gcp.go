@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -56,16 +57,25 @@ type Account struct {
 	Email string
 }
 
-// DetectAccount reads the ADC file and returns its identity.
-func DetectAccount(ctx context.Context) (Account, error) {
+// readADC returns the ADC file path and its content. A missing file is ErrNoADC.
+func readADC() (string, []byte, error) {
 	path, err := ADCPath()
 	if err != nil {
-		return Account{}, err
+		return "", nil, err
 	}
 	data, err := os.ReadFile(path)
 	if errors.Is(err, os.ErrNotExist) {
-		return Account{}, ErrNoADC
+		return "", nil, ErrNoADC
 	}
+	if err != nil {
+		return "", nil, err
+	}
+	return path, data, nil
+}
+
+// DetectAccount reads the ADC file and returns its identity.
+func DetectAccount(ctx context.Context) (Account, error) {
+	path, data, err := readADC()
 	if err != nil {
 		return Account{}, err
 	}
@@ -126,14 +136,7 @@ func userEmail(ctx context.Context, path string, adcData []byte) (string, error)
 
 // SourceToken returns an access token for the signed-in user.
 func SourceToken(ctx context.Context) (*oauth2.Token, error) {
-	path, err := ADCPath()
-	if err != nil {
-		return nil, err
-	}
-	data, err := os.ReadFile(path)
-	if errors.Is(err, os.ErrNotExist) {
-		return nil, ErrNoADC
-	}
+	path, data, err := readADC()
 	if err != nil {
 		return nil, err
 	}
@@ -156,9 +159,9 @@ func ListProjects(ctx context.Context, client *http.Client, token string) ([]Pro
 		client = http.DefaultClient
 	}
 	var out []Project
-	url := "https://cloudresourcemanager.googleapis.com/v1/projects?filter=lifecycleState:ACTIVE"
-	for url != "" {
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	next := projectsURL("")
+	for next != "" {
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, next, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -183,12 +186,22 @@ func ListProjects(ctx context.Context, client *http.Client, token string) ([]Pro
 			return nil, err
 		}
 		out = append(out, page.Projects...)
-		url = ""
+		next = ""
 		if page.NextPageToken != "" {
-			url = "https://cloudresourcemanager.googleapis.com/v1/projects?filter=lifecycleState:ACTIVE&pageToken=" + page.NextPageToken
+			next = projectsURL(page.NextPageToken)
 		}
 	}
 	return out, nil
+}
+
+// projectsURL builds the Resource Manager list request. The page token is
+// opaque, so it is query-escaped.
+func projectsURL(pageToken string) string {
+	q := url.Values{"filter": {"lifecycleState:ACTIVE"}}
+	if pageToken != "" {
+		q.Set("pageToken", pageToken)
+	}
+	return "https://cloudresourcemanager.googleapis.com/v1/projects?" + q.Encode()
 }
 
 // Impersonate mints a short-lived access token for a service account.
@@ -246,14 +259,7 @@ func ConsoleURL(projectID string) string {
 // credentials as the source. The file inherits the source refresh token, so
 // it is written with owner-only permissions next to the credential cache.
 func WriteImpersonatedADC(path, serviceAccount string) error {
-	src, err := ADCPath()
-	if err != nil {
-		return err
-	}
-	data, err := os.ReadFile(src)
-	if errors.Is(err, os.ErrNotExist) {
-		return ErrNoADC
-	}
+	src, data, err := readADC()
 	if err != nil {
 		return err
 	}

@@ -3,11 +3,11 @@ title: IAM user
 description: Add an IAM user access key, with optional MFA.
 ---
 
-An IAM user session holds a long-lived access key in the OS keychain. When you start it, Rolle calls STS `GetSessionToken` so the tools receive short-lived credentials, and the access key itself stays in the keychain.
+An IAM user session holds a long-lived access key in the OS keychain. With `--mfa-device` set, Start calls STS `GetSessionToken` with your code, and the tools receive short-lived credentials. Without MFA, the tools receive the access key itself, shown with a 12 hour expiry.
 
 ```sh
 rolle session add iam-user --name personal --region us-west-2 --access-key-id AKIA...
-# the secret access key is prompted when --secret-access-key is omitted
+# rolle prompts for the secret access key when you omit --secret-access-key
 rolle start personal --mfa-code 123456
 ```
 

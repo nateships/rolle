@@ -104,7 +104,7 @@ sso_start_url = https://d-9876543210.awsapps.com/start
 		t.Fatalf("portals = %+v", got)
 	}
 	p := got[0]
-	if p.Alias != "aws" || p.Region != "us-east-1" || p.HasToken || !reflect.DeepEqual(p.Profiles, []string{"legacy"}) {
+	if p.Alias != "d-9876543210" || p.Region != "us-east-1" || p.HasToken || !reflect.DeepEqual(p.Profiles, []string{"legacy"}) {
 		t.Fatalf("portal = %+v", p)
 	}
 	if got := awsPortals(filepath.Join(t.TempDir(), "missing"), t.TempDir()); got != nil {
@@ -116,7 +116,7 @@ func TestAliasFromURL(t *testing.T) {
 	cases := map[string]string{
 		"https://acme.awsapps.com/start":         "acme",
 		"https://my-org.awsapps.com/start/#/":    "my-org",
-		"https://d-1234567890.awsapps.com/start": "aws",
+		"https://d-1234567890.awsapps.com/start": "d-1234567890",
 		"https://localhost/start":                "localhost",
 		"not a url":                              "aws",
 		"":                                       "aws",

@@ -17,6 +17,15 @@ import (
 	"github.com/nateships/rolle/internal/debug"
 )
 
+// modTime returns a file's modification time, or the zero time when it is missing.
+func modTime(path string) time.Time {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return time.Time{}
+	}
+	return fi.ModTime()
+}
+
 // assets holds the built frontend from frontend/dist.
 //
 //go:embed all:frontend/dist
@@ -120,7 +129,9 @@ func main() {
 	}
 
 	// Renew or deactivate expired sessions, now and every 30 seconds. Refresh
-	// saves, and so notifies the UI, only when a session changed.
+	// saves, and so notifies the UI, only when a session changed. A write by
+	// another process (the CLI, a second app) changes the file but not this
+	// process, so the tick also compares the file's modification time.
 	go func() {
 		// The app may have moved since a profile was written; point the
 		// active profiles at this binary before anything reads them.
@@ -128,8 +139,13 @@ func main() {
 			debug.Logf("app", "reconcile profiles: %v", err)
 		}
 		_, _ = svc.Refresh()
+		seen := modTime(svc.WorkspacePath)
 		for range time.Tick(30 * time.Second) {
+			if now := modTime(svc.WorkspacePath); !now.Equal(seen) {
+				svc.OnChange()
+			}
 			_, _ = svc.Refresh()
+			seen = modTime(svc.WorkspacePath)
 		}
 	}()
 

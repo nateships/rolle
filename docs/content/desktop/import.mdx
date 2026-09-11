@@ -9,7 +9,7 @@ description: Bring in what your machine already has.
 
 | Source | What Rolle reads | Result |
 | --- | --- | --- |
-| AWS CLI | `~/.aws/config` `sso-session` and legacy `sso_start_url` sections | Identity Center portals. A valid token in `~/.aws/sso/cache` is reused |
+| AWS CLI | `~/.aws/config` `sso-session` and legacy `sso_start_url` sections | Identity Center portals. Rolle reuses a valid token in `~/.aws/sso/cache` |
 | Granted | Profiles with `granted_sso_*` keys or a Granted `credential_process` | Identity Center portals |
 | az CLI | `azureProfile.json` | Azure tenants |
 | gcloud | Application Default Credentials | A Google Cloud integration |

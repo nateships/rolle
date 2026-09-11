@@ -85,7 +85,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     !inWails ? new URLSearchParams(location.search).get("filter") : null,
   );
   // ?settings=1 opens the settings dialog in the browser preview.
-  // A session whose start was waiting on a sign-in; started once the login completes.
+  // A session that waits for a sign-in. It starts when the login completes.
   const [pendingStart, setPendingStart] = useState<string | null>(null);
   const [dialog, setDialog] = useState<Dialog>(() => {
     if (inWails) return null;
@@ -144,6 +144,19 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     } catch (e) {
       toast.error(errorMessage(e));
     }
+  }
+
+  // A Google Cloud integration has no sign-in dialog: a sync re-reads the gcloud credentials.
+  function needsLogin(integ: Integration, startId?: string) {
+    if (integ.cloud !== CloudKind.CloudGCP) {
+      setPendingStart(startId ?? null);
+      setDialog({ kind: "login", integration: integ });
+      return;
+    }
+    void run(startId ? "Session started" : "Synced", async () => {
+      await api.SyncGCP(integ.id);
+      if (startId) await api.Start(startId, "");
+    });
   }
 
   return (
@@ -432,10 +445,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                     flat
                     widths={widths}
                     onWidths={setWidths}
-                    onNeedsLogin={(i, startId) => {
-                      setPendingStart(startId ?? null);
-                      setDialog({ kind: "login", integration: i });
-                    }}
+                    onNeedsLogin={needsLogin}
                   />
                 </section>
               )}
@@ -451,10 +461,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                   searching={query.trim() !== ""}
                   widths={widths}
                   onWidths={setWidths}
-                  onNeedsLogin={(i, startId) => {
-                    setPendingStart(startId ?? null);
-                    setDialog({ kind: "login", integration: i });
-                  }}
+                  onNeedsLogin={needsLogin}
                 />
               </section>
             </div>
@@ -468,7 +475,11 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
         onLogin={(integ) => setDialog({ kind: "login", integration: integ })}
       />
       <AddAssumeRoleDialog open={dialog?.kind === "assume"} onClose={() => setDialog(null)} workspace={workspace} />
-      <AddIAMUserDialog open={dialog?.kind === "iam"} onClose={() => setDialog(null)} />
+      <AddIAMUserDialog
+        open={dialog?.kind === "iam"}
+        onClose={() => setDialog(null)}
+        defaultRegion={workspace.settings?.defaultRegion ?? "us-east-1"}
+      />
       <AddAzureDialog
         open={dialog?.kind === "azure"}
         onClose={() => setDialog(null)}

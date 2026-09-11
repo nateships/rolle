@@ -24,7 +24,7 @@ import (
 // portals, Azure tenants, IAM users, and chained roles.
 
 // LeappIAMUser is an IAM user session from Leapp. Access keys live in the OS
-// keychain under the "Leapp" service and are read at import time.
+// keychain under the "Leapp" service, and the import reads them.
 type LeappIAMUser struct {
 	ID        string `json:"id"`
 	Name      string `json:"name"`
@@ -125,7 +125,7 @@ func parseLeapp(plain []byte) (*LeappWorkspace, error) {
 		if i.PortalURL == "" {
 			continue
 		}
-		out.Portals = append(out.Portals, AWSPortal{Alias: i.Alias, StartURL: strings.TrimRight(i.PortalURL, "/"), Region: i.Region, Source: "leapp"})
+		out.Portals = append(out.Portals, AWSPortal{Alias: i.Alias, StartURL: normalizeStartURL(i.PortalURL), Region: i.Region, Source: "leapp"})
 	}
 	for _, i := range raw.Azure {
 		if i.TenantID != "" {

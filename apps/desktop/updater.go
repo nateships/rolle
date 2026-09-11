@@ -73,11 +73,23 @@ func setupUpdater(a *application.App, svc *app.Service) error {
 			if st, err := svc.Settings(); err != nil || st.AutoUpdateOff {
 				continue
 			}
-			c, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
-			if err := a.Updater.CheckAndInstall(c); err != nil {
-				debug.Logf("updater", "background check: %v", err)
-			}
+			// Check silently first. CheckAndInstall opens the updater window,
+			// which must not appear when nothing is available.
+			c, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			rel, err := a.Updater.Check(c)
 			cancel()
+			if err != nil {
+				debug.Logf("updater", "background check: %v", err)
+				continue
+			}
+			if rel == nil {
+				continue
+			}
+			// The updater window keeps this context for its Install and
+			// Retry buttons, so it must outlive the call.
+			if err := a.Updater.CheckAndInstall(context.Background()); err != nil {
+				debug.Logf("updater", "background install: %v", err)
+			}
 		}
 	}()
 	return nil
@@ -147,9 +159,9 @@ func (r *RolleService) InstallUpdate() error {
 	if r.app == nil || isDevBuild() {
 		return nil
 	}
-	c, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
-	defer cancel()
-	return r.app.Updater.CheckAndInstall(c)
+	// The updater window keeps this context for its Install and Retry
+	// buttons, so it must outlive the call.
+	return r.app.Updater.CheckAndInstall(context.Background())
 }
 
 // channelProvider reads the update channel from settings on every check, so
@@ -179,7 +191,20 @@ func (p *channelProvider) Check(ctx context.Context, req updater.CheckRequest) (
 	p.mu.Lock()
 	p.current = ep
 	p.mu.Unlock()
-	return ep.Check(ctx, req)
+	rel, err := ep.Check(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	if !signed(rel) {
+		return nil, errors.New("updater: release manifest is not signed")
+	}
+	return rel, nil
+}
+
+// signed reports whether a release carries a signature. A pinned public key
+// alone does not demand one: the updater accepts a digest-only manifest.
+func signed(rel *updater.Release) bool {
+	return rel == nil || (rel.Verification != nil && len(rel.Verification.Signature) > 0)
 }
 
 func (p *channelProvider) Download(ctx context.Context, r *updater.Release, dst io.Writer, onProgress func(written, total int64)) error {

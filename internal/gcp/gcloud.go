@@ -16,7 +16,7 @@ import (
 // InstallURL documents how to install the gcloud CLI.
 const InstallURL = "https://cloud.google.com/sdk/docs/install"
 
-// ErrGCloudMissing is returned when no working gcloud CLI can be found.
+// ErrGCloudMissing reports that the lookup found no working gcloud CLI.
 var ErrGCloudMissing = errors.New("gcp: gcloud CLI not found; install it from " + InstallURL)
 
 // FindGCloud locates a runnable gcloud binary. A PATH hit wins unless it is a

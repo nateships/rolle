@@ -33,8 +33,8 @@ rolle [command] [flags]
 | Command | Purpose |
 | --- | --- |
 | `rolle session list` | List sessions |
-| `rolle session add assume-role --name N --role-arn ARN --source S [--region R] [--external-id ID] [--profile P]` | Assume a role from another session |
-| `rolle session add iam-user --name N --access-key-id ID [--secret-access-key K] [--region R] [--mfa-device M] [--profile P]` | Add an IAM user |
+| `rolle session add assume-role --name N --role-arn ARN --source S --region R [--external-id ID] [--profile P]` | Assume a role from another session |
+| `rolle session add iam-user --name N --access-key-id ID --region R [--secret-access-key K] [--mfa-device M] [--profile P]` | Add an IAM user |
 | `rolle session add gcp-impersonate --name N --project P --service-account SA [--integration I]` | Impersonate a service account |
 | `rolle session profile <session> [name]` | Set the AWS profile name. Omit the name to restore `default` |
 | `rolle session region <session> <region>` | Change the region of an AWS session |

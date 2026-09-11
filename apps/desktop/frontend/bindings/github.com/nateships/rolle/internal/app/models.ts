@@ -41,13 +41,13 @@ export interface ImportResult {
 }
 
 /**
- * LeappImportResult reports what was recreated from a Leapp workspace.
+ * LeappImportResult reports what the import recreated from a Leapp workspace.
  */
 export interface LeappImportResult {
     "sessions": core$0.Session[] | null;
 
     /**
-     * Skipped lists sessions that could not be recreated and why.
+     * Skipped lists the sessions the import did not recreate, and the reason.
      */
     "skipped": string[] | null;
 }

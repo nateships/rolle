@@ -186,7 +186,9 @@ func awsPortals(configPath, cacheDir string) []AWSPortal {
 	return out
 }
 
-// aliasFromURL turns https://acme.awsapps.com/start into "acme".
+// aliasFromURL turns https://acme.awsapps.com/start into "acme". A portal
+// without a custom subdomain keeps its d-... label, so two of them get two
+// aliases.
 func aliasFromURL(raw string) string {
 	u, err := url.Parse(raw)
 	if err != nil || u.Host == "" {
@@ -196,7 +198,7 @@ func aliasFromURL(raw string) string {
 	if i := strings.Index(host, "."); i > 0 {
 		host = host[:i]
 	}
-	if host == "" || strings.HasPrefix(host, "d-") {
+	if host == "" {
 		return "aws"
 	}
 	return host

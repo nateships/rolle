@@ -72,7 +72,7 @@ credential_process = granted credential-process --profile granted-prod
 		t.Fatalf("acme = %+v", acme)
 	}
 	legacy := got[1]
-	if legacy.Alias != "aws" || legacy.HasToken || legacy.Profiles[0] != "legacy" {
+	if legacy.Alias != "d-1234567890" || legacy.HasToken || legacy.Profiles[0] != "legacy" {
 		t.Fatalf("legacy = %+v", legacy)
 	}
 }
@@ -113,7 +113,7 @@ func TestLeappRoundTripAndParse(t *testing.T) {
 	  {"type":"awsIamRoleChained","sessionName":"prod-admin","sessionId":"c1","region":"eu-west-1","profileId":"p0","roleArn":"arn:aws:iam::2:role/Admin","parentSessionId":"u1"},
 	  {"type":"awsSsoRole","sessionName":"Acme/Admin","sessionId":"s1","region":"us-east-1"},
 	  {"type":"azure","sessionName":"Sub","sessionId":"a1","subscriptionId":"sub","tenantId":"ten"}],
-	 "_awsSsoIntegrations":[{"alias":"acme","portalUrl":"https://acme.awsapps.com/start/","region":"us-east-1"}],
+	 "_awsSsoIntegrations":[{"alias":"acme","portalUrl":"https://acme.awsapps.com/start/#/","region":"us-east-1"}],
 	 "_azureIntegrations":[{"alias":"contoso","tenantId":"ten"}],
 	 "_profiles":[{"id":"p0","name":"default"},{"id":"p1","name":"me"}]}`)
 	enc := encryptCryptoJS(plain, "machine-secret", []byte("12345678"))

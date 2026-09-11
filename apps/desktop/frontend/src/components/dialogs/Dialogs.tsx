@@ -76,20 +76,23 @@ export function LoginDialog({
           setLogin(dl);
           sessions = (await api.WaitSSOLogin(integration.id)) ?? [];
         }
-        if (cancelled) return;
-        if (sessions.length > 0) celebrate("small");
+        // An Azure sign-in has no cancel. It runs on after the dialog closes,
+        // so its outcome still shows as a toast.
+        const azure = integration.cloud === Cloud.CloudAzure;
+        if (cancelled && !azure) return;
+        if (!cancelled && sessions.length > 0) celebrate("small");
         toast.success(`Signed in to ${integration.alias}`, {
           description: sessions.length
             ? `${sessions.length} new session${sessions.length === 1 ? "" : "s"} discovered.`
             : "No new sessions.",
         });
+        if (cancelled) return;
         onDone?.(integration, sessions);
         onClose();
       } catch (e) {
-        if (!cancelled) {
-          toast.error(errorMessage(e));
-          onClose();
-        }
+        if (cancelled && integration.cloud !== Cloud.CloudAzure) return;
+        toast.error(errorMessage(e));
+        if (!cancelled) onClose();
       }
     })();
     return () => {
@@ -158,9 +161,10 @@ export function AddAssumeRoleDialog({
   onClose: () => void;
   workspace: Workspace;
 }) {
+  const defaultRegion = workspace.settings?.defaultRegion ?? "us-east-1";
   const [name, setName] = useState("");
   const [roleArn, setRoleArn] = useState("");
-  const [region, setRegion] = useState("us-east-1");
+  const [region, setRegion] = useState(defaultRegion);
   const [sourceRef, setSource] = useState("");
   const [externalId, setExternalId] = useState("");
   const [busy, setBusy] = useState(false);
@@ -169,9 +173,10 @@ export function AddAssumeRoleDialog({
     if (open) return;
     setName("");
     setRoleArn("");
+    setRegion(defaultRegion);
     setSource("");
     setExternalId("");
-  }, [open]);
+  }, [open, defaultRegion]);
   // Only AWS sessions can provide the source credentials.
   const sources = workspace.sessions.filter((s) => s.kind.startsWith("aws"));
   const valid =
@@ -249,7 +254,15 @@ export function AddAssumeRoleDialog({
   );
 }
 
-export function AddIAMUserDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+export function AddIAMUserDialog({
+  open,
+  onClose,
+  defaultRegion,
+}: {
+  open: boolean;
+  onClose: () => void;
+  defaultRegion?: string;
+}) {
   const [busy, setBusy] = useState(false);
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
@@ -260,6 +273,7 @@ export function AddIAMUserDialog({ open, onClose }: { open: boolean; onClose: ()
         </DialogHeader>
         <KeyForm
           busy={busy}
+          defaultRegion={defaultRegion}
           onSubmit={async (v) => {
             setBusy(true);
             try {

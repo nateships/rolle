@@ -76,7 +76,7 @@ type DeviceAuthorization struct {
 // Wait blocks until the user approves the login in the browser, then stores the token.
 func (d *DeviceAuthorization) Wait(ctx context.Context) error { return d.complete(ctx) }
 
-// Cancel abandons a login that will not be waited on and frees its listener.
+// Cancel abandons a login that no caller waits on and frees its listener.
 func (d *DeviceAuthorization) Cancel() {
 	if d.cancel != nil {
 		d.cancel()
@@ -150,6 +150,13 @@ func (s *SSO) StartLogin(ctx context.Context) (*DeviceAuthorization, error) {
 		if q.Get("state") != state {
 			w.WriteHeader(http.StatusBadRequest)
 			_ = callbackPage.Execute(w, callbackView{Class: "err", Title: "This page does not belong to the current sign-in", Text: "You can close this tab and try again from Rolle."})
+			return
+		}
+		// A redirect with neither a code nor an error is not an outcome. It
+		// must not take the single slot a real redirect needs.
+		if q.Get("code") == "" && q.Get("error") == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			_ = callbackPage.Execute(w, callbackView{Class: "err", Title: "The sign-in did not complete", Text: "You can close this tab and try again from Rolle."})
 			return
 		}
 		view := callbackView{Class: "ok", Title: "Signed in", Text: "You can close this tab and return to Rolle."}
@@ -320,7 +327,7 @@ func (s *SSO) storeToken(t ssoToken) error {
 }
 
 // StoreImportedToken saves a token obtained elsewhere, for example the AWS CLI
-// cache, so this integration can be used without a fresh device login.
+// cache, so the integration works without a fresh device login.
 func (s *SSO) StoreImportedToken(accessToken, refreshToken, clientID, clientSecret, region string, expires time.Time) error {
 	if region == "" {
 		region = s.Integration.AWSSSO.Region
@@ -377,6 +384,19 @@ func (s *SSO) token(ctx context.Context) (ssoToken, error) {
 	return s.refresh(ctx, t)
 }
 
+// refreshRejected reports whether the OIDC service refused the refresh token.
+// Only a refusal needs a new login. A transport error or a service fault does
+// not, and the next renewal retries it.
+func refreshRejected(err error) bool {
+	var (
+		invalidGrant  *oidctypes.InvalidGrantException
+		expired       *oidctypes.ExpiredTokenException
+		invalidClient *oidctypes.InvalidClientException
+		unauthorized  *oidctypes.UnauthorizedClientException
+	)
+	return errors.As(err, &invalidGrant) || errors.As(err, &expired) || errors.As(err, &invalidClient) || errors.As(err, &unauthorized)
+}
+
 // refresh trades the refresh token for a new access token and stores it.
 func (s *SSO) refresh(ctx context.Context, t ssoToken) (ssoToken, error) {
 	cfg, err := s.cfg(ctx)
@@ -390,7 +410,10 @@ func (s *SSO) refresh(ctx context.Context, t ssoToken) (ssoToken, error) {
 		RefreshToken: aws.String(t.RefreshToken),
 	})
 	if err != nil {
-		return ssoToken{}, fmt.Errorf("%w: token refresh failed: %v", ErrSSOLoginRequired, err)
+		if refreshRejected(err) {
+			return ssoToken{}, fmt.Errorf("%w: token refresh failed: %v", ErrSSOLoginRequired, err)
+		}
+		return ssoToken{}, fmt.Errorf("aws sso: token refresh failed: %w", err)
 	}
 	t.AccessToken = aws.ToString(out.AccessToken)
 	if rt := aws.ToString(out.RefreshToken); rt != "" {

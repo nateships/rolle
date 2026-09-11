@@ -34,6 +34,9 @@ import { cn } from "@/lib/utils";
 
 const isAWSKind = (k: string) => cloudOf(k) === "aws";
 
+/** The part of an "account/role" name after the account. A renamed session shows its own name. */
+const roleLabel = (name: string) => name.split("/").slice(1).join("/") || name;
+
 /** A session row. A nested row sits under its account row and shows the role name only. */
 export function SessionRow({
   session: s,
@@ -56,6 +59,7 @@ export function SessionRow({
   const source = s.aws?.sourceSessionId ? workspace.sessions.find((x) => x.id === s.aws?.sourceSessionId) : undefined;
 
   async function start(mfaCode = "") {
+    if (busy) return;
     setBusy(true);
     const integration = workspace.integrations.find((i) => i.id === s.integrationId);
     if (integration && !isLoggedIn(integration) && onNeedsLogin) {
@@ -84,6 +88,7 @@ export function SessionRow({
   }
 
   async function stop() {
+    if (busy) return;
     setBusy(true);
     try {
       await api.Stop(s.id);
@@ -227,7 +232,7 @@ export function SessionRow({
               {!nested && <CloudGlyph cloud={cloudOf(s.kind)} />}
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="truncate text-sm font-medium">{nested ? (s.aws?.roleName ?? s.name) : s.name}</p>
+                  <p className="truncate text-sm font-medium">{nested ? roleLabel(s.name) : s.name}</p>
                   {badge && (
                     <Badge
                       variant="outline"

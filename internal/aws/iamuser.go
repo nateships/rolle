@@ -70,7 +70,7 @@ type IAMUserInput struct {
 
 // IAMUserCredentials returns credentials for an IAM user. Without MFA the
 // long-lived key is returned as is, with a synthetic 12 hour expiry so the
-// session still rotates in the UI. With MFA, STS GetSessionToken is called.
+// session still rotates in the UI. With MFA, it calls STS GetSessionToken.
 func IAMUserCredentials(ctx context.Context, in IAMUserInput) (core.Credentials, error) {
 	if in.Duration <= 0 {
 		in.Duration = 12 * time.Hour

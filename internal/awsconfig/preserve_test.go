@@ -256,3 +256,25 @@ func TestWriteRefusesProfileShadowedByCredentialsFile(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestWriteThenRemoveKeepsBackslashesAndQuotes(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config")
+	orig := `[profile foreign]
+ca_bundle = C:\certs\
+credential_process = "/x y/tool"
+region = us-west-2
+`
+	mustWrite(t, path, orig)
+	if err := Write(path, rolle); err != nil {
+		t.Fatal(err)
+	}
+	if after := mustRead(t, path); !strings.HasPrefix(after, orig) {
+		t.Fatalf("Write changed the foreign profile:\n%s", after)
+	}
+	if err := Remove(path, "prod", "abc"); err != nil {
+		t.Fatal(err)
+	}
+	if got := mustRead(t, path); got != orig {
+		t.Fatalf("Remove did not restore the original file:\n%s", got)
+	}
+}
