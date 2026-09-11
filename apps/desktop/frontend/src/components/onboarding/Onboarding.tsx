@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Mark, Lockup, CloudGlyph } from "@/components/Brand";
 import { RegionSelect } from "@/components/RegionSelect";
 import { DevTools } from "@/components/DevTools";
+import { FoundList, tenantAlias, useDiscovery, type FoundPortal, type FoundTenant } from "@/components/discovery/FoundList";
 import { Events } from "@wailsio/runtime";
 import { api, errorMessage, inWails, type Session, type Workspace } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
@@ -52,17 +53,10 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
   const connected = (c: CloudChoice) => workspace.integrations.some((i) => i.cloud === c) || discovered.some((s) => cloudOf(s.kind) === c);
 
   // Identities other tools already set up on this machine, offered for one-click import.
-  type Found = { awsPortals: { alias: string; startUrl: string; region: string; profiles: string[]; hasToken: boolean }[]; azureTenants: { tenantId: string; account: string }[]; gcp: { account: string } | null };
-  const [found, setFound] = useState<Found | null>(null);
+  const found = useDiscovery(workspace, step === "cloud");
   const [importing, setImporting] = useState<string | null>(null);
-  useEffect(() => {
-    if (step !== "cloud" || found) return;
-    api.Discover().then((r) => setFound(r as unknown as Found)).catch(() => setFound({ awsPortals: [], azureTenants: [], gcp: null }));
-  }, [step, found]);
-  const alreadyHave = (startUrl: string) => workspace.integrations.some((i) => i.awsSso?.startUrl?.replace(/\/$/, "") === startUrl.replace(/\/$/, ""));
-  const foundCount = found ? found.awsPortals.filter((p) => !alreadyHave(p.startUrl)).length + found.azureTenants.filter((t) => !workspace.integrations.some((i) => i.azure?.tenantId === t.tenantId)).length + (found.gcp && !workspace.integrations.some((i) => i.gcp) ? 1 : 0) : 0;
 
-  async function importPortal(p: Found["awsPortals"][number]) {
+  async function importPortal(p: FoundPortal) {
     setImporting(p.startUrl);
     setBusy(true);
     try {
@@ -90,12 +84,11 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
     }
   }
 
-  async function importAzure(t: Found["azureTenants"][number]) {
+  async function importAzure(t: FoundTenant) {
     setImporting(t.tenantId);
     setBusy(true);
     try {
-      const domain = t.account.includes("@") ? t.account.split("@")[1].split(".")[0] : "azure";
-      const integ = await api.AddAzure(domain, t.tenantId);
+      const integ = await api.AddAzure(tenantAlias(t), t.tenantId);
       setAlias(integ.alias);
       setCloud("azure");
       setLogin(null);
@@ -235,27 +228,17 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
           {step === "cloud" && (
             <motion.section key="cloud" {...slide} className="w-full max-w-2xl">
               <StepTitle eyebrow="Step 1" title={discovered.length ? "Add another cloud?" : "Where do your roles live?"} hint={discovered.length ? "Pick another provider, or connect AWS again with an access key." : "You can add more clouds later."} accent="blue" highlight={discovered.length ? "another" : "roles"} />
-              {found && foundCount > 0 && (
+              {!found.loading && found.count > 0 && (
                 <div className="mt-6 rounded-2xl border bg-card p-4">
                   <div className="mb-3 flex items-center gap-2">
                     <Import className="size-4 text-brand-green" />
                     <p className="text-sm font-medium">Found on this machine</p>
                     <span className="text-xs text-muted-foreground">Import what your CLIs already know.</span>
                   </div>
-                  <ul className="space-y-2">
-                    {found.awsPortals.filter((p) => !alreadyHave(p.startUrl)).map((p) => (
-                      <FoundRow key={p.startUrl} cloud="aws" title={p.alias} subtitle={`${p.startUrl} · ${p.region}${p.profiles.length ? ` · ${p.profiles.length} profile${p.profiles.length === 1 ? "" : "s"}` : ""}`} badge={p.hasToken ? "Signed in via AWS CLI" : "Needs sign-in"} badgeOk={p.hasToken} busy={importing === p.startUrl} disabled={busy} onImport={() => importPortal(p)} />
-                    ))}
-                    {found.azureTenants.filter((t) => !workspace.integrations.some((i) => i.azure?.tenantId === t.tenantId)).map((t) => (
-                      <FoundRow key={t.tenantId} cloud="azure" title={t.account || "Azure tenant"} subtitle={t.tenantId} badge="From az CLI" badgeOk busy={importing === t.tenantId} disabled={busy} onImport={() => importAzure(t)} />
-                    ))}
-                    {found.gcp && !workspace.integrations.some((i) => i.gcp) && (
-                      <FoundRow cloud="gcp" title={found.gcp.account || "Google account"} subtitle="gcloud Application Default Credentials" badge="Signed in via gcloud" badgeOk busy={importing === "gcp"} disabled={busy} onImport={importGCP} />
-                    )}
-                  </ul>
+                  <FoundList portals={found.portals} tenants={found.tenants} gcp={found.gcp} importing={importing} disabled={busy} onAWS={importPortal} onAzure={importAzure} onGCP={importGCP} />
                 </div>
               )}
-              <p className="mt-6 text-xs font-medium uppercase tracking-widest text-muted-foreground">{found && foundCount > 0 ? "Or connect something new" : ""}</p>
+              <p className="mt-6 text-xs font-medium uppercase tracking-widest text-muted-foreground">{!found.loading && found.count > 0 ? "Or connect something new" : ""}</p>
               <div className="mt-3 grid grid-cols-3 gap-4">
                 <CloudCard cloud="aws" title="Amazon Web Services" desc="IAM Identity Center, assume role, IAM users" connected={connected("aws")} onClick={() => { setCloud("aws"); go("connect"); }} />
                 <CloudCard cloud="azure" title="Microsoft Azure" desc="Entra ID tenants and subscriptions" connected={connected("azure")} onClick={() => { setCloud("azure"); go("connect"); }} />
@@ -566,24 +549,6 @@ export function KeyForm({ busy, onSubmit, defaultRegion = "us-east-1" }: { busy:
         {busy ? <Loader2 className="size-4 animate-spin" /> : <KeyRound className="size-4" />} Add session
       </Button>
     </form>
-  );
-}
-
-function FoundRow({ cloud, title, subtitle, badge, badgeOk, busy, disabled, onImport }: { cloud: "aws" | "azure" | "gcp"; title: string; subtitle: string; badge: string; badgeOk?: boolean; busy: boolean; disabled: boolean; onImport: () => void }) {
-  return (
-    <li className="flex items-center gap-3 rounded-lg border bg-background/60 px-3 py-2">
-      <CloudGlyph cloud={cloud} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <p className="truncate text-sm font-medium">{title}</p>
-          <Badge variant="outline" className={cn("h-5 px-1.5 text-[10px] font-normal", badgeOk ? "border-brand-green/40 text-brand-green" : "text-muted-foreground")}>{badge}</Badge>
-        </div>
-        <p className="truncate font-mono text-[11px] text-muted-foreground">{subtitle}</p>
-      </div>
-      <Button size="sm" variant="secondary" className="gap-1.5" onClick={onImport} disabled={disabled}>
-        {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Import className="size-3.5" />} Import
-      </Button>
-    </li>
   );
 }
 

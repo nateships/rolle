@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Cloud, KeyRound, LogIn, LogOut, MoreHorizontal, Pencil, Plus, RefreshCw, Search, Settings as SettingsIcon, ShieldCheck, Star, Trash2, UserCog, Waypoints } from "lucide-react";
+import { Cloud, Import, KeyRound, LogIn, LogOut, MoreHorizontal, Pencil, Plus, RefreshCw, Search, Settings as SettingsIcon, ShieldCheck, Star, Trash2, UserCog, Waypoints } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,12 +10,13 @@ import { SessionRow } from "./SessionRow";
 import { DevTools } from "@/components/DevTools";
 import { SettingsDialog } from "@/components/dialogs/SettingsDialog";
 import { RenameDialog } from "@/components/dialogs/RenameDialog";
+import { ImportDialog } from "@/components/dialogs/ImportDialog";
 import { inWails } from "@/lib/api";
 import { AddSSODialog, AddAssumeRoleDialog, AddIAMUserDialog, AddAzureDialog, AddGCPDialog, AddGCPImpersonationDialog, LoginDialog } from "@/components/dialogs/Dialogs";
 import { api, errorMessage, Cloud as CloudKind, Status, type Integration, type Workspace } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-type Dialog = null | { kind: "sso" } | { kind: "assume" } | { kind: "iam" } | { kind: "azure" } | { kind: "gcp" } | { kind: "gcp-impersonate" } | { kind: "login"; integration: Integration } | { kind: "settings" } | { kind: "rename"; integration: Integration };
+type Dialog = null | { kind: "sso" } | { kind: "assume" } | { kind: "iam" } | { kind: "azure" } | { kind: "gcp" } | { kind: "gcp-impersonate" } | { kind: "login"; integration: Integration } | { kind: "settings" } | { kind: "rename"; integration: Integration } | { kind: "import" };
 
 function isLoggedIn(integ: Integration): boolean {
   if (integ.awsSso) return !!integ.awsSso.tokenExpires && new Date(integ.awsSso.tokenExpires).getTime() > Date.now();
@@ -34,7 +35,11 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<string | null>(null);
   // ?settings=1 opens the settings dialog in the browser preview.
-  const [dialog, setDialog] = useState<Dialog>(!inWails && new URLSearchParams(location.search).get("settings") ? { kind: "settings" } : null);
+  const [dialog, setDialog] = useState<Dialog>(() => {
+    if (inWails) return null;
+    const q = new URLSearchParams(location.search);
+    return q.get("settings") ? { kind: "settings" } : q.get("import") ? { kind: "import" } : null;
+  });
 
   const sessions = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -144,6 +149,8 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
               <Button size="sm" className="no-drag gap-1.5"><Plus className="size-4" /> Add</Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-72">
+              <DropdownMenuItem onClick={() => setDialog({ kind: "import" })}><Import /> Import from this machine</DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setDialog({ kind: "sso" })}><ShieldCheck /> AWS Identity Center portal</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setDialog({ kind: "assume" })} disabled={!workspace.sessions.some((s) => s.aws)}><Waypoints /> AWS assume role</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setDialog({ kind: "iam" })}><KeyRound /> AWS IAM user access key</DropdownMenuItem>
@@ -192,6 +199,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
       <AddGCPImpersonationDialog open={dialog?.kind === "gcp-impersonate"} onClose={() => setDialog(null)} workspace={workspace} />
       <LoginDialog integration={dialog?.kind === "login" ? dialog.integration : null} onClose={() => setDialog(null)} />
       <SettingsDialog open={dialog?.kind === "settings"} onClose={() => setDialog(null)} />
+      <ImportDialog open={dialog?.kind === "import"} onClose={() => setDialog(null)} workspace={workspace} onLogin={(integ) => setDialog({ kind: "login", integration: integ })} />
       <RenameDialog
         target={dialog?.kind === "rename" ? { kind: "integration", id: dialog.integration.id, name: dialog.integration.alias, save: (n) => api.RenameIntegration(dialog.integration.id, n) } : null}
         onClose={() => setDialog(null)}
