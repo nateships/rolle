@@ -428,8 +428,8 @@ func TestRemoveIntegrationStopsSessionsAndRemovesProfiles(t *testing.T) {
 }
 
 func TestFindIntegrationByAliasIDAndPrefix(t *testing.T) {
-	w := &core.Workspace{Integrations: []core.Integration{{ID: "abc123", Alias: "acme"}, {ID: "abd456", Alias: "beta"}, {ID: "zzz", Alias: "abd"}}}
-	cases := map[string]string{"abc123": "acme", "acme": "acme", "abc": "acme", "abd4": "beta", "abd": "abd"}
+	w := &core.Workspace{Integrations: []core.Integration{{ID: "abc123", Alias: "acme"}, {ID: "abx456", Alias: "beta"}, {ID: "zzz", Alias: "abx"}}}
+	cases := map[string]string{"abc123": "acme", "acme": "acme", "abc": "acme", "abx4": "beta", "abx": "abx"}
 	for ref, alias := range cases {
 		got, err := FindIntegration(w, ref)
 		if err != nil || got.Alias != alias {

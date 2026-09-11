@@ -104,7 +104,7 @@ func TestRemoveSourceSessionRefused(t *testing.T) {
 }
 
 func TestFindSessionPrefixAndAmbiguity(t *testing.T) {
-	w := &core.Workspace{Sessions: []core.Session{{ID: "abc123", Name: "one"}, {ID: "abd456", Name: "two"}}}
+	w := &core.Workspace{Sessions: []core.Session{{ID: "abc123", Name: "one"}, {ID: "abx456", Name: "two"}}}
 	if s, err := FindSession(w, "abc"); err != nil || s.Name != "one" {
 		t.Fatalf("prefix lookup: %v %v", s, err)
 	}

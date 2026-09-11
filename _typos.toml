@@ -13,4 +13,3 @@ extend-exclude = [
 
 [default.extend-identifiers]
 UDID = "UDID" # Apple device identifier in the Wails iOS tasks
-abd456 = "abd456" # test fixture id
