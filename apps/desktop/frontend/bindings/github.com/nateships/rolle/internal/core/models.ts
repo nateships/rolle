@@ -225,6 +225,12 @@ export interface Settings {
      * VerboseLogging turns on diagnostic output, the same as ROLLE_DEBUG=1.
      */
     "verboseLogging": boolean;
+
+    /**
+     * AutoUpdateOff disables background update checks. Stored inverted so
+     * the default (zero value) keeps updates on.
+     */
+    "autoUpdateOff": boolean;
 }
 
 /**

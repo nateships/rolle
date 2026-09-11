@@ -13,7 +13,7 @@ const state: Workspace = {
   onboarded: new URLSearchParams(location.search).get("view") === "dashboard",
   integrations: [],
   sessions: [],
-  settings: { theme: (new URLSearchParams(location.search).get("theme") ?? "system"), defaultRegion: "us-east-1", assumeRoleMinutes: 60, hideOnClose: true, verboseLogging: false },
+  settings: { theme: (new URLSearchParams(location.search).get("theme") ?? "system"), defaultRegion: "us-east-1", assumeRoleMinutes: 60, hideOnClose: true, verboseLogging: false, autoUpdateOff: false },
 } as unknown as Workspace;
 
 function seed() {
@@ -86,6 +86,8 @@ export const mockApi = {
   SetFavorite: async (ref: string, fav: boolean) => { const x = state.sessions.find((s) => s.id === ref); if (x) (x as unknown as { favorite: boolean }).favorite = fav; emit(); },
   RenameSession: async (ref: string, name: string) => { const x = state.sessions.find((s) => s.id === ref); if (x) x.name = name; emit(); },
   RenameIntegration: async (ref: string, alias: string) => { const x = state.integrations.find((i) => i.id === ref); if (x) x.alias = alias; emit(); },
+  CheckForUpdates: async () => { await wait(800); const avail = new URLSearchParams(location.search).get("update") === "1"; return { enabled: true, currentVersion: "0.0.1-dev", available: avail, version: avail ? "0.2.0" : undefined, notes: "", state: avail ? "available" : "up-to-date" }; },
+  InstallUpdate: async () => { await wait(1200); },
   DevMode: async () => true,
   onChange: (cb: () => void) => { listeners.add(cb); return () => listeners.delete(cb); },
 };

@@ -10,5 +10,6 @@ export type {
     AppInfo,
     DeviceLogin,
     GCPStatus,
-    IAMUserInput
+    IAMUserInput,
+    UpdateInfo
 } from "./models.js";

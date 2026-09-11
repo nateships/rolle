@@ -7,10 +7,16 @@ on:
 permissions:
   contents: write
 
+env:
+  # Tag v1.2.3 becomes version 1.2.3 for ldflags and the update manifest.
+  VERSION: ${{ github.ref_name }}
+
 jobs:
   cli:
     runs-on: ubuntu-latest
     steps:
+      - name: Strip the v prefix from the tag
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -39,6 +45,9 @@ jobs:
             artifact: apps/desktop/bin/Rolle-*
     runs-on: ${{ matrix.os }}
     steps:
+      - name: Strip the v prefix from the tag
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
       - name: Install Wails Linux dependencies
         if: runner.os == 'Linux'
@@ -51,15 +60,53 @@ jobs:
         working-directory: apps/desktop
         run: for t in ${{ matrix.task }}; do wails3 task "$t"; done
         shell: bash
+        env:
+          VERSION: ${{ env.VERSION }}
       - name: Zip macOS app
         if: runner.os == 'macOS'
         working-directory: apps/desktop/bin
         run: ditto -c -k --keepParent Rolle.app Rolle-macos-universal.zip
+      - name: Zip Windows executable for the updater
+        if: runner.os == 'Windows'
+        working-directory: apps/desktop/bin
+        shell: pwsh
+        run: Compress-Archive -Path Rolle.exe -DestinationPath Rolle-windows-amd64.zip -Force
+      - name: Name Linux AppImage for the updater
+        if: runner.os == 'Linux'
+        working-directory: apps/desktop/bin
+        run: for f in *.AppImage; do mv "$f" Rolle-linux-amd64.AppImage; break; done
       - name: Upload to release
         shell: bash
         run: |
           shopt -s nullglob
-          files=(apps/desktop/bin/Rolle-macos-universal.zip apps/desktop/bin/*.exe apps/desktop/bin/*.AppImage apps/desktop/bin/*.deb apps/desktop/bin/*.rpm)
+          files=(apps/desktop/bin/Rolle-macos-universal.zip apps/desktop/bin/Rolle-windows-amd64.zip apps/desktop/bin/*.exe apps/desktop/bin/*.AppImage apps/desktop/bin/*.deb apps/desktop/bin/*.rpm)
           gh release upload "${GITHUB_REF_NAME}" "${files[@]}" --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  manifest:
+    needs: desktop
+    runs-on: ubuntu-latest
+    steps:
+      - name: Strip the v prefix from the tag
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+      - name: Download release artifacts
+        run: gh release download "${GITHUB_REF_NAME}" --dir artifacts --pattern 'Rolle-macos-universal.zip' --pattern 'Rolle-windows-amd64.zip' --pattern 'Rolle-linux-amd64.AppImage'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Write signing key
+        run: printf '%s' "$ROLLE_UPDATER_KEY" > updater.key && chmod 600 updater.key
+        env:
+          ROLLE_UPDATER_KEY: ${{ secrets.ROLLE_UPDATER_KEY }}
+      - name: Build and verify the signed manifest
+        run: |
+          wails3 updater manifest -version "${VERSION}" -channel stable -key updater.key \
+            -url-prefix "https://github.com/nateships/rolle/releases/download/${GITHUB_REF_NAME}/" \
+            -output artifacts/manifest.json artifacts
+          wails3 updater verify -manifest artifacts/manifest.json -publickey apps/desktop/build/updater.pub
+      - name: Upload manifest
+        run: gh release upload "${GITHUB_REF_NAME}" artifacts/manifest.json --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

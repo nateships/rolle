@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Copy, Loader2, Monitor, Moon, RotateCcw, Sun, Trash2 } from "lucide-react";
+import { Check, Copy, Download, Loader2, Monitor, Moon, RefreshCw, RotateCcw, Sun, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -13,7 +13,8 @@ import { copyText } from "@/lib/clipboard";
 import { applyTheme, type Theme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
-type Settings = { theme: string; defaultRegion: string; assumeRoleMinutes: number; hideOnClose: boolean; verboseLogging: boolean };
+type Settings = { theme: string; defaultRegion: string; assumeRoleMinutes: number; hideOnClose: boolean; verboseLogging: boolean; autoUpdateOff: boolean };
+type UpdateInfo = { enabled: boolean; currentVersion: string; available: boolean; version?: string; notes?: string; state: string };
 type Info = { version: string; workspacePath: string; cacheDir: string; awsConfigPath: string };
 
 const DURATIONS = [60, 120, 240, 480, 720];
@@ -23,6 +24,35 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
   const [info, setInfo] = useState<Info | null>(null);
   const [saving, setSaving] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [installing, setInstalling] = useState(false);
+
+  const checkUpdates = async () => {
+    setChecking(true);
+    try {
+      const info = (await api.CheckForUpdates()) as UpdateInfo;
+      setUpdateInfo(info);
+      if (!info.enabled) toast.info("Updates are disabled in development builds");
+      else if (info.available) toast.success(`Rolle ${info.version} is available`);
+      else toast.success("You're on the latest version");
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const installUpdate = async () => {
+    setInstalling(true);
+    try {
+      await api.InstallUpdate();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setInstalling(false);
+    }
+  };
 
   useEffect(() => {
     if (!open) { setConfirmReset(false); return; }
@@ -64,7 +94,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
           <DialogDescription>Preferences are saved as you change them.</DialogDescription>
         </DialogHeader>
         {settings && (
-          <Tabs defaultValue="general" className="w-full">
+          <Tabs defaultValue={new URLSearchParams(location.search).get("tab") ?? "general"} className="w-full">
             <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="appearance">Appearance</TabsTrigger>
@@ -88,6 +118,9 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
               <Row label="Verbose logging" hint="Same as ROLLE_DEBUG=1. Prints diagnostics to the app log.">
                 <Switch checked={settings.verboseLogging} onCheckedChange={(v) => update({ verboseLogging: v })} />
               </Row>
+              <Row label="Automatic updates" hint="Check for new releases every few hours. Takes effect on next launch.">
+                <Switch checked={!settings.autoUpdateOff} onCheckedChange={(v) => update({ autoUpdateOff: !v })} />
+              </Row>
             </TabsContent>
 
             <TabsContent value="appearance" className="mt-4 min-h-64 space-y-4">
@@ -108,6 +141,23 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
             </TabsContent>
 
             <TabsContent value="about" className="mt-4 min-h-64 space-y-2 text-xs">
+              <div className="mb-3 flex items-center justify-between rounded-lg border bg-card px-3 py-2">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Rolle {info?.version ?? "…"}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {updateInfo === null ? "Updates are signed and verified before they install." : !updateInfo.enabled ? "Development build, updates disabled." : updateInfo.available ? `Version ${updateInfo.version} is ready to install.` : "You're on the latest version."}
+                  </p>
+                </div>
+                {updateInfo?.available ? (
+                  <Button size="sm" className="gap-1.5" onClick={installUpdate} disabled={installing}>
+                    {installing ? <Loader2 className="size-3.5 animate-spin" /> : <Download className="size-3.5" />} Install {updateInfo.version}
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="secondary" className="gap-1.5" onClick={checkUpdates} disabled={checking}>
+                    {checking ? <Loader2 className="size-3.5 animate-spin" /> : <RefreshCw className="size-3.5" />} Check for updates
+                  </Button>
+                )}
+              </div>
               <PathRow label="Version" value={info?.version ?? "…"} />
               <PathRow label="Workspace" value={info?.workspacePath ?? "…"} copy />
               <PathRow label="Credential cache" value={info?.cacheDir ?? "…"} copy />

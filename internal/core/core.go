@@ -164,6 +164,9 @@ type Settings struct {
 	HideOnClose bool `json:"hideOnClose"`
 	// VerboseLogging turns on diagnostic output, the same as ROLLE_DEBUG=1.
 	VerboseLogging bool `json:"verboseLogging"`
+	// AutoUpdateOff disables background update checks. Stored inverted so
+	// the default (zero value) keeps updates on.
+	AutoUpdateOff bool `json:"autoUpdateOff"`
 }
 
 // DefaultSettings are used until the user changes something.

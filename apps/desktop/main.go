@@ -88,6 +88,9 @@ func main() {
 	})
 	newTray(a, svc, rolle, window)
 	installMouseNav(a)
+	if err := setupUpdater(a, svc); err != nil {
+		log.Println("updater:", err)
+	}
 
 	// Reconcile expiring sessions and nudge the UI so countdowns stay honest.
 	go func() {

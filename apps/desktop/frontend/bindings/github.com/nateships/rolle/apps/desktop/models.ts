@@ -42,3 +42,15 @@ export interface IAMUserInput {
     "secretAccessKey": string;
     "mfaDevice": string;
 }
+
+/**
+ * UpdateInfo is what the settings screen shows after a check.
+ */
+export interface UpdateInfo {
+    "enabled": boolean;
+    "currentVersion": string;
+    "available": boolean;
+    "version"?: string;
+    "notes"?: string;
+    "state": string;
+}

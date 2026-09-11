@@ -81,6 +81,13 @@ export function AzureLogout(ref: string): $CancellablePromise<void> {
 }
 
 /**
+ * CheckForUpdates asks the release feed for a newer version.
+ */
+export function CheckForUpdates(): $CancellablePromise<$models.UpdateInfo> {
+    return $Call.ByID(4055142114);
+}
+
+/**
  * CompleteOnboarding marks the walkthrough as done.
  */
 export function CompleteOnboarding(): $CancellablePromise<void> {
@@ -142,6 +149,14 @@ export function ImportAWSSSO(alias: string, startURL: string, region: string): $
  */
 export function Info(): $CancellablePromise<$models.AppInfo> {
     return $Call.ByID(135200251);
+}
+
+/**
+ * InstallUpdate downloads, verifies, and installs the latest release, then
+ * prompts through the updater window to restart.
+ */
+export function InstallUpdate(): $CancellablePromise<void> {
+    return $Call.ByID(4116835583);
 }
 
 /**
