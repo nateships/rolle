@@ -19,7 +19,8 @@ info:
 
 # Dev mode configuration
 dev_mode:
-  root_path: .
+  # Watch the whole module so changes under internal/ rebuild the app too.
+  root_path: ../..
   log_level: warn
   debounce: 1000
   ignore:
@@ -28,6 +29,9 @@ dev_mode:
       - node_modules
       - frontend
       - bin
+      - docs
+      - tools
+      - cmd
     file:
       - .DS_Store
       - .gitignore
