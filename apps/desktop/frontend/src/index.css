@@ -4,6 +4,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
+@theme {
+    /* Brand stack colors (docs/brand/tokens.json). Blue text uses the focus tint for contrast on charcoal. */
+    --color-brand-blue: #244CFF;
+    --color-brand-blue-text: #8BA9FF;
+    --color-brand-orange: #FF7900;
+    --color-brand-green: #00CE78;
+}
+
 @theme inline {
     /* Brand tokens: docs/brand/tokens.css. Interface sans and mono are separate from the outlined wordmark. */
     --font-heading: var(--font-sans);

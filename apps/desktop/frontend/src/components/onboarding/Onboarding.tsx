@@ -16,6 +16,12 @@ type Step = "welcome" | "cloud" | "connect" | "approve" | "roles" | "done";
 type CloudChoice = "aws" | "azure" | "gcp";
 const ORDER: Step[] = ["welcome", "cloud", "connect", "approve", "roles", "done"];
 
+type Accent = "blue" | "orange" | "green";
+/** Each step borrows one of the three stack colors. */
+const ACCENT: Record<Step, Accent> = { welcome: "blue", cloud: "blue", connect: "orange", approve: "green", roles: "blue", done: "green" };
+const ACCENT_TEXT: Record<Accent, string> = { blue: "text-brand-blue-text", orange: "text-brand-orange", green: "text-brand-green" };
+const ACCENT_BG: Record<Accent, string> = { blue: "bg-brand-blue-text", orange: "bg-brand-orange", green: "bg-brand-green" };
+
 const slide = {
   initial: { opacity: 0, x: 40, filter: "blur(4px)" },
   animate: { opacity: 1, x: 0, filter: "blur(0px)" },
@@ -54,7 +60,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
             <motion.span
               key={s}
               layout
-              className={cn("h-1.5 rounded-full bg-muted-foreground/30", i === index && "bg-primary", i < index && "bg-primary/60")}
+              className={cn("h-1.5 rounded-full bg-muted-foreground/30", i === index && ACCENT_BG[ACCENT[step]], i < index && "bg-foreground/50")}
               animate={{ width: i === index ? 24 : 8 }}
               transition={{ type: "spring", stiffness: 300, damping: 30 }}
             />
@@ -72,7 +78,9 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
               <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 180, damping: 16 }} className="mb-8 rounded-2xl bg-card p-6 text-primary">
                 <Mark className="size-20" animate />
               </motion.div>
-              <h1 className="text-4xl font-semibold tracking-tight">Assume any role, any cloud.</h1>
+              <h1 className="text-4xl font-semibold tracking-tight">
+                Assume any <span className="text-brand-orange">role</span>, any <span className="text-brand-green">cloud</span>.
+              </h1>
               <p className="mt-4 max-w-md text-balance text-muted-foreground">
                 Rolle keeps short-lived credentials flowing to your tools without writing a single secret to disk.
                 Two minutes to set up.
@@ -85,7 +93,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
 
           {step === "cloud" && (
             <motion.section key="cloud" {...slide} className="w-full max-w-2xl">
-              <StepTitle eyebrow="Step 1" title="Where do your roles live?" hint="You can add more clouds later." />
+              <StepTitle eyebrow="Step 1" title="Where do your roles live?" hint="You can add more clouds later." accent="blue" highlight="roles" />
               <div className="mt-8 grid grid-cols-3 gap-4">
                 <CloudCard cloud="aws" title="Amazon Web Services" desc="IAM Identity Center, assume role, IAM users" onClick={() => { setCloud("aws"); go("connect"); }} />
                 <CloudCard cloud="azure" title="Microsoft Azure" desc="Entra ID tenants and subscriptions" onClick={() => { setCloud("azure"); go("connect"); }} />
@@ -96,7 +104,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
 
           {step === "connect" && cloud === "aws" && (
             <motion.section key="connect-aws" {...slide} className="w-full max-w-lg">
-              <StepTitle eyebrow="Step 2" title="Connect to AWS" hint="Identity Center is the recommended path. It discovers every role you can reach." />
+              <StepTitle eyebrow="Step 2" title="Connect to AWS" hint="Identity Center is the recommended path. It discovers every role you can reach." accent="orange" highlight="AWS" />
               <div className="mt-6 grid grid-cols-2 gap-3">
                 <MethodButton active={method === "sso"} onClick={() => setMethod("sso")} icon={<ShieldCheck className="size-4" />} title="IAM Identity Center" desc="Sign in once, get every role" />
                 <MethodButton active={method === "key"} onClick={() => setMethod("key")} icon={<KeyRound className="size-4" />} title="Access key" desc="A single IAM user" />
@@ -147,7 +155,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
 
           {step === "connect" && cloud === "azure" && (
             <motion.section key="connect-azure" {...slide} className="w-full max-w-lg">
-              <StepTitle eyebrow="Step 2" title="Connect to Azure" hint="Sign in with your Microsoft account. Rolle discovers every subscription you can see." />
+              <StepTitle eyebrow="Step 2" title="Connect to Azure" hint="Sign in with your Microsoft account. Rolle discovers every subscription you can see." accent="orange" highlight="Azure" />
               <div className="mt-6">
                 <AzureForm
                   busy={busy}
@@ -175,7 +183,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
 
           {step === "connect" && cloud === "gcp" && (
             <motion.section key="connect-gcp" {...slide} className="w-full max-w-lg">
-              <StepTitle eyebrow="Step 2" title="Connect to Google Cloud" hint="Rolle uses the credentials gcloud already has on this machine." />
+              <StepTitle eyebrow="Step 2" title="Connect to Google Cloud" hint="Rolle uses the credentials gcloud already has on this machine." accent="orange" highlight="Google Cloud" />
               <div className="mt-6">
                 <GCPConnect
                   busy={busy}
@@ -198,9 +206,9 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
 
           {step === "approve" && (
             <motion.section key="approve" {...slide} className="flex w-full max-w-lg flex-col items-center text-center">
-              <StepTitle eyebrow="Step 3" title={login ? "Approve in your browser" : "Sign in with Microsoft"} hint={login ? `We opened ${alias}. Confirm this code when it asks.` : `A browser window is open for ${alias}. Finish signing in there.`} center />
+              <StepTitle eyebrow="Step 3" title={login ? "Approve in your browser" : "Sign in with Microsoft"} hint={login ? `We opened ${alias}. Confirm this code when it asks.` : `A browser window is open for ${alias}. Finish signing in there.`} center accent="green" highlight={login ? "browser" : "Microsoft"} />
               {login ? (
-                <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="mt-8 rounded-2xl border border-primary/40 bg-card px-8 py-5 font-mono text-4xl font-semibold tracking-[0.3em]">
+                <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="mt-8 rounded-2xl border border-brand-green/50 bg-card px-8 py-5 font-mono text-4xl font-semibold tracking-[0.3em]">
                   {login.userCode}
                 </motion.div>
               ) : (
@@ -221,7 +229,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
 
           {step === "roles" && (
             <motion.section key="roles" {...slide} className="w-full max-w-lg">
-              <StepTitle eyebrow="Step 4" title={discovered.length === 1 ? "One session ready" : `${discovered.length} sessions discovered`} hint="Start any of them from the dashboard or the CLI." />
+              <StepTitle eyebrow="Step 4" title={discovered.length === 1 ? "One session ready" : `${discovered.length} sessions discovered`} hint="Start any of them from the dashboard or the CLI." accent="blue" highlight={discovered.length === 1 ? "One session" : `${discovered.length} sessions`} />
               <ul className="mt-6 max-h-64 space-y-2 overflow-y-auto pr-1">
                 {discovered.map((s, i) => (
                   <motion.li
@@ -267,7 +275,7 @@ function Done({ count, onFinish }: { count: number; onFinish: () => void }) {
       <motion.div initial={{ scale: 0, rotate: -30 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 200, damping: 12, delay: 0.1 }} className="mb-6 rounded-full bg-emerald-500/15 p-5 text-emerald-400">
         <Check className="size-12" strokeWidth={3} />
       </motion.div>
-      <h2 className="text-3xl font-semibold tracking-tight">You're all set.</h2>
+      <h2 className="text-3xl font-semibold tracking-tight">You're <span className="text-brand-green">all set</span>.</h2>
       <p className="mt-3 text-muted-foreground">
         {count > 0 ? `${count} session${count === 1 ? "" : "s"} ready to start.` : "Your workspace is ready."} Start one, then use it from any terminal with <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">rolle env &lt;name&gt;</code>.
       </p>
@@ -278,11 +286,23 @@ function Done({ count, onFinish }: { count: number; onFinish: () => void }) {
   );
 }
 
-function StepTitle({ eyebrow, title, hint, center }: { eyebrow: string; title: string; hint?: string; center?: boolean }) {
+/** Heading block: colored eyebrow, ivory title with one accented word, muted hint. */
+function StepTitle({ eyebrow, title, hint, center, accent = "blue", highlight }: { eyebrow: string; title: string; hint?: string; center?: boolean; accent?: Accent; highlight?: string }) {
+  const parts = highlight && title.includes(highlight) ? title.split(highlight) : null;
   return (
     <div className={cn(center && "text-center")}>
-      <p className="text-xs font-medium uppercase tracking-widest text-primary">{eyebrow}</p>
-      <h2 className="mt-2 text-3xl font-semibold tracking-tight">{title}</h2>
+      <p className={cn("text-xs font-semibold uppercase tracking-widest", ACCENT_TEXT[accent])}>{eyebrow}</p>
+      <h2 className="mt-2 text-3xl font-semibold tracking-tight">
+        {parts ? (
+          <>
+            {parts[0]}
+            <span className={ACCENT_TEXT[accent]}>{highlight}</span>
+            {parts.slice(1).join(highlight)}
+          </>
+        ) : (
+          title
+        )}
+      </h2>
       {hint && <p className="mt-2 text-sm text-muted-foreground">{hint}</p>}
     </div>
   );
