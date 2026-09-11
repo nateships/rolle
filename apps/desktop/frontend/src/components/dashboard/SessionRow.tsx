@@ -28,7 +28,10 @@ export function SessionRow({ session: s, workspace }: { session: Session; worksp
       await api.Start(s.id, mfaCode);
       const first = !workspace.sessions.some((x) => x.status === Status.StatusActive);
       if (first) celebrate("small");
-      toast.success(`${s.name} started`, { description: isAWS ? `aws --profile ${await api.ProfileName(s.id)}` : `eval "$(rolle env ${s.name})"` });
+      toast.success(`${s.name} started`, {
+        description: isAWS ? `AWS profile ${await api.ProfileName(s.id)} is ready.` : "Credentials are ready for your shell.",
+        action: { label: "Copy env", onClick: () => void copy("env") },
+      });
     } catch (e) {
       toast.error(errorMessage(e));
     } finally {

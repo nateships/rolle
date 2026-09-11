@@ -48,6 +48,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
 
   const index = ORDER.indexOf(step);
   const go = (s: Step) => setStep(s);
+  const connected = (c: CloudChoice) => workspace.integrations.some((i) => i.cloud === c) || discovered.some((s) => cloudOf(s.kind) === c);
 
   // Back and forward. The webview turns mouse back/forward buttons and trackpad
   // swipes into history navigation, so each step is a history entry and
@@ -156,12 +157,19 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
 
           {step === "cloud" && (
             <motion.section key="cloud" {...slide} className="w-full max-w-2xl">
-              <StepTitle eyebrow="Step 1" title="Where do your roles live?" hint="You can add more clouds later." accent="blue" highlight="roles" />
+              <StepTitle eyebrow="Step 1" title={discovered.length ? "Add another cloud?" : "Where do your roles live?"} hint={discovered.length ? "Pick another provider, or connect AWS again with an access key." : "You can add more clouds later."} accent="blue" highlight={discovered.length ? "another" : "roles"} />
               <div className="mt-8 grid grid-cols-3 gap-4">
-                <CloudCard cloud="aws" title="Amazon Web Services" desc="IAM Identity Center, assume role, IAM users" onClick={() => { setCloud("aws"); go("connect"); }} />
-                <CloudCard cloud="azure" title="Microsoft Azure" desc="Entra ID tenants and subscriptions" onClick={() => { setCloud("azure"); go("connect"); }} />
-                <CloudCard cloud="gcp" title="Google Cloud" desc="Projects and service account impersonation" onClick={() => { setCloud("gcp"); go("connect"); }} />
+                <CloudCard cloud="aws" title="Amazon Web Services" desc="IAM Identity Center, assume role, IAM users" connected={connected("aws")} onClick={() => { setCloud("aws"); go("connect"); }} />
+                <CloudCard cloud="azure" title="Microsoft Azure" desc="Entra ID tenants and subscriptions" connected={connected("azure")} onClick={() => { setCloud("azure"); go("connect"); }} />
+                <CloudCard cloud="gcp" title="Google Cloud" desc="Projects and service account impersonation" connected={connected("gcp")} onClick={() => { setCloud("gcp"); go("connect"); }} />
               </div>
+              {discovered.length > 0 && (
+                <div className="mt-6 flex justify-center">
+                  <Button variant="secondary" className="gap-2" onClick={() => { celebrate(); go("done"); }}>
+                    I'm done, finish setup <ArrowRight className="size-4" />
+                  </Button>
+                </div>
+              )}
             </motion.section>
           )}
 
@@ -184,7 +192,8 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                         const dl = await api.StartSSOLogin(integ.id);
                         setLogin(dl);
                         go("approve");
-                        setDiscovered((await api.WaitSSOLogin(integ.id)) ?? []);
+                        const added = (await api.WaitSSOLogin(integ.id)) ?? [];
+                        setDiscovered((prev) => [...prev, ...added]);
                         go("roles");
                       } catch (e) {
                         toast.error(errorMessage(e));
@@ -201,7 +210,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                       setBusy(true);
                       try {
                         const s = await api.AddIAMUser(v);
-                        setDiscovered([s]);
+                        setDiscovered((prev) => [...prev, s]);
                         go("roles");
                       } catch (e) {
                         toast.error(errorMessage(e));
@@ -229,7 +238,8 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                       setAlias(integ.alias);
                       setLogin(null);
                       go("approve");
-                      setDiscovered((await api.AzureLogin(integ.id)) ?? []);
+                      const added = (await api.AzureLogin(integ.id)) ?? [];
+                      setDiscovered((prev) => [...prev, ...added]);
                       go("roles");
                     } catch (e) {
                       toast.error(errorMessage(e));
@@ -253,7 +263,8 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                   onSubmit={async (alias) => {
                     setBusy(true);
                     try {
-                      setDiscovered((await api.AddGCP(alias)) ?? []);
+                      const added = (await api.AddGCP(alias)) ?? [];
+                      setDiscovered((prev) => [...prev, ...added]);
                       go("roles");
                     } catch (e) {
                       toast.error(errorMessage(e));
@@ -292,7 +303,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
 
           {step === "roles" && (
             <motion.section key="roles" {...slide} className="w-full max-w-lg">
-              <StepTitle eyebrow="Step 4" title={discovered.length === 1 ? "One session ready" : `${discovered.length} sessions discovered`} hint="Start any of them from the dashboard or the CLI." accent="blue" highlight={discovered.length === 1 ? "One session" : `${discovered.length} sessions`} />
+              <StepTitle eyebrow="Step 4" title={discovered.length === 1 ? "One session ready" : `${discovered.length} sessions ready`} hint="Start any of them from the dashboard or the CLI. You can connect more clouds before finishing." accent="blue" highlight={discovered.length === 1 ? "One session" : `${discovered.length} sessions`} />
               <ul className="mt-6 max-h-64 space-y-2 overflow-y-auto pr-1">
                 {discovered.map((s, i) => (
                   <motion.li
@@ -312,9 +323,14 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                 ))}
                 {discovered.length === 0 && <li className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">No roles found yet. You can add sessions from the dashboard.</li>}
               </ul>
-              <Button className="mt-6 w-full gap-2" onClick={() => { celebrate(); go("done"); }}>
-                Finish <Sparkles className="size-4" />
-              </Button>
+              <div className="mt-6 grid grid-cols-2 gap-3">
+                <Button variant="secondary" className="gap-2" onClick={() => go("cloud")}>
+                  <Cloud className="size-4" /> Add another cloud
+                </Button>
+                <Button className="gap-2" onClick={() => { celebrate(); go("done"); }}>
+                  Finish <Sparkles className="size-4" />
+                </Button>
+              </div>
             </motion.section>
           )}
 
@@ -371,7 +387,7 @@ function StepTitle({ eyebrow, title, hint, center, accent = "blue", highlight }:
   );
 }
 
-function CloudCard({ cloud, title, desc, soon, onClick }: { cloud: "aws" | "azure" | "gcp"; title: string; desc: string; soon?: boolean; onClick?: () => void }) {
+function CloudCard({ cloud, title, desc, soon, connected, onClick }: { cloud: "aws" | "azure" | "gcp"; title: string; desc: string; soon?: boolean; connected?: boolean; onClick?: () => void }) {
   return (
     <motion.button
       type="button"
@@ -383,7 +399,7 @@ function CloudCard({ cloud, title, desc, soon, onClick }: { cloud: "aws" | "azur
     >
       <div className="flex w-full items-center justify-between">
         <CloudGlyph cloud={cloud} className="size-12 p-2" />
-        {soon ? <Badge variant="secondary">Soon</Badge> : <Cloud className="size-4 text-muted-foreground" />}
+        {soon ? <Badge variant="secondary">Soon</Badge> : connected ? <Badge variant="outline" className="gap-1 border-brand-green/40 text-brand-green"><Check className="size-3" /> Connected</Badge> : <Cloud className="size-4 text-muted-foreground" />}
       </div>
       <div>
         <p className="font-medium">{title}</p>

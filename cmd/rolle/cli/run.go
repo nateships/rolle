@@ -40,7 +40,7 @@ func startCmd() *cobra.Command {
 			if sess.Kind.Cloud() == core.CloudAWS {
 				fmt.Printf("AWS profile: %s\n", app.ProfileName(sess))
 			} else {
-				fmt.Printf("shell: eval \"$(rolle env %s)\"\n", sess.Name)
+				fmt.Printf("shell: eval \"$(rolle env %q)\"\n", sess.Name)
 			}
 			return nil
 		},
