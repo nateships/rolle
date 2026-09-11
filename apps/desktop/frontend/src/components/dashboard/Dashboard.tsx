@@ -162,7 +162,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   return (
     <div className="flex h-full">
       <aside className="flex w-64 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
-        <div className="drag flex h-20 items-center justify-end px-5 pt-3">
+        <div className="drag flex h-[4.5rem] items-center justify-end px-5 pt-2">
           <GopherLockup className="h-12" />
         </div>
         <nav className="flex-1 space-y-4 overflow-y-auto px-2 py-2">
