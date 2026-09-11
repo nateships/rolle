@@ -1,0 +1,35 @@
+---
+title: Install
+description: Install the Rolle desktop app and CLI.
+---
+
+<Tabs>
+  <Tab title="macOS">
+    ```sh
+    brew install --cask nateships/tap/rolle   # desktop app
+    brew install nateships/tap/rolle-cli      # command line
+    ```
+
+    Or download `Rolle.dmg` from the [releases page](https://github.com/nateships/rolle/releases). The app is signed and notarized. It runs on macOS 12 or newer on Apple silicon and Intel.
+  </Tab>
+  <Tab title="Windows">
+    Download `Rolle-amd64-installer.exe` or the portable `Rolle-windows-amd64.zip` from the [releases page](https://github.com/nateships/rolle/releases).
+
+    The Windows build is not code signed. SmartScreen shows a warning on first launch.
+  </Tab>
+  <Tab title="Linux">
+    Download `Rolle-linux-amd64.AppImage` or the `.deb` package from the [releases page](https://github.com/nateships/rolle/releases). The app needs GTK 4 and WebKitGTK 6.0.
+
+    ```sh
+    brew install nateships/tap/rolle-cli      # command line, Homebrew on Linux
+    ```
+  </Tab>
+</Tabs>
+
+## CLI archives
+
+Every release ships `rolle_<version>_<os>_<arch>.tar.gz` (zip on Windows) for `darwin`, `linux`, and `windows` on `amd64` and `arm64`, with a `checksums.txt`. Put the `rolle` binary on your `PATH`.
+
+## Updates
+
+The desktop app checks for a signed update every six hours and installs it when you confirm. Turn this off in **Settings → About**. Homebrew users can also run `brew upgrade`.

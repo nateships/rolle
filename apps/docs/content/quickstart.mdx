@@ -1,0 +1,36 @@
+---
+title: Quickstart
+description: Connect a cloud and start a session in the desktop app or the CLI.
+---
+
+<Steps>
+  <Step title="Open Rolle">
+    The first launch runs an onboarding flow. Pick a cloud, sign in, and choose the roles you want. You can connect more clouds at the end, or later from the **Add** menu.
+  </Step>
+  <Step title="Import what your machine already has">
+    Onboarding offers **Import from this machine**. It finds AWS Identity Center portals in the AWS CLI and Granted configs, Azure tenants from the az CLI, and gcloud Application Default Credentials. The same import is available later under **Add → Import from this machine**.
+  </Step>
+  <Step title="Start a session">
+    Press **Start** on a role. If the integration is signed out, Rolle signs in first. An active AWS session is a profile you can use right away:
+
+    ```sh
+    aws sts get-caller-identity --profile default
+    ```
+
+    Every AWS session uses the profile `default` unless you give it a name. Two sessions can share a name; starting one stops the other.
+  </Step>
+  <Step title="Use the credentials">
+    From the row actions: open a terminal with the session ready, open the cloud console, or copy the credentials as shell exports.
+  </Step>
+</Steps>
+
+## The same flow in the CLI
+
+```sh
+rolle integration add aws-sso --alias acme --start-url https://acme.awsapps.com/start --region us-east-1
+rolle integration login acme
+rolle session list
+rolle start "Acme Prod/AdministratorAccess"
+aws sts get-caller-identity --profile default
+rolle stop "Acme Prod/AdministratorAccess"
+```

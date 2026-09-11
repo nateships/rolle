@@ -1,0 +1,106 @@
+name: Homebrew
+
+# Writes the formula and cask for a published release into nateships/homebrew-tap.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag, for example v0.1.0
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  tap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: nateships/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+      - name: Resolve the tag
+        run: |
+          tag="${{ github.event.inputs.tag || github.event.release.tag_name }}"
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+          echo "VERSION=${tag#v}" >> "$GITHUB_ENV"
+      - name: Download release checksums and DMG
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release download "$TAG" --repo nateships/rolle --dir dist --pattern checksums.txt --pattern Rolle.dmg
+      - name: Write the formula and cask
+        run: |
+          set -euo pipefail
+          sum() { awk -v f="$1" '$2 == f { print $1 }' dist/checksums.txt; }
+          base="https://github.com/nateships/rolle/releases/download/$TAG"
+          dmg_sha=$(sha256sum dist/Rolle.dmg | cut -d' ' -f1)
+          cat > Formula/rolle-cli.rb <<RUBY
+          class RolleCli < Formula
+            desc "Assume any role, any cloud: the Rolle command line"
+            homepage "https://getrolle.com"
+            version "$VERSION"
+
+            on_macos do
+              on_arm do
+                url "$base/rolle_${VERSION}_darwin_arm64.tar.gz"
+                sha256 "$(sum rolle_${VERSION}_darwin_arm64.tar.gz)"
+              end
+              on_intel do
+                url "$base/rolle_${VERSION}_darwin_amd64.tar.gz"
+                sha256 "$(sum rolle_${VERSION}_darwin_amd64.tar.gz)"
+              end
+            end
+
+            on_linux do
+              on_arm do
+                url "$base/rolle_${VERSION}_linux_arm64.tar.gz"
+                sha256 "$(sum rolle_${VERSION}_linux_arm64.tar.gz)"
+              end
+              on_intel do
+                url "$base/rolle_${VERSION}_linux_amd64.tar.gz"
+                sha256 "$(sum rolle_${VERSION}_linux_amd64.tar.gz)"
+              end
+            end
+
+            def install
+              bin.install "rolle"
+              generate_completions_from_executable(bin/"rolle", "completion")
+            end
+
+            test do
+              assert_match version.to_s, shell_output("#{bin}/rolle --version")
+            end
+          end
+          RUBY
+          cat > Casks/rolle.rb <<RUBY
+          cask "rolle" do
+            version "$VERSION"
+            sha256 "$dmg_sha"
+
+            url "https://github.com/nateships/rolle/releases/download/v#{version}/Rolle.dmg"
+            name "Rolle"
+            desc "Assume any role, any cloud"
+            homepage "https://getrolle.com"
+
+            auto_updates true
+            depends_on macos: ">= :monterey"
+
+            app "Rolle.app"
+
+            zap trash: [
+              "~/.config/rolle",
+              "~/.cache/rolle",
+            ]
+          end
+          RUBY
+          rm -f Formula/.gitkeep Casks/.gitkeep
+          ruby -c Formula/rolle-cli.rb Casks/rolle.rb
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula Casks
+          git commit -m "rolle $VERSION" || exit 0
+          git push

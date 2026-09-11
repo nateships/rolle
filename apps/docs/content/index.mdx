@@ -1,0 +1,37 @@
+---
+title: Introduction
+description: What Rolle does and how it hands credentials to your tools.
+---
+
+Rolle is a desktop app and CLI that hands short-lived cloud credentials to your tools without writing a secret to disk. It covers AWS, Azure, and Google Cloud on macOS, Windows, and Linux.
+
+<CardGroup cols={2}>
+  <Card title="Install" href="/install" icon="download">
+    Homebrew, DMG, Windows installer, AppImage, and CLI archives.
+  </Card>
+  <Card title="Quickstart" href="/quickstart" icon="rocket">
+    Connect a cloud and start your first session.
+  </Card>
+  <Card title="AWS" href="/aws/identity-center" icon="cloud">
+    Identity Center, role chaining, IAM users, profiles, and regions.
+  </Card>
+  <Card title="CLI reference" href="/cli" icon="terminal">
+    Every command and flag.
+  </Card>
+</CardGroup>
+
+## How it works
+
+- **Integrations** are identity sources: an AWS IAM Identity Center portal, an Entra ID tenant, or your gcloud credentials. Rolle signs in once and discovers what you can reach.
+- **Sessions** are the roles, subscriptions, and projects you can start. A started session yields credentials until they expire, then Rolle renews or stops it.
+- **Delivery** never puts a long-lived secret in a file. AWS sessions are profiles backed by `credential_process`. Azure and Google Cloud sessions export tokens into a shell or a terminal window.
+
+## Storage
+
+| Item | Location | Protection |
+| --- | --- | --- |
+| Workspace (integrations, sessions, settings) | `~/.config/rolle/workspace.json` | Owner-only file |
+| Refresh tokens and access keys | OS keychain, service `rolle` | Keychain access control |
+| Short-lived credentials | `~/.cache/rolle/credentials` | Owner-only files that expire |
+
+Browser multi-session tooling is out of scope. The AWS console provides it.

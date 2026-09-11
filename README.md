@@ -30,6 +30,17 @@ AWS CLI and Granted, Azure tenants from the az CLI, gcloud credentials, and
 sessions from a [Leapp](https://github.com/Noovolari/leapp) workspace. Browser
 multi-session tooling is out of scope. The AWS console provides it.
 
+## Install
+
+```sh
+brew install --cask nateships/tap/rolle   # macOS desktop app
+brew install nateships/tap/rolle-cli      # CLI for macOS and Linux
+```
+
+Windows and Linux desktop builds, and CLI archives for every platform, are on
+the [releases page](https://github.com/nateships/rolle/releases). Docs live at
+[getrolle.com](https://getrolle.com).
+
 ## CLI
 
 ```sh
@@ -71,6 +82,7 @@ rolle stop <session>
 - `internal/terminal`: opens a terminal with a session's environment
 - `cmd/rolle`: CLI
 - `apps/desktop`: Wails v3 desktop app (React, Tailwind v4, shadcn/ui)
+- `apps/docs`: docs site for getrolle.com (Blume, deployed by Vercel)
 
 ## Brand kit
 
@@ -90,7 +102,8 @@ mise run check
 mise run desktop
 ```
 
-Tools come from mise. Frontend packages use [aube](https://aube.sh).
+Tools come from mise. Desktop frontend packages use [aube](https://aube.sh).
+The docs site uses npm because Vercel installs it. `mise run docs` serves it locally.
 
 Set `ROLLE_DEBUG=1` (or pass `rolle --debug`) for verbose diagnostics from the
 CLI and the desktop app. `mise run reset` wipes the local workspace, secrets,

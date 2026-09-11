@@ -180,7 +180,7 @@
 					"$(inherited)",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "dev.nateships.rolle";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.getrolle.app";
 				PRODUCT_NAME = "Rolle";
 				CODE_SIGNING_ALLOWED = NO;
 				SDKROOT = iphoneos;
@@ -196,7 +196,7 @@
 					"$(inherited)",
 					"-ObjC",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "dev.nateships.rolle";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.getrolle.app";
 				PRODUCT_NAME = "Rolle";
 				CODE_SIGNING_ALLOWED = NO;
 				SDKROOT = iphoneos;

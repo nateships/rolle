@@ -28,6 +28,16 @@ description = "Build the desktop app"
 run = "wails3 build"
 dir = "apps/desktop"
 
+[tasks.docs]
+description = "Run the docs site locally"
+run = ["npm install --no-fund --no-audit", "npm run dev"]
+dir = "apps/docs"
+
+[tasks."docs:build"]
+description = "Build the docs site"
+run = ["npm install --no-fund --no-audit", "npm run build"]
+dir = "apps/docs"
+
 [tasks.reset]
 description = "Wipe the local Rolle workspace, secrets, cache, and AWS profiles (back to onboarding)"
 run = "go run ./cmd/rolle reset --yes"

@@ -1,0 +1,31 @@
+---
+title: Dashboard
+description: The session table, favorites, filters, and row actions.
+---
+
+The sidebar filters the table: **All sessions**, **Active**, **Favorites**, **Manual** (sessions without an integration), and one entry per integration. A dot next to an integration shows whether it is signed in.
+
+## Session table
+
+Sessions sort by provider (AWS, Azure, Google Cloud), then by name. Identity Center roles group under their account; click the account row to collapse or expand it. Drag the edge of the **Profile**, **Region**, or **State** header to resize the column.
+
+Each row shows the profile name and region (click either to change it), the state with a live countdown, and actions:
+
+| Action | Effect |
+| --- | --- |
+| Start / Stop | Start signs in first when the integration is signed out |
+| Terminal | Opens a terminal with the session ready |
+| Console | Opens the cloud console |
+| Copy profile command | Copies `aws --profile <name>` |
+| Copy env | Copies the credentials as shell exports |
+| Star | Adds the session to the **Favorites** panel |
+
+The row menu also renames a session, sets the AWS profile name, changes the region, and removes the session.
+
+## Search
+
+The search box matches the session name, account ID, role name, profile, and region. Account groups expand while you search.
+
+## Tray
+
+The tray icon lists active sessions and lets you stop them. Closing the window keeps Rolle in the tray when **Settings → General → Keep running in the tray** is on.

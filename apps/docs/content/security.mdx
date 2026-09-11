@@ -1,0 +1,26 @@
+---
+title: Security model
+description: Where secrets live and what never touches disk.
+sidebar:
+  order: 9
+---
+
+## Long-lived secrets stay in the keychain
+
+Identity Center refresh tokens, Azure token caches, and IAM user access keys live in the OS keychain (macOS Keychain, Windows Credential Manager, Secret Service on Linux) under the service name `rolle`. Large tokens are split into chunks to fit platform limits.
+
+## Short-lived credentials are cached, then expire
+
+Started sessions cache their temporary credentials in `~/.cache/rolle/credentials` with owner-only permissions. `credential_process` reads that cache. Entries carry their expiry and are refreshed or removed by the app.
+
+## AWS config is written with care
+
+Rolle writes only profiles it owns, marked with a `rolle_session` key. It refuses to touch a section that holds `aws_access_key_id` or other credential keys. A plain `[default]` section that only sets region or output is taken over and restored on stop.
+
+## Signed updates
+
+Release manifests are signed with an Ed25519 key. The desktop app verifies the signature before it installs an update. macOS builds are signed with a Developer ID certificate and notarized.
+
+## Reset
+
+`rolle reset` and **Settings → Advanced → Reset** remove the workspace, every keychain entry, the credential cache, and the AWS profiles Rolle wrote.

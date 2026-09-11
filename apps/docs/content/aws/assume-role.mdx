@@ -1,0 +1,30 @@
+---
+title: Assume a role
+description: Chain AssumeRole from any AWS session.
+---
+
+An assume-role session calls STS `AssumeRole` with the credentials of another session as its source. The source can be an Identity Center role, an IAM user, or another assumed role.
+
+```sh
+rolle session add assume-role \
+  --name prod-admin \
+  --role-arn arn:aws:iam::123456789012:role/Admin \
+  --source "Acme Prod/AdministratorAccess" \
+  --region us-east-1
+rolle start prod-admin
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `--name` | Session name |
+| `--role-arn` | Role to assume |
+| `--source` | Session that provides the source credentials |
+| `--region` | Default region |
+| `--external-id` | External ID when the trust policy requires one |
+| `--profile` | AWS profile name. Empty uses `default` |
+
+## Duration
+
+The requested duration comes from **Settings → General → Assume role duration** (60 minutes by default). When the source is itself a temporary session, AWS caps the chained duration at one hour, and Rolle requests one hour.
+
+Starting an assume-role session starts its source when the source is inactive.

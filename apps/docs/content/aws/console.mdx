@@ -1,0 +1,30 @@
+---
+title: Console and terminal
+description: Open the AWS console or a terminal with a session ready.
+---
+
+## Console
+
+The row action **Open console** builds a federated sign-in URL from the active session's credentials and opens it in your browser. The console session lasts as long as the credentials do.
+
+```sh
+rolle console "Acme Prod/AdministratorAccess"
+rolle console "Acme Prod/AdministratorAccess" --print   # print the URL instead
+```
+
+## Terminal
+
+**Open terminal** launches a new terminal window with the session's environment exported. Rolle picks the terminal from **Settings → General → Terminal**, or detects one: cmux, Ghostty, iTerm, Warp, then Terminal on macOS; `$TERMINAL` on Linux; Windows Terminal or PowerShell on Windows.
+
+```sh
+rolle shell "Acme Prod/AdministratorAccess"
+```
+
+## Shell exports
+
+`rolle env` prints the credentials as exports for the current shell.
+
+```sh
+eval "$(rolle env "Acme Prod/AdministratorAccess")"
+rolle env personal --powershell | Invoke-Expression
+```

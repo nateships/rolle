@@ -5,7 +5,7 @@
     <key>CFBundleExecutable</key>
     <string>Rolle</string>
     <key>CFBundleIdentifier</key>
-    <string>dev.nateships.rolle</string>
+    <string>com.getrolle.app</string>
     <key>CFBundleName</key>
     <string>Rolle</string>
     <key>CFBundleDisplayName</key>

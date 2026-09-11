@@ -1,0 +1,39 @@
+---
+title: Profiles and regions
+description: How Rolle writes AWS profiles, and how to rename them or change their region.
+---
+
+## The profile model
+
+Every active AWS session is a profile in `~/.aws/config` backed by `credential_process`. The process is the Rolle binary. It returns cached credentials and never writes them into the file.
+
+```ini
+[default]
+region = us-east-1
+credential_process = /path/to/rolle creds <session-id>
+rolle_session = <session-id>
+```
+
+- Every session writes the profile `default` unless you set a name, so `aws` and every SDK work without `--profile`.
+- Two sessions can share a profile name. Starting one stops the other.
+- Rolle refuses to overwrite a profile that holds real credential keys, and it restores a plain `[default]` section (region and output) when the session stops.
+
+## Rename a profile
+
+Click the profile name in the session table, or use the row menu **Set AWS profile name**. Names match `[A-Za-z0-9_.-]+`. An empty name restores `default`.
+
+```sh
+rolle session profile "Acme Prod/AdministratorAccess" acme-prod
+rolle session profile "Acme Prod/AdministratorAccess"          # back to default
+aws sts get-caller-identity --profile acme-prod
+```
+
+## Change a region
+
+Click the region in the session table, or use the row menu **Change region**. An active session rewrites its profile at once.
+
+```sh
+rolle session region "Acme Prod/AdministratorAccess" eu-west-1
+```
+
+New sessions take their region from **Settings → General → Default region**.

@@ -1,0 +1,14 @@
+{
+  "name": "rolle-docs",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.12" },
+  "scripts": {
+    "dev": "blume dev",
+    "build": "blume build",
+    "preview": "blume preview"
+  },
+  "dependencies": {
+    "blume": "^1.6.4"
+  }
+}

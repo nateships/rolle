@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 	<dict>
+		<key>CFBundleDisplayName</key>
+		<string>Rolle</string>
 		<key>CFBundleExecutable</key>
 		<string>Rolle</string>
 		<key>CFBundleGetInfoString</key>
@@ -9,7 +11,7 @@
 		<key>CFBundleIconFile</key>
 		<string>icons</string>
 		<key>CFBundleIdentifier</key>
-		<string>dev.nateships.rolle</string>
+		<string>com.getrolle.app</string>
 		<key>CFBundleName</key>
 		<string>Rolle</string>
 		<key>CFBundlePackageType</key>

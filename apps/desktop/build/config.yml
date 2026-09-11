@@ -7,7 +7,7 @@ version: '3'
 info:
   companyName: "nateships" # The name of the company
   productName: "Rolle" # The name of the application
-  productIdentifier: "dev.nateships.rolle" # The unique product identifier
+  productIdentifier: "com.getrolle.app" # The unique product identifier
   description: "Assume any role, any cloud" # The application description
   copyright: "(c) 2026, nateships" # Copyright text
   comments: "Cloud credential and role manager" # Comments

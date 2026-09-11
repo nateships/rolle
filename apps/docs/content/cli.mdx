@@ -1,0 +1,56 @@
+---
+title: CLI reference
+description: Every rolle command.
+sidebar:
+  order: 8
+---
+
+The CLI and the desktop app share one workspace, so a session started in one is active in the other.
+
+```
+rolle [command] [flags]
+  --debug        verbose diagnostics (same as ROLLE_DEBUG=1)
+  -v, --version  print the version
+```
+
+## Integrations
+
+| Command | Purpose |
+| --- | --- |
+| `rolle integration add aws-sso --alias A --start-url URL --region R` | Add an IAM Identity Center portal |
+| `rolle integration add azure --alias A [--tenant T]` | Add an Entra ID tenant |
+| `rolle integration add gcp [--alias A]` | Add your gcloud Application Default Credentials |
+| `rolle integration list` | List identity sources |
+| `rolle integration login <integration> [--no-browser]` | Sign in and discover roles |
+| `rolle integration logout <integration>` | Sign out and stop its sessions |
+| `rolle integration sync <integration>` | Rediscover accounts, subscriptions, or projects |
+| `rolle integration remove <integration>` | Remove an identity source and its sessions |
+
+`int` is an alias for `integration`.
+
+## Sessions
+
+| Command | Purpose |
+| --- | --- |
+| `rolle session list` | List sessions |
+| `rolle session add assume-role --name N --role-arn ARN --source S [--region R] [--external-id ID] [--profile P]` | Assume a role from another session |
+| `rolle session add iam-user --name N --access-key-id ID [--secret-access-key K] [--region R] [--mfa-device M] [--profile P]` | Add an IAM user |
+| `rolle session add gcp-impersonate --name N --project P --service-account SA [--integration I]` | Impersonate a service account |
+| `rolle session profile <session> [name]` | Set the AWS profile name. Omit the name to restore `default` |
+| `rolle session region <session> <region>` | Change the region of an AWS session |
+| `rolle session remove <session>` | Remove a session |
+
+`sess` is an alias for `session`. A `<session>` argument accepts the name or the ID.
+
+## Credentials
+
+| Command | Purpose |
+| --- | --- |
+| `rolle start <session> [--mfa-code C]` | Start a session |
+| `rolle stop <session>` | Stop a session |
+| `rolle status` | Show active sessions |
+| `rolle env <session> [--powershell]` | Print credentials as shell exports |
+| `rolle shell <session>` | Open a terminal window with the credentials ready |
+| `rolle console <session> [--print]` | Open the cloud console |
+| `rolle reset [--yes]` | Remove every session, integration, secret, and cached credential |
+| `rolle completion <shell>` | Shell completion script |
