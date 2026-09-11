@@ -29,6 +29,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Persisted preference first, then the environment switch wins if set.
+	background := application.NewRGB(0x10, 0x11, 0x14)
+	if st, err := svc.Settings(); err == nil {
+		debug.Set(st.VerboseLogging)
+		if st.Theme == "light" {
+			background = application.NewRGB(0xF4, 0xF0, 0xE8)
+		}
+	}
+
 	// One switch for everything: ROLLE_DEBUG=1 also raises the Wails runtime log level.
 	logLevel := slog.LevelWarn
 	if debug.Enabled() {
@@ -64,12 +73,16 @@ func main() {
 			Backdrop:                application.MacBackdropTranslucent,
 			TitleBar:                application.MacTitleBarHiddenInset,
 		},
-		BackgroundColour: application.NewRGB(0x10, 0x11, 0x14),
+		BackgroundColour: background,
 		URL:              "/",
 	})
 
-	// Closing the window hides it; the tray keeps sessions alive.
+	// Closing the window hides it while the tray keeps sessions alive, unless
+	// the user turned that off in settings.
 	window.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		if st, err := svc.Settings(); err == nil && !st.HideOnClose {
+			return
+		}
 		window.Hide()
 		e.Cancel()
 	})

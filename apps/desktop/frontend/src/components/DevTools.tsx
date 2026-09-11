@@ -33,8 +33,8 @@ export function DevTools() {
         <DropdownMenuContent align="start" side="top">
           <DropdownMenuLabel className="text-xs text-muted-foreground">Development build</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={run("Onboarding will replay", () => api.DevReplayOnboarding())}><RotateCcw /> Replay onboarding</DropdownMenuItem>
-          <DropdownMenuItem variant="destructive" onClick={run("Workspace reset", () => api.DevReset())}><Trash2 /> Reset workspace</DropdownMenuItem>
+          <DropdownMenuItem onClick={run("Onboarding will replay", () => api.ReplayOnboarding())}><RotateCcw /> Replay onboarding</DropdownMenuItem>
+          <DropdownMenuItem variant="destructive" onClick={run("Workspace reset", () => api.Reset())}><Trash2 /> Reset workspace</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

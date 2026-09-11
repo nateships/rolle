@@ -511,6 +511,7 @@ func (s *Service) fetch(ctx context.Context, w *core.Workspace, sess *core.Sessi
 			Source:      source,
 			Region:      sess.Region,
 			RoleARN:     sess.AWS.RoleARN,
+			Duration:    time.Duration(w.EffectiveSettings().AssumeRoleMinutes) * time.Minute,
 			SessionName: "rolle-" + sanitizeProfile(sess.Name),
 			ExternalID:  sess.AWS.ExternalID,
 			MFADevice:   sess.AWS.MFADevice,
@@ -660,4 +661,75 @@ func names(sessions []core.Session) []string {
 		out = append(out, s.Name)
 	}
 	return out
+}
+
+// Settings returns the effective user preferences.
+func (s *Service) Settings() (core.Settings, error) {
+	w, err := s.Load()
+	if err != nil {
+		return core.Settings{}, err
+	}
+	return w.EffectiveSettings(), nil
+}
+
+// UpdateSettings stores preferences and applies the ones that take effect immediately.
+func (s *Service) UpdateSettings(in core.Settings) (core.Settings, error) {
+	w, err := s.Load()
+	if err != nil {
+		return core.Settings{}, err
+	}
+	n := in.Normalize()
+	w.Settings = &n
+	if err := s.Save(w); err != nil {
+		return core.Settings{}, err
+	}
+	debug.Set(n.VerboseLogging)
+	debug.Logf("settings", "updated: %+v", n)
+	return n, nil
+}
+
+// RenameIntegration changes an integration's alias.
+func (s *Service) RenameIntegration(ref, alias string) error {
+	alias = strings.TrimSpace(alias)
+	if alias == "" {
+		return errors.New("name cannot be empty")
+	}
+	w, err := s.Load()
+	if err != nil {
+		return err
+	}
+	in, err := FindIntegration(w, ref)
+	if err != nil {
+		return err
+	}
+	in.Alias = alias
+	return s.Save(w)
+}
+
+// RenameSession changes a session's name. An active AWS session moves its
+// profile to the new name so the shell keeps working.
+func (s *Service) RenameSession(ref, name string) error {
+	name = strings.TrimSpace(name)
+	if name == "" {
+		return errors.New("name cannot be empty")
+	}
+	w, err := s.Load()
+	if err != nil {
+		return err
+	}
+	sess, err := FindSession(w, ref)
+	if err != nil {
+		return err
+	}
+	oldProfile := ProfileName(sess)
+	sess.Name = name
+	if sess.Status == core.StatusActive && sess.Kind.Cloud() == core.CloudAWS && ProfileName(sess) != oldProfile {
+		if err := awsconfig.Remove(s.AWSConfigPath, oldProfile); err != nil {
+			return err
+		}
+		if err := awsconfig.Write(s.AWSConfigPath, awsconfig.Profile{Name: ProfileName(sess), Region: sess.Region, SessionID: sess.ID, Executable: s.Executable}); err != nil {
+			return err
+		}
+	}
+	return s.Save(w)
 }

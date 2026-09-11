@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Clipboard, ExternalLink, Loader2, MoreHorizontal, Play, Square, Terminal, Trash2 } from "lucide-react";
+import { Clipboard, ExternalLink, Loader2, MoreHorizontal, Pencil, Play, Square, Terminal, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Clipboard as WailsClipboard } from "@wailsio/runtime";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CloudGlyph } from "@/components/Brand";
 import { MFADialog } from "@/components/dialogs/Dialogs";
+import { RenameDialog } from "@/components/dialogs/RenameDialog";
 import { api, errorMessage, Kind, Status, type Session, type Workspace } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
 import { cloudOf, kindLabel, remaining, sessionSubtitle, useNow } from "@/lib/format";
@@ -18,6 +19,7 @@ export function SessionRow({ session: s, workspace }: { session: Session; worksp
   const now = useNow();
   const [busy, setBusy] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   const active = s.status === Status.StatusActive;
   const needsMFA = s.kind === Kind.KindAWSIAMUser && !!s.aws?.mfaDevice;
   const source = s.aws?.sourceSessionId ? workspace.sessions.find((x) => x.id === s.aws?.sourceSessionId) : undefined;
@@ -94,7 +96,8 @@ export function SessionRow({ session: s, workspace }: { session: Session; worksp
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm"><MoreHorizontal /></Button></DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
+          <DropdownMenuContent align="end" className="min-w-56">
+            <DropdownMenuItem onClick={() => setRenaming(true)}><Pencil /> Rename</DropdownMenuItem>
             {isAWS && <DropdownMenuItem onClick={() => copy("profile")}><Terminal /> Copy profile command</DropdownMenuItem>}
             {isAWS && <DropdownMenuSeparator />}
             <DropdownMenuItem variant="destructive" onClick={() => api.RemoveSession(s.id).catch((e) => toast.error(errorMessage(e)))}><Trash2 /> Remove</DropdownMenuItem>
@@ -112,6 +115,7 @@ export function SessionRow({ session: s, workspace }: { session: Session; worksp
         {active ? "Stop" : "Start"}
       </Button>
       <MFADialog open={mfaOpen} onClose={() => setMfaOpen(false)} onSubmit={(code) => { setMfaOpen(false); void start(code); }} />
+      <RenameDialog target={renaming ? { kind: "session", id: s.id, name: s.name, save: (n) => api.RenameSession(s.id, n) } : null} onClose={() => setRenaming(false)} />
     </motion.li>
   );
 }

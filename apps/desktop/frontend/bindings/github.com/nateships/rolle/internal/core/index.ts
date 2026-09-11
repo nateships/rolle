@@ -17,5 +17,6 @@ export type {
     GCPSession,
     Integration,
     Session,
+    Settings,
     Workspace
 } from "./models.js";

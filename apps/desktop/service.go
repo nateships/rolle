@@ -15,6 +15,7 @@ import (
 	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/debug"
 	"github.com/nateships/rolle/internal/gcp"
+	"github.com/nateships/rolle/internal/version"
 )
 
 // EventWorkspaceChanged is emitted after any mutation so the UI can reload.
@@ -338,6 +339,58 @@ func (r *RolleService) AddGCPImpersonation(in app.AddGCPImpersonationInput) (cor
 	s, err := r.svc.AddGCPImpersonation(in)
 	r.changed()
 	return s, err
+}
+
+// Settings returns the effective user preferences.
+func (r *RolleService) Settings() (core.Settings, error) { return r.svc.Settings() }
+
+// UpdateSettings stores preferences.
+func (r *RolleService) UpdateSettings(in core.Settings) (core.Settings, error) {
+	out, err := r.svc.UpdateSettings(in)
+	r.changed()
+	return out, err
+}
+
+// AppInfo describes this build and where it keeps its files.
+type AppInfo struct {
+	Version       string `json:"version"`
+	WorkspacePath string `json:"workspacePath"`
+	CacheDir      string `json:"cacheDir"`
+	AWSConfigPath string `json:"awsConfigPath"`
+}
+
+// Info returns version and file locations for the settings screen.
+func (r *RolleService) Info() AppInfo {
+	return AppInfo{Version: version.Version, WorkspacePath: r.svc.WorkspacePath, CacheDir: r.svc.Cache.Dir, AWSConfigPath: r.svc.AWSConfigPath}
+}
+
+// ReplayOnboarding shows the walkthrough again without removing sessions.
+func (r *RolleService) ReplayOnboarding() error {
+	err := r.svc.ReplayOnboarding()
+	r.changed()
+	return err
+}
+
+// Reset removes every session, integration, secret, cached credential, and
+// Rolle-owned AWS profile. The UI confirms before calling this.
+func (r *RolleService) Reset() error {
+	err := r.svc.ResetAll()
+	r.changed()
+	return err
+}
+
+// RenameIntegration changes an integration's display name.
+func (r *RolleService) RenameIntegration(ref, alias string) error {
+	err := r.svc.RenameIntegration(ref, alias)
+	r.changed()
+	return err
+}
+
+// RenameSession changes a session's name.
+func (r *RolleService) RenameSession(ref, name string) error {
+	err := r.svc.RenameSession(ref, name)
+	r.changed()
+	return err
 }
 
 // DevMode reports whether in-app dev tools are compiled in.

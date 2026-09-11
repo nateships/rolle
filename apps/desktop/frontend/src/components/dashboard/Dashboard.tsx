@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Cloud, KeyRound, LogIn, LogOut, MoreHorizontal, Plus, RefreshCw, Search, ShieldCheck, Trash2, UserCog, Waypoints } from "lucide-react";
+import { Cloud, KeyRound, LogIn, LogOut, MoreHorizontal, Pencil, Plus, RefreshCw, Search, Settings as SettingsIcon, ShieldCheck, Trash2, UserCog, Waypoints } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,11 +8,14 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Lockup, CloudGlyph } from "@/components/Brand";
 import { SessionRow } from "./SessionRow";
 import { DevTools } from "@/components/DevTools";
+import { SettingsDialog } from "@/components/dialogs/SettingsDialog";
+import { RenameDialog } from "@/components/dialogs/RenameDialog";
+import { inWails } from "@/lib/api";
 import { AddSSODialog, AddAssumeRoleDialog, AddIAMUserDialog, AddAzureDialog, AddGCPDialog, AddGCPImpersonationDialog, LoginDialog } from "@/components/dialogs/Dialogs";
 import { api, errorMessage, Cloud as CloudKind, Status, type Integration, type Workspace } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-type Dialog = null | { kind: "sso" } | { kind: "assume" } | { kind: "iam" } | { kind: "azure" } | { kind: "gcp" } | { kind: "gcp-impersonate" } | { kind: "login"; integration: Integration };
+type Dialog = null | { kind: "sso" } | { kind: "assume" } | { kind: "iam" } | { kind: "azure" } | { kind: "gcp" } | { kind: "gcp-impersonate" } | { kind: "login"; integration: Integration } | { kind: "settings" } | { kind: "rename"; integration: Integration };
 
 function isLoggedIn(integ: Integration): boolean {
   if (integ.awsSso) return !!integ.awsSso.tokenExpires && new Date(integ.awsSso.tokenExpires).getTime() > Date.now();
@@ -30,7 +33,8 @@ const CLOUD_SECTIONS: { cloud: string; title: string; addKind: Dialog }[] = [
 export function Dashboard({ workspace }: { workspace: Workspace }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<string | null>(null);
-  const [dialog, setDialog] = useState<Dialog>(null);
+  // ?settings=1 opens the settings dialog in the browser preview.
+  const [dialog, setDialog] = useState<Dialog>(!inWails && new URLSearchParams(location.search).get("settings") ? { kind: "settings" } : null);
 
   const sessions = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -89,7 +93,8 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon-xs" className="opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"><MoreHorizontal className="size-3.5" /></Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" side="right">
+                        <DropdownMenuContent align="start" side="right" className="min-w-56">
+                          <DropdownMenuItem onClick={() => setDialog({ kind: "rename", integration: integ })}><Pencil /> Rename</DropdownMenuItem>
                           {loggedIn ? (
                             <>
                               <DropdownMenuItem onClick={() => run("Synced", () => sync(integ.id))}><RefreshCw /> Sync</DropdownMenuItem>
@@ -115,7 +120,10 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
             <span className={cn("relative inline-block size-2 rounded-full", active > 0 ? "bg-emerald-400 text-emerald-400 pulse-ring" : "bg-muted-foreground/40")} />
             {active} active
           </div>
-          <DevTools />
+          <div className="flex items-center gap-1">
+            <DevTools />
+            <Button variant="ghost" size="icon-sm" aria-label="Settings" onClick={() => setDialog({ kind: "settings" })}><SettingsIcon className="size-4" /></Button>
+          </div>
         </div>
       </aside>
 
@@ -130,7 +138,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
             <DropdownMenuTrigger asChild>
               <Button size="sm" className="no-drag gap-1.5"><Plus className="size-4" /> Add</Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="min-w-72">
               <DropdownMenuItem onClick={() => setDialog({ kind: "sso" })}><ShieldCheck /> AWS Identity Center portal</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setDialog({ kind: "assume" })} disabled={!workspace.sessions.some((s) => s.aws)}><Waypoints /> AWS assume role</DropdownMenuItem>
               <DropdownMenuItem onClick={() => setDialog({ kind: "iam" })}><KeyRound /> AWS IAM user access key</DropdownMenuItem>
@@ -165,6 +173,11 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
       <AddGCPDialog open={dialog?.kind === "gcp"} onClose={() => setDialog(null)} />
       <AddGCPImpersonationDialog open={dialog?.kind === "gcp-impersonate"} onClose={() => setDialog(null)} workspace={workspace} />
       <LoginDialog integration={dialog?.kind === "login" ? dialog.integration : null} onClose={() => setDialog(null)} />
+      <SettingsDialog open={dialog?.kind === "settings"} onClose={() => setDialog(null)} />
+      <RenameDialog
+        target={dialog?.kind === "rename" ? { kind: "integration", id: dialog.integration.id, name: dialog.integration.alias, save: (n) => api.RenameIntegration(dialog.integration.id, n) } : null}
+        onClose={() => setDialog(null)}
+      />
     </div>
   );
 }

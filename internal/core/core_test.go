@@ -58,3 +58,17 @@ func TestRemoveIntegrationDropsSessions(t *testing.T) {
 		t.Fatalf("err = %v, want ErrNotFound", err)
 	}
 }
+
+func TestSettingsNormalize(t *testing.T) {
+	got := (Settings{AssumeRoleMinutes: 5, Theme: "sepia"}).Normalize()
+	if got.DefaultRegion != "us-east-1" || got.AssumeRoleMinutes != 60 || got.Theme != "system" {
+		t.Fatalf("normalized = %+v", got)
+	}
+	if (Settings{AssumeRoleMinutes: 9999}).Normalize().AssumeRoleMinutes != 720 {
+		t.Fatal("duration not clamped to 12h")
+	}
+	w := Workspace{}
+	if !w.EffectiveSettings().HideOnClose {
+		t.Fatal("defaults not applied for nil settings")
+	}
+}

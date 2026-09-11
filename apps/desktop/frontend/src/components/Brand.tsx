@@ -1,6 +1,7 @@
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
-import awsLogo from "@/assets/vendors/aws.svg";
+import awsLogoDark from "@/assets/vendors/aws-dark.svg";
+import awsLogoLight from "@/assets/vendors/aws-light.svg";
 import azureLogo from "@/assets/vendors/azure.svg";
 import gcpLogo from "@/assets/vendors/gcp.svg";
 
@@ -58,8 +59,9 @@ export function Lockup({ className, markClassName }: { className?: string; markC
 }
 
 
+// AWS ships dark text, so it needs a light-text copy for dark surfaces.
 const VENDORS = {
-  aws: { src: awsLogo, name: "Amazon Web Services" },
+  aws: { src: awsLogoLight, dark: awsLogoDark, name: "Amazon Web Services" },
   azure: { src: azureLogo, name: "Microsoft Azure" },
   gcp: { src: gcpLogo, name: "Google Cloud" },
 } as const;
@@ -69,7 +71,8 @@ export function CloudGlyph({ cloud, className }: { cloud: "aws" | "azure" | "gcp
   const v = VENDORS[cloud];
   return (
     <span title={v.name} className={cn("inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-card p-1.5", className)}>
-      <img src={v.src} alt={v.name} className="size-full object-contain" draggable={false} />
+      <img src={v.src} alt={v.name} className={cn("size-full object-contain", "dark" in v && "dark:hidden")} draggable={false} />
+      {"dark" in v && <img src={v.dark} alt="" aria-hidden className="hidden size-full object-contain dark:block" draggable={false} />}
     </span>
   );
 }

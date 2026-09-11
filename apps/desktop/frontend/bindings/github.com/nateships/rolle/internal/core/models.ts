@@ -193,6 +193,36 @@ export interface Session {
 }
 
 /**
+ * Settings are user preferences that live alongside the workspace.
+ */
+export interface Settings {
+    /**
+     * Theme is "system", "light", or "dark".
+     */
+    "theme": string;
+
+    /**
+     * DefaultRegion pre-fills region fields for new AWS sessions.
+     */
+    "defaultRegion": string;
+
+    /**
+     * AssumeRoleMinutes is the requested duration for STS AssumeRole calls.
+     */
+    "assumeRoleMinutes": number;
+
+    /**
+     * HideOnClose keeps the desktop app running in the tray when its window closes.
+     */
+    "hideOnClose": boolean;
+
+    /**
+     * VerboseLogging turns on diagnostic output, the same as ROLLE_DEBUG=1.
+     */
+    "verboseLogging": boolean;
+}
+
+/**
  * Status is the lifecycle state of a session.
  */
 export enum Status {
@@ -218,4 +248,9 @@ export interface Workspace {
      * Onboarded is set once the desktop walkthrough completes.
      */
     "onboarded": boolean;
+
+    /**
+     * Settings holds user preferences. Nil means defaults.
+     */
+    "settings"?: Settings | null;
 }

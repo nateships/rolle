@@ -185,6 +185,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                 {method === "sso" ? (
                   <SSOForm
                     busy={busy}
+                    defaultRegion={workspace.settings?.defaultRegion ?? "us-east-1"}
                     onSubmit={async (v) => {
                       setBusy(true);
                       try {
@@ -207,6 +208,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                 ) : (
                   <KeyForm
                     busy={busy}
+                    defaultRegion={workspace.settings?.defaultRegion ?? "us-east-1"}
                     onSubmit={async (v) => {
                       setBusy(true);
                       try {
@@ -424,10 +426,10 @@ function MethodButton({ active, onClick, icon, title, desc }: { active: boolean;
   );
 }
 
-export function SSOForm({ busy, onSubmit, submitLabel = "Sign in" }: { busy: boolean; onSubmit: (v: { alias: string; startUrl: string; region: string }) => void; submitLabel?: string }) {
+export function SSOForm({ busy, onSubmit, submitLabel = "Sign in", defaultRegion = "us-east-1" }: { busy: boolean; onSubmit: (v: { alias: string; startUrl: string; region: string }) => void; submitLabel?: string; defaultRegion?: string }) {
   const [alias, setAlias] = useState("");
   const [startUrl, setStartUrl] = useState("");
-  const [region, setRegion] = useState("us-east-1");
+  const [region, setRegion] = useState(defaultRegion);
   const valid = useMemo(() => alias.trim() && /^https:\/\/.+/.test(startUrl.trim()) && region.trim(), [alias, startUrl, region]);
   return (
     <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); if (valid) onSubmit({ alias: alias.trim(), startUrl: startUrl.trim(), region: region.trim() }); }}>
@@ -447,9 +449,9 @@ export function SSOForm({ busy, onSubmit, submitLabel = "Sign in" }: { busy: boo
   );
 }
 
-export function KeyForm({ busy, onSubmit }: { busy: boolean; onSubmit: (v: { name: string; region: string; accessKeyId: string; secretAccessKey: string; mfaDevice: string }) => void }) {
+export function KeyForm({ busy, onSubmit, defaultRegion = "us-east-1" }: { busy: boolean; onSubmit: (v: { name: string; region: string; accessKeyId: string; secretAccessKey: string; mfaDevice: string }) => void; defaultRegion?: string }) {
   const [name, setName] = useState("");
-  const [region, setRegion] = useState("us-east-1");
+  const [region, setRegion] = useState(defaultRegion);
   const [accessKeyId, setAccessKeyId] = useState("");
   const [secretAccessKey, setSecret] = useState("");
   const [mfaDevice, setMfa] = useState("");

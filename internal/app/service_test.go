@@ -221,3 +221,48 @@ func TestResetAllClearsEverything(t *testing.T) {
 		t.Fatalf("workspace after reset = %+v, %v", w, err)
 	}
 }
+
+func TestSettingsRoundTrip(t *testing.T) {
+	s := testService(t)
+	got, err := s.Settings()
+	if err != nil || got.AssumeRoleMinutes != 60 {
+		t.Fatalf("defaults = %+v, %v", got, err)
+	}
+	saved, err := s.UpdateSettings(core.Settings{DefaultRegion: "eu-west-1", AssumeRoleMinutes: 240, HideOnClose: false})
+	if err != nil || saved.DefaultRegion != "eu-west-1" || saved.AssumeRoleMinutes != 240 || saved.HideOnClose {
+		t.Fatalf("saved = %+v, %v", saved, err)
+	}
+	again, _ := s.Settings()
+	if again != saved {
+		t.Fatalf("reloaded = %+v, want %+v", again, saved)
+	}
+}
+
+func TestRenameSessionMovesActiveProfile(t *testing.T) {
+	s := testService(t)
+	sess, err := s.AddIAMUser(AddIAMUserInput{Name: "old name", Region: "us-east-1", Key: aws.AccessKey{AccessKeyID: "A", SecretAccessKey: "B"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Start(context.Background(), sess.ID, StartOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.RenameSession(sess.ID, "new name"); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := os.ReadFile(s.AWSConfigPath)
+	if strings.Contains(string(data), "[profile old-name]") || !strings.Contains(string(data), "[profile new-name]") {
+		t.Fatalf("aws config after rename:\n%s", data)
+	}
+	if err := s.RenameSession(sess.ID, "  "); err == nil {
+		t.Fatal("expected empty name to be rejected")
+	}
+	in, _ := s.AddAWSSSO("acme", "https://acme.awsapps.com/start", "us-east-1")
+	if err := s.RenameIntegration(in.ID, "Acme Corp"); err != nil {
+		t.Fatal(err)
+	}
+	w, _ := s.Load()
+	if got, _ := FindIntegration(w, in.ID); got.Alias != "Acme Corp" {
+		t.Fatalf("alias = %q", got.Alias)
+	}
+}

@@ -13,7 +13,8 @@ const state: Workspace = {
   onboarded: new URLSearchParams(location.search).get("view") === "dashboard",
   integrations: [],
   sessions: [],
-} as Workspace;
+  settings: { theme: (new URLSearchParams(location.search).get("theme") ?? "system"), defaultRegion: "us-east-1", assumeRoleMinutes: 60, hideOnClose: true, verboseLogging: false },
+} as unknown as Workspace;
 
 function seed() {
   const sso: Integration = { id: "acme", alias: "acme", cloud: "aws", awsSso: { startUrl: "https://acme.awsapps.com/start", region: "us-east-1", tokenExpires: new Date(Date.now() + 6e6).toISOString() } } as Integration;
@@ -68,8 +69,11 @@ export const mockApi = {
   AddGCP: async (alias: string) => { await wait(800); const i = { id: id(), alias, cloud: "gcp", gcp: { account: "nate@example.com" } } as Integration; state.integrations.push(i); const added = [{ id: id(), name: "data-platform", kind: "gcp", integrationId: i.id, status: "inactive", gcp: { projectId: "data-platform-4821" } }] as Session[]; state.sessions.push(...added); emit(); return added; },
   SyncGCP: async () => [],
   AddGCPImpersonation: async (v: { name: string; integrationRef: string; projectId: string; serviceAccount: string }) => { const s = { id: id(), name: v.name, kind: "gcp", integrationId: v.integrationRef, status: "inactive", gcp: { projectId: v.projectId, serviceAccount: v.serviceAccount } } as Session; state.sessions.push(s); emit(); return s; },
+  Settings: async () => ({ ...state.settings! }),
+  UpdateSettings: async (v: NonNullable<Workspace["settings"]>) => { state.settings = { ...v }; emit(); return { ...v }; },
+  Info: async () => ({ version: "0.0.1-dev", workspacePath: "~/.config/rolle/workspace.json", cacheDir: "~/.cache/rolle/credentials", awsConfigPath: "~/.aws/config" }),
+  ReplayOnboarding: async () => { state.onboarded = false; emit(); },
+  Reset: async () => { state.onboarded = false; state.integrations = []; state.sessions = []; emit(); },
   DevMode: async () => true,
-  DevReplayOnboarding: async () => { state.onboarded = false; emit(); },
-  DevReset: async () => { state.onboarded = false; state.integrations = []; state.sessions = []; emit(); },
   onChange: (cb: () => void) => { listeners.add(cb); return () => listeners.delete(cb); },
 };

@@ -1,11 +1,19 @@
+import { useEffect } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { useWorkspace } from "@/lib/api";
+import { applyTheme, watchSystemTheme, type Theme } from "@/lib/theme";
 import { Onboarding } from "@/components/onboarding/Onboarding";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { Mark } from "@/components/Brand";
 
 export default function App() {
   const { workspace, error, reload } = useWorkspace();
+  const theme = (workspace?.settings?.theme ?? "system") as Theme;
+
+  useEffect(() => {
+    if (workspace) applyTheme(theme);
+    return watchSystemTheme(() => theme);
+  }, [workspace, theme]);
 
   if (error) {
     return (

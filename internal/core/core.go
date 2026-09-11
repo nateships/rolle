@@ -150,6 +150,43 @@ func (c Credentials) Expired(now time.Time, skew time.Duration) bool {
 	return c.Expiration != nil && !now.Add(skew).Before(*c.Expiration)
 }
 
+// Settings are user preferences that live alongside the workspace.
+type Settings struct {
+	// Theme is "system", "light", or "dark".
+	Theme string `json:"theme"`
+	// DefaultRegion pre-fills region fields for new AWS sessions.
+	DefaultRegion string `json:"defaultRegion"`
+	// AssumeRoleMinutes is the requested duration for STS AssumeRole calls.
+	AssumeRoleMinutes int `json:"assumeRoleMinutes"`
+	// HideOnClose keeps the desktop app running in the tray when its window closes.
+	HideOnClose bool `json:"hideOnClose"`
+	// VerboseLogging turns on diagnostic output, the same as ROLLE_DEBUG=1.
+	VerboseLogging bool `json:"verboseLogging"`
+}
+
+// DefaultSettings are used until the user changes something.
+func DefaultSettings() Settings {
+	return Settings{Theme: "system", DefaultRegion: "us-east-1", AssumeRoleMinutes: 60, HideOnClose: true}
+}
+
+// Normalize fills blanks with defaults and clamps out-of-range values.
+func (s Settings) Normalize() Settings {
+	d := DefaultSettings()
+	if s.Theme != "light" && s.Theme != "dark" {
+		s.Theme = d.Theme
+	}
+	if s.DefaultRegion == "" {
+		s.DefaultRegion = d.DefaultRegion
+	}
+	if s.AssumeRoleMinutes < 15 {
+		s.AssumeRoleMinutes = d.AssumeRoleMinutes
+	}
+	if s.AssumeRoleMinutes > 12*60 {
+		s.AssumeRoleMinutes = 12 * 60
+	}
+	return s
+}
+
 // Workspace is everything Rolle persists, except secrets.
 type Workspace struct {
 	Version      int           `json:"version"`
@@ -157,6 +194,16 @@ type Workspace struct {
 	Sessions     []Session     `json:"sessions"`
 	// Onboarded is set once the desktop walkthrough completes.
 	Onboarded bool `json:"onboarded"`
+	// Settings holds user preferences. Nil means defaults.
+	Settings *Settings `json:"settings,omitempty"`
+}
+
+// EffectiveSettings returns the stored settings with defaults applied.
+func (w *Workspace) EffectiveSettings() Settings {
+	if w.Settings == nil {
+		return DefaultSettings()
+	}
+	return w.Settings.Normalize()
 }
 
 // WorkspaceVersion is the current on-disk schema version.

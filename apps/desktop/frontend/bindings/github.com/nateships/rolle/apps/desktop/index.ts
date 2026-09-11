@@ -7,6 +7,7 @@ export {
 };
 
 export type {
+    AppInfo,
     DeviceLogin,
     GCPStatus,
     IAMUserInput

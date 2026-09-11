@@ -22,6 +22,16 @@ func Enabled() bool { return enabled.Load() }
 // Enable turns debug output on for the rest of the process.
 func Enable() { enabled.Store(true) }
 
+// Set turns debug output on or off. The ROLLE_DEBUG environment variable
+// always wins when it is set, so a persisted preference cannot silence it.
+func Set(on bool) {
+	if v := os.Getenv("ROLLE_DEBUG"); v != "" && v != "0" && v != "false" {
+		enabled.Store(true)
+		return
+	}
+	enabled.Store(on)
+}
+
 // Logf writes one diagnostic line tagged with a scope, only when enabled.
 func Logf(scope, format string, args ...any) {
 	if !enabled.Load() {

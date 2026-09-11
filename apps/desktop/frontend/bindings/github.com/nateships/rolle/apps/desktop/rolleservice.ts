@@ -99,20 +99,6 @@ export function DevMode(): $CancellablePromise<boolean> {
 }
 
 /**
- * DevReplayOnboarding is disabled in release builds.
- */
-export function DevReplayOnboarding(): $CancellablePromise<void> {
-    return $Call.ByID(3909585596);
-}
-
-/**
- * DevReset is disabled in release builds.
- */
-export function DevReset(): $CancellablePromise<void> {
-    return $Call.ByID(1069092241);
-}
-
-/**
  * EnvText returns shell export lines for an active session.
  */
 export function EnvText(ref: string): $CancellablePromise<string> {
@@ -132,6 +118,13 @@ export function GCPStatus(): $CancellablePromise<$models.GCPStatus> {
  */
 export function GCloudLogin(): $CancellablePromise<void> {
     return $Call.ByID(3266413918);
+}
+
+/**
+ * Info returns version and file locations for the settings screen.
+ */
+export function Info(): $CancellablePromise<$models.AppInfo> {
+    return $Call.ByID(135200251);
 }
 
 /**
@@ -170,10 +163,46 @@ export function RemoveSession(ref: string): $CancellablePromise<void> {
 }
 
 /**
+ * RenameIntegration changes an integration's display name.
+ */
+export function RenameIntegration(ref: string, alias: string): $CancellablePromise<void> {
+    return $Call.ByID(4221515021, ref, alias);
+}
+
+/**
+ * RenameSession changes a session's name.
+ */
+export function RenameSession(ref: string, name: string): $CancellablePromise<void> {
+    return $Call.ByID(3621296503, ref, name);
+}
+
+/**
+ * ReplayOnboarding shows the walkthrough again without removing sessions.
+ */
+export function ReplayOnboarding(): $CancellablePromise<void> {
+    return $Call.ByID(536385161);
+}
+
+/**
+ * Reset removes every session, integration, secret, cached credential, and
+ * Rolle-owned AWS profile. The UI confirms before calling this.
+ */
+export function Reset(): $CancellablePromise<void> {
+    return $Call.ByID(4248150206);
+}
+
+/**
  * SSOLogout signs out of a portal.
  */
 export function SSOLogout(ref: string): $CancellablePromise<void> {
     return $Call.ByID(816108696, ref);
+}
+
+/**
+ * Settings returns the effective user preferences.
+ */
+export function Settings(): $CancellablePromise<core$0.Settings> {
+    return $Call.ByID(1191667682);
 }
 
 /**
@@ -216,6 +245,13 @@ export function SyncGCP(ref: string): $CancellablePromise<core$0.Session[] | nul
  */
 export function SyncSSO(ref: string): $CancellablePromise<core$0.Session[] | null> {
     return $Call.ByID(3979444731, ref);
+}
+
+/**
+ * UpdateSettings stores preferences.
+ */
+export function UpdateSettings($in: core$0.Settings): $CancellablePromise<core$0.Settings> {
+    return $Call.ByID(2682712267, $in);
 }
 
 /**

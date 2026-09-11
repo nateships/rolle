@@ -7,7 +7,7 @@
 @theme {
     /* Brand stack colors (docs/brand/tokens.json). Blue text uses the focus tint for contrast on charcoal. */
     --color-brand-blue: #244CFF;
-    --color-brand-blue-text: #8BA9FF;
+    --color-brand-blue-text: var(--brand-blue-text);
     --color-brand-orange: #FF7900;
     --color-brand-green: #00CE78;
 }
@@ -58,41 +58,44 @@
 }
 
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
+    /* Rolle light theme: warm ivory ground, charcoal text, cobalt focus. */
+    --brand-blue-text: #244CFF;
+    --background: #F4F0E8;
+    --foreground: #181A1E;
+    --card: #FFFDF9;
+    --card-foreground: #181A1E;
+    --popover: #FFFDF9;
+    --popover-foreground: #181A1E;
+    --primary: #181A1E;
+    --primary-foreground: #F4F0E8;
+    --secondary: #E8E3D9;
+    --secondary-foreground: #181A1E;
+    --muted: #E8E3D9;
+    --muted-foreground: #5C626C;
+    --accent: #E1DCD1;
+    --accent-foreground: #181A1E;
     --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
+    --border: #D6D0C4;
+    --input: #CFC8BB;
+    --ring: #244CFF;
+    --chart-1: #244CFF;
+    --chart-2: #FF7900;
+    --chart-3: #00CE78;
+    --chart-4: #8A8F99;
+    --chart-5: #D6D0C4;
     --radius: 0.5rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    --sidebar: #ECE7DD;
+    --sidebar-foreground: #181A1E;
+    --sidebar-primary: #181A1E;
+    --sidebar-primary-foreground: #F4F0E8;
+    --sidebar-accent: #E1DCD1;
+    --sidebar-accent-foreground: #181A1E;
+    --sidebar-border: #D6D0C4;
+    --sidebar-ring: #244CFF;
 }
 
 .dark {
+    --brand-blue-text: #8BA9FF;
     /* Rolle brand palette (docs/brand/tokens.json), tuned for stronger dark-mode contrast:
        neutral charcoal, lifted surfaces, brighter borders and secondary text. */
     --background: #101114;
@@ -141,6 +144,8 @@
 }
 /* Rolle additions */
 html, body, #root { height: 100%; }
+html { color-scheme: light; }
+html.dark { color-scheme: dark; }
 body { overscroll-behavior: none; -webkit-font-smoothing: antialiased; }
 .drag { --wails-draggable: drag; }
 /* Leading header content moves right of the macOS traffic lights (hidden-inset title bar). */
