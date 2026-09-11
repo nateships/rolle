@@ -4,19 +4,13 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  astro: ^7.3.2
-  esbuild: ^0.28.1
-  path-to-regexp@<6.3.0: ^6.3.0
-  sharp: ^0.35.4
-
 importers:
 
   .:
     dependencies:
       blume:
         specifier: ^1.6.4
-        version: 1.6.4
+        version: 1.6.4(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@shikijs/themes@4.4.3)(@types/node@22.20.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(@vercel/functions@3.9.7)(csstype@3.2.3)(esbuild@0.28.2)(prettier@3.9.6)(vite@8.3.0(@types/node@22.20.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0)
 
 packages:
 
@@ -752,7 +746,6 @@ packages:
     peerDependenciesMeta:
       '@cfworker/json-schema':
         optional: true
-      zod: {}
 
   '@napi-rs/wasm-runtime@1.2.4':
     resolution: {integrity: sha512-AJxoUD2/15ESHbvpcyjU274nsAPLuOtPHCk0vKJM5pj//Fg/B1FXNWjPnXTT9PymCYYiHo4zPj0ZomXBKhoy7g==}
@@ -1193,6 +1186,13 @@ packages:
     resolution: {integrity: sha512-jx1+rPhY/5Ympkktd656HBWEBLxP7dH06losBLjjf5vgCODXvi9KhtftWcMIwTFIDqBr7cRnQkdLnAG+IOlGvQ==}
     engines: {node: '>=14.0.0'}
     cpu: [wasm32]
+    bundledDependencies:
+      - '@napi-rs/wasm-runtime'
+      - '@emnapi/core'
+      - '@emnapi/runtime'
+      - '@tybys/wasm-util'
+      - '@emnapi/wasi-threads'
+      - tslib
 
   '@tailwindcss/oxide-win32-arm64-msvc@4.3.3':
     resolution: {integrity: sha512-3rc292Ca2ceK6Ulcc/bAVnTs/3nDtoPhyEKlgPv+yQJQi/JS/AMJlqzxvlDacL1nekbrcf6bTqp/jV4qgnPxNQ==}
@@ -3520,9 +3520,8 @@ packages:
     resolution: {integrity: sha512-3O/iVVsJAPsOnpwWIeD+d6z/7PmqApyQePUtCndjatj/9I5LylHvt5qluFaBT3I5h3r1ejfR056c+FCv+NnNXg==}
     engines: {node: 18 || 20 || >=22}
 
-  path-to-regexp-updated@6.3.0:
-    resolution: {integrity: sha512-Yhpw4T9C6hPpgPeA28us07OJeqZ5EzQTkbfwuhsUg0c237RomFoETJgmp2sa3F/41gfLE6G5cqcYwznmeEeOlQ==}
-    aliasOf: path-to-regexp
+  path-to-regexp@6.1.0:
+    resolution: {integrity: sha512-h9DqehX3zZZDCEm+xbfU0ZmwCGFCAAraPJWMXJ4+v32NjZJilVg3k1TcKsRgIb8IQ/izZSaydDc1OhJCZvs2Dw==}
 
   path-to-regexp@6.3.0:
     resolution: {integrity: sha512-Yhpw4T9C6hPpgPeA28us07OJeqZ5EzQTkbfwuhsUg0c237RomFoETJgmp2sa3F/41gfLE6G5cqcYwznmeEeOlQ==}
@@ -4470,9 +4469,9 @@ snapshots:
       package-manager-detector: 1.8.0
       tinyexec: 1.3.1
 
-  '@astrojs/check@0.9.10(typescript@6.0.3)':
+  '@astrojs/check@0.9.10(prettier@3.9.6)(typescript@6.0.3)':
     dependencies:
-      '@astrojs/language-server': 2.16.16
+      '@astrojs/language-server': 2.16.16(prettier@3.9.6)(typescript@6.0.3)
       chokidar: 4.0.3
       kleur: 4.1.5
       typescript: 6.0.3
@@ -4499,9 +4498,12 @@ snapshots:
   '@astrojs/compiler-binding-linux-x64-musl@0.4.0':
     optional: true
 
-  '@astrojs/compiler-binding-wasm32-wasi@0.4.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
+  '@astrojs/compiler-binding-wasm32-wasi@0.4.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)':
     dependencies:
-      '@napi-rs/wasm-runtime': 1.2.4(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
+      '@napi-rs/wasm-runtime': 1.2.4(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)
+    transitivePeerDependencies:
+      - '@emnapi/core'
+      - '@emnapi/runtime'
     optional: true
 
   '@astrojs/compiler-binding-win32-arm64-msvc@0.4.0':
@@ -4510,7 +4512,7 @@ snapshots:
   '@astrojs/compiler-binding-win32-x64-msvc@0.4.0':
     optional: true
 
-  '@astrojs/compiler-binding@0.4.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
+  '@astrojs/compiler-binding@0.4.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)':
     optionalDependencies:
       '@astrojs/compiler-binding-darwin-arm64': 0.4.0
       '@astrojs/compiler-binding-darwin-x64': 0.4.0
@@ -4518,13 +4520,19 @@ snapshots:
       '@astrojs/compiler-binding-linux-arm64-musl': 0.4.0
       '@astrojs/compiler-binding-linux-x64-gnu': 0.4.0
       '@astrojs/compiler-binding-linux-x64-musl': 0.4.0
-      '@astrojs/compiler-binding-wasm32-wasi': 0.4.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
+      '@astrojs/compiler-binding-wasm32-wasi': 0.4.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)
       '@astrojs/compiler-binding-win32-arm64-msvc': 0.4.0
       '@astrojs/compiler-binding-win32-x64-msvc': 0.4.0
+    transitivePeerDependencies:
+      - '@emnapi/core'
+      - '@emnapi/runtime'
 
-  '@astrojs/compiler-rs@0.4.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)':
+  '@astrojs/compiler-rs@0.4.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)':
     dependencies:
-      '@astrojs/compiler-binding': 0.4.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
+      '@astrojs/compiler-binding': 0.4.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)
+    transitivePeerDependencies:
+      - '@emnapi/core'
+      - '@emnapi/runtime'
 
   '@astrojs/compiler@2.13.1': {}
 
@@ -4539,7 +4547,7 @@ snapshots:
       smol-toml: 1.8.0
       unified: 11.0.5
 
-  '@astrojs/language-server@2.16.16':
+  '@astrojs/language-server@2.16.16(prettier@3.9.6)(typescript@6.0.3)':
     dependencies:
       '@astrojs/compiler': 2.13.1
       '@astrojs/yaml2ts': 0.2.4
@@ -4553,14 +4561,16 @@ snapshots:
       volar-service-css: 0.0.71(@volar/language-service@2.4.28(typescript@6.0.3))
       volar-service-emmet: 0.0.71(@volar/language-service@2.4.28(typescript@6.0.3))
       volar-service-html: 0.0.71(@volar/language-service@2.4.28(typescript@6.0.3))
-      volar-service-prettier: 0.0.71(@volar/language-service@2.4.28(typescript@6.0.3))
+      volar-service-prettier: 0.0.71(@volar/language-service@2.4.28(typescript@6.0.3))(prettier@3.9.6)
       volar-service-typescript: 0.0.71(@volar/language-service@2.4.28(typescript@6.0.3))(typescript@6.0.3)
       volar-service-typescript-twoslash-queries: 0.0.71(@volar/language-service@2.4.28(typescript@6.0.3))(typescript@6.0.3)
       volar-service-yaml: 0.0.71(@volar/language-service@2.4.28(typescript@6.0.3))
       vscode-html-languageservice: 5.6.2
       vscode-uri: 3.2.0
+    optionalDependencies:
+      prettier: 3.9.6
     transitivePeerDependencies:
-      - prettier
+      - typescript
 
   '@astrojs/markdown-satteri@0.4.1':
     dependencies:
@@ -4569,17 +4579,17 @@ snapshots:
       github-slugger: 2.0.0
       satteri: 0.10.5
 
-  '@astrojs/mdx@8.0.1(@astrojs/markdown-satteri@0.4.1)(astro@7.3.2)':
+  '@astrojs/mdx@8.0.1(@astrojs/markdown-satteri@0.4.1)(astro@7.3.2(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@22.20.2)(@vercel/functions@3.9.7)(jiti@2.7.0)(yaml@2.9.0))':
     dependencies:
       '@astrojs/internal-helpers': 0.11.0
       '@astrojs/markdown-satteri': 0.4.1
-      astro: 7.3.2
+      astro: 7.3.2(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@22.20.2)(@vercel/functions@3.9.7)(jiti@2.7.0)(yaml@2.9.0)
       es-module-lexer: 2.3.2
 
-  '@astrojs/node@11.1.5(astro@7.3.2)':
+  '@astrojs/node@11.1.5(astro@7.3.2(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@22.20.2)(@vercel/functions@3.9.7)(jiti@2.7.0)(yaml@2.9.0))':
     dependencies:
       '@astrojs/internal-helpers': 0.11.0
-      astro: 7.3.2
+      astro: 7.3.2(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@22.20.2)(@vercel/functions@3.9.7)(jiti@2.7.0)(yaml@2.9.0)
       send: 1.2.1
       server-destroy: 1.0.1
     transitivePeerDependencies:
@@ -4589,21 +4599,22 @@ snapshots:
     dependencies:
       prismjs: 1.30.0
 
-  '@astrojs/react@6.0.5(@types/react@19.3.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(react@19.3.0)(react-dom@19.3.0(react@19.3.0))':
+  '@astrojs/react@6.0.5(@types/node@22.20.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(yaml@2.9.0)':
     dependencies:
       '@astrojs/internal-helpers': 0.11.0
       '@types/react': 19.3.0
       '@types/react-dom': 19.3.0(@types/react@19.3.0)
-      '@vitejs/plugin-react': 5.2.0(vite@8.3.0(jiti@2.7.0))
+      '@vitejs/plugin-react': 5.2.0(vite@8.3.0(@types/node@22.20.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))
       devalue: 5.9.2
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
       ultrahtml: 1.7.0
-      vite: 8.3.0(jiti@2.7.0)
+      vite: 8.3.0(@types/node@22.20.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)
     transitivePeerDependencies:
       - '@types/node'
       - '@vitejs/devtools'
       - esbuild
+      - jiti
       - less
       - sass
       - sass-embedded
@@ -4621,14 +4632,14 @@ snapshots:
       is-docker: 4.0.0
       package-manager-detector: 1.8.0
 
-  '@astrojs/vercel@11.0.10(astro@7.3.2)':
+  '@astrojs/vercel@11.0.10(astro@7.3.2(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@22.20.2)(@vercel/functions@3.9.7)(jiti@2.7.0)(yaml@2.9.0))(react@19.3.0)':
     dependencies:
       '@astrojs/internal-helpers': 0.11.0
       '@vercel/analytics': 2.0.1(react@19.3.0)
       '@vercel/functions': 3.9.7
       '@vercel/nft': 1.11.0
       '@vercel/routing-utils': 6.5.0
-      astro: 7.3.2
+      astro: 7.3.2(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@22.20.2)(@vercel/functions@3.9.7)(jiti@2.7.0)(yaml@2.9.0)
       esbuild: 0.28.2
       tinyglobby: 0.2.17
     transitivePeerDependencies:
@@ -4638,6 +4649,7 @@ snapshots:
       - encoding
       - next
       - nuxt
+      - react
       - rollup
       - supports-color
       - svelte
@@ -5173,6 +5185,13 @@ snapshots:
       '@tybys/wasm-util': 0.10.3
     optional: true
 
+  '@napi-rs/wasm-runtime@1.2.4(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)':
+    dependencies:
+      '@emnapi/core': 1.11.1
+      '@emnapi/runtime': 1.11.3
+      '@tybys/wasm-util': 0.10.3
+    optional: true
+
   '@nodable/entities@3.0.0': {}
 
   '@openapi-contrib/openapi-schema-to-json-schema@3.2.0':
@@ -5206,25 +5225,27 @@ snapshots:
   '@pagefind/windows-x64@1.5.2':
     optional: true
 
-  '@pierre/diffs@1.4.1(react@19.3.0)(react-dom@19.3.0(react@19.3.0))':
+  '@pierre/diffs@1.4.1(@shikijs/themes@4.4.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       '@pierre/theme': 2.0.0
-      '@pierre/theming': 1.0.1(@pierre/theme@2.0.0)(react@19.3.0)(react-dom@19.3.0(react@19.3.0))(shiki@4.4.3)
+      '@pierre/theming': 1.0.1(@pierre/theme@2.0.0)(@shikijs/themes@4.4.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(shiki@4.4.3)
       '@shikijs/transformers': 4.4.3
       diff: 9.0.0
       hast-util-to-html: 9.0.5
       lru_map: 0.4.1
+      shiki: 4.4.3
+    optionalDependencies:
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
-      shiki: 4.4.3
     transitivePeerDependencies:
       - '@shikijs/themes'
 
   '@pierre/theme@2.0.0': {}
 
-  '@pierre/theming@1.0.1(@pierre/theme@2.0.0)(react@19.3.0)(react-dom@19.3.0(react@19.3.0))(shiki@4.4.3)':
-    dependencies:
+  '@pierre/theming@1.0.1(@pierre/theme@2.0.0)(@shikijs/themes@4.4.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(shiki@4.4.3)':
+    optionalDependencies:
       '@pierre/theme': 2.0.0
+      '@shikijs/themes': 4.4.3
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
       shiki: 4.4.3
@@ -5284,10 +5305,10 @@ snapshots:
       estree-walker: 2.0.2
       picomatch: 4.0.7
 
-  '@scalar/astro@0.4.18(astro@7.3.2)':
+  '@scalar/astro@0.4.18(astro@7.3.2(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@22.20.2)(@vercel/functions@3.9.7)(jiti@2.7.0)(yaml@2.9.0))':
     dependencies:
       '@scalar/client-side-rendering': 0.4.0
-      astro: 7.3.2
+      astro: 7.3.2(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@22.20.2)(@vercel/functions@3.9.7)(jiti@2.7.0)(yaml@2.9.0)
 
   '@scalar/client-side-rendering@0.4.0':
     dependencies:
@@ -5593,13 +5614,6 @@ snapshots:
 
   '@tailwindcss/oxide-wasm32-wasi@4.3.3':
     optional: true
-    bundledDependencies:
-      - '@emnapi/core'
-      - '@emnapi/runtime'
-      - '@emnapi/wasi-threads'
-      - '@napi-rs/wasm-runtime'
-      - '@tybys/wasm-util'
-      - tslib
 
   '@tailwindcss/oxide-win32-arm64-msvc@4.3.3':
     optional: true
@@ -5627,12 +5641,12 @@ snapshots:
       postcss-selector-parser: 6.0.10
       tailwindcss: 4.3.3
 
-  '@tailwindcss/vite@4.3.3(vite@8.3.0(jiti@2.7.0))':
+  '@tailwindcss/vite@4.3.3(vite@8.3.0(@types/node@22.20.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))':
     dependencies:
       '@tailwindcss/node': 4.3.3
       '@tailwindcss/oxide': 4.3.3
       tailwindcss: 4.3.3
-      vite: 8.3.0(jiti@2.7.0)
+      vite: 8.3.0(@types/node@22.20.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)
 
   '@takumi-rs/core-darwin-arm64@2.13.7':
     optional: true
@@ -5658,7 +5672,7 @@ snapshots:
   '@takumi-rs/core-win32-x64-msvc@2.13.7':
     optional: true
 
-  '@takumi-rs/core@2.13.7':
+  '@takumi-rs/core@2.13.7(csstype@3.2.3)(react@19.3.0)':
     dependencies:
       '@takumi-rs/helpers': 2.13.7(react@19.3.0)
     optionalDependencies:
@@ -5670,18 +5684,23 @@ snapshots:
       '@takumi-rs/core-linux-x64-musl': 2.13.7
       '@takumi-rs/core-win32-arm64-msvc': 2.13.7
       '@takumi-rs/core-win32-x64-msvc': 2.13.7
+      csstype: 3.2.3
     transitivePeerDependencies:
       - preact
+      - react
 
   '@takumi-rs/helpers@2.13.7(react@19.3.0)':
-    dependencies:
+    optionalDependencies:
       react: 19.3.0
 
-  '@takumi-rs/wasm@2.13.7':
+  '@takumi-rs/wasm@2.13.7(csstype@3.2.3)(react@19.3.0)':
     dependencies:
       '@takumi-rs/helpers': 2.13.7(react@19.3.0)
+    optionalDependencies:
+      csstype: 3.2.3
     transitivePeerDependencies:
       - preact
+      - react
 
   '@tybys/wasm-util@0.10.3':
     dependencies:
@@ -5892,7 +5911,7 @@ snapshots:
       d3-transition: 3.0.1(d3-selection@3.0.0)
 
   '@vercel/analytics@2.0.1(react@19.3.0)':
-    dependencies:
+    optionalDependencies:
       react: 19.3.0
 
   '@vercel/cli-config@0.2.6':
@@ -5937,12 +5956,12 @@ snapshots:
 
   '@vercel/routing-utils@6.5.0':
     dependencies:
-      path-to-regexp: 6.3.0
-      path-to-regexp-updated: 6.3.0
+      path-to-regexp: 6.1.0
+      path-to-regexp-updated: path-to-regexp@6.3.0
     optionalDependencies:
       ajv: 6.15.0
 
-  '@vitejs/plugin-react@5.2.0(vite@8.3.0(jiti@2.7.0))':
+  '@vitejs/plugin-react@5.2.0(vite@8.3.0(@types/node@22.20.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))':
     dependencies:
       '@babel/core': 7.29.7
       '@babel/plugin-transform-react-jsx-self': 7.29.7(@babel/core@7.29.7)
@@ -5950,7 +5969,7 @@ snapshots:
       '@rolldown/pluginutils': 1.0.0-rc.3
       '@types/babel__core': 7.20.5
       react-refresh: 0.18.0
-      vite: 8.3.0(jiti@2.7.0)
+      vite: 8.3.0(@types/node@22.20.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)
     transitivePeerDependencies:
       - supports-color
 
@@ -5974,19 +5993,21 @@ snapshots:
       '@volar/typescript': 2.4.28(typescript@6.0.3)
       path-browserify: 1.0.1
       request-light: 0.7.0
-      typescript: 6.0.3
       vscode-languageserver: 9.0.1
       vscode-languageserver-protocol: 3.18.3
       vscode-languageserver-textdocument: 1.0.14
       vscode-uri: 3.2.0
+    optionalDependencies:
+      typescript: 6.0.3
 
   '@volar/language-service@2.4.28(typescript@6.0.3)':
     dependencies:
       '@volar/language-core': 2.4.28
-      typescript: 6.0.3
       vscode-languageserver-protocol: 3.18.3
       vscode-languageserver-textdocument: 1.0.14
       vscode-uri: 3.2.0
+    optionalDependencies:
+      typescript: 6.0.3
 
   '@volar/source-map@2.4.28': {}
 
@@ -5994,8 +6015,9 @@ snapshots:
     dependencies:
       '@volar/language-core': 2.4.28
       path-browserify: 1.0.1
-      typescript: 6.0.3
       vscode-uri: 3.2.0
+    optionalDependencies:
+      typescript: 6.0.3
 
   '@vscode/emmet-helper@2.11.0':
     dependencies:
@@ -6036,7 +6058,7 @@ snapshots:
       zod: 4.6.1
 
   ajv-draft-04@1.0.0(ajv@8.20.0):
-    dependencies:
+    optionalDependencies:
       ajv: 8.20.0
 
   ajv-errors@3.0.0(ajv@8.20.0):
@@ -6044,11 +6066,11 @@ snapshots:
       ajv: 8.20.0
 
   ajv-formats@2.1.1(ajv@8.20.0):
-    dependencies:
+    optionalDependencies:
       ajv: 8.20.0
 
   ajv-formats@3.0.1(ajv@8.20.0):
-    dependencies:
+    optionalDependencies:
       ajv: 8.20.0
 
   ajv-i18n@4.2.0(ajv@8.20.0):
@@ -6112,9 +6134,9 @@ snapshots:
 
   astring@1.9.0: {}
 
-  astro@7.3.2:
+  astro@7.3.2(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@22.20.2)(@vercel/functions@3.9.7)(jiti@2.7.0)(yaml@2.9.0):
     dependencies:
-      '@astrojs/compiler-rs': 0.4.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.1)
+      '@astrojs/compiler-rs': 0.4.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)
       '@astrojs/internal-helpers': 0.11.0
       '@astrojs/markdown-satteri': 0.4.1
       '@astrojs/telemetry': 3.3.3
@@ -6161,14 +6183,14 @@ snapshots:
       tinyglobby: 0.2.17
       ultrahtml: 1.7.0
       unifont: 0.7.5
-      unstorage: 1.17.5
-      vite: 8.3.0(esbuild@0.28.2)(jiti@2.7.0)
-      vitefu: 1.1.3(vite@8.3.0(esbuild@0.28.2)(jiti@2.7.0))
+      unstorage: 1.17.5(@vercel/functions@3.9.7)
+      vite: 8.3.0(@types/node@22.20.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)
+      vitefu: 1.1.3(vite@8.3.0(@types/node@22.20.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))
       xxhash-wasm: 1.1.0
       yargs-parser: 22.0.0
       zod: 4.6.1
     optionalDependencies:
-      sharp: 0.35.4
+      sharp: 0.35.4(@types/node@22.20.2)
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -6178,6 +6200,8 @@ snapshots:
       - '@azure/storage-blob'
       - '@capacitor/preferences'
       - '@deno/kv'
+      - '@emnapi/core'
+      - '@emnapi/runtime'
       - '@netlify/blobs'
       - '@planetscale/database'
       - '@types/node'
@@ -6190,6 +6214,7 @@ snapshots:
       - db0
       - idb-keyval
       - ioredis
+      - jiti
       - less
       - sass
       - sass-embedded
@@ -6230,14 +6255,14 @@ snapshots:
     dependencies:
       file-uri-to-path: 1.0.0
 
-  blume@1.6.4:
+  blume@1.6.4(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@shikijs/themes@4.4.3)(@types/node@22.20.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(@vercel/functions@3.9.7)(csstype@3.2.3)(esbuild@0.28.2)(prettier@3.9.6)(vite@8.3.0(@types/node@22.20.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))(yaml@2.9.0):
     dependencies:
-      '@astrojs/check': 0.9.10(typescript@6.0.3)
+      '@astrojs/check': 0.9.10(prettier@3.9.6)(typescript@6.0.3)
       '@astrojs/markdown-satteri': 0.4.1
-      '@astrojs/mdx': 8.0.1(@astrojs/markdown-satteri@0.4.1)(astro@7.3.2)
-      '@astrojs/node': 11.1.5(astro@7.3.2)
-      '@astrojs/react': 6.0.5(@types/react@19.3.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(react@19.3.0)(react-dom@19.3.0(react@19.3.0))
-      '@astrojs/vercel': 11.0.10(astro@7.3.2)
+      '@astrojs/mdx': 8.0.1(@astrojs/markdown-satteri@0.4.1)(astro@7.3.2(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@22.20.2)(@vercel/functions@3.9.7)(jiti@2.7.0)(yaml@2.9.0))
+      '@astrojs/node': 11.1.5(astro@7.3.2(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@22.20.2)(@vercel/functions@3.9.7)(jiti@2.7.0)(yaml@2.9.0))
+      '@astrojs/react': 6.0.5(@types/node@22.20.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(esbuild@0.28.2)(jiti@2.7.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(yaml@2.9.0)
+      '@astrojs/vercel': 11.0.10(astro@7.3.2(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@22.20.2)(@vercel/functions@3.9.7)(jiti@2.7.0)(yaml@2.9.0))(react@19.3.0)
       '@asyncapi/converter': 2.0.2
       '@clack/prompts': 1.8.0
       '@iconify-json/lucide': 1.2.131
@@ -6245,18 +6270,18 @@ snapshots:
       '@iconify/utils': 3.1.7
       '@modelcontextprotocol/sdk': 1.30.0(zod@4.6.1)
       '@orama/orama': 3.1.18
-      '@pierre/diffs': 1.4.1(react@19.3.0)(react-dom@19.3.0(react@19.3.0))
-      '@scalar/astro': 0.4.18(astro@7.3.2)
+      '@pierre/diffs': 1.4.1(@shikijs/themes@4.4.3)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@scalar/astro': 0.4.18(astro@7.3.2(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@22.20.2)(@vercel/functions@3.9.7)(jiti@2.7.0)(yaml@2.9.0))
       '@scalar/openapi-parser': 0.29.1
       '@scalar/openapi-types': 0.9.5
       '@shikijs/transformers': 4.4.3
       '@shikijs/twoslash': 4.4.3(typescript@6.0.3)
       '@tailwindcss/typography': 0.5.20(tailwindcss@4.3.3)
-      '@tailwindcss/vite': 4.3.3(vite@8.3.0(jiti@2.7.0))
+      '@tailwindcss/vite': 4.3.3(vite@8.3.0(@types/node@22.20.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0))
       '@types/mdast': 4.0.4
       '@vercel/analytics': 2.0.1(react@19.3.0)
       ai: 7.0.97(zod@4.6.1)
-      astro: 7.3.2
+      astro: 7.3.2(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@types/node@22.20.2)(@vercel/functions@3.9.7)(jiti@2.7.0)(yaml@2.9.0)
       babel-plugin-react-compiler: 1.0.0
       chokidar: 5.0.0
       citty: 0.2.2
@@ -6298,13 +6323,13 @@ snapshots:
       robots-parser: 3.0.1
       satteri: 0.10.5
       semver: 7.8.5
-      sharp: 0.35.4
+      sharp: 0.35.4(@types/node@22.20.2)
       shiki: 4.4.3
       simple-icons: 16.30.0
       string-width: 8.2.2
       sucrase: 3.35.1
       tailwindcss: 4.3.3
-      takumi-js: 2.13.7(react@19.3.0)
+      takumi-js: 2.13.7(csstype@3.2.3)(react@19.3.0)
       tinyglobby: 0.2.17
       twoslash: 0.3.9(typescript@6.0.3)
       typescript: 6.0.3
@@ -6324,12 +6349,16 @@ snapshots:
       - '@capacitor/preferences'
       - '@cfworker/json-schema'
       - '@deno/kv'
+      - '@emnapi/core'
+      - '@emnapi/runtime'
       - '@netlify/blobs'
       - '@planetscale/database'
       - '@remix-run/react'
       - '@shikijs/themes'
       - '@sveltejs/kit'
       - '@types/node'
+      - '@types/react'
+      - '@types/react-dom'
       - '@upstash/redis'
       - '@vercel/blob'
       - '@vercel/functions'
@@ -6358,6 +6387,7 @@ snapshots:
       - terser
       - tsx
       - uploadthing
+      - vite
       - vue
       - vue-router
       - ws
@@ -7161,7 +7191,7 @@ snapshots:
       strictdom: 1.0.1
 
   fdir@6.5.0(picomatch@4.0.7):
-    dependencies:
+    optionalDependencies:
       picomatch: 4.0.7
 
   file-uri-to-path@1.0.0: {}
@@ -8316,7 +8346,7 @@ snapshots:
       lru-cache: 11.5.2
       minipass: 7.1.3
 
-  path-to-regexp-updated@6.3.0: {}
+  path-to-regexp@6.1.0: {}
 
   path-to-regexp@6.3.0: {}
 
@@ -8622,7 +8652,7 @@ snapshots:
 
   setprototypeof@1.2.0: {}
 
-  sharp@0.35.4:
+  sharp@0.35.4(@types/node@22.20.2):
     dependencies:
       '@img/colour': 1.1.0
       detect-libc: 2.1.2
@@ -8653,6 +8683,7 @@ snapshots:
       '@img/sharp-win32-arm64': 0.35.4
       '@img/sharp-win32-ia32': 0.35.4
       '@img/sharp-win32-x64': 0.35.4
+      '@types/node': 22.20.2
 
   shebang-command@2.0.0:
     dependencies:
@@ -8808,14 +8839,15 @@ snapshots:
 
   tailwindcss@4.3.3: {}
 
-  takumi-js@2.13.7(react@19.3.0):
+  takumi-js@2.13.7(csstype@3.2.3)(react@19.3.0):
     dependencies:
-      '@takumi-rs/core': 2.13.7
+      '@takumi-rs/core': 2.13.7(csstype@3.2.3)(react@19.3.0)
       '@takumi-rs/helpers': 2.13.7(react@19.3.0)
-      '@takumi-rs/wasm': 2.13.7
+      '@takumi-rs/wasm': 2.13.7(csstype@3.2.3)(react@19.3.0)
     transitivePeerDependencies:
       - csstype
       - preact
+      - react
 
   tapable@2.3.3: {}
 
@@ -8983,7 +9015,7 @@ snapshots:
 
   unpipe@1.0.0: {}
 
-  unstorage@1.17.5:
+  unstorage@1.17.5(@vercel/functions@3.9.7):
     dependencies:
       anymatch: 3.1.3
       chokidar: 5.0.0
@@ -8993,6 +9025,8 @@ snapshots:
       node-fetch-native: 1.6.7
       ofetch: 1.5.1
       ufo: 1.6.4
+    optionalDependencies:
+      '@vercel/functions': 3.9.7
 
   update-browserslist-db@1.3.3(browserslist@4.28.9):
     dependencies:
@@ -9031,82 +9065,81 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vite@8.3.0(esbuild@0.28.2)(jiti@2.7.0):
+  vite@8.3.0(@types/node@22.20.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0):
     dependencies:
+      lightningcss: 1.33.0
+      picomatch: 4.0.7
+      postcss: 8.5.28
+      rolldown: 1.2.8
+      tinyglobby: 0.2.17
+    optionalDependencies:
+      '@types/node': 22.20.2
       esbuild: 0.28.2
-      jiti: 2.7.0
-      lightningcss: 1.33.0
-      picomatch: 4.0.7
-      postcss: 8.5.28
-      rolldown: 1.2.8
-      tinyglobby: 0.2.17
-    optionalDependencies:
       fsevents: 2.3.3
-
-  vite@8.3.0(jiti@2.7.0):
-    dependencies:
       jiti: 2.7.0
-      lightningcss: 1.33.0
-      picomatch: 4.0.7
-      postcss: 8.5.28
-      rolldown: 1.2.8
-      tinyglobby: 0.2.17
-    optionalDependencies:
-      fsevents: 2.3.3
+      yaml: 2.9.0
 
-  vitefu@1.1.3(vite@8.3.0(esbuild@0.28.2)(jiti@2.7.0)):
-    dependencies:
-      vite: 8.3.0(esbuild@0.28.2)(jiti@2.7.0)
+  vitefu@1.1.3(vite@8.3.0(@types/node@22.20.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)):
+    optionalDependencies:
+      vite: 8.3.0(@types/node@22.20.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.0)
 
   volar-service-css@0.0.71(@volar/language-service@2.4.28(typescript@6.0.3)):
     dependencies:
-      '@volar/language-service': 2.4.28(typescript@6.0.3)
       vscode-css-languageservice: 6.3.10
       vscode-languageserver-textdocument: 1.0.14
       vscode-uri: 3.2.0
+    optionalDependencies:
+      '@volar/language-service': 2.4.28(typescript@6.0.3)
 
   volar-service-emmet@0.0.71(@volar/language-service@2.4.28(typescript@6.0.3)):
     dependencies:
       '@emmetio/css-parser': 0.4.1
       '@emmetio/html-matcher': 1.3.0
-      '@volar/language-service': 2.4.28(typescript@6.0.3)
       '@vscode/emmet-helper': 2.11.0
       vscode-uri: 3.2.0
+    optionalDependencies:
+      '@volar/language-service': 2.4.28(typescript@6.0.3)
 
   volar-service-html@0.0.71(@volar/language-service@2.4.28(typescript@6.0.3)):
     dependencies:
-      '@volar/language-service': 2.4.28(typescript@6.0.3)
       vscode-html-languageservice: 5.6.2
       vscode-languageserver-textdocument: 1.0.14
       vscode-uri: 3.2.0
-
-  volar-service-prettier@0.0.71(@volar/language-service@2.4.28(typescript@6.0.3)):
-    dependencies:
+    optionalDependencies:
       '@volar/language-service': 2.4.28(typescript@6.0.3)
+
+  volar-service-prettier@0.0.71(@volar/language-service@2.4.28(typescript@6.0.3))(prettier@3.9.6):
+    dependencies:
       vscode-uri: 3.2.0
+    optionalDependencies:
+      '@volar/language-service': 2.4.28(typescript@6.0.3)
+      prettier: 3.9.6
 
   volar-service-typescript-twoslash-queries@0.0.71(@volar/language-service@2.4.28(typescript@6.0.3))(typescript@6.0.3):
     dependencies:
+      vscode-uri: 3.2.0
+    optionalDependencies:
       '@volar/language-service': 2.4.28(typescript@6.0.3)
       typescript: 6.0.3
-      vscode-uri: 3.2.0
 
   volar-service-typescript@0.0.71(@volar/language-service@2.4.28(typescript@6.0.3))(typescript@6.0.3):
     dependencies:
-      '@volar/language-service': 2.4.28(typescript@6.0.3)
       path-browserify: 1.0.1
       semver: 7.8.5
-      typescript: 6.0.3
       typescript-auto-import-cache: 0.3.6
       vscode-languageserver-textdocument: 1.0.14
       vscode-nls: 5.2.0
       vscode-uri: 3.2.0
+    optionalDependencies:
+      '@volar/language-service': 2.4.28(typescript@6.0.3)
+      typescript: 6.0.3
 
   volar-service-yaml@0.0.71(@volar/language-service@2.4.28(typescript@6.0.3)):
     dependencies:
-      '@volar/language-service': 2.4.28(typescript@6.0.3)
       vscode-uri: 3.2.0
       yaml-language-server: 1.23.0
+    optionalDependencies:
+      '@volar/language-service': 2.4.28(typescript@6.0.3)
 
   vscode-css-languageservice@6.3.10:
     dependencies:
