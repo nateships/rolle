@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, Check, Cloud, Copy, Download, ExternalLink, KeyRound, Loader2, RefreshCw, ShieldCheck, Sparkles, Terminal } from "lucide-react";
 import { toast } from "sonner";
@@ -48,26 +48,57 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
   const index = ORDER.indexOf(step);
   const go = (s: Step) => setStep(s);
 
-  // Mouse back (button 3) and forward (button 4) move between steps. Steps that
-  // depend on a completed sign-in are never skipped into, and a pending
+  // Back and forward. The webview turns mouse back/forward buttons and trackpad
+  // swipes into history navigation, so each step is a history entry and
+  // popstate drives the step. Keyboard: Cmd/Ctrl+[ ], Alt+Left/Right.
+  // Steps that need a completed sign-in are never skipped into, and a pending
   // approval is never abandoned.
+  const BACK: Partial<Record<Step, Step>> = { cloud: "welcome", connect: "cloud", roles: "cloud", done: "roles" };
+  const FORWARD: Partial<Record<Step, Step>> = { welcome: "cloud", cloud: "connect", roles: "done" };
+  const stepRef = useRef(step);
+  stepRef.current = step;
+  const busyRef = useRef(busy);
+  busyRef.current = busy;
+
   useEffect(() => {
-    const BACK: Partial<Record<Step, Step>> = { cloud: "welcome", connect: "cloud", roles: "cloud", done: "roles" };
-    const FORWARD: Partial<Record<Step, Step>> = { welcome: "cloud", cloud: "connect", roles: "done" };
+    // Mirror the current step into history so the webview has entries to move through.
+    const current = (history.state as { step?: Step } | null)?.step;
+    if (current !== step) history.pushState({ step }, "");
+  }, [step]);
+
+  useEffect(() => {
+    const move = (dir: "back" | "forward") => {
+      const from = stepRef.current;
+      const target = dir === "back" ? BACK[from] : FORWARD[from];
+      if (target && !busyRef.current) setStep(target);
+      else history.pushState({ step: from }, ""); // stay put, keep an entry ahead of us
+    };
+    const onPop = (e: PopStateEvent) => {
+      const wanted = (e.state as { step?: Step } | null)?.step;
+      const from = stepRef.current;
+      const fromIdx = ORDER.indexOf(from);
+      const dir = wanted && ORDER.indexOf(wanted) > fromIdx ? "forward" : "back";
+      move(dir);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if ((mod && e.key === "[") || (e.altKey && e.key === "ArrowLeft")) { e.preventDefault(); move("back"); }
+      if ((mod && e.key === "]") || (e.altKey && e.key === "ArrowRight")) { e.preventDefault(); move("forward"); }
+    };
     const onMouseUp = (e: MouseEvent) => {
-      if (e.button !== 3 && e.button !== 4) return;
-      e.preventDefault();
-      const target = e.button === 3 ? BACK[step] : FORWARD[step];
-      if (target && !busy) setStep(target);
+      if (e.button === 3) { e.preventDefault(); move("back"); }
+      if (e.button === 4) { e.preventDefault(); move("forward"); }
     };
-    const swallow = (e: MouseEvent) => { if (e.button === 3 || e.button === 4) e.preventDefault(); };
+    window.addEventListener("popstate", onPop);
+    window.addEventListener("keydown", onKey);
     window.addEventListener("mouseup", onMouseUp);
-    window.addEventListener("mousedown", swallow);
     return () => {
+      window.removeEventListener("popstate", onPop);
+      window.removeEventListener("keydown", onKey);
       window.removeEventListener("mouseup", onMouseUp);
-      window.removeEventListener("mousedown", swallow);
     };
-  }, [step, busy]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function finish() {
     try {
