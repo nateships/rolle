@@ -1,29 +1,43 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { GreetService } from "../bindings/github.com/nateships/rolle/apps/desktop";
+import { AnimatePresence, motion } from "motion/react";
+import { useWorkspace } from "@/lib/api";
+import { Onboarding } from "@/components/onboarding/Onboarding";
+import { Dashboard } from "@/components/dashboard/Dashboard";
+import { Mark } from "@/components/Brand";
 
 export default function App() {
-  const [name, setName] = useState("");
-  const [greeting, setGreeting] = useState("");
+  const { workspace, error, reload } = useWorkspace();
 
-  async function greet() {
-    setGreeting(await GreetService.Greet(name || "Rolle"));
+  if (error) {
+    return (
+      <main className="flex h-full flex-col items-center justify-center gap-4 bg-background p-8 text-foreground">
+        <Mark className="size-12 text-destructive" />
+        <p className="max-w-md text-center text-sm text-muted-foreground">{error}</p>
+        <button className="text-sm underline" onClick={() => void reload()}>Retry</button>
+      </main>
+    );
+  }
+
+  if (!workspace) {
+    return (
+      <main className="drag flex h-full items-center justify-center bg-background text-foreground">
+        <Mark className="size-12 text-primary" animate />
+      </main>
+    );
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background p-8 text-foreground">
-      <h1 className="text-3xl font-semibold tracking-tight">Rolle</h1>
-      <p className="text-muted-foreground">Assume any role, any cloud.</p>
-      <div className="flex gap-2">
-        <input
-          className="h-9 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          placeholder="Your name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <Button onClick={greet}>Greet</Button>
-      </div>
-      {greeting && <p className="text-sm">{greeting}</p>}
-    </main>
+    <div className="h-full bg-background text-foreground">
+      <AnimatePresence mode="wait">
+        {workspace.onboarded ? (
+          <motion.div key="dash" className="h-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.35 }}>
+            <Dashboard workspace={workspace} />
+          </motion.div>
+        ) : (
+          <motion.div key="onb" className="h-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.35 }}>
+            <Onboarding workspace={workspace} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

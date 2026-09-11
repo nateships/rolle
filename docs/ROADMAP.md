@@ -15,10 +15,10 @@ Out of scope: browser multi-session tooling (AWS provides this natively).
 - [x] CLI: integration, session, start, stop, creds, env, console
 
 ## 2. Desktop app
-- [ ] Dark mode default, design tokens
-- [ ] Walkthrough onboarding with animations and completion celebration
-- [ ] Sessions dashboard: start, stop, copy credentials, open console
-- [ ] Integration management
+- [x] Dark mode default, design tokens
+- [x] Walkthrough onboarding with animations and completion celebration
+- [x] Sessions dashboard: start, stop, copy credentials, open console
+- [x] Integration management
 
 ## 3. Azure
 - [ ] Entra ID login (MSAL), subscription discovery, ARM tokens

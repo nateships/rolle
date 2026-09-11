@@ -276,7 +276,12 @@ func hasSSORole(w *core.Workspace, integrationID, accountID, role string) bool {
 
 // AddAssumeRoleInput describes a new AssumeRole session.
 type AddAssumeRoleInput struct {
-	Name, Region, RoleARN, SourceRef, ExternalID, Profile string
+	Name       string `json:"name"`
+	Region     string `json:"region"`
+	RoleARN    string `json:"roleArn"`
+	SourceRef  string `json:"sourceRef"`
+	ExternalID string `json:"externalId"`
+	Profile    string `json:"profile"`
 }
 
 // AddAssumeRole creates a session that assumes a role from another session.
