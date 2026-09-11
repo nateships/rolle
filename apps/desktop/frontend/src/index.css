@@ -9,6 +9,8 @@
   --color-brand-blue: #244cff;
   --color-brand-orange: #ff7900;
   --color-brand-green: #00ce78;
+  /* Green for small text. Darker on ivory, brand green on charcoal. */
+  --color-brand-green-text: var(--brand-green-text);
 }
 
 @theme inline {
@@ -58,6 +60,7 @@
 
 :root {
   /* Rolle light theme: warm ivory ground, charcoal text, cobalt focus. */
+  --brand-green-text: #0b8f5a;
   --background: #f4f0e8;
   --foreground: #181a1e;
   --card: #fffdf9;
@@ -93,6 +96,7 @@
 }
 
 .dark {
+  --brand-green-text: #00ce78;
   /* Rolle brand palette (docs/brand/tokens.json), tuned for stronger dark-mode contrast:
        neutral charcoal, lifted surfaces, brighter borders and secondary text. */
   --background: #101114;
@@ -149,6 +153,7 @@ html {
   color-scheme: light;
 }
 html.dark {
+  --brand-green-text: #00ce78;
   color-scheme: dark;
 }
 body {

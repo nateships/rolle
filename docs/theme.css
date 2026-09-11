@@ -17,3 +17,9 @@ header a[href="/"] {
 header a[href="/"] img {
   height: 3rem;
 }
+
+/* The light logo carries a soft halo inside the file, so it is 1.5x taller than the dark one.
+   Scaling it up keeps the gopher the same size in both themes. */
+header a[href="/"] img[src="/logo-light.svg"] {
+  height: 4.5rem;
+}

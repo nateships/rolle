@@ -162,8 +162,8 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   return (
     <div className="flex h-full">
       <aside className="flex w-64 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
-        <div className="drag flex h-16 items-center justify-end px-4 pt-2">
-          <GopherLockup className="h-10" />
+        <div className="drag flex h-20 items-center justify-end px-5 pt-3">
+          <GopherLockup className="h-12" />
         </div>
         <nav className="flex-1 space-y-4 overflow-y-auto px-2 py-2">
           <div>
@@ -609,9 +609,7 @@ function Empty({
     const signedIn = isLoggedIn(integration);
     return (
       <div className="flex h-full flex-col items-center justify-center text-center">
-        <div className="rounded-2xl bg-card p-4">
-          <GopherMark className="size-20" />
-        </div>
+        <GopherMark className="size-24" />
         <h3 className="mt-5 text-lg font-medium">
           {signedIn ? `No sessions in ${integration.alias}` : `${integration.alias} is signed out`}
         </h3>
@@ -634,9 +632,7 @@ function Empty({
   }
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
-      <div className="rounded-2xl bg-card p-4">
-        <GopherMark className="size-20" />
-      </div>
+      <GopherMark className="size-24" />
       <h3 className="mt-5 text-lg font-medium">{hasAny ? "Nothing matches" : "No sessions yet"}</h3>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">
         {hasAny

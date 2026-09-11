@@ -1,9 +1,8 @@
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import gopher from "@/assets/brand/gopher.png";
-import gopherLight from "@/assets/brand/gopher-light.svg";
-import logoDark from "@/assets/brand/logo-dark.svg";
-import logoLight from "@/assets/brand/logo-light.svg";
+import wordmarkCharcoal from "@/assets/brand/wordmark-charcoal.svg";
+import wordmarkIvory from "@/assets/brand/wordmark-ivory.svg";
 import awsLogoDark from "@/assets/vendors/aws-dark.svg";
 import awsLogoLight from "@/assets/vendors/aws-light.svg";
 import azureLogo from "@/assets/vendors/azure.svg";
@@ -83,40 +82,31 @@ export function Lockup({ className, markClassName }: { className?: string; markC
   );
 }
 
-/** The gopher artwork alone. Light surfaces put it on a gray tile so the ivory body stays visible. */
+/**
+ * The gopher artwork at full size. On light surfaces a blurred gray halo sits behind it so the
+ * ivory body stays visible. The halo scales with the artwork and fades into the background.
+ */
 export function GopherMark({ className }: { className?: string }) {
   return (
-    <>
-      <img
-        src={gopherLight}
-        alt=""
-        aria-hidden
-        draggable={false}
-        className={cn("size-16 select-none object-contain dark:hidden", className)}
-      />
-      <img
-        src={gopher}
-        alt=""
-        aria-hidden
-        draggable={false}
-        className={cn("hidden size-16 select-none object-contain dark:block", className)}
-      />
-    </>
+    <span
+      className={cn(
+        "@container relative isolate inline-block aspect-[385/294] h-16 shrink-0 select-none before:absolute before:inset-[6%] before:-z-10 before:rounded-[20%] before:bg-[#8b9099] before:blur-[9cqw] dark:before:hidden",
+        className,
+      )}
+    >
+      <img src={gopher} alt="" aria-hidden draggable={false} className="size-full object-contain" />
+    </span>
   );
 }
 
-/** The gopher artwork with the wordmark, one file per theme. Height comes from className. */
+/** The gopher with the wordmark beside it. Height comes from className; the parts scale with it. */
 export function GopherLockup({ className }: { className?: string }) {
   return (
-    <>
-      <img src={logoLight} alt="Rolle" className={cn("w-auto select-none dark:hidden", className)} draggable={false} />
-      <img
-        src={logoDark}
-        alt="Rolle"
-        className={cn("hidden w-auto select-none dark:block", className)}
-        draggable={false}
-      />
-    </>
+    <span className={cn("inline-flex h-10 items-center gap-[0.15em]", className)}>
+      <GopherMark className="h-full w-auto" />
+      <img src={wordmarkCharcoal} alt="Rolle" className="h-[55%] w-auto select-none dark:hidden" draggable={false} />
+      <img src={wordmarkIvory} alt="Rolle" className="hidden h-[55%] w-auto select-none dark:block" draggable={false} />
+    </span>
   );
 }
 

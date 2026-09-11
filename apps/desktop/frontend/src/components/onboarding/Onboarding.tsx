@@ -57,7 +57,7 @@ const accentFor = (step: Step, cloud: CloudChoice): Accent => (step === "connect
 const ACCENT_TEXT: Record<Accent, string> = {
   blue: "text-brand-blue",
   orange: "text-brand-orange",
-  green: "text-brand-green",
+  green: "text-brand-green-text",
 };
 const ACCENT_BG: Record<Accent, string> = {
   blue: "bg-brand-blue",
@@ -345,7 +345,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                 initial={{ scale: 0.6, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ type: "spring", stiffness: 180, damping: 16 }}
-                className="mb-8 rounded-2xl bg-card p-6 text-primary"
+                className="mb-8"
               >
                 <GopherMark className="size-28" />
               </motion.div>
@@ -379,7 +379,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
               {!found.loading && found.count > 0 && (
                 <div className="mt-6 rounded-2xl border bg-card p-4">
                   <div className="mb-3 flex items-center gap-2">
-                    <Import className="size-4 text-brand-green" />
+                    <Import className="size-4 text-brand-green-text" />
                     <p className="text-sm font-medium">Found on this machine</p>
                     <span className="text-xs text-muted-foreground">
                       From the AWS, Azure, and Google CLIs, Granted, and Leapp.
@@ -680,7 +680,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                         {s.aws?.accountId ?? s.azure?.subscriptionId ?? s.gcp?.projectId ?? s.region}
                       </p>
                     </div>
-                    <Check className="size-4 text-emerald-400" />
+                    <Check className="size-4 text-emerald-600 dark:text-emerald-400" />
                   </motion.li>
                 ))}
                 {discovered.length === 0 && (
@@ -735,7 +735,7 @@ function Done({ count, onFinish }: { count: number; onFinish: () => void }) {
         initial={{ scale: 0, rotate: -30 }}
         animate={{ scale: 1, rotate: 0 }}
         transition={{ type: "spring", stiffness: 200, damping: 12, delay: 0.1 }}
-        className="mb-6 rounded-full bg-emerald-500/15 p-5 text-emerald-400"
+        className="mb-6 rounded-full bg-emerald-500/15 p-5 text-emerald-600 dark:text-emerald-400"
       >
         <Check className="size-12" strokeWidth={3} />
       </motion.div>
@@ -824,7 +824,7 @@ function CloudCard({
         {soon ? (
           <Badge variant="secondary">Soon</Badge>
         ) : connected ? (
-          <Badge variant="outline" className="gap-1 border-brand-green/40 bg-brand-green/10 text-brand-green">
+          <Badge variant="outline" className="gap-1 border-brand-green/40 bg-brand-green/10 text-brand-green-text">
             <Check className="size-3" /> Connected
           </Badge>
         ) : found ? (
@@ -1116,7 +1116,7 @@ export function GCPConnect({ busy, onSubmit }: { busy: boolean; onSubmit: (alias
         </div>
       ) : status.ready ? (
         <div className="flex items-center gap-3 rounded-lg border border-brand-green/40 bg-brand-green/5 px-3 py-2 text-sm">
-          <Check className="size-4 text-brand-green" />
+          <Check className="size-4 text-brand-green-text" />
           <span className="truncate">
             Signed in as <span className="font-medium">{status.account || "a Google account"}</span>
           </span>

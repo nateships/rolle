@@ -140,7 +140,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
             {saving ? (
               <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
             ) : justSaved ? (
-              <span className="flex items-center gap-1 text-xs font-normal text-emerald-400">
+              <span className="flex items-center gap-1 text-xs font-normal text-emerald-600 dark:text-emerald-400">
                 <Check className="size-3.5" /> Saved
               </span>
             ) : null}

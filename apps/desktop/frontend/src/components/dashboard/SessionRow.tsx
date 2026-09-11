@@ -200,7 +200,7 @@ export function SessionRow({
                 className={cn(
                   "relative inline-flex size-7 items-center justify-center rounded-full border transition-colors disabled:opacity-60",
                   active
-                    ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25"
+                    ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-300"
                     : "border-border text-muted-foreground hover:border-foreground/40 hover:bg-accent hover:text-foreground",
                 )}
               >
@@ -290,7 +290,7 @@ export function SessionRow({
             <span
               className={cn(
                 "flex items-center gap-1.5 font-mono text-xs tabular-nums",
-                active ? "text-emerald-300" : "text-muted-foreground/70",
+                active ? "text-emerald-700 dark:text-emerald-300" : "text-muted-foreground/70",
               )}
             >
               {active ? (
