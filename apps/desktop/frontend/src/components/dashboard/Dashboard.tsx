@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence } from "motion/react";
 import { Cloud, Import, KeyRound, LogIn, LogOut, MoreHorizontal, Pencil, Plus, RefreshCw, Search, Settings as SettingsIcon, ShieldCheck, Star, Trash2, UserCog, Waypoints } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -7,13 +7,14 @@ import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Lockup, Mark } from "@/components/Brand";
 import { SessionRow } from "./SessionRow";
+import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DevTools } from "@/components/DevTools";
 import { SettingsDialog } from "@/components/dialogs/SettingsDialog";
 import { RenameDialog } from "@/components/dialogs/RenameDialog";
 import { ImportDialog } from "@/components/dialogs/ImportDialog";
 import { AddSSODialog, AddAssumeRoleDialog, AddIAMUserDialog, AddAzureDialog, AddGCPDialog, AddGCPImpersonationDialog, LoginDialog } from "@/components/dialogs/Dialogs";
-import { api, errorMessage, inWails, Cloud as CloudKind, Status, type Integration, type Workspace } from "@/lib/api";
-import { isLoggedIn, useNow } from "@/lib/format";
+import { api, errorMessage, inWails, Cloud as CloudKind, Status, type Integration, type Session, type Workspace } from "@/lib/api";
+import { cloudOf, isLoggedIn, useNow } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 type Dialog = null | { kind: "sso" } | { kind: "assume" } | { kind: "iam" } | { kind: "azure" } | { kind: "gcp" } | { kind: "gcp-impersonate" } | { kind: "login"; integration: Integration } | { kind: "settings" } | { kind: "rename"; integration: Integration } | { kind: "import" };
@@ -50,7 +51,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     return workspace.sessions
       .filter((s) => (filter === null ? true : filter === "manual" ? !s.integrationId : filter === "favorites" ? s.favorite : s.integrationId === filter))
       .filter((s) => !q || s.name.toLowerCase().includes(q) || (s.aws?.accountId ?? "").includes(q) || (s.aws?.roleName ?? "").toLowerCase().includes(q))
-      .sort((a, b) => Number(b.status === Status.StatusActive) - Number(a.status === Status.StatusActive) || a.name.localeCompare(b.name));
+      .sort((a, b) => cloudOrder[cloudOf(a.kind)] - cloudOrder[cloudOf(b.kind)] || a.name.localeCompare(b.name));
   }, [workspace.sessions, query, filter]);
 
   const favorites = sessions.filter((s) => s.favorite);
@@ -189,24 +190,16 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
               onSync={(integ) => run("Synced", () => (integ.cloud === CloudKind.CloudAzure ? api.SyncAzure(integ.id) : integ.cloud === CloudKind.CloudGCP ? api.SyncGCP(integ.id) : api.SyncSSO(integ.id)))}
             />
           ) : (
-            <div className="space-y-5">
+            <div className="space-y-6">
               {showFavoritesPanel && (
                 <section>
                   <h2 className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground"><Star className="size-3 fill-current text-brand-orange" /> Favorites</h2>
-                  <motion.ul layout className="space-y-1.5">
-                    <AnimatePresence initial={false}>
-                      {favorites.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} now={now} onNeedsLogin={(i, startId) => { setPendingStart(startId ?? null); setDialog({ kind: "login", integration: i }); }} />)}
-                    </AnimatePresence>
-                  </motion.ul>
+                  <SessionTable sessions={favorites} workspace={workspace} now={now} onNeedsLogin={(i, startId) => { setPendingStart(startId ?? null); setDialog({ kind: "login", integration: i }); }} />
                 </section>
               )}
               <section>
                 {showFavoritesPanel && <h2 className="mb-2 px-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">All sessions</h2>}
-                <motion.ul layout className="space-y-1.5">
-                  <AnimatePresence initial={false}>
-                    {rest.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} now={now} onNeedsLogin={(i, startId) => { setPendingStart(startId ?? null); setDialog({ kind: "login", integration: i }); }} />)}
-                  </AnimatePresence>
-                </motion.ul>
+                <SessionTable sessions={rest} workspace={workspace} now={now} onNeedsLogin={(i, startId) => { setPendingStart(startId ?? null); setDialog({ kind: "login", integration: i }); }} />
               </section>
             </div>
           )}
@@ -237,6 +230,32 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
         target={dialog?.kind === "rename" ? { kind: "integration", id: dialog.integration.id, name: dialog.integration.alias, save: (n) => api.RenameIntegration(dialog.integration.id, n) } : null}
         onClose={() => setDialog(null)}
       />
+    </div>
+  );
+}
+
+const cloudOrder = { aws: 0, azure: 1, gcp: 2 } as const;
+
+function SessionTable({ sessions, workspace, now, onNeedsLogin }: { sessions: Session[]; workspace: Workspace; now: number; onNeedsLogin: (i: Integration, startId?: string) => void }) {
+  return (
+    <div className="overflow-hidden rounded-lg border bg-card">
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="w-14" />
+            <TableHead>Session</TableHead>
+            <TableHead className="w-40">Profile</TableHead>
+            <TableHead className="w-52">Region</TableHead>
+            <TableHead className="w-36">State</TableHead>
+            <TableHead className="w-64" />
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <AnimatePresence initial={false}>
+            {sessions.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} now={now} onNeedsLogin={onNeedsLogin} />)}
+          </AnimatePresence>
+        </TableBody>
+      </Table>
     </div>
   );
 }

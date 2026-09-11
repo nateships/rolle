@@ -15,7 +15,7 @@ import (
 
 func sessionCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "session", Aliases: []string{"sess"}, Short: "Manage sessions"}
-	cmd.AddCommand(sessionListCmd(), sessionAddCmd(), sessionRemoveCmd(), sessionProfileCmd())
+	cmd.AddCommand(sessionListCmd(), sessionAddCmd(), sessionRemoveCmd(), sessionProfileCmd(), sessionRegionCmd())
 	return cmd
 }
 
@@ -129,5 +129,14 @@ func sessionProfileCmd() *cobra.Command {
 			}
 			return svc.SetProfile(args[0], name)
 		},
+	}
+}
+
+func sessionRegionCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "region <session> <region>",
+		Short: "Change the region of an AWS session",
+		Args:  cobra.ExactArgs(2),
+		RunE:  func(_ *cobra.Command, args []string) error { return svc.SetRegion(args[0], args[1]) },
 	}
 }

@@ -259,6 +259,13 @@ export function SetProfile(ref: string, profile: string): $CancellablePromise<vo
 }
 
 /**
+ * SetRegion changes an AWS session's region.
+ */
+export function SetRegion(ref: string, region: string): $CancellablePromise<void> {
+    return $Call.ByID(658228237, ref, region);
+}
+
+/**
  * Settings returns the effective user preferences.
  */
 export function Settings(): $CancellablePromise<core$0.Settings> {

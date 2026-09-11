@@ -346,6 +346,9 @@ func (r *RolleService) SetFavorite(ref string, favorite bool) error {
 	return r.svc.SetFavorite(ref, favorite)
 }
 
+// SetRegion changes an AWS session's region.
+func (r *RolleService) SetRegion(ref, region string) error { return r.svc.SetRegion(ref, region) }
+
 // SetProfile sets the AWS profile name for a session. Empty restores the default.
 func (r *RolleService) SetProfile(ref, profile string) error { return r.svc.SetProfile(ref, profile) }
 

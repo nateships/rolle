@@ -77,9 +77,9 @@ func main() {
 
 	window := a.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:     "Rolle",
-		Width:     1120,
+		Width:     1280,
 		Height:    720,
-		MinWidth:  820,
+		MinWidth:  980,
 		MinHeight: 560,
 		Mac: application.MacWindow{
 			InvisibleTitleBarHeight: 44,

@@ -820,3 +820,30 @@ func (s *Service) SetProfile(ref, profile string) error {
 	}
 	return s.Save(w)
 }
+
+// SetRegion changes an AWS session's region. An active session rewrites its
+// profile so the new region applies to the next command.
+func (s *Service) SetRegion(ref, region string) error {
+	region = strings.TrimSpace(region)
+	if region == "" {
+		return errors.New("region cannot be empty")
+	}
+	w, err := s.Load()
+	if err != nil {
+		return err
+	}
+	sess, err := FindSession(w, ref)
+	if err != nil {
+		return err
+	}
+	if sess.Kind.Cloud() != core.CloudAWS {
+		return fmt.Errorf("%s is not an AWS session", sess.Name)
+	}
+	sess.Region = region
+	if sess.Status == core.StatusActive {
+		if err := s.writeCloudFiles(sess); err != nil {
+			return err
+		}
+	}
+	return s.Save(w)
+}

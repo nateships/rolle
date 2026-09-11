@@ -307,3 +307,21 @@ func TestSharedProfileHandsOverOnStart(t *testing.T) {
 		t.Fatal("sharing a profile name must be allowed")
 	}
 }
+
+func TestSetRegionRewritesActiveProfile(t *testing.T) {
+	s := testService(t)
+	sess, _ := s.AddIAMUser(AddIAMUserInput{Name: "r", Region: "us-east-1", Key: aws.AccessKey{AccessKeyID: "A", SecretAccessKey: "B"}})
+	if _, err := s.Start(context.Background(), sess.ID, StartOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetRegion(sess.ID, "eu-west-1"); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := os.ReadFile(s.AWSConfigPath)
+	if !strings.Contains(string(data), "region = eu-west-1") {
+		t.Fatalf("aws config:\n%s", data)
+	}
+	if err := s.SetRegion(sess.ID, " "); err == nil {
+		t.Fatal("empty region accepted")
+	}
+}
