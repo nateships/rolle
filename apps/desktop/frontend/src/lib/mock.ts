@@ -1,6 +1,6 @@
 // Browser-only mock of the Go service so the UI can be developed with
 // `aube run dev` outside Wails. Never bundled into the desktop app path.
-import type { Credentials, Integration, Session, Workspace as CoreWorkspace } from "../../bindings/github.com/nateships/rolle/internal/core";
+import { Status, type Credentials, type Integration, type Session, type Workspace as CoreWorkspace } from "../../bindings/github.com/nateships/rolle/internal/core";
 type Workspace = Omit<CoreWorkspace, "sessions" | "integrations"> & { sessions: Session[]; integrations: Integration[] };
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -47,8 +47,8 @@ export const mockApi = {
   AddAssumeRole: async (v: { name: string; roleArn: string; region: string; sourceRef: string }) => { const s = { id: id(), name: v.name, kind: "aws-assume-role", region: v.region, status: "inactive", aws: { roleArn: v.roleArn, sourceSessionId: v.sourceRef } } as Session; state.sessions.push(s); emit(); return s; },
   AddIAMUser: async (v: { name: string; region: string; mfaDevice: string }) => { const s = { id: id(), name: v.name, kind: "aws-iam-user", region: v.region, status: "inactive", aws: { mfaDevice: v.mfaDevice } } as Session; state.sessions.push(s); emit(); return s; },
   RemoveSession: async (ref: string) => { state.sessions = state.sessions.filter((s) => s.id !== ref); emit(); },
-  Start: async (ref: string) => { await wait(700); const s = state.sessions.find((x) => x.id === ref)!; s.status = "active"; s.expires = new Date(Date.now() + 3.6e6).toISOString(); emit(); return creds; },
-  Stop: async (ref: string) => { const s = state.sessions.find((x) => x.id === ref)!; s.status = "inactive"; s.expires = null; emit(); },
+  Start: async (ref: string) => { await wait(700); const s = state.sessions.find((x) => x.id === ref)!; s.status = Status.StatusActive; s.expires = new Date(Date.now() + 3.6e6).toISOString(); emit(); return creds; },
+  Stop: async (ref: string) => { const s = state.sessions.find((x) => x.id === ref)!; s.status = Status.StatusInactive; s.expires = null; emit(); },
   Credentials: async () => creds,
   ProfileName: async (ref: string) => (state.sessions.find((x) => x.id === ref)?.name ?? "").replace(/[^A-Za-z0-9._-]/g, "-"),
   EnvText: async () => "export AWS_ACCESS_KEY_ID=ASIAMOCK\n",
