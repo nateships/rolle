@@ -150,10 +150,7 @@ function AccountRow({ row, open, onToggle }: { row: Row & { group: true }; open:
       className={cn("cursor-pointer select-none border-b bg-muted/20 transition-colors hover:bg-muted/50", active > 0 && "bg-emerald-500/[0.04]")}
     >
       <TableCell className="pr-0">
-        <div className="flex items-center gap-2">
-          <span className={cn("size-2 shrink-0 rounded-full", active > 0 ? "bg-emerald-400" : "bg-muted-foreground/30")} />
-          <ChevronRight className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-90")} />
-        </div>
+        <ChevronRight className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-90")} />
       </TableCell>
       <TableCell colSpan={4}>
         <div className="flex items-center gap-2.5">
