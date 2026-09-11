@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  cli:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: jdx/mise-action@v2
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  desktop:
+    needs: cli
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            task: darwin:package:universal
+            artifact: apps/desktop/bin/Rolle.app
+          - os: windows-latest
+            task: windows:package
+            artifact: apps/desktop/bin/Rolle-amd64-installer.exe
+          - os: ubuntu-latest
+            task: linux:create:appimage linux:create:deb
+            artifact: apps/desktop/bin/Rolle-*
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Wails Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev build-essential pkg-config
+      - uses: jdx/mise-action@v2
+      - run: mise run setup
+      - name: Package
+        working-directory: apps/desktop
+        run: for t in ${{ matrix.task }}; do wails3 task "$t"; done
+        shell: bash
+      - name: Zip macOS app
+        if: runner.os == 'macOS'
+        working-directory: apps/desktop/bin
+        run: ditto -c -k --keepParent Rolle.app Rolle-macos-universal.zip
+      - name: Upload to release
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=(apps/desktop/bin/Rolle-macos-universal.zip apps/desktop/bin/*.exe apps/desktop/bin/*.AppImage apps/desktop/bin/*.deb apps/desktop/bin/*.rpm)
+          gh release upload "${GITHUB_REF_NAME}" "${files[@]}" --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
