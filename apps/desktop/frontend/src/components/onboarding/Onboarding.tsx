@@ -824,7 +824,7 @@ function CloudCard({
         {soon ? (
           <Badge variant="secondary">Soon</Badge>
         ) : connected ? (
-          <Badge variant="outline" className="gap-1 border-brand-green/40 text-brand-green">
+          <Badge variant="outline" className="gap-1 border-brand-green/40 bg-brand-green/10 text-brand-green">
             <Check className="size-3" /> Connected
           </Badge>
         ) : found ? (

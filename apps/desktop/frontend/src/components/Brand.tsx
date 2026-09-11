@@ -83,7 +83,7 @@ export function Lockup({ className, markClassName }: { className?: string; markC
   );
 }
 
-/** The gopher artwork alone. Light surfaces use the outlined variant so the ivory body stays visible. */
+/** The gopher artwork alone. Light surfaces put it on a gray tile so the ivory body stays visible. */
 export function GopherMark({ className }: { className?: string }) {
   return (
     <>

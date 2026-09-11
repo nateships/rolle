@@ -217,7 +217,7 @@ function FoundRow({
             variant="outline"
             className={cn(
               "h-5 px-1.5 text-[10px] font-normal",
-              badgeOk ? "border-brand-green/40 text-brand-green" : "text-muted-foreground",
+              badgeOk ? "border-brand-green/40 bg-brand-green/10 text-brand-green" : "text-muted-foreground",
             )}
           >
             {badge}
