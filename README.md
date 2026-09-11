@@ -30,8 +30,7 @@ tools without writing a secret to disk. It covers AWS, Azure, and Google Cloud.
 
 Rolle imports what your machine already has: Identity Center portals from the
 AWS CLI and Granted, Azure tenants from the az CLI, gcloud credentials, and
-sessions from a [Leapp](https://github.com/Noovolari/leapp) workspace. Browser
-multi-session tooling is out of scope. The AWS console provides it.
+sessions from a [Leapp](https://github.com/Noovolari/leapp) workspace.
 
 ## Install
 
@@ -85,7 +84,7 @@ rolle stop <session>
 - `internal/terminal`: opens a terminal with a session's environment
 - `cmd/rolle`: CLI
 - `apps/desktop`: Wails v3 desktop app (React, Tailwind v4, shadcn/ui)
-- `docs`: docs site for getrolle.com (Blume, deployed by Vercel); `docs/brand` holds the brand kit
+- `docs`: docs site for getrolle.com (Blume, built by Vercel with aube); `docs/brand` holds the brand kit
 
 ## Brand kit
 
@@ -107,8 +106,8 @@ mise run hooks          # every pre-commit hook on the whole tree
 mise run desktop
 ```
 
-Tools come from mise. Desktop frontend packages use [aube](https://aube.sh).
-The docs site uses npm because Vercel installs it. `mise run docs` serves it locally.
+Tools come from mise. Frontend and docs packages use [aube](https://aube.sh).
+`mise run docs` serves the docs site locally.
 
 Set `ROLLE_DEBUG=1` (or pass `rolle --debug`) for verbose diagnostics from the
 CLI and the desktop app. `mise run reset` wipes the local workspace, secrets,
@@ -118,4 +117,4 @@ See [getrolle.com/roadmap](https://getrolle.com/roadmap) for what works and what
 
 ## License
 
-[MIT](LICENSE). The Go gopher artwork in the README is CC BY 4.0 (see above).
+[GPL-3.0-or-later](LICENSE). Forks and redistributions must stay open under the same terms. The Go gopher artwork in the README is CC BY 4.0 (see above).

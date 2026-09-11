@@ -4,7 +4,7 @@
 extend-exclude = [
   "apps/desktop/frontend/bindings/",
   "apps/desktop/frontend/aube-lock.yaml",
-  "docs/package-lock.json",
+  "docs/aube-lock.yaml",
   "docs/brand/fonts/",
   "*.svg",
   "*.icns",

@@ -11,7 +11,7 @@ exclude: |
   (?x)^(
     apps/desktop/frontend/bindings/.*|
     apps/desktop/frontend/aube-lock\.yaml|
-    docs/package-lock\.json|
+    docs/aube-lock\.yaml|
     docs/brand/.*|
     .*\.icns|
     .*\.min\.(js|css)

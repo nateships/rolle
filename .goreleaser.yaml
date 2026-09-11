@@ -40,7 +40,7 @@ homebrew_casks:
     ids: [rolle]
     binaries: [rolle]
     homepage: https://getrolle.com
-    license: MIT
+    license: GPL-3.0-or-later
     description: Assume any role, any cloud
     directory: Casks
     skip_upload: auto

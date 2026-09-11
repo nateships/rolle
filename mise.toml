@@ -49,12 +49,12 @@ dir = "apps/desktop"
 
 [tasks.docs]
 description = "Run the docs site locally"
-run = ["npm install --no-fund --no-audit", "npm run dev"]
+run = ["aube install", "aube run dev"]
 dir = "docs"
 
 [tasks."docs:build"]
 description = "Build the docs site"
-run = ["npm ci --no-fund --no-audit", "npm run build"]
+run = ["aube ci", "aube run build"]
 dir = "docs"
 
 [tasks.reset]
