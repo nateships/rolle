@@ -1,5 +1,7 @@
 .task
 bin
+# Keep dist tracked as an empty placeholder so go:embed compiles on a clean checkout.
+!frontend/dist/
 frontend/dist/*
 !frontend/dist/.gitkeep
 frontend/node_modules
