@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Mark, Lockup, CloudGlyph } from "@/components/Brand";
 import { RegionSelect } from "@/components/RegionSelect";
+import { DevTools } from "@/components/DevTools";
 import { Events } from "@wailsio/runtime";
 import { api, errorMessage, inWails, type Session, type Workspace } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
@@ -337,8 +338,10 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
           {step === "done" && <Done key="done" count={discovered.length} onFinish={finish} />}
         </AnimatePresence>
       </main>
-      <footer className="relative z-10 px-6 pb-4 text-center text-xs text-muted-foreground">
-        {workspace.sessions.length > 0 && step !== "done" ? `${workspace.sessions.length} session(s) in your workspace` : "Secrets stay in your OS keychain."}
+      <footer className="relative z-10 grid grid-cols-[1fr_auto_1fr] items-center px-6 pb-4 text-xs text-muted-foreground">
+        <span />
+        <span>{workspace.sessions.length > 0 && step !== "done" ? `${workspace.sessions.length} session(s) in your workspace` : "Secrets stay in your OS keychain."}</span>
+        <span className="flex justify-end"><DevTools /></span>
       </footer>
     </div>
   );

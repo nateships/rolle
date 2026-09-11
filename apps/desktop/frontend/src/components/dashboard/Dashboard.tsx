@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Lockup, CloudGlyph } from "@/components/Brand";
 import { SessionRow } from "./SessionRow";
+import { DevTools } from "@/components/DevTools";
 import { AddSSODialog, AddAssumeRoleDialog, AddIAMUserDialog, AddAzureDialog, AddGCPDialog, AddGCPImpersonationDialog, LoginDialog } from "@/components/dialogs/Dialogs";
 import { api, errorMessage, Cloud as CloudKind, Status, type Integration, type Workspace } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -109,11 +110,12 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
             );
           })}
         </nav>
-        <div className="border-t p-3 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between border-t p-3 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             <span className={cn("relative inline-block size-2 rounded-full", active > 0 ? "bg-emerald-400 text-emerald-400 pulse-ring" : "bg-muted-foreground/40")} />
             {active} active
           </div>
+          <DevTools />
         </div>
       </aside>
 

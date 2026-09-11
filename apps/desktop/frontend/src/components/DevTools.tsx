@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { api, errorMessage } from "@/lib/api";
 
-/** Floating dev menu. Only rendered when the backend was built without the production tag. */
+/** Inline dev menu for layout footers. Only rendered when the backend was built without the production tag. */
 export function DevTools() {
   const [dev, setDev] = useState(false);
   useEffect(() => {
@@ -23,7 +23,7 @@ export function DevTools() {
   };
 
   return (
-    <div className="no-drag fixed bottom-3 left-3 z-50">
+    <div className="no-drag">
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button size="sm" variant="outline" className="h-7 gap-1.5 border-dashed px-2 font-mono text-[11px] uppercase tracking-wider text-muted-foreground">

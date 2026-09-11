@@ -3,7 +3,6 @@ import { useWorkspace } from "@/lib/api";
 import { Onboarding } from "@/components/onboarding/Onboarding";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { Mark } from "@/components/Brand";
-import { DevTools } from "@/components/DevTools";
 
 export default function App() {
   const { workspace, error, reload } = useWorkspace();
@@ -28,7 +27,6 @@ export default function App() {
 
   return (
     <div className="h-full bg-background text-foreground">
-      <DevTools />
       <AnimatePresence mode="wait">
         {workspace.onboarded ? (
           <motion.div key="dash" className="h-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.35 }}>
