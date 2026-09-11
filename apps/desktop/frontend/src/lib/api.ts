@@ -1,10 +1,24 @@
 import { useCallback, useEffect, useState } from "react";
 import { Events } from "@wailsio/runtime";
 import { RolleService } from "../../bindings/github.com/nateships/rolle/apps/desktop";
-import type { Workspace } from "../../bindings/github.com/nateships/rolle/internal/core";
+import type { Integration, Session, Workspace as CoreWorkspace } from "../../bindings/github.com/nateships/rolle/internal/core";
 
-export { RolleService as api };
-export type { Session, Integration, Credentials, Workspace } from "../../bindings/github.com/nateships/rolle/internal/core";
+/** Workspace with the nullable Go slices normalised to arrays. */
+export type Workspace = Omit<CoreWorkspace, "sessions" | "integrations"> & { sessions: Session[]; integrations: Integration[] };
+
+function normalise(w: CoreWorkspace | null): Workspace | null {
+  if (!w) return null;
+  return { ...w, sessions: w.sessions ?? [], integrations: w.integrations ?? [] };
+}
+import { mockApi } from "./mock";
+
+/** True when running inside the Wails webview rather than a plain browser. */
+const inWails = typeof window !== "undefined" && "_wails" in window;
+
+// Outside Wails (plain `aube run dev`) fall back to an in-memory mock so the UI
+// can be designed and demoed without the Go backend.
+export const api: typeof RolleService = inWails ? RolleService : (mockApi as unknown as typeof RolleService);
+export type { Session, Integration, Credentials } from "../../bindings/github.com/nateships/rolle/internal/core";
 export { Kind, Status, Cloud } from "../../bindings/github.com/nateships/rolle/internal/core";
 
 export const WORKSPACE_CHANGED = "workspace:changed";
@@ -16,8 +30,8 @@ export function useWorkspace() {
 
   const reload = useCallback(async () => {
     try {
-      const w = await RolleService.Workspace();
-      setWorkspace(w);
+      const w = await api.Workspace();
+      setWorkspace(normalise(w));
       setError(null);
     } catch (e) {
       setError(errorMessage(e));
@@ -26,8 +40,8 @@ export function useWorkspace() {
 
   useEffect(() => {
     void reload();
-    const off = Events.On(WORKSPACE_CHANGED, () => void reload());
-    return () => off();
+    const off = inWails ? Events.On(WORKSPACE_CHANGED, () => void reload()) : mockApi.onChange(() => void reload());
+    return () => void off();
   }, [reload]);
 
   return { workspace, error, reload };

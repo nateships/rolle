@@ -115,8 +115,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                         const dl = await api.StartSSOLogin(integ.id);
                         setLogin(dl);
                         go("approve");
-                        const added = await api.WaitSSOLogin(integ.id);
-                        setDiscovered(added);
+                        setDiscovered((await api.WaitSSOLogin(integ.id)) ?? []);
                         go("roles");
                       } catch (e) {
                         toast.error(errorMessage(e));
@@ -161,8 +160,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                       setAlias(integ.alias);
                       setLogin(null);
                       go("approve");
-                      const added = await api.AzureLogin(integ.id);
-                      setDiscovered(added);
+                      setDiscovered((await api.AzureLogin(integ.id)) ?? []);
                       go("roles");
                     } catch (e) {
                       toast.error(errorMessage(e));
@@ -186,8 +184,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                   onSubmit={async (alias) => {
                     setBusy(true);
                     try {
-                      const added = await api.AddGCP(alias);
-                      setDiscovered(added);
+                      setDiscovered((await api.AddGCP(alias)) ?? []);
                       go("roles");
                     } catch (e) {
                       toast.error(errorMessage(e));

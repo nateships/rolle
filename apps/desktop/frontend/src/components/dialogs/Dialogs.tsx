@@ -54,12 +54,12 @@ export function LoginDialog({ integration, onClose }: { integration: Integration
       try {
         let sessions: Session[];
         if (integration.cloud === Cloud.CloudAzure) {
-          sessions = await api.AzureLogin(integration.id);
+          sessions = (await api.AzureLogin(integration.id)) ?? [];
         } else {
           const dl = await api.StartSSOLogin(integration.id);
           if (cancelled) return;
           setLogin(dl);
-          sessions = await api.WaitSSOLogin(integration.id);
+          sessions = (await api.WaitSSOLogin(integration.id)) ?? [];
         }
         if (cancelled) return;
         setAdded(sessions);
@@ -257,7 +257,7 @@ export function AddGCPDialog({ open, onClose }: { open: boolean; onClose: () => 
             onSubmit={async (alias) => {
               setBusy(true);
               try {
-                const added = await api.AddGCP(alias);
+                const added = (await api.AddGCP(alias)) ?? [];
                 toast.success(`${added.length} project${added.length === 1 ? "" : "s"} discovered`);
                 if (added.length > 0) celebrate("small");
                 onClose();
