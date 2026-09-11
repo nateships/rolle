@@ -346,6 +346,9 @@ func (r *RolleService) SetFavorite(ref string, favorite bool) error {
 	return r.svc.SetFavorite(ref, favorite)
 }
 
+// SetProfile sets the AWS profile name for a session. Empty restores the default.
+func (r *RolleService) SetProfile(ref, profile string) error { return r.svc.SetProfile(ref, profile) }
+
 // RenameSession changes a session's name.
 func (r *RolleService) RenameSession(ref, name string) error {
 	return r.svc.RenameSession(ref, name)

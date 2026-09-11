@@ -32,7 +32,17 @@ type Profile struct {
 	Executable string
 }
 
-const marker = "rolle_session"
+const (
+	marker = "rolle_session"
+	// preexisting records that the section existed before Rolle wrote it, so
+	// Remove restores it instead of deleting it.
+	preexisting = "rolle_preexisting"
+	prevRegion  = "rolle_previous_region"
+)
+
+// credentialKeys make a foreign profile off limits: Rolle never overwrites
+// another tool's credential configuration.
+var credentialKeys = []string{"credential_process", "aws_access_key_id", "aws_secret_access_key", "aws_session_token", "sso_start_url", "sso_session", "role_arn", "source_profile", "credential_source", "web_identity_token_file", "granted_sso_start_url"}
 
 func init() {
 	// Keep "key = value" on one column so the file stays diff-friendly.
@@ -48,13 +58,24 @@ func Write(path string, p Profile) error {
 		return err
 	}
 	name := sectionName(p.Name)
-	if sec, err := f.GetSection(name); err == nil && !sec.HasKey(marker) {
-		return fmt.Errorf("profile %q already exists in %s and is not managed by rolle", p.Name, path)
-	}
-	f.DeleteSection(name)
-	sec, err := f.NewSection(name)
-	if err != nil {
-		return err
+	sec, err := f.GetSection(name)
+	switch {
+	case err != nil:
+		if sec, err = f.NewSection(name); err != nil {
+			return err
+		}
+	case !sec.HasKey(marker):
+		// A plain section (region, output, ...) is taken over and restored on
+		// Remove. A section with credentials belongs to another tool.
+		for _, k := range credentialKeys {
+			if sec.HasKey(k) {
+				return fmt.Errorf("profile %q in %s is configured by another tool (%s)", p.Name, path, k)
+			}
+		}
+		sec.Key(preexisting).SetValue("true")
+		if sec.HasKey("region") && p.Region != "" {
+			sec.Key(prevRegion).SetValue(sec.Key("region").String())
+		}
 	}
 	if p.Region != "" {
 		sec.Key("region").SetValue(p.Region)
@@ -75,7 +96,20 @@ func Remove(path, name, sessionID string) error {
 	if err != nil || sec.Key(marker).String() != sessionID {
 		return nil
 	}
-	f.DeleteSection(sec.Name())
+	if !sec.HasKey(preexisting) {
+		f.DeleteSection(sec.Name())
+		return save(path, f)
+	}
+	// Restore the section the user had before Rolle took it over.
+	sec.DeleteKey("credential_process")
+	sec.DeleteKey(marker)
+	sec.DeleteKey(preexisting)
+	if sec.HasKey(prevRegion) {
+		sec.Key("region").SetValue(sec.Key(prevRegion).String())
+		sec.DeleteKey(prevRegion)
+	} else if sec.HasKey("region") && wroteRegion(sec) {
+		sec.DeleteKey("region")
+	}
 	return save(path, f)
 }
 
@@ -119,3 +153,7 @@ func save(path string, f *ini.File) error {
 	}
 	return os.Rename(tmp, path)
 }
+
+// wroteRegion reports whether the region key was added by Rolle: a taken-over
+// section without a saved previous region had none before.
+func wroteRegion(sec *ini.Section) bool { return !sec.HasKey(prevRegion) }

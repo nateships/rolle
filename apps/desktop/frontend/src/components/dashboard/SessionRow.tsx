@@ -8,17 +8,20 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { CloudGlyph } from "@/components/Brand";
 import { MFADialog } from "@/components/dialogs/Dialogs";
-import { RenameDialog } from "@/components/dialogs/RenameDialog";
+import { RenameDialog, type RenameTarget } from "@/components/dialogs/RenameDialog";
 import { api, errorMessage, Kind, Status, type Integration, type Session, type Workspace } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
 import { copyText } from "@/lib/clipboard";
-import { cloudOf, kindLabel, remaining, sessionSubtitle } from "@/lib/format";
+import { cloudOf, isLoggedIn, kindLabel, remaining, sessionSubtitle } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-export function SessionRow({ session: s, workspace, now, onNeedsLogin }: { session: Session; workspace: Workspace; now: number; onNeedsLogin?: (integration: Integration) => void }) {
+const isAWSKind = (k: string) => cloudOf(k) === "aws";
+
+export function SessionRow({ session: s, workspace, now, onNeedsLogin }: { session: Session; workspace: Workspace; now: number; onNeedsLogin?: (integration: Integration, startSessionId?: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
-  const [renaming, setRenaming] = useState(false);
+  const [editing, setEditing] = useState<RenameTarget | null>(null);
+  const profileName = isAWSKind(s.kind) ? (s.aws?.profile || "default") : "";
   const active = s.status === Status.StatusActive;
   const needsMFA = s.kind === Kind.KindAWSIAMUser && !!s.aws?.mfaDevice;
   const source = s.aws?.sourceSessionId ? workspace.sessions.find((x) => x.id === s.aws?.sourceSessionId) : undefined;
@@ -26,6 +29,11 @@ export function SessionRow({ session: s, workspace, now, onNeedsLogin }: { sessi
   async function start(mfaCode = "") {
     setBusy(true);
     const integration = workspace.integrations.find((i) => i.id === s.integrationId);
+    if (integration && !isLoggedIn(integration) && onNeedsLogin) {
+      setBusy(false);
+      onNeedsLogin(integration, s.id);
+      return;
+    }
     try {
       await api.Start(s.id, mfaCode);
       const first = !workspace.sessions.some((x) => x.status === Status.StatusActive);
@@ -37,7 +45,7 @@ export function SessionRow({ session: s, workspace, now, onNeedsLogin }: { sessi
     } catch (e) {
       const msg = errorMessage(e);
       if (/login required/i.test(msg) && integration && onNeedsLogin) {
-        toast.error(`${integration.alias} is signed out`, { description: "Sign in, then start the session again.", action: { label: "Sign in", onClick: () => onNeedsLogin(integration) } });
+        onNeedsLogin(integration, s.id);
       } else {
         toast.error(msg);
       }
@@ -94,7 +102,7 @@ export function SessionRow({ session: s, workspace, now, onNeedsLogin }: { sessi
           <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-normal text-muted-foreground">{kindLabel[s.kind] ?? s.kind}</Badge>
           {s.region && <span className="whitespace-nowrap text-[11px] text-muted-foreground/70">{s.region}</span>}
         </div>
-        <p className="truncate font-mono text-[11px] text-muted-foreground">{sessionSubtitle(s)}{source ? ` · via ${source.name}` : ""}</p>
+        <p className="truncate font-mono text-[11px] text-muted-foreground">{sessionSubtitle(s)}{source ? ` · via ${source.name}` : ""}{profileName ? ` · --profile ${profileName}` : ""}</p>
       </div>
       <span className={cn("flex w-28 items-center justify-end gap-1.5 font-mono text-xs tabular-nums", active ? "text-emerald-300" : "text-muted-foreground/70")}>
         {active ? <><span className="font-sans font-medium">Active</span><span>{remaining(s.expires, now)}</span></> : <span className="font-sans">Inactive</span>}
@@ -112,7 +120,8 @@ export function SessionRow({ session: s, workspace, now, onNeedsLogin }: { sessi
           <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm"><MoreHorizontal /></Button></DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-56">
             <DropdownMenuItem onClick={() => api.SetFavorite(s.id, !s.favorite).catch((e) => toast.error(errorMessage(e)))}><Star /> {s.favorite ? "Remove from favorites" : "Add to favorites"}</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setRenaming(true)}><Pencil /> Rename</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setEditing({ kind: "session", id: s.id, name: s.name, save: (n) => api.RenameSession(s.id, n) })}><Pencil /> Rename</DropdownMenuItem>
+            {isAWS && <DropdownMenuItem onClick={() => setEditing({ kind: "profile", id: s.id, name: s.aws?.profile ?? "", save: (n) => api.SetProfile(s.id, n) })}><Terminal /> Set AWS profile name</DropdownMenuItem>}
             {isAWS && <DropdownMenuItem onClick={() => copy("profile")}><Terminal /> Copy profile command</DropdownMenuItem>}
             {isAWS && <DropdownMenuSeparator />}
             <DropdownMenuItem variant="destructive" onClick={() => api.RemoveSession(s.id).catch((e) => toast.error(errorMessage(e)))}><Trash2 /> Remove</DropdownMenuItem>
@@ -130,7 +139,7 @@ export function SessionRow({ session: s, workspace, now, onNeedsLogin }: { sessi
         {active ? "Stop" : "Start"}
       </Button>
       <MFADialog open={mfaOpen} onClose={() => setMfaOpen(false)} onSubmit={(code) => { setMfaOpen(false); void start(code); }} />
-      <RenameDialog target={renaming ? { kind: "session", id: s.id, name: s.name, save: (n) => api.RenameSession(s.id, n) } : null} onClose={() => setRenaming(false)} />
+      <RenameDialog target={editing} onClose={() => setEditing(null)} />
     </motion.li>
   );
 }

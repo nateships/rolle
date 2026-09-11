@@ -13,17 +13,11 @@ import { RenameDialog } from "@/components/dialogs/RenameDialog";
 import { ImportDialog } from "@/components/dialogs/ImportDialog";
 import { AddSSODialog, AddAssumeRoleDialog, AddIAMUserDialog, AddAzureDialog, AddGCPDialog, AddGCPImpersonationDialog, LoginDialog } from "@/components/dialogs/Dialogs";
 import { api, errorMessage, inWails, Cloud as CloudKind, Status, type Integration, type Workspace } from "@/lib/api";
-import { useNow } from "@/lib/format";
+import { isLoggedIn, useNow } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 type Dialog = null | { kind: "sso" } | { kind: "assume" } | { kind: "iam" } | { kind: "azure" } | { kind: "gcp" } | { kind: "gcp-impersonate" } | { kind: "login"; integration: Integration } | { kind: "settings" } | { kind: "rename"; integration: Integration } | { kind: "import" };
 
-function isLoggedIn(integ: Integration): boolean {
-  if (integ.awsSso) return !!integ.awsSso.tokenExpires && new Date(integ.awsSso.tokenExpires).getTime() > Date.now();
-  if (integ.azure) return !!integ.azure.account;
-  if (integ.gcp) return !!integ.gcp.account;
-  return false;
-}
 
 const CLOUD_SECTIONS: { cloud: string; title: string; addKind: Dialog }[] = [
   { cloud: CloudKind.CloudAWS, title: "AWS Identity Center", addKind: { kind: "sso" } },
@@ -36,6 +30,8 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   const [chosenFilter, setFilter] = useState<string | null>(() => (!inWails ? new URLSearchParams(location.search).get("filter") : null));
   const now = useNow();
   // ?settings=1 opens the settings dialog in the browser preview.
+  // A session whose start was waiting on a sign-in; started once the login completes.
+  const [pendingStart, setPendingStart] = useState<string | null>(null);
   const [dialog, setDialog] = useState<Dialog>(() => {
     if (inWails) return null;
     const q = new URLSearchParams(location.search);
@@ -199,7 +195,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                   <h2 className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground"><Star className="size-3 fill-current text-brand-orange" /> Favorites</h2>
                   <motion.ul layout className="space-y-1.5">
                     <AnimatePresence initial={false}>
-                      {favorites.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} now={now} onNeedsLogin={(i) => setDialog({ kind: "login", integration: i })} />)}
+                      {favorites.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} now={now} onNeedsLogin={(i, startId) => { setPendingStart(startId ?? null); setDialog({ kind: "login", integration: i }); }} />)}
                     </AnimatePresence>
                   </motion.ul>
                 </section>
@@ -208,7 +204,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 {showFavoritesPanel && <h2 className="mb-2 px-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">All sessions</h2>}
                 <motion.ul layout className="space-y-1.5">
                   <AnimatePresence initial={false}>
-                    {rest.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} now={now} onNeedsLogin={(i) => setDialog({ kind: "login", integration: i })} />)}
+                    {rest.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} now={now} onNeedsLogin={(i, startId) => { setPendingStart(startId ?? null); setDialog({ kind: "login", integration: i }); }} />)}
                   </AnimatePresence>
                 </motion.ul>
               </section>
@@ -223,7 +219,18 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
       <AddAzureDialog open={dialog?.kind === "azure"} onClose={() => setDialog(null)} onLogin={(integ) => setDialog({ kind: "login", integration: integ })} />
       <AddGCPDialog open={dialog?.kind === "gcp"} onClose={() => setDialog(null)} />
       <AddGCPImpersonationDialog open={dialog?.kind === "gcp-impersonate"} onClose={() => setDialog(null)} workspace={workspace} />
-      <LoginDialog integration={dialog?.kind === "login" ? dialog.integration : null} onClose={() => setDialog(null)} onDone={(integ) => setFilter(integ.id)} />
+      <LoginDialog
+        integration={dialog?.kind === "login" ? dialog.integration : null}
+        onClose={() => { setDialog(null); setPendingStart(null); }}
+        onDone={(integ) => {
+          setFilter(integ.id);
+          if (pendingStart) {
+            const id = pendingStart;
+            setPendingStart(null);
+            api.Start(id, "").then(() => toast.success("Session started")).catch((e) => toast.error(errorMessage(e)));
+          }
+        }}
+      />
       <SettingsDialog open={dialog?.kind === "settings"} onClose={() => setDialog(null)} />
       <ImportDialog open={dialog?.kind === "import"} onClose={() => setDialog(null)} workspace={workspace} onLogin={(integ) => setDialog({ kind: "login", integration: integ })} />
       <RenameDialog

@@ -15,7 +15,7 @@ import (
 
 func sessionCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "session", Aliases: []string{"sess"}, Short: "Manage sessions"}
-	cmd.AddCommand(sessionListCmd(), sessionAddCmd(), sessionRemoveCmd())
+	cmd.AddCommand(sessionListCmd(), sessionAddCmd(), sessionRemoveCmd(), sessionProfileCmd())
 	return cmd
 }
 
@@ -114,5 +114,20 @@ func sessionRemoveCmd() *cobra.Command {
 		Short: "Remove a session",
 		Args:  cobra.ExactArgs(1),
 		RunE:  func(_ *cobra.Command, args []string) error { return svc.RemoveSession(args[0]) },
+	}
+}
+
+func sessionProfileCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "profile <session> [name]",
+		Short: "Set the AWS profile name for a session (omit the name to restore the default)",
+		Args:  cobra.RangeArgs(1, 2),
+		RunE: func(_ *cobra.Command, args []string) error {
+			name := ""
+			if len(args) == 2 {
+				name = args[1]
+			}
+			return svc.SetProfile(args[0], name)
+		},
 	}
 }

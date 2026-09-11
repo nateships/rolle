@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -377,14 +378,14 @@ func (s *Service) RemoveSession(ref string) error {
 }
 
 // ProfileName returns the AWS profile a session writes.
+// ProfileName returns the AWS profile a session writes. Sessions share the
+// "default" profile unless one is set, so `aws` works without --profile and
+// only one such session is active at a time.
 func ProfileName(sess *core.Session) string {
 	if sess.AWS != nil && sess.AWS.Profile != "" {
 		return sess.AWS.Profile
 	}
-	if p := sanitizeProfile(sess.Name); p != "" {
-		return p
-	}
-	return sess.ID
+	return "default"
 }
 
 func sanitizeProfile(name string) string {
@@ -425,6 +426,18 @@ func (s *Service) Start(ctx context.Context, ref string, opts StartOptions) (cor
 	}
 	if err := s.Cache.Put(sess.ID, creds); err != nil {
 		return core.Credentials{}, err
+	}
+	if sess.Kind.Cloud() == core.CloudAWS {
+		// One active session per profile: the newest start takes it over.
+		for i := range w.Sessions {
+			other := &w.Sessions[i]
+			if other.ID != sess.ID && other.Status == core.StatusActive && other.Kind.Cloud() == core.CloudAWS && ProfileName(other) == ProfileName(sess) {
+				debug.Logf("session", "stop %s: profile %s taken over by %s", other.Name, ProfileName(other), sess.Name)
+				if err := s.deactivate(other); err != nil {
+					return core.Credentials{}, err
+				}
+			}
+		}
 	}
 	sess.Status = core.StatusActive
 	sess.Expires = creds.Expiration
@@ -764,5 +777,46 @@ func (s *Service) SetFavorite(ref string, favorite bool) error {
 		return err
 	}
 	sess.Favorite = favorite
+	return s.Save(w)
+}
+
+var profileNameRe = regexp.MustCompile(`^[A-Za-z0-9_.-]+$`)
+
+// SetProfile sets the AWS profile name a session writes. An empty name
+// returns to "default". An active session moves its profile section to the
+// new name.
+func (s *Service) SetProfile(ref, profile string) error {
+	profile = strings.TrimSpace(profile)
+	if profile != "" && !profileNameRe.MatchString(profile) {
+		return errors.New("profile names may contain letters, digits, '.', '-', and '_'")
+	}
+	w, err := s.Load()
+	if err != nil {
+		return err
+	}
+	sess, err := FindSession(w, ref)
+	if err != nil {
+		return err
+	}
+	if sess.Kind.Cloud() != core.CloudAWS {
+		return fmt.Errorf("%s is not an AWS session", sess.Name)
+	}
+	oldProfile := ProfileName(sess)
+	next := *sess
+	next.AWS = &core.AWSSession{}
+	*next.AWS = *sess.AWS
+	next.AWS.Profile = profile
+	newProfile := ProfileName(&next)
+	if sess.Status == core.StatusActive && newProfile != oldProfile {
+		if err := s.removeCloudFiles(sess); err != nil {
+			return err
+		}
+	}
+	sess.AWS.Profile = profile
+	if sess.Status == core.StatusActive && newProfile != oldProfile {
+		if err := s.writeCloudFiles(sess); err != nil {
+			return err
+		}
+	}
 	return s.Save(w)
 }

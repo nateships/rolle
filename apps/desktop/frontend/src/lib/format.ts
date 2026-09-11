@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { Kind, type Session } from "./api";
+import { Kind, type Integration, type Session } from "./api";
+
+/** Whether an integration currently holds a usable sign-in. */
+export function isLoggedIn(integ: Integration): boolean {
+  if (integ.awsSso) return !!integ.awsSso.tokenExpires && new Date(integ.awsSso.tokenExpires).getTime() > Date.now();
+  if (integ.azure) return !!integ.azure.account;
+  if (integ.gcp) return !!integ.gcp.account;
+  return false;
+}
 
 export const kindLabel: Record<string, string> = {
   [Kind.KindAWSSSORole]: "SSO role",

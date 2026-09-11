@@ -252,6 +252,13 @@ export function SetFavorite(ref: string, favorite: boolean): $CancellablePromise
 }
 
 /**
+ * SetProfile sets the AWS profile name for a session. Empty restores the default.
+ */
+export function SetProfile(ref: string, profile: string): $CancellablePromise<void> {
+    return $Call.ByID(1410044798, ref, profile);
+}
+
+/**
  * Settings returns the effective user preferences.
  */
 export function Settings(): $CancellablePromise<core$0.Settings> {

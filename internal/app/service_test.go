@@ -45,7 +45,7 @@ func TestIAMUserStartStopLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(cfg), "[profile dev-user]") || !strings.Contains(string(cfg), "/opt/rolle creds --session "+sess.ID) {
+	if !strings.Contains(string(cfg), "[default]") || !strings.Contains(string(cfg), "/opt/rolle creds --session "+sess.ID) {
 		t.Fatalf("aws config:\n%s", cfg)
 	}
 	w, _ := s.Load()
@@ -61,7 +61,7 @@ func TestIAMUserStartStopLifecycle(t *testing.T) {
 		t.Fatal(err)
 	}
 	cfg, _ = os.ReadFile(s.AWSConfigPath)
-	if strings.Contains(string(cfg), "dev-user") {
+	if strings.Contains(string(cfg), "credential_process") {
 		t.Fatalf("profile not removed:\n%s", cfg)
 	}
 	if err := s.RemoveSession(sess.ID); err != nil {
@@ -143,8 +143,11 @@ func TestSanitizeProfile(t *testing.T) {
 	if got := sanitizeProfile("--x--"); got != "x" {
 		t.Fatalf("got %q", got)
 	}
-	if got := ProfileName(&core.Session{ID: "id-1", Name: "***"}); got != "id-1" {
-		t.Fatalf("empty profile fallback = %q", got)
+	if got := ProfileName(&core.Session{ID: "id-1", Name: "***"}); got != "default" {
+		t.Fatalf("profile without an explicit name = %q, want default", got)
+	}
+	if got := ProfileName(&core.Session{Name: "x", AWS: &core.AWSSession{Profile: "work"}}); got != "work" {
+		t.Fatalf("explicit profile = %q", got)
 	}
 }
 
@@ -241,7 +244,7 @@ func TestSettingsRoundTrip(t *testing.T) {
 	}
 }
 
-func TestRenameSessionMovesActiveProfile(t *testing.T) {
+func TestRenameSessionKeepsProfileAndRenamesIntegration(t *testing.T) {
 	s := testService(t)
 	sess, err := s.AddIAMUser(AddIAMUserInput{Name: "old name", Region: "us-east-1", Key: aws.AccessKey{AccessKeyID: "A", SecretAccessKey: "B"}})
 	if err != nil {
@@ -254,7 +257,7 @@ func TestRenameSessionMovesActiveProfile(t *testing.T) {
 		t.Fatal(err)
 	}
 	data, _ := os.ReadFile(s.AWSConfigPath)
-	if strings.Contains(string(data), "[profile old-name]") || !strings.Contains(string(data), "[profile new-name]") {
+	if !strings.Contains(string(data), "[default]") || !strings.Contains(string(data), sess.ID) {
 		t.Fatalf("aws config after rename:\n%s", data)
 	}
 	if err := s.RenameSession(sess.ID, "  "); err == nil {
@@ -267,5 +270,40 @@ func TestRenameSessionMovesActiveProfile(t *testing.T) {
 	w, _ := s.Load()
 	if got, _ := FindIntegration(w, in.ID); got.Alias != "Acme Corp" {
 		t.Fatalf("alias = %q", got.Alias)
+	}
+}
+
+func TestSharedProfileHandsOverOnStart(t *testing.T) {
+	s := testService(t)
+	a, _ := s.AddIAMUser(AddIAMUserInput{Name: "alpha", Region: "us-east-1", Key: aws.AccessKey{AccessKeyID: "A", SecretAccessKey: "B"}})
+	b, _ := s.AddIAMUser(AddIAMUserInput{Name: "beta", Region: "us-east-1", Key: aws.AccessKey{AccessKeyID: "A", SecretAccessKey: "B"}})
+	if _, err := s.Start(context.Background(), a.ID, StartOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Start(context.Background(), b.ID, StartOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	w, _ := s.Load()
+	ga, _ := FindSession(w, a.ID)
+	gb, _ := FindSession(w, b.ID)
+	if ga.Status != core.StatusInactive || gb.Status != core.StatusActive {
+		t.Fatalf("alpha=%s beta=%s, want alpha inactive after beta took the default profile", ga.Status, gb.Status)
+	}
+	data, _ := os.ReadFile(s.AWSConfigPath)
+	if !strings.Contains(string(data), "--session "+b.ID) || strings.Contains(string(data), "--session "+a.ID) {
+		t.Fatalf("aws config:\n%s", data)
+	}
+	if err := s.SetProfile(b.ID, "work"); err != nil {
+		t.Fatal(err)
+	}
+	data, _ = os.ReadFile(s.AWSConfigPath)
+	if !strings.Contains(string(data), "[profile work]") || strings.Contains(string(data), "[default]") {
+		t.Fatalf("aws config after profile change:\n%s", data)
+	}
+	if err := s.SetProfile(b.ID, "bad name"); err == nil {
+		t.Fatal("invalid profile accepted")
+	}
+	if err := s.SetProfile(a.ID, "work"); err != nil {
+		t.Fatal("sharing a profile name must be allowed")
 	}
 }

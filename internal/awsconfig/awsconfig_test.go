@@ -54,3 +54,37 @@ func TestQuoteExecutableWithSpaces(t *testing.T) {
 		t.Fatalf("config:\n%s", data)
 	}
 }
+
+func TestWriteTakesOverPlainSectionAndRestoresIt(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config")
+	if err := os.WriteFile(path, []byte("[default]\nregion = eu-west-1\noutput = json\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := Write(path, Profile{Name: "default", Region: "us-east-1", SessionID: "s1", Executable: "/opt/rolle"}); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := os.ReadFile(path)
+	for _, want := range []string{"region = us-east-1", "output = json", "credential_process = /opt/rolle creds --session s1", "rolle_preexisting = true", "rolle_previous_region = eu-west-1"} {
+		if !strings.Contains(string(data), want) {
+			t.Fatalf("missing %q:\n%s", want, data)
+		}
+	}
+	if err := Remove(path, "default", "s1"); err != nil {
+		t.Fatal(err)
+	}
+	data, _ = os.ReadFile(path)
+	got := string(data)
+	if !strings.Contains(got, "region = eu-west-1") || !strings.Contains(got, "output = json") || strings.Contains(got, "rolle") || strings.Contains(got, "credential_process") {
+		t.Fatalf("section not restored:\n%s", got)
+	}
+}
+
+func TestWriteRefusesSectionWithCredentials(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config")
+	if err := os.WriteFile(path, []byte("[default]\nsso_session = acme\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := Write(path, Profile{Name: "default", SessionID: "s1", Executable: "/opt/rolle"}); err == nil {
+		t.Fatal("expected refusal")
+	}
+}
