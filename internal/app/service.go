@@ -50,13 +50,6 @@ func Default() (*Service, error) {
 	}, nil
 }
 
-func (s *Service) now() time.Time {
-	if s.Now != nil {
-		return s.Now()
-	}
-	return time.Now()
-}
-
 // Load reads the workspace.
 func (s *Service) Load() (*core.Workspace, error) { return workspace.Load(s.WorkspacePath) }
 
