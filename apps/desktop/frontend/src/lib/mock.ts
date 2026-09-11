@@ -20,7 +20,8 @@ function seed() {
   const sso: Integration = { id: "acme", alias: "acme", cloud: "aws", awsSso: { startUrl: "https://acme.awsapps.com/start", region: "us-east-1", tokenExpires: new Date(Date.now() + 6e6).toISOString() } } as Integration;
   const az: Integration = { id: "contoso", alias: "contoso", cloud: "azure", azure: { tenantId: "t-1", account: "nate@contoso.com" } } as Integration;
   const gcp: Integration = { id: "gcp", alias: "gcp", cloud: "gcp", gcp: { account: "nate@example.com" } } as Integration;
-  state.integrations = [sso, az, gcp];
+  const out: Integration = { id: "acme-eu", alias: "acme-eu", cloud: "aws", awsSso: { startUrl: "https://acme-eu.awsapps.com/start", region: "eu-west-1", tokenExpires: null } } as Integration;
+  state.integrations = [sso, az, gcp, out];
   const s = (o: Record<string, unknown>): Session => ({ id: id(), status: "inactive", ...o }) as unknown as Session;
   state.sessions = [
     s({ name: "Acme Prod/AdministratorAccess", kind: "aws-sso-role", region: "us-east-1", integrationId: "acme", aws: { accountId: "123456789012", roleName: "AdministratorAccess" }, status: "active", favorite: true, expires: new Date(Date.now() + 47 * 60e3).toISOString() }),

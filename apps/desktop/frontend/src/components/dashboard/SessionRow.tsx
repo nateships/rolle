@@ -9,13 +9,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { CloudGlyph } from "@/components/Brand";
 import { MFADialog } from "@/components/dialogs/Dialogs";
 import { RenameDialog } from "@/components/dialogs/RenameDialog";
-import { api, errorMessage, Kind, Status, type Session, type Workspace } from "@/lib/api";
+import { api, errorMessage, Kind, Status, type Integration, type Session, type Workspace } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
 import { copyText } from "@/lib/clipboard";
 import { cloudOf, kindLabel, remaining, sessionSubtitle } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-export function SessionRow({ session: s, workspace, now }: { session: Session; workspace: Workspace; now: number }) {
+export function SessionRow({ session: s, workspace, now, onNeedsLogin }: { session: Session; workspace: Workspace; now: number; onNeedsLogin?: (integration: Integration) => void }) {
   const [busy, setBusy] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -25,6 +25,7 @@ export function SessionRow({ session: s, workspace, now }: { session: Session; w
 
   async function start(mfaCode = "") {
     setBusy(true);
+    const integration = workspace.integrations.find((i) => i.id === s.integrationId);
     try {
       await api.Start(s.id, mfaCode);
       const first = !workspace.sessions.some((x) => x.status === Status.StatusActive);
@@ -34,7 +35,12 @@ export function SessionRow({ session: s, workspace, now }: { session: Session; w
         action: { label: "Copy env", onClick: () => void copy("env") },
       });
     } catch (e) {
-      toast.error(errorMessage(e));
+      const msg = errorMessage(e);
+      if (/login required/i.test(msg) && integration && onNeedsLogin) {
+        toast.error(`${integration.alias} is signed out`, { description: "Sign in, then start the session again.", action: { label: "Sign in", onClick: () => onNeedsLogin(integration) } });
+      } else {
+        toast.error(msg);
+      }
     } finally {
       setBusy(false);
     }
@@ -86,7 +92,7 @@ export function SessionRow({ session: s, workspace, now }: { session: Session; w
         <div className="flex items-center gap-2">
           <p className="truncate text-sm font-medium">{s.name}</p>
           <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-normal text-muted-foreground">{kindLabel[s.kind] ?? s.kind}</Badge>
-          {s.region && <span className="text-[11px] text-muted-foreground/70">{s.region}</span>}
+          {s.region && <span className="whitespace-nowrap text-[11px] text-muted-foreground/70">{s.region}</span>}
         </div>
         <p className="truncate font-mono text-[11px] text-muted-foreground">{sessionSubtitle(s)}{source ? ` · via ${source.name}` : ""}</p>
       </div>

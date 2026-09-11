@@ -33,7 +33,7 @@ const CLOUD_SECTIONS: { cloud: string; title: string; addKind: Dialog }[] = [
 
 export function Dashboard({ workspace }: { workspace: Workspace }) {
   const [query, setQuery] = useState("");
-  const [chosenFilter, setFilter] = useState<string | null>(null);
+  const [chosenFilter, setFilter] = useState<string | null>(() => (!inWails ? new URLSearchParams(location.search).get("filter") : null));
   const now = useNow();
   // ?settings=1 opens the settings dialog in the browser preview.
   const [dialog, setDialog] = useState<Dialog>(() => {
@@ -172,8 +172,26 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
         </header>
 
         <div className="flex-1 overflow-y-auto p-4">
+          {(() => {
+            const integ = workspace.integrations.find((i) => i.id === filter);
+            if (!integ || isLoggedIn(integ) || sessions.length === 0) return null;
+            return (
+              <div className="mb-3 flex items-center gap-3 rounded-lg border border-brand-orange/40 bg-brand-orange/5 px-3 py-2 text-sm">
+                <LogIn className="size-4 shrink-0 text-brand-orange" />
+                <span className="flex-1"><span className="font-medium">{integ.alias}</span> is signed out. These are the roles from its last sign-in; sign in again to start them.</span>
+                <Button size="sm" onClick={() => (integ.cloud === CloudKind.CloudGCP ? run("Synced", () => api.SyncGCP(integ.id)) : setDialog({ kind: "login", integration: integ }))}>Sign in</Button>
+              </div>
+            );
+          })()}
           {sessions.length === 0 ? (
-            <Empty hasAny={workspace.sessions.length > 0} onImport={() => setDialog({ kind: "import" })} onConnect={() => setDialog({ kind: "sso" })} />
+            <Empty
+              hasAny={workspace.sessions.length > 0}
+              integration={workspace.integrations.find((i) => i.id === filter) ?? null}
+              onImport={() => setDialog({ kind: "import" })}
+              onConnect={() => setDialog({ kind: "sso" })}
+              onSignIn={(integ) => (integ.cloud === CloudKind.CloudGCP ? run("Synced", () => api.SyncGCP(integ.id)) : setDialog({ kind: "login", integration: integ }))}
+              onSync={(integ) => run("Synced", () => (integ.cloud === CloudKind.CloudAzure ? api.SyncAzure(integ.id) : integ.cloud === CloudKind.CloudGCP ? api.SyncGCP(integ.id) : api.SyncSSO(integ.id)))}
+            />
           ) : (
             <div className="space-y-5">
               {showFavoritesPanel && (
@@ -181,7 +199,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                   <h2 className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground"><Star className="size-3 fill-current text-brand-orange" /> Favorites</h2>
                   <motion.ul layout className="space-y-1.5">
                     <AnimatePresence initial={false}>
-                      {favorites.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} now={now} />)}
+                      {favorites.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} now={now} onNeedsLogin={(i) => setDialog({ kind: "login", integration: i })} />)}
                     </AnimatePresence>
                   </motion.ul>
                 </section>
@@ -190,7 +208,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 {showFavoritesPanel && <h2 className="mb-2 px-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">All sessions</h2>}
                 <motion.ul layout className="space-y-1.5">
                   <AnimatePresence initial={false}>
-                    {rest.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} now={now} />)}
+                    {rest.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} now={now} onNeedsLogin={(i) => setDialog({ kind: "login", integration: i })} />)}
                   </AnimatePresence>
                 </motion.ul>
               </section>
@@ -232,7 +250,25 @@ function SideItem({ active, onClick, label, count, dot, icon, trailing }: { acti
   );
 }
 
-function Empty({ hasAny, onImport, onConnect }: { hasAny: boolean; onImport: () => void; onConnect: () => void }) {
+function Empty({ hasAny, integration, onImport, onConnect, onSignIn, onSync }: { hasAny: boolean; integration: Integration | null; onImport: () => void; onConnect: () => void; onSignIn: (i: Integration) => void; onSync: (i: Integration) => void }) {
+  // A selected integration gets its own guidance: sign in, or sync when signed in but empty.
+  if (integration) {
+    const signedIn = isLoggedIn(integration);
+    return (
+      <div className="flex h-full flex-col items-center justify-center text-center">
+        <div className="rounded-2xl bg-card p-4"><Mark className="size-10" /></div>
+        <h3 className="mt-5 text-lg font-medium">{signedIn ? `No sessions in ${integration.alias}` : `${integration.alias} is signed out`}</h3>
+        <p className="mt-1 max-w-sm text-sm text-muted-foreground">{signedIn ? "Sync to discover what this account can reach." : "Sign in to discover its sessions."}</p>
+        <div className="mt-5 flex gap-2">
+          {signedIn ? (
+            <Button className="gap-1.5" onClick={() => onSync(integration)}><RefreshCw className="size-4" /> Sync {integration.alias}</Button>
+          ) : (
+            <Button className="gap-1.5" onClick={() => onSignIn(integration)}><LogIn className="size-4" /> Sign in to {integration.alias}</Button>
+          )}
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
       <div className="rounded-2xl bg-card p-4"><Mark className="size-10" /></div>
