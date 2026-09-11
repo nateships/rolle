@@ -1,0 +1,17 @@
+---
+title: Sessions
+description: Start a subscription and use its Azure Resource Manager token.
+---
+
+Every subscription the tenant exposes is a session. Starting one requests an Azure Resource Manager token for the signed-in account and keeps it fresh from the tenant's token cache.
+
+```sh
+rolle start "Contoso Production"
+eval "$(rolle env "Contoso Production")"   # AZURE_ACCESS_TOKEN, AZURE_SUBSCRIPTION_ID, AZURE_TENANT_ID
+rolle shell "Contoso Production"           # a terminal with the same variables
+rolle console "Contoso Production"         # the Azure portal for the tenant
+```
+
+The desktop app offers the same actions on the session row: Start, Open terminal, Open console, and Copy credentials as env. Sessions renew on their own while the tenant sign-in is valid and stop when it expires.
+
+Rolle does not write into the az CLI token cache. Tools that read `AZURE_ACCESS_TOKEN` or take a token on the command line work directly; for `az` itself, sign in with `az login`.

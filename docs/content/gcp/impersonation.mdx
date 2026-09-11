@@ -1,0 +1,21 @@
+---
+title: Service account impersonation
+description: Mint short-lived tokens for a service account from your own credentials.
+---
+
+An impersonation session calls the IAM Credentials API to mint a token for a service account. Rolle also writes an impersonated ADC file so client libraries pick it up.
+
+```sh
+rolle session add gcp-impersonate \
+  --name deployer \
+  --project my-project \
+  --service-account deployer@my-project.iam.gserviceaccount.com
+rolle start deployer
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `--name` | Session name |
+| `--project` | Project ID |
+| `--service-account` | Service account email |
+| `--integration` | Google Cloud integration alias or ID. Defaults to `gcp` |
