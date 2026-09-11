@@ -14,6 +14,7 @@ import (
 	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/discover"
 	"github.com/nateships/rolle/internal/gcp"
+	"github.com/nateships/rolle/internal/terminal"
 )
 
 // Discover reports identities other tools already configured on this machine.
@@ -414,4 +415,51 @@ func EnvVars(sess *core.Session, creds core.Credentials) [][2]string {
 		return vars
 	}
 	return nil
+}
+
+// TerminalEnv returns what a shell needs for a session. AWS sessions use the
+// profile so no secret is written; Azure and GCP export their short-lived
+// tokens.
+func (s *Service) TerminalEnv(ctx context.Context, sess *core.Session) ([][2]string, error) {
+	if sess.Kind.Cloud() == core.CloudAWS {
+		vars := [][2]string{{"AWS_PROFILE", ProfileName(sess)}}
+		if sess.Region != "" {
+			vars = append(vars, [2]string{"AWS_REGION", sess.Region}, [2]string{"AWS_DEFAULT_REGION", sess.Region})
+		}
+		return vars, nil
+	}
+	w, err := s.Load()
+	if err != nil {
+		return nil, err
+	}
+	creds, err := s.credentials(ctx, w, sess)
+	if err != nil {
+		return nil, err
+	}
+	return s.EnvVars(sess, creds), nil
+}
+
+// OpenTerminal starts the session if needed and opens a terminal with its environment.
+func (s *Service) OpenTerminal(ctx context.Context, ref string) error {
+	w, err := s.Load()
+	if err != nil {
+		return err
+	}
+	sess, err := FindSession(w, ref)
+	if err != nil {
+		return err
+	}
+	if sess.Status != core.StatusActive {
+		return fmt.Errorf("%s: %w", sess.Name, ErrSessionInactive)
+	}
+	env, err := s.TerminalEnv(ctx, sess)
+	if err != nil {
+		return err
+	}
+	return terminal.Open(terminal.Options{
+		Title: sess.Name,
+		Env:   env,
+		Dir:   filepath.Join(s.Cache.Dir, "launch"),
+		App:   terminal.App(w.EffectiveSettings().Terminal),
+	})
 }

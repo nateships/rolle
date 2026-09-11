@@ -420,5 +420,12 @@ func (r *RolleService) RenameSession(ref, name string) error {
 // DevMode reports whether in-app dev tools are compiled in.
 func (r *RolleService) DevMode() bool { return devMode }
 
+// OpenTerminal opens the user's terminal with the session's environment ready.
+func (r *RolleService) OpenTerminal(ref string) error {
+	c, cancel := ctx()
+	defer cancel()
+	return r.svc.OpenTerminal(c, ref)
+}
+
 // OpenURL opens a link in the default browser.
 func (r *RolleService) OpenURL(u string) error { return browser.Open(u) }

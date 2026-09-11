@@ -13,7 +13,15 @@ import { copyText } from "@/lib/clipboard";
 import { applyTheme, type Theme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
-type Settings = { theme: string; defaultRegion: string; assumeRoleMinutes: number; hideOnClose: boolean; verboseLogging: boolean; autoUpdateOff: boolean };
+type Settings = { theme: string; defaultRegion: string; assumeRoleMinutes: number; hideOnClose: boolean; verboseLogging: boolean; autoUpdateOff: boolean; terminal?: string };
+
+const IS_MAC = /Macintosh/.test(navigator.userAgent);
+const IS_WIN = /Windows/.test(navigator.userAgent);
+const TERMINALS: { value: string; label: string }[] = IS_MAC
+  ? [{ value: "auto", label: "Detect (Ghostty, iTerm, Warp, Terminal)" }, { value: "terminal", label: "Terminal" }, { value: "iterm", label: "iTerm2" }, { value: "ghostty", label: "Ghostty" }, { value: "warp", label: "Warp" }]
+  : IS_WIN
+    ? [{ value: "auto", label: "Windows Terminal if installed" }, { value: "powershell", label: "PowerShell window" }]
+    : [{ value: "auto", label: "$TERMINAL or the system default" }];
 type UpdateInfo = { enabled: boolean; currentVersion: string; available: boolean; version?: string; notes?: string; state: string };
 type Info = { version: string; workspacePath: string; cacheDir: string; awsConfigPath: string };
 
@@ -110,6 +118,12 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                 <Select value={String(settings.assumeRoleMinutes)} onValueChange={(v) => update({ assumeRoleMinutes: Number(v) })}>
                   <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
                   <SelectContent>{DURATIONS.map((m) => <SelectItem key={m} value={String(m)}>{m >= 60 ? `${m / 60} hour${m === 60 ? "" : "s"}` : `${m} minutes`}</SelectItem>)}</SelectContent>
+                </Select>
+              </Row>
+              <Row label="Terminal app" hint="Used by Open terminal on a session.">
+                <Select value={settings.terminal || "auto"} onValueChange={(v) => update({ terminal: v })}>
+                  <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
+                  <SelectContent>{TERMINALS.map((t) => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}</SelectContent>
                 </Select>
               </Row>
               <Row label="Keep running in the tray" hint="Closing the window hides it instead of quitting.">

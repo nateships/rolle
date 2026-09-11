@@ -167,6 +167,13 @@ export function OpenConsole(ref: string): $CancellablePromise<void> {
 }
 
 /**
+ * OpenTerminal opens the user's terminal with the session's environment ready.
+ */
+export function OpenTerminal(ref: string): $CancellablePromise<void> {
+    return $Call.ByID(1037758735, ref);
+}
+
+/**
  * OpenURL opens a link in the default browser.
  */
 export function OpenURL(u: string): $CancellablePromise<void> {

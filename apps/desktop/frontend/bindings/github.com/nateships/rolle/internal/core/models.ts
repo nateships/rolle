@@ -231,6 +231,11 @@ export interface Settings {
      * the default (zero value) keeps updates on.
      */
     "autoUpdateOff": boolean;
+
+    /**
+     * Terminal picks the terminal app for "Open terminal". Empty means auto.
+     */
+    "terminal"?: string;
 }
 
 /**

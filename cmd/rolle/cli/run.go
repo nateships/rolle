@@ -202,3 +202,12 @@ func resetCmd() *cobra.Command {
 	cmd.Flags().BoolVarP(&yes, "yes", "y", false, "do not ask for confirmation")
 	return cmd
 }
+
+func shellCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "shell <session>",
+		Short: "Open a new terminal window with the session's credentials ready",
+		Args:  cobra.ExactArgs(1),
+		RunE:  func(cmd *cobra.Command, args []string) error { return svc.OpenTerminal(cmd.Context(), args[0]) },
+	}
+}

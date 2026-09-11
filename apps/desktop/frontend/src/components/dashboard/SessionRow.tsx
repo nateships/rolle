@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "motion/react";
-import { Clipboard, ExternalLink, Loader2, MoreHorizontal, Pencil, Play, Square, Star, Terminal, Trash2 } from "lucide-react";
+import { Clipboard, ExternalLink, Loader2, MoreHorizontal, Pencil, Play, Square, SquareTerminal, Star, Terminal, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Clipboard as WailsClipboard } from "@wailsio/runtime";
 import { Button } from "@/components/ui/button";
@@ -97,6 +97,7 @@ export function SessionRow({ session: s, workspace }: { session: Session; worksp
       <div className={cn("flex items-center gap-0.5 transition-opacity", active ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100")}>
         {active && (
           <>
+            <IconBtn label="Open terminal here" onClick={() => api.OpenTerminal(s.id).catch((e) => toast.error(errorMessage(e)))}><SquareTerminal /></IconBtn>
             <IconBtn label="Open console" onClick={() => api.OpenConsole(s.id).catch((e) => toast.error(errorMessage(e)))}><ExternalLink /></IconBtn>
             {isAWS && <IconBtn label="Copy profile command" onClick={() => copy("profile")}><Terminal /></IconBtn>}
             <IconBtn label="Copy credentials as env" onClick={() => copy("env")}><Clipboard /></IconBtn>

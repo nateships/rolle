@@ -88,6 +88,7 @@ export const mockApi = {
   RenameIntegration: async (ref: string, alias: string) => { const x = state.integrations.find((i) => i.id === ref); if (x) x.alias = alias; emit(); },
   CheckForUpdates: async () => { await wait(800); const avail = new URLSearchParams(location.search).get("update") === "1"; return { enabled: true, currentVersion: "0.0.1-dev", available: avail, version: avail ? "0.2.0" : undefined, notes: "", state: avail ? "available" : "up-to-date" }; },
   InstallUpdate: async () => { await wait(1200); },
+  OpenTerminal: async () => { await wait(300); },
   DevMode: async () => true,
   onChange: (cb: () => void) => { listeners.add(cb); return () => listeners.delete(cb); },
 };

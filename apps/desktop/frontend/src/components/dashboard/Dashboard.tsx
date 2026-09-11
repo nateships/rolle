@@ -99,7 +99,6 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                       onClick={() => setFilter(integ.id)}
                       label={integ.alias}
                       dot={loggedIn ? "ok" : "off"}
-                      count={workspace.sessions.filter((s) => s.integrationId === integ.id).length}
                       trailing={
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -217,8 +216,9 @@ function SideItem({ active, onClick, label, count, dot, icon, trailing }: { acti
       <button type="button" onClick={onClick} className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-sm">
         {icon}
         {dot && <span className={cn("size-1.5 shrink-0 rounded-full", dot === "ok" ? "bg-emerald-400" : "bg-muted-foreground/40")} />}
-        <span className="flex-1 truncate">{label}</span>
-        {count !== undefined && <span className="text-xs tabular-nums text-muted-foreground/70">{count}</span>}
+        <span className="truncate">{label}</span>
+        {count !== undefined && <span className="rounded-full bg-muted px-1.5 py-px text-[10px] tabular-nums text-muted-foreground">{count}</span>}
+        <span className="flex-1" />
       </button>
       {/* Fixed slot keeps counts aligned whether or not a row has a control. */}
       <span className="flex size-6 shrink-0 items-center justify-center">{trailing}</span>

@@ -167,6 +167,8 @@ type Settings struct {
 	// AutoUpdateOff disables background update checks. Stored inverted so
 	// the default (zero value) keeps updates on.
 	AutoUpdateOff bool `json:"autoUpdateOff"`
+	// Terminal picks the terminal app for "Open terminal". Empty means auto.
+	Terminal string `json:"terminal,omitempty"`
 }
 
 // DefaultSettings are used until the user changes something.
