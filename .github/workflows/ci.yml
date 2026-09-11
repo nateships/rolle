@@ -16,7 +16,7 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Install Wails Linux dependencies
@@ -36,7 +36,7 @@ jobs:
       # wails3 needs GTK to compile; these jobs do not build the desktop app.
       MISE_DISABLE_TOOLS: go:github.com/wailsapp/wails/v3/cmd/wails3
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       # go vet and golangci-lint compile the desktop package, which needs GTK headers.
@@ -54,7 +54,7 @@ jobs:
       # wails3 needs GTK to compile; these jobs do not build the desktop app.
       MISE_DISABLE_TOOLS: go:github.com/wailsapp/wails/v3/cmd/wails3
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
