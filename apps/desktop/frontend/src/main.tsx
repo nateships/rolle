@@ -20,9 +20,9 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <ErrorBoundary>
       <MotionConfig reducedMotion="user">
-      <TooltipProvider delayDuration={300}>
-        <App />
-      </TooltipProvider>
+        <TooltipProvider delayDuration={300}>
+          <App />
+        </TooltipProvider>
       </MotionConfig>
     </ErrorBoundary>
     <Toaster position="bottom-right" richColors closeButton />

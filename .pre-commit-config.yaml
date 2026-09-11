@@ -1,0 +1,92 @@
+# Git hooks, run by prek locally and in CI.
+#
+#   prek install            enable once per clone (mise run setup does this)
+#   prek run --all-files    run every hook on the whole tree
+#
+# Hooks run on staged files. Formatters fix in place; a rewritten file aborts
+# the commit so you can stage it again. Tools come from mise and from the
+# frontend's aube-managed dependencies.
+
+exclude: |
+  (?x)^(
+    apps/desktop/frontend/bindings/.*|
+    apps/desktop/frontend/aube-lock\.yaml|
+    docs/package-lock\.json|
+    docs/brand/.*|
+    .*\.icns|
+    .*\.min\.(js|css)
+  )$
+
+repos:
+  - repo: builtin
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=2048"]
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+        exclude: ^apps/desktop/frontend/tsconfig\.json$
+
+  - repo: local
+    hooks:
+      - id: gofmt
+        name: gofmt
+        language: system
+        files: \.go$
+        entry: mise exec -- gofmt -w
+
+      - id: go-vet
+        name: go vet
+        language: system
+        files: \.go$
+        pass_filenames: false
+        entry: mise exec -- go vet ./...
+
+      - id: golangci-lint
+        name: golangci-lint
+        language: system
+        files: \.go$
+        pass_filenames: false
+        entry: mise exec -- golangci-lint run ./...
+
+      - id: oxfmt
+        name: oxfmt (desktop frontend)
+        language: system
+        files: ^apps/desktop/frontend/.*\.(ts|tsx|js|mjs|css|json)$
+        entry: bash -c 'cd apps/desktop/frontend && exec mise exec -- aube exec oxfmt "${@/#apps\/desktop\/frontend\//}"' --
+
+      - id: oxlint
+        name: oxlint (desktop frontend)
+        language: system
+        files: ^apps/desktop/frontend/.*\.(ts|tsx|js|mjs)$
+        entry: bash -c 'cd apps/desktop/frontend && exec mise exec -- aube exec oxlint "${@/#apps\/desktop\/frontend\//}"' --
+
+      # Types are cross-file, so the whole project is checked when any TS file is staged.
+      - id: tsc
+        name: tsc (desktop frontend)
+        language: system
+        files: ^apps/desktop/frontend/.*\.(ts|tsx)$
+        pass_filenames: false
+        entry: bash -c 'cd apps/desktop/frontend && exec mise exec -- aube exec tsc --noEmit'
+
+      - id: actionlint
+        name: actionlint
+        language: system
+        files: ^\.github/workflows/.*\.ya?ml$
+        pass_filenames: false
+        entry: mise exec -- actionlint
+
+      - id: zizmor
+        name: zizmor
+        language: system
+        files: ^\.github/(workflows/.*|zizmor\.yml)$
+        pass_filenames: false
+        entry: mise exec -- zizmor --offline .github/workflows
+
+      - id: typos
+        name: typos
+        language: system
+        entry: mise exec -- typos --force-exclude

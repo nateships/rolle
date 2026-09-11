@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Events } from "@wailsio/runtime";
 import { RolleService } from "../../bindings/github.com/nateships/rolle/apps/desktop";
-import type { Integration, Session, Workspace as CoreWorkspace } from "../../bindings/github.com/nateships/rolle/internal/core";
+import type {
+  Integration,
+  Session,
+  Workspace as CoreWorkspace,
+} from "../../bindings/github.com/nateships/rolle/internal/core";
 
 /** Workspace with the nullable Go slices normalised to arrays. */
-export type Workspace = Omit<CoreWorkspace, "sessions" | "integrations"> & { sessions: Session[]; integrations: Integration[] };
+export type Workspace = Omit<CoreWorkspace, "sessions" | "integrations"> & {
+  sessions: Session[];
+  integrations: Integration[];
+};
 
 function normalise(w: CoreWorkspace | null): Workspace | null {
   if (!w) return null;
@@ -16,15 +23,29 @@ import { mockApi } from "./mock";
  *  Mirrors the runtime's own transport detection: WebView2, WKWebView, or Android. */
 export const inWails = (() => {
   if (typeof window === "undefined") return false;
-  const w = window as unknown as { chrome?: { webview?: { postMessage?: unknown } }; webkit?: { messageHandlers?: { external?: { postMessage?: unknown } } }; wails?: { invoke?: unknown } };
+  const w = window as unknown as {
+    chrome?: { webview?: { postMessage?: unknown } };
+    webkit?: { messageHandlers?: { external?: { postMessage?: unknown } } };
+    wails?: { invoke?: unknown };
+  };
   return !!(w.chrome?.webview?.postMessage || w.webkit?.messageHandlers?.external?.postMessage || w.wails?.invoke);
 })();
 
 // Outside Wails (plain `aube run dev`) fall back to an in-memory mock so the UI
 // can be designed and demoed without the Go backend.
 export const api: typeof RolleService = inWails ? RolleService : (mockApi as unknown as typeof RolleService);
-export type { Session, Integration, Credentials, Settings } from "../../bindings/github.com/nateships/rolle/internal/core";
-export type { AppInfo, DeviceLogin, GCPStatus, UpdateInfo } from "../../bindings/github.com/nateships/rolle/apps/desktop";
+export type {
+  Session,
+  Integration,
+  Credentials,
+  Settings,
+} from "../../bindings/github.com/nateships/rolle/internal/core";
+export type {
+  AppInfo,
+  DeviceLogin,
+  GCPStatus,
+  UpdateInfo,
+} from "../../bindings/github.com/nateships/rolle/apps/desktop";
 export { Kind, Status, Cloud } from "../../bindings/github.com/nateships/rolle/internal/core";
 
 export const WORKSPACE_CHANGED = "workspace:changed";

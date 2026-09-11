@@ -11,7 +11,9 @@ import { cn } from "@/lib/utils";
 const cloudOrder = { aws: 0, azure: 1, gcp: 2 } as const;
 
 /** An account with its SSO roles, or a session that stands alone. */
-type Row = { key: string; label: string; group: true; accountId: string; sessions: Session[] } | { key: string; label: string; group: false; session: Session };
+type Row =
+  | { key: string; label: string; group: true; accountId: string; sessions: Session[] }
+  | { key: string; label: string; group: false; session: Session };
 
 /** SSO roles group under their account; other sessions stand alone. */
 export function groupSessions(sessions: Session[]): Row[] {
@@ -25,13 +27,20 @@ export function groupSessions(sessions: Session[]): Row[] {
     const key = `${s.integrationId}:${s.aws.accountId}`;
     let g = groups.get(key);
     if (!g) {
-      g = { key, label: s.name.split("/")[0] || s.aws.accountId, group: true, accountId: s.aws.accountId, sessions: [] };
+      g = {
+        key,
+        label: s.name.split("/")[0] || s.aws.accountId,
+        group: true,
+        accountId: s.aws.accountId,
+        sessions: [],
+      };
       groups.set(key, g);
       rows.push(g);
     }
     g.sessions.push(s);
   }
-  for (const g of groups.values()) g.sessions.sort((a, b) => (a.aws?.roleName ?? a.name).localeCompare(b.aws?.roleName ?? b.name));
+  for (const g of groups.values())
+    g.sessions.sort((a, b) => (a.aws?.roleName ?? a.name).localeCompare(b.aws?.roleName ?? b.name));
   const cloud = (r: Row) => cloudOf(r.group ? r.sessions[0].kind : r.session.kind);
   return rows.sort((a, b) => cloudOrder[cloud(a)] - cloudOrder[cloud(b)] || a.label.localeCompare(b.label));
 }
@@ -54,13 +63,27 @@ function readJSON<T>(key: string, fallback: T): T {
 /** Column widths shared by every table on the page, kept between launches. */
 export function useColumnWidths() {
   const [widths, setWidths] = useState<ColumnWidths>(() => readJSON(WIDTHS_KEY, DEFAULT_WIDTHS));
-  useEffect(() => { try { localStorage.setItem(WIDTHS_KEY, JSON.stringify(widths)); } catch { /* storage is optional */ } }, [widths]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(WIDTHS_KEY, JSON.stringify(widths));
+    } catch {
+      /* storage is optional */
+    }
+  }, [widths]);
   return [widths, setWidths] as const;
 }
 
 function useCollapsed() {
-  const [collapsed, setCollapsed] = useState<string[]>(() => readJSON<{ keys: string[] }>(COLLAPSED_KEY, { keys: [] }).keys);
-  useEffect(() => { try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify({ keys: collapsed })); } catch { /* storage is optional */ } }, [collapsed]);
+  const [collapsed, setCollapsed] = useState<string[]>(
+    () => readJSON<{ keys: string[] }>(COLLAPSED_KEY, { keys: [] }).keys,
+  );
+  useEffect(() => {
+    try {
+      localStorage.setItem(COLLAPSED_KEY, JSON.stringify({ keys: collapsed }));
+    } catch {
+      /* storage is optional */
+    }
+  }, [collapsed]);
   const toggle = (key: string) => setCollapsed((c) => (c.includes(key) ? c.filter((k) => k !== key) : [...c, key]));
   return [collapsed, toggle] as const;
 }
@@ -79,7 +102,13 @@ type TableProps = {
 
 export function SessionTable({ sessions, workspace, searching, flat, widths, onWidths, onNeedsLogin }: TableProps) {
   const [collapsed, toggle] = useCollapsed();
-  const rows = useMemo(() => (flat ? sessions.map<Row>((s) => ({ key: s.id, label: s.name, group: false, session: s })) : groupSessions(sessions)), [sessions, flat]);
+  const rows = useMemo(
+    () =>
+      flat
+        ? sessions.map<Row>((s) => ({ key: s.id, label: s.name, group: false, session: s }))
+        : groupSessions(sessions),
+    [sessions, flat],
+  );
 
   function resizer(col: keyof ColumnWidths) {
     return (
@@ -90,8 +119,12 @@ export function SessionTable({ sessions, workspace, searching, flat, widths, onW
           e.preventDefault();
           const startX = e.clientX;
           const startW = widths[col];
-          const move = (ev: MouseEvent) => onWidths({ ...widths, [col]: Math.max(70, Math.min(320, startW + ev.clientX - startX)) });
-          const up = () => { window.removeEventListener("mousemove", move); window.removeEventListener("mouseup", up); };
+          const move = (ev: MouseEvent) =>
+            onWidths({ ...widths, [col]: Math.max(70, Math.min(320, startW + ev.clientX - startX)) });
+          const up = () => {
+            window.removeEventListener("mousemove", move);
+            window.removeEventListener("mouseup", up);
+          };
           window.addEventListener("mousemove", move);
           window.addEventListener("mouseup", up);
         }}
@@ -123,10 +156,16 @@ export function SessionTable({ sessions, workspace, searching, flat, widths, onW
         </TableHeader>
         <TableBody>
           {rows.flatMap((r) => {
-            if (!r.group) return [<SessionRow key={r.key} session={r.session} workspace={workspace} onNeedsLogin={onNeedsLogin} />];
+            if (!r.group)
+              return [<SessionRow key={r.key} session={r.session} workspace={workspace} onNeedsLogin={onNeedsLogin} />];
             const open = searching || !collapsed.includes(r.key);
             const out = [<AccountRow key={r.key} row={r} open={open} onToggle={() => toggle(r.key)} />];
-            if (open) out.push(...r.sessions.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} nested onNeedsLogin={onNeedsLogin} />));
+            if (open)
+              out.push(
+                ...r.sessions.map((s) => (
+                  <SessionRow key={s.id} session={s} workspace={workspace} nested onNeedsLogin={onNeedsLogin} />
+                )),
+              );
             return out;
           })}
         </TableBody>
@@ -143,7 +182,10 @@ function AccountRow({ row, open, onToggle }: { row: Row & { group: true }; open:
       animate={{ opacity: 1 }}
       transition={{ duration: 0.15 }}
       onClick={onToggle}
-      className={cn("cursor-pointer select-none border-b bg-muted/20 transition-colors hover:bg-muted/50", active > 0 && "bg-emerald-500/[0.04]")}
+      className={cn(
+        "cursor-pointer select-none border-b bg-muted/20 transition-colors hover:bg-muted/50",
+        active > 0 && "bg-emerald-500/[0.04]",
+      )}
     >
       <TableCell className="pr-0">
         <ChevronRight className={cn("size-4 text-muted-foreground transition-transform", open && "rotate-90")} />
@@ -153,7 +195,10 @@ function AccountRow({ row, open, onToggle }: { row: Row & { group: true }; open:
           <CloudGlyph cloud="aws" />
           <div className="min-w-0">
             <p className="truncate text-sm font-medium">{row.label}</p>
-            <p className="truncate font-mono text-[11px] text-muted-foreground">{row.accountId} · {row.sessions.length} {row.sessions.length === 1 ? "role" : "roles"}{active > 0 ? ` · ${active} active` : ""}</p>
+            <p className="truncate font-mono text-[11px] text-muted-foreground">
+              {row.accountId} · {row.sessions.length} {row.sessions.length === 1 ? "role" : "roles"}
+              {active > 0 ? ` · ${active} active` : ""}
+            </p>
           </div>
         </div>
       </TableCell>

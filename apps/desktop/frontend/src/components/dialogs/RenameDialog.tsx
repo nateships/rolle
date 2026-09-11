@@ -13,12 +13,24 @@ export type RenameTarget = {
   save: (name: string) => Promise<unknown>;
 };
 
-const COPY: Record<RenameTarget["kind"], { title: string; description: string; placeholder?: string; allowEmpty?: boolean; done: (v: string) => string }> = {
-  integration: { title: "Rename account", description: "Only the display name changes.", done: (v) => `Renamed to ${v}` },
-  session: { title: "Rename session", description: "The AWS profile name does not change.", done: (v) => `Renamed to ${v}` },
+const COPY: Record<
+  RenameTarget["kind"],
+  { title: string; description: string; placeholder?: string; allowEmpty?: boolean; done: (v: string) => string }
+> = {
+  integration: {
+    title: "Rename account",
+    description: "Only the display name changes.",
+    done: (v) => `Renamed to ${v}`,
+  },
+  session: {
+    title: "Rename session",
+    description: "The AWS profile name does not change.",
+    done: (v) => `Renamed to ${v}`,
+  },
   profile: {
     title: "AWS profile name",
-    description: "Sessions share the default profile unless you set one here. Letters, digits, '.', '-', and '_'. Leave empty to use default.",
+    description:
+      "Sessions share the default profile unless you set one here. Letters, digits, '.', '-', and '_'. Leave empty to use default.",
     placeholder: "default",
     allowEmpty: true,
     done: (v) => (v ? `Profile set to ${v}` : "Profile set to default"),
@@ -31,7 +43,12 @@ export function RenameDialog({ target, onClose }: { target: RenameTarget | null;
   const [busy, setBusy] = useState(false);
   const targetId = target?.id;
   const targetName = target?.name;
-  useEffect(() => { setName(targetName ?? ""); }, [targetId, targetName]);
+  // The id is a deliberate extra dependency: a new target with the same name still resets the field.
+  /* oxlint-disable react/exhaustive-effect-dependencies */
+  useEffect(() => {
+    setName(targetName ?? "");
+  }, [targetId, targetName]);
+  /* oxlint-enable react/exhaustive-effect-dependencies */
   const copy = COPY[target?.kind ?? "session"];
   const valid = (copy.allowEmpty || name.trim().length > 0) && name.trim() !== (target?.name ?? "");
   return (
@@ -58,8 +75,17 @@ export function RenameDialog({ target, onClose }: { target: RenameTarget | null;
             }
           }}
         >
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={copy.placeholder} autoFocus onFocus={(e) => e.target.select()} className={target?.kind === "profile" ? "font-mono" : undefined} />
-          <Button type="submit" className="w-full" disabled={!valid || busy}>{busy ? <Loader2 className="size-4 animate-spin" /> : "Save"}</Button>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder={copy.placeholder}
+            autoFocus
+            onFocus={(e) => e.target.select()}
+            className={target?.kind === "profile" ? "font-mono" : undefined}
+          />
+          <Button type="submit" className="w-full" disabled={!valid || busy}>
+            {busy ? <Loader2 className="size-4 animate-spin" /> : "Save"}
+          </Button>
         </form>
       </DialogContent>
     </Dialog>

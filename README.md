@@ -82,7 +82,7 @@ rolle stop <session>
 - `internal/terminal`: opens a terminal with a session's environment
 - `cmd/rolle`: CLI
 - `apps/desktop`: Wails v3 desktop app (React, Tailwind v4, shadcn/ui)
-- `apps/docs`: docs site for getrolle.com (Blume, deployed by Vercel)
+- `docs`: docs site for getrolle.com (Blume, deployed by Vercel); `docs/brand` holds the brand kit
 
 ## Brand kit
 
@@ -97,8 +97,10 @@ adapted for Rolle under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/
 
 ```sh
 mise install
-mise run setup
-mise run check
+mise run setup          # frontend deps + git hooks
+mise run check          # go vet, lint, tests
+mise run check:frontend # typecheck, lint, format, tests
+mise run hooks          # every pre-commit hook on the whole tree
 mise run desktop
 ```
 
@@ -109,4 +111,4 @@ Set `ROLLE_DEBUG=1` (or pass `rolle --debug`) for verbose diagnostics from the
 CLI and the desktop app. `mise run reset` wipes the local workspace, secrets,
 cache, and AWS profiles.
 
-See [docs/ROADMAP.md](docs/ROADMAP.md) for what works and what does not.
+See [getrolle.com/roadmap](https://getrolle.com/roadmap) for what works and what does not.

@@ -16,6 +16,8 @@ import (
 var (
 	svc       *app.Service
 	debugFlag bool
+	// newService builds the service for a command run. Tests replace it.
+	newService = app.Default
 )
 
 // Root returns the rolle command.
@@ -30,7 +32,7 @@ func Root() *cobra.Command {
 			if debugFlag {
 				debug.Enable()
 			}
-			s, err := app.Default()
+			s, err := newService()
 			if err != nil {
 				return err
 			}

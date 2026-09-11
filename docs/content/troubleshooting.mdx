@@ -1,0 +1,42 @@
+---
+title: Troubleshooting
+description: Known situations and what to do about them.
+sidebar:
+  order: 11
+---
+
+## Verbose logs
+
+Set `ROLLE_DEBUG=1`, pass `rolle --debug`, or turn on **Settings → Advanced → Verbose logging**. The desktop app and the CLI then log every provider call.
+
+## "login required" when a role starts
+
+The Identity Center token for that portal has expired. Press **Start** again in the desktop app and it signs in first, or run `rolle integration login <alias>`.
+
+## `gcloud` is not found, or mise reports "No version is set for shim"
+
+Rolle looks for a real `gcloud` binary and skips mise shims. Install the Google Cloud SDK with Homebrew or the official installer, or run the sign-in command that the Google Cloud connect step shows and press **Check again**.
+
+## macOS asks for keychain access
+
+Rolle stores refresh tokens and access keys in the login keychain under the service `rolle`. Choose **Always Allow** so every start does not prompt.
+
+## Windows SmartScreen warning
+
+Windows builds are not code signed yet. Choose **More info → Run anyway**.
+
+## Linux app does not start
+
+The desktop app needs GTK 4 and WebKitGTK 6.0. On Debian and Ubuntu:
+
+```sh
+sudo apt-get install libgtk-4-1 libwebkitgtk-6.0-4
+```
+
+## Start over
+
+```sh
+rolle reset
+```
+
+This removes the workspace, every keychain entry, the credential cache, and the AWS profiles Rolle wrote. The desktop app runs onboarding again.

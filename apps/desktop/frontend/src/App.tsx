@@ -20,7 +20,9 @@ export default function App() {
       <main className="flex h-full flex-col items-center justify-center gap-4 bg-background p-8 text-foreground">
         <Mark className="size-12 text-destructive" />
         <p className="max-w-md text-center text-sm text-muted-foreground">{error}</p>
-        <button className="text-sm underline" onClick={() => void reload()}>Retry</button>
+        <button className="text-sm underline" onClick={() => void reload()}>
+          Retry
+        </button>
       </main>
     );
   }
@@ -37,11 +39,25 @@ export default function App() {
     <div className="h-full bg-background text-foreground">
       <AnimatePresence mode="wait">
         {workspace.onboarded ? (
-          <motion.div key="dash" className="h-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+          <motion.div
+            key="dash"
+            className="h-full"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
             <Dashboard workspace={workspace} />
           </motion.div>
         ) : (
-          <motion.div key="onb" className="h-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.2 }}>
+          <motion.div
+            key="onb"
+            className="h-full"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 0.2 }}
+          >
             <Onboarding workspace={workspace} />
           </motion.div>
         )}

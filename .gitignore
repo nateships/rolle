@@ -1,6 +1,6 @@
 /bin
 node_modules
 .DS_Store
-apps/docs/dist
-apps/docs/.blume
+docs/dist
+docs/.blume
 .task/

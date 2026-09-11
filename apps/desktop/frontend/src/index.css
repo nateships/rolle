@@ -5,151 +5,184 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-    /* Brand stack colors (docs/brand/tokens.json). Blue text uses the focus tint for contrast on charcoal. */
-    --color-brand-blue: #244CFF;
-    --color-brand-blue-text: var(--brand-blue-text);
-    --color-brand-orange: #FF7900;
-    --color-brand-green: #00CE78;
+  /* Brand stack colors (docs/brand/tokens.json). Blue text uses the focus tint for contrast on charcoal. */
+  --color-brand-blue: #244cff;
+  --color-brand-blue-text: var(--brand-blue-text);
+  --color-brand-orange: #ff7900;
+  --color-brand-green: #00ce78;
 }
 
 @theme inline {
-    /* Brand tokens: docs/brand/tokens.css. Interface sans and mono are separate from the outlined wordmark. */
-    --font-heading: var(--font-sans);
-    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --font-mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
-    --color-sidebar-ring: var(--sidebar-ring);
-    --color-sidebar-border: var(--sidebar-border);
-    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-    --color-sidebar-accent: var(--sidebar-accent);
-    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-    --color-sidebar-primary: var(--sidebar-primary);
-    --color-sidebar-foreground: var(--sidebar-foreground);
-    --color-sidebar: var(--sidebar);
-    --color-chart-5: var(--chart-5);
-    --color-chart-4: var(--chart-4);
-    --color-chart-3: var(--chart-3);
-    --color-chart-2: var(--chart-2);
-    --color-chart-1: var(--chart-1);
-    --color-ring: var(--ring);
-    --color-input: var(--input);
-    --color-border: var(--border);
-    --color-destructive: var(--destructive);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-accent: var(--accent);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-muted: var(--muted);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-secondary: var(--secondary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-primary: var(--primary);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-popover: var(--popover);
-    --color-card-foreground: var(--card-foreground);
-    --color-card: var(--card);
-    --color-foreground: var(--foreground);
-    --color-background: var(--background);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: 1rem;
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
+  /* Brand tokens: docs/brand/tokens.css. Interface sans and mono are separate from the outlined wordmark. */
+  --font-heading: var(--font-sans);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: 1rem;
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 :root {
-    /* Rolle light theme: warm ivory ground, charcoal text, cobalt focus. */
-    --brand-blue-text: #244CFF;
-    --background: #F4F0E8;
-    --foreground: #181A1E;
-    --card: #FFFDF9;
-    --card-foreground: #181A1E;
-    --popover: #FFFDF9;
-    --popover-foreground: #181A1E;
-    --primary: #181A1E;
-    --primary-foreground: #F4F0E8;
-    --secondary: #E8E3D9;
-    --secondary-foreground: #181A1E;
-    --muted: #E8E3D9;
-    --muted-foreground: #5C626C;
-    --accent: #E1DCD1;
-    --accent-foreground: #181A1E;
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: #D6D0C4;
-    --input: #CFC8BB;
-    --ring: #244CFF;
-    --chart-1: #244CFF;
-    --chart-2: #FF7900;
-    --chart-3: #00CE78;
-    --chart-4: #8A8F99;
-    --chart-5: #D6D0C4;
-    --radius: 0.5rem;
-    --sidebar: #ECE7DD;
-    --sidebar-foreground: #181A1E;
-    --sidebar-primary: #181A1E;
-    --sidebar-primary-foreground: #F4F0E8;
-    --sidebar-accent: #E1DCD1;
-    --sidebar-accent-foreground: #181A1E;
-    --sidebar-border: #D6D0C4;
-    --sidebar-ring: #244CFF;
+  /* Rolle light theme: warm ivory ground, charcoal text, cobalt focus. */
+  --brand-blue-text: #244cff;
+  --background: #f4f0e8;
+  --foreground: #181a1e;
+  --card: #fffdf9;
+  --card-foreground: #181a1e;
+  --popover: #fffdf9;
+  --popover-foreground: #181a1e;
+  --primary: #181a1e;
+  --primary-foreground: #f4f0e8;
+  --secondary: #e8e3d9;
+  --secondary-foreground: #181a1e;
+  --muted: #e8e3d9;
+  --muted-foreground: #5c626c;
+  --accent: #e1dcd1;
+  --accent-foreground: #181a1e;
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: #d6d0c4;
+  --input: #cfc8bb;
+  --ring: #244cff;
+  --chart-1: #244cff;
+  --chart-2: #ff7900;
+  --chart-3: #00ce78;
+  --chart-4: #8a8f99;
+  --chart-5: #d6d0c4;
+  --radius: 0.5rem;
+  --sidebar: #ece7dd;
+  --sidebar-foreground: #181a1e;
+  --sidebar-primary: #181a1e;
+  --sidebar-primary-foreground: #f4f0e8;
+  --sidebar-accent: #e1dcd1;
+  --sidebar-accent-foreground: #181a1e;
+  --sidebar-border: #d6d0c4;
+  --sidebar-ring: #244cff;
 }
 
 .dark {
-    --brand-blue-text: #8BA9FF;
-    /* Rolle brand palette (docs/brand/tokens.json), tuned for stronger dark-mode contrast:
+  --brand-blue-text: #8ba9ff;
+  /* Rolle brand palette (docs/brand/tokens.json), tuned for stronger dark-mode contrast:
        neutral charcoal, lifted surfaces, brighter borders and secondary text. */
-    --background: #101114;
-    --foreground: #F4F0E8;
-    --card: #1E2024;
-    --card-foreground: #F4F0E8;
-    --popover: #1E2024;
-    --popover-foreground: #F4F0E8;
-    --primary: #E8EAED;
-    --primary-foreground: #181A1E;
-    --secondary: #292C31;
-    --secondary-foreground: #F4F0E8;
-    --muted: #292C31;
-    --muted-foreground: #B4B8C0;
-    --accent: #2E3238;
-    --accent-foreground: #F4F0E8;
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: #3F4248;
-    --input: #444850;
-    --ring: #8BA9FF;
-    --chart-1: #244CFF;
-    --chart-2: #FF7900;
-    --chart-3: #00CE78;
-    --chart-4: #5C626C;
-    --chart-5: #3F4248;
-    --sidebar: #181A1E;
-    --sidebar-foreground: #F4F0E8;
-    --sidebar-primary: #E8EAED;
-    --sidebar-primary-foreground: #181A1E;
-    --sidebar-accent: #292C31;
-    --sidebar-accent-foreground: #F4F0E8;
-    --sidebar-border: #3F4248;
-    --sidebar-ring: #8BA9FF;
+  --background: #101114;
+  --foreground: #f4f0e8;
+  --card: #1e2024;
+  --card-foreground: #f4f0e8;
+  --popover: #1e2024;
+  --popover-foreground: #f4f0e8;
+  --primary: #e8eaed;
+  --primary-foreground: #181a1e;
+  --secondary: #292c31;
+  --secondary-foreground: #f4f0e8;
+  --muted: #292c31;
+  --muted-foreground: #b4b8c0;
+  --accent: #2e3238;
+  --accent-foreground: #f4f0e8;
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: #3f4248;
+  --input: #444850;
+  --ring: #8ba9ff;
+  --chart-1: #244cff;
+  --chart-2: #ff7900;
+  --chart-3: #00ce78;
+  --chart-4: #5c626c;
+  --chart-5: #3f4248;
+  --sidebar: #181a1e;
+  --sidebar-foreground: #f4f0e8;
+  --sidebar-primary: #e8eaed;
+  --sidebar-primary-foreground: #181a1e;
+  --sidebar-accent: #292c31;
+  --sidebar-accent-foreground: #f4f0e8;
+  --sidebar-border: #3f4248;
+  --sidebar-ring: #8ba9ff;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
-    }
+  }
   body {
     @apply bg-background text-foreground;
-    }
+  }
   html {
     @apply font-sans;
-    }
+  }
 }
 /* Rolle additions */
-html, body, #root { height: 100%; }
-html { color-scheme: light; }
-html.dark { color-scheme: dark; }
-body { overscroll-behavior: none; -webkit-font-smoothing: antialiased; }
-.drag { --wails-draggable: drag; }
+html,
+body,
+#root {
+  height: 100%;
+}
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+body {
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+}
+.drag {
+  --wails-draggable: drag;
+}
 /* Leading header content moves right of the macOS traffic lights (hidden-inset title bar). */
-.mac .mac-inset { padding-left: 5.25rem; }
-.no-drag { --wails-draggable: no-drag; }
-@keyframes pulse-ring { 0% { transform: scale(1); opacity: .7 } 100% { transform: scale(2.2); opacity: 0 } }
-.pulse-ring::after { content: ""; position: absolute; inset: 0; border-radius: 9999px; background: currentColor; animation: pulse-ring 1.6s ease-out infinite; }
+.mac .mac-inset {
+  padding-left: 5.25rem;
+}
+.no-drag {
+  --wails-draggable: no-drag;
+}
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+.pulse-ring::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: pulse-ring 1.6s ease-out infinite;
+}

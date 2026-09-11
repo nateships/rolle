@@ -8,6 +8,17 @@ export function celebrate(intensity: "small" | "big" = "big") {
   void confetti({ ...defaults, particleCount: count, angle: 60, origin: { x: 0, y: 0.7 }, colors });
   void confetti({ ...defaults, particleCount: count, angle: 120, origin: { x: 1, y: 0.7 }, colors });
   if (intensity === "big") {
-    setTimeout(() => void confetti({ ...defaults, particleCount: 90, spread: 120, startVelocity: 35, origin: { x: 0.5, y: 0.4 }, colors }), 250);
+    setTimeout(
+      () =>
+        void confetti({
+          ...defaults,
+          particleCount: 90,
+          spread: 120,
+          startVelocity: 35,
+          origin: { x: 0.5, y: 0.4 },
+          colors,
+        }),
+      250,
+    );
   }
 }

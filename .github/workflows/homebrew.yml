@@ -17,13 +17,16 @@ jobs:
   tap:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           repository: nateships/homebrew-tap
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
       - name: Resolve the tag
+        env:
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          tag="${{ github.event.inputs.tag || github.event.release.tag_name }}"
+          tag="${INPUT_TAG:-$RELEASE_TAG}"
           echo "TAG=$tag" >> "$GITHUB_ENV"
           echo "VERSION=${tag#v}" >> "$GITHUB_ENV"
       - name: Download release checksums and DMG
@@ -45,22 +48,22 @@ jobs:
             on_macos do
               on_arm do
                 url "$base/rolle_${VERSION}_darwin_arm64.tar.gz"
-                sha256 "$(sum rolle_${VERSION}_darwin_arm64.tar.gz)"
+                sha256 "$(sum "rolle_${VERSION}_darwin_arm64.tar.gz")"
               end
               on_intel do
                 url "$base/rolle_${VERSION}_darwin_amd64.tar.gz"
-                sha256 "$(sum rolle_${VERSION}_darwin_amd64.tar.gz)"
+                sha256 "$(sum "rolle_${VERSION}_darwin_amd64.tar.gz")"
               end
             end
 
             on_linux do
               on_arm do
                 url "$base/rolle_${VERSION}_linux_arm64.tar.gz"
-                sha256 "$(sum rolle_${VERSION}_linux_arm64.tar.gz)"
+                sha256 "$(sum "rolle_${VERSION}_linux_arm64.tar.gz")"
               end
               on_intel do
                 url "$base/rolle_${VERSION}_linux_amd64.tar.gz"
-                sha256 "$(sum rolle_${VERSION}_linux_amd64.tar.gz)"
+                sha256 "$(sum "rolle_${VERSION}_linux_amd64.tar.gz")"
               end
             end
 

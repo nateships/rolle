@@ -46,14 +46,14 @@
         <key>NSAllowsLocalNetworking</key>
         <true/>
     </dict>
-    
-    
+
+
     <key>NSHumanReadableCopyright</key>
     <string>(c) 2026, nateships</string>
-    
-    
+
+
     <key>CFBundleGetInfoString</key>
     <string>Cloud credential and role manager</string>
-    
+
 </dict>
 </plist>

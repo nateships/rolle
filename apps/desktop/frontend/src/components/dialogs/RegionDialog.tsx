@@ -11,7 +11,12 @@ export function RegionDialog({ session, onClose }: { session: Session | null; on
   const [region, setRegion] = useState("");
   const [busy, setBusy] = useState(false);
   const current = session?.region ?? "";
-  useEffect(() => { setRegion(current); }, [session?.id, current]);
+  // The id is a deliberate extra dependency: a new session with the same region still resets the picker.
+  /* oxlint-disable react/exhaustive-effect-dependencies */
+  useEffect(() => {
+    setRegion(current);
+  }, [session?.id, current]);
+  /* oxlint-enable react/exhaustive-effect-dependencies */
   const valid = region !== "" && region !== current;
   return (
     <Dialog open={!!session} onOpenChange={(o) => !o && onClose()}>

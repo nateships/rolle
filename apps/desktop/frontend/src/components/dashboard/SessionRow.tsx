@@ -1,9 +1,28 @@
 import { useState } from "react";
-import { Clipboard, ExternalLink, Globe, Loader2, MoreHorizontal, Pencil, Play, Square, SquareTerminal, Star, Terminal, Trash2 } from "lucide-react";
+import {
+  Clipboard,
+  ExternalLink,
+  Globe,
+  Loader2,
+  MoreHorizontal,
+  Pencil,
+  Play,
+  Square,
+  SquareTerminal,
+  Star,
+  Terminal,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { motion } from "motion/react";
 import { TableCell } from "@/components/ui/table";
@@ -20,12 +39,22 @@ import { cn } from "@/lib/utils";
 const isAWSKind = (k: string) => cloudOf(k) === "aws";
 
 /** A session row. A nested row sits under its account row and shows the role name only. */
-export function SessionRow({ session: s, workspace, nested, onNeedsLogin }: { session: Session; workspace: Workspace; nested?: boolean; onNeedsLogin?: (integration: Integration, startSessionId?: string) => void }) {
+export function SessionRow({
+  session: s,
+  workspace,
+  nested,
+  onNeedsLogin,
+}: {
+  session: Session;
+  workspace: Workspace;
+  nested?: boolean;
+  onNeedsLogin?: (integration: Integration, startSessionId?: string) => void;
+}) {
   const [busy, setBusy] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
   const [editing, setEditing] = useState<RenameTarget | null>(null);
   const [regionOpen, setRegionOpen] = useState(false);
-  const profileName = isAWSKind(s.kind) ? (s.aws?.profile || "default") : "";
+  const profileName = isAWSKind(s.kind) ? s.aws?.profile || "default" : "";
   const active = s.status === Status.StatusActive;
   const needsMFA = s.kind === Kind.KindAWSIAMUser && !!s.aws?.mfaDevice;
   const source = s.aws?.sourceSessionId ? workspace.sessions.find((x) => x.id === s.aws?.sourceSessionId) : undefined;
@@ -43,7 +72,9 @@ export function SessionRow({ session: s, workspace, nested, onNeedsLogin }: { se
       const first = !workspace.sessions.some((x) => x.status === Status.StatusActive);
       if (first) celebrate("small");
       toast.success(`${s.name} started`, {
-        description: isAWS ? `AWS profile ${await api.ProfileName(s.id)} is ready.` : "Credentials are ready for your shell.",
+        description: isAWS
+          ? `AWS profile ${await api.ProfileName(s.id)} is ready.`
+          : "Credentials are ready for your shell.",
         action: { label: "Copy env", onClick: () => void copy("env") },
       });
     } catch (e) {
@@ -77,7 +108,9 @@ export function SessionRow({ session: s, workspace, nested, onNeedsLogin }: { se
     try {
       const text = kind === "profile" ? `aws --profile ${await api.ProfileName(s.id)}` : await api.EnvText(s.id);
       await copyText(text);
-      toast.success(kind === "profile" ? "Profile command copied" : "Credentials copied", { description: kind === "env" ? "Paste into a shell. They expire on their own." : undefined });
+      toast.success(kind === "profile" ? "Profile command copied" : "Credentials copied", {
+        description: kind === "env" ? "Paste into a shell. They expire on their own." : undefined,
+      });
     } catch (e) {
       toast.error(errorMessage(e));
     }
@@ -92,12 +125,22 @@ export function SessionRow({ session: s, workspace, nested, onNeedsLogin }: { se
     >
       <TableCell className="pr-0">
         <div className="flex items-center gap-2">
-          <span className={cn("relative size-2 shrink-0 rounded-full", active ? "bg-emerald-400 text-emerald-400 pulse-ring" : "bg-muted-foreground/30")} />
+          <span
+            className={cn(
+              "relative size-2 shrink-0 rounded-full",
+              active ? "bg-emerald-400 text-emerald-400 pulse-ring" : "bg-muted-foreground/30",
+            )}
+          />
           <button
             type="button"
             aria-label={s.favorite ? "Remove from favorites" : "Add to favorites"}
             onClick={() => api.SetFavorite(s.id, !s.favorite).catch((e) => toast.error(errorMessage(e)))}
-            className={cn("shrink-0 rounded p-0.5 transition-opacity", s.favorite ? "text-brand-orange" : "text-muted-foreground/50 opacity-0 hover:text-foreground group-hover:opacity-100 group-focus-within:opacity-100")}
+            className={cn(
+              "shrink-0 rounded p-0.5 transition-opacity",
+              s.favorite
+                ? "text-brand-orange"
+                : "text-muted-foreground/50 opacity-0 hover:text-foreground group-hover:opacity-100 group-focus-within:opacity-100",
+            )}
           >
             <Star className={cn("size-4", s.favorite && "fill-current")} />
           </button>
@@ -108,10 +151,19 @@ export function SessionRow({ session: s, workspace, nested, onNeedsLogin }: { se
           {!nested && <CloudGlyph cloud={cloudOf(s.kind)} />}
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <p className="truncate text-sm font-medium">{nested ? s.aws?.roleName ?? s.name : s.name}</p>
-              {badge && <Badge variant="outline" className="h-5 shrink-0 px-1.5 text-[10px] font-normal text-muted-foreground">{badge}</Badge>}
+              <p className="truncate text-sm font-medium">{nested ? (s.aws?.roleName ?? s.name) : s.name}</p>
+              {badge && (
+                <Badge variant="outline" className="h-5 shrink-0 px-1.5 text-[10px] font-normal text-muted-foreground">
+                  {badge}
+                </Badge>
+              )}
             </div>
-            {!nested && <p className="truncate font-mono text-[11px] text-muted-foreground">{sessionSubtitle(s)}{source ? ` · via ${source.name}` : ""}</p>}
+            {!nested && (
+              <p className="truncate font-mono text-[11px] text-muted-foreground">
+                {sessionSubtitle(s)}
+                {source ? ` · via ${source.name}` : ""}
+              </p>
+            )}
           </div>
         </div>
       </TableCell>
@@ -120,7 +172,14 @@ export function SessionRow({ session: s, workspace, nested, onNeedsLogin }: { se
           <button
             type="button"
             title="Change the AWS profile name"
-            onClick={() => setEditing({ kind: "profile", id: s.id, name: s.aws?.profile ?? "", save: (n) => api.SetProfile(s.id, n) })}
+            onClick={() =>
+              setEditing({
+                kind: "profile",
+                id: s.id,
+                name: s.aws?.profile ?? "",
+                save: (n) => api.SetProfile(s.id, n),
+              })
+            }
             className="rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             {profileName}
@@ -144,31 +203,104 @@ export function SessionRow({ session: s, workspace, nested, onNeedsLogin }: { se
         )}
       </TableCell>
       <TableCell>
-        <span className={cn("flex items-center gap-1.5 font-mono text-xs tabular-nums", active ? "text-emerald-300" : "text-muted-foreground/70")}>
-          {active ? <><span className="font-sans font-medium">Active</span><Countdown expires={s.expires} /></> : <span className="font-sans">Inactive</span>}
+        <span
+          className={cn(
+            "flex items-center gap-1.5 font-mono text-xs tabular-nums",
+            active ? "text-emerald-300" : "text-muted-foreground/70",
+          )}
+        >
+          {active ? (
+            <>
+              <span className="font-sans font-medium">Active</span>
+              <Countdown expires={s.expires} />
+            </>
+          ) : (
+            <span className="font-sans">Inactive</span>
+          )}
         </span>
       </TableCell>
       <TableCell className="text-right">
         <div className="flex items-center justify-end gap-0.5">
-          <div className={cn("flex items-center gap-0.5 transition-opacity", active ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100")}>
+          <div
+            className={cn(
+              "flex items-center gap-0.5 transition-opacity",
+              active ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
+            )}
+          >
             {active && (
               <>
-                <IconBtn label="Open terminal here" onClick={() => api.OpenTerminal(s.id).catch((e) => toast.error(errorMessage(e)))}><SquareTerminal /></IconBtn>
-                <IconBtn label="Open console" onClick={() => api.OpenConsole(s.id).catch((e) => toast.error(errorMessage(e)))}><ExternalLink /></IconBtn>
-                {isAWS && <IconBtn label="Copy profile command" onClick={() => copy("profile")}><Terminal /></IconBtn>}
-                <IconBtn label="Copy credentials as env" onClick={() => copy("env")}><Clipboard /></IconBtn>
+                <IconBtn
+                  label="Open terminal here"
+                  onClick={() => api.OpenTerminal(s.id).catch((e) => toast.error(errorMessage(e)))}
+                >
+                  <SquareTerminal />
+                </IconBtn>
+                <IconBtn
+                  label="Open console"
+                  onClick={() => api.OpenConsole(s.id).catch((e) => toast.error(errorMessage(e)))}
+                >
+                  <ExternalLink />
+                </IconBtn>
+                {isAWS && (
+                  <IconBtn label="Copy profile command" onClick={() => copy("profile")}>
+                    <Terminal />
+                  </IconBtn>
+                )}
+                <IconBtn label="Copy credentials as env" onClick={() => copy("env")}>
+                  <Clipboard />
+                </IconBtn>
               </>
             )}
             <DropdownMenu>
-              <DropdownMenuTrigger asChild><Button variant="ghost" size="icon-sm"><MoreHorizontal /></Button></DropdownMenuTrigger>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon-sm">
+                  <MoreHorizontal />
+                </Button>
+              </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-56">
-                <DropdownMenuItem onClick={() => api.SetFavorite(s.id, !s.favorite).catch((e) => toast.error(errorMessage(e)))}><Star /> {s.favorite ? "Remove from favorites" : "Add to favorites"}</DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setEditing({ kind: "session", id: s.id, name: s.name, save: (n) => api.RenameSession(s.id, n) })}><Pencil /> Rename</DropdownMenuItem>
-                {isAWS && <DropdownMenuItem onClick={() => setEditing({ kind: "profile", id: s.id, name: s.aws?.profile ?? "", save: (n) => api.SetProfile(s.id, n) })}><Terminal /> Set AWS profile name</DropdownMenuItem>}
-                {isAWS && <DropdownMenuItem onClick={() => setRegionOpen(true)}><Globe /> Change region</DropdownMenuItem>}
-                {isAWS && <DropdownMenuItem onClick={() => copy("profile")}><Terminal /> Copy profile command</DropdownMenuItem>}
+                <DropdownMenuItem
+                  onClick={() => api.SetFavorite(s.id, !s.favorite).catch((e) => toast.error(errorMessage(e)))}
+                >
+                  <Star /> {s.favorite ? "Remove from favorites" : "Add to favorites"}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() =>
+                    setEditing({ kind: "session", id: s.id, name: s.name, save: (n) => api.RenameSession(s.id, n) })
+                  }
+                >
+                  <Pencil /> Rename
+                </DropdownMenuItem>
+                {isAWS && (
+                  <DropdownMenuItem
+                    onClick={() =>
+                      setEditing({
+                        kind: "profile",
+                        id: s.id,
+                        name: s.aws?.profile ?? "",
+                        save: (n) => api.SetProfile(s.id, n),
+                      })
+                    }
+                  >
+                    <Terminal /> Set AWS profile name
+                  </DropdownMenuItem>
+                )}
+                {isAWS && (
+                  <DropdownMenuItem onClick={() => setRegionOpen(true)}>
+                    <Globe /> Change region
+                  </DropdownMenuItem>
+                )}
+                {isAWS && (
+                  <DropdownMenuItem onClick={() => copy("profile")}>
+                    <Terminal /> Copy profile command
+                  </DropdownMenuItem>
+                )}
                 {isAWS && <DropdownMenuSeparator />}
-                <DropdownMenuItem variant="destructive" onClick={() => api.RemoveSession(s.id).catch((e) => toast.error(errorMessage(e)))}><Trash2 /> Remove</DropdownMenuItem>
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => api.RemoveSession(s.id).catch((e) => toast.error(errorMessage(e)))}
+                >
+                  <Trash2 /> Remove
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -179,11 +311,24 @@ export function SessionRow({ session: s, workspace, nested, onNeedsLogin }: { se
             disabled={busy}
             onClick={() => (active ? stop() : needsMFA ? setMfaOpen(true) : start())}
           >
-            {busy ? <Loader2 className="size-3.5 animate-spin" /> : active ? <Square className="size-3.5" /> : <Play className="size-3.5" />}
+            {busy ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : active ? (
+              <Square className="size-3.5" />
+            ) : (
+              <Play className="size-3.5" />
+            )}
             {active ? "Stop" : "Start"}
           </Button>
         </div>
-        <MFADialog open={mfaOpen} onClose={() => setMfaOpen(false)} onSubmit={(code) => { setMfaOpen(false); void start(code); }} />
+        <MFADialog
+          open={mfaOpen}
+          onClose={() => setMfaOpen(false)}
+          onSubmit={(code) => {
+            setMfaOpen(false);
+            void start(code);
+          }}
+        />
         <RenameDialog target={editing} onClose={() => setEditing(null)} />
         <RegionDialog session={regionOpen ? s : null} onClose={() => setRegionOpen(false)} />
       </TableCell>
@@ -195,7 +340,9 @@ function IconBtn({ label, onClick, children }: { label: string; onClick: () => v
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon-sm" onClick={onClick} aria-label={label}>{children}</Button>
+        <Button variant="ghost" size="icon-sm" onClick={onClick} aria-label={label}>
+          {children}
+        </Button>
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>

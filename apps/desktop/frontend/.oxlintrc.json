@@ -1,0 +1,19 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["typescript", "react", "unicorn", "oxc"],
+  "env": { "browser": true, "es2022": true },
+  "categories": { "correctness": "error", "suspicious": "warn" },
+  "settings": { "react": { "version": "19" } },
+  "rules": {
+    // tsconfig uses the automatic runtime ("jsx": "react-jsx"); no React import is needed.
+    "react/react-in-jsx-scope": "off",
+    // Dialogs reset local state from props inside an effect on purpose; the React Compiler
+    // rewrite this rule asks for is out of scope.
+    "react/set-state-in-effect": "off",
+    // tsconfig targets lib ES2020, which has no Array#toSorted.
+    "unicorn/no-array-sort": "off",
+    // Helpers defined inside components are the house style.
+    "unicorn/consistent-function-scoping": "off"
+  },
+  "ignorePatterns": ["bindings/**", "dist/**", "node_modules/**"]
+}

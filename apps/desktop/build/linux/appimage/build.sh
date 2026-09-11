@@ -32,4 +32,3 @@ fi
 
 # Rename the generated AppImage
 mv "${APP_NAME}*.AppImage" "${APP_NAME}.AppImage"
-

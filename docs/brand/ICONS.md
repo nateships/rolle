@@ -11,7 +11,7 @@ Desktop icons use only the credential stack and open r. The gopher is reserved f
 - icons/trayicon.svg and trayicon.png: black template mark on transparency; PNG is 44px for the existing tray integration.
 - icons/rolle.icns: native macOS icon container.
 - icons/rolle.ico: Windows sizes 16, 24, 32, 48, 64, 128 and 256px.
-- icons/sizes/: launcher PNGs at 16, 24, 32, 48, 64, 128, 256, 512 and 1024px, plus a 22px tray export.
+- icons/sizes/: launcher PNG files at 16, 24, 32, 48, 64, 128, 256, 512 and 1024px, plus a 22px tray export.
 
 The build copies live at apps/desktop/build/appicon.png, trayicon.png, darwin/icons.icns, and windows/icon.ico. Linux packaging already consumes build/appicon.png.
 

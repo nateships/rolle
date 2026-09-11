@@ -21,7 +21,7 @@
         PackageDescription="A desktop application">
         <Capabilities>
             <Capability Name="runFullTrust" />
-            
+
         </Capabilities>
         <Applications>
             <Application
@@ -30,7 +30,7 @@
                 DisplayName="My Product"
                 ExecutableName="desktop"
                 EntryPoint="Windows.FullTrustApplication">
-                
+
             </Application>
         </Applications>
         <Resources>

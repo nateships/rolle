@@ -302,6 +302,12 @@ type AddAssumeRoleInput struct {
 
 // AddAssumeRole creates a session that assumes a role from another session.
 func (s *Service) AddAssumeRole(in AddAssumeRoleInput) (core.Session, error) {
+	if strings.TrimSpace(in.Name) == "" {
+		return core.Session{}, errors.New("name cannot be empty")
+	}
+	if !strings.HasPrefix(in.RoleARN, "arn:") {
+		return core.Session{}, fmt.Errorf("role ARN %q is not an ARN", in.RoleARN)
+	}
 	w, err := s.Load()
 	if err != nil {
 		return core.Session{}, err

@@ -4,11 +4,30 @@ golangci-lint = "latest"
 node = "26"
 aube = "2.2"
 "go:github.com/wailsapp/wails/v3/cmd/wails3" = "v3.0.0-beta.20"
+prek = "0.5.2"        # git hooks, also run in CI
+actionlint = "1.7.12" # workflow correctness
+shellcheck = "0.11.0" # backs actionlint's run: blocks
+zizmor = "1.30.1"     # workflow security audit
+typos = "1.50.1"      # spell check
 
-[tasks.setup]
-description = "Install frontend dependencies"
+[tasks."setup:frontend"]
+description = "Install desktop frontend dependencies"
 run = "aube install"
 dir = "apps/desktop/frontend"
+
+[tasks.setup]
+description = "Install frontend dependencies and git hooks"
+depends = ["setup:frontend"]
+run = "prek install"
+
+[tasks."check:frontend"]
+description = "Typecheck, lint, format-check, and test the desktop frontend"
+run = ["aube run typecheck", "aube run lint", "aube run format:check", "aube run test"]
+dir = "apps/desktop/frontend"
+
+[tasks.hooks]
+description = "Run every git hook on the whole tree"
+run = "prek run --all-files"
 
 [tasks.check]
 description = "Vet, lint, and test the module"
@@ -31,12 +50,12 @@ dir = "apps/desktop"
 [tasks.docs]
 description = "Run the docs site locally"
 run = ["npm install --no-fund --no-audit", "npm run dev"]
-dir = "apps/docs"
+dir = "docs"
 
 [tasks."docs:build"]
 description = "Build the docs site"
-run = ["npm install --no-fund --no-audit", "npm run build"]
-dir = "apps/docs"
+run = ["npm ci --no-fund --no-audit", "npm run build"]
+dir = "docs"
 
 [tasks.reset]
 description = "Wipe the local Rolle workspace, secrets, cache, and AWS profiles (back to onboarding)"

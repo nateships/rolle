@@ -49,13 +49,13 @@
     <!-- Development mode enabled -->
     <key>WailsDevelopmentMode</key>
     <true/>
-    
+
     <key>NSHumanReadableCopyright</key>
     <string>(c) 2026, nateships</string>
-    
-    
+
+
     <key>CFBundleGetInfoString</key>
     <string>Cloud credential and role manager</string>
-    
+
 </dict>
 </plist>

@@ -4,7 +4,7 @@ Read [README.md](README.md), [ICONS.md](ICONS.md) and [TYPOGRAPHY.md](TYPOGRAPHY
 
 ## Icons
 
-`tools/icons/main.go` is the source for the stack geometry and three card colors. It generates SVGs and antialiased PNGs in `apps/desktop/build/`. The desktop build task also generates Windows ICO and macOS ICNS; Linux consumes the PNG. The tray uses a 44px black template mark.
+`tools/icons/main.go` is the source for the stack geometry and three card colors. It generates SVGs and antialiased PNG files in `apps/desktop/build/`. The desktop build task also generates Windows ICO and macOS ICNS; Linux consumes the PNG. The tray uses a 44px black template mark.
 
 After changing the generator, refresh the build assets and matching copies in `docs/brand/icons/`. Check transparent corners, the open r cutout and small sizes. Keep desktop and tray artwork free of the gopher and wordmark.
 

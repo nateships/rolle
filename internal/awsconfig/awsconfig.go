@@ -73,7 +73,7 @@ func Write(path string, p Profile) error {
 			}
 		}
 		sec.Key(preexisting).SetValue("true")
-		if sec.HasKey("region") && p.Region != "" {
+		if sec.HasKey("region") {
 			sec.Key(prevRegion).SetValue(sec.Key("region").String())
 		}
 	}
