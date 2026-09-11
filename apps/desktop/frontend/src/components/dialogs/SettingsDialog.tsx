@@ -134,7 +134,10 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                   className="w-64 justify-between font-normal"
                 />
               </Row>
-              <Row label="Assume role duration" hint="Requested from STS. Roles may cap it lower.">
+              <Row
+                label="Assume role duration"
+                hint="For chained assume-role sessions. Identity Center roles use their permission set's session duration."
+              >
                 <Select
                   value={String(settings.assumeRoleMinutes)}
                   onValueChange={(v) => update({ assumeRoleMinutes: Number(v) })}

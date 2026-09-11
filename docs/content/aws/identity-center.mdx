@@ -23,6 +23,8 @@ rolle integration logout acme           # sign out and stop its sessions
 
 Roles group under their account in the desktop app. Sync adds new roles and removes roles you can no longer reach. A started role calls `GetRoleCredentials` and renews on its own while the portal sign-in is valid.
 
+The credential lifetime is the permission set's session duration, set by your Identity Center administrator (often 1 to 12 hours). The **Assume role duration** setting does not apply here; it covers [chained assume-role sessions](/aws/assume-role).
+
 ## Import
 
 Rolle imports portals from the AWS CLI config (`sso-session` and legacy `sso_start_url` sections) and from Granted profiles. If the AWS CLI already holds a valid token for a portal, Rolle reuses it and you do not sign in again.
