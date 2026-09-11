@@ -547,25 +547,56 @@ func (s *Service) ConsoleURL(ctx context.Context, ref string) (string, error) {
 	return aws.ConsoleURL(ctx, nil, creds, sess.Region)
 }
 
-// Refresh reconciles session status with the credential cache. Sessions whose
-// credentials expired and could not be refreshed are marked inactive.
+// Refresh reconciles session status with the credential cache. Active
+// sessions whose credentials expired are renewed when the provider allows a
+// silent refresh (Identity Center roles, role chains, Azure, GCP). Sessions
+// that cannot be renewed without user input are marked inactive.
 func (s *Service) Refresh() (*core.Workspace, error) {
 	w, err := s.Load()
 	if err != nil {
 		return nil, err
 	}
 	changed := false
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	for i := range w.Sessions {
 		sess := &w.Sessions[i]
-		if sess.Status == core.StatusActive && sess.Expires != nil && sess.Expires.Before(s.now()) {
-			if _, err := s.Cache.Get(sess.ID); err != nil && sess.Kind == core.KindAWSIAMUser && sess.AWS.MFADevice != "" {
-				_ = s.deactivate(sess)
-				changed = true
-			}
+		if sess.Status != core.StatusActive {
+			continue
 		}
+		if _, err := s.Cache.Get(sess.ID); err == nil {
+			continue
+		}
+		if !s.renewable(sess) {
+			_ = s.deactivate(sess)
+			changed = true
+			continue
+		}
+		creds, err := s.fetch(ctx, w, sess, "")
+		if err != nil {
+			_ = s.deactivate(sess)
+			changed = true
+			continue
+		}
+		if err := s.Cache.Put(sess.ID, creds); err != nil {
+			return nil, err
+		}
+		sess.Expires = creds.Expiration
+		changed = true
 	}
 	if changed {
 		return w, s.Save(w)
 	}
 	return w, nil
+}
+
+// renewable reports whether a session can refresh without user input.
+func (s *Service) renewable(sess *core.Session) bool {
+	switch sess.Kind {
+	case core.KindAWSIAMUser:
+		return sess.AWS == nil || sess.AWS.MFADevice == ""
+	case core.KindAWSAssumeRole:
+		return sess.AWS == nil || sess.AWS.MFADevice == ""
+	}
+	return true
 }

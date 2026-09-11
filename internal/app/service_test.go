@@ -145,6 +145,31 @@ func TestSanitizeProfile(t *testing.T) {
 	}
 }
 
+func TestRefreshRenewsExpiredIAMUserWithoutMFA(t *testing.T) {
+	s := testService(t)
+	sess, err := s.AddIAMUser(AddIAMUserInput{Name: "plain", Region: "us-east-1", Key: aws.AccessKey{AccessKeyID: "A", SecretAccessKey: "B"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Start(context.Background(), sess.ID, StartOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Cache.Delete(sess.ID); err != nil {
+		t.Fatal(err)
+	}
+	w, err := s.Refresh()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, _ := FindSession(w, sess.ID)
+	if got.Status != core.StatusActive {
+		t.Fatalf("status = %s, want active after renewal", got.Status)
+	}
+	if _, err := s.Cache.Get(sess.ID); err != nil {
+		t.Fatalf("cache not repopulated: %v", err)
+	}
+}
+
 func TestRefreshDeactivatesExpiredMFASession(t *testing.T) {
 	s := testService(t)
 	now := time.Now()

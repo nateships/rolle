@@ -4,6 +4,7 @@ package main
 import (
 	"embed"
 	"log"
+	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 
@@ -25,11 +26,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	rolle := NewRolleService(svc)
 	a := application.New(application.Options{
 		Name:        "Rolle",
 		Description: "Assume any role, any cloud",
 		Services: []application.Service{
-			application.NewService(NewRolleService(svc)),
+			application.NewService(rolle),
 		},
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
@@ -53,6 +55,15 @@ func main() {
 		BackgroundColour: application.NewRGB(9, 9, 11),
 		URL:              "/",
 	})
+
+	// Reconcile expiring sessions and nudge the UI so countdowns stay honest.
+	go func() {
+		for range time.Tick(30 * time.Second) {
+			if _, err := svc.Refresh(); err == nil {
+				rolle.changed()
+			}
+		}
+	}()
 
 	if err := a.Run(); err != nil {
 		log.Fatal(err)

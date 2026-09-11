@@ -13,6 +13,7 @@ Out of scope: browser multi-session tooling (AWS provides this natively).
 - [x] `credential_process` entry point and `~/.aws/config` profile management
 - [x] Credential cache with expiry
 - [x] CLI: integration, session, start, stop, creds, env, console
+- [x] Silent renewal of expired sessions on refresh
 
 ## 2. Desktop app
 - [x] Dark mode default, design tokens
@@ -29,4 +30,6 @@ Out of scope: browser multi-session tooling (AWS provides this natively).
 - [ ] Write impersonated ADC file for SDKs without env support
 
 ## 5. Release
-- [ ] goreleaser for CLI and daemon, desktop packaging, signing
+- [ ] goreleaser for the CLI, desktop packaging, signing
+- [ ] System tray with quick start and stop
+- [ ] Expiry notifications
