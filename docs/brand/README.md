@@ -29,3 +29,7 @@ Desktop and tray icons use the stack alone. The Go gopher is reserved for the RE
 - [TYPOGRAPHY.md](TYPOGRAPHY.md): wordmark masters, font usage and regeneration.
 - [IMPLEMENTATION.md](IMPLEMENTATION.md): application integration and source locations.
 - [ATTRIBUTION.md](ATTRIBUTION.md): Go gopher and font credits.
+
+## Social card
+
+[og-card.html](og-card.html) is the source of the Open Graph image served as `docs/public/og-brand.png`. Render it at 1200x630 with a headless browser after a brand change.
