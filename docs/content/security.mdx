@@ -17,6 +17,10 @@ Started sessions cache their temporary credentials in `~/.cache/rolle/credential
 
 Rolle writes only profiles it owns, marked with a `rolle_session` key. It refuses to touch a section that holds `aws_access_key_id` or other credential keys. A plain `[default]` section that only sets region or output is taken over and restored on stop.
 
+## No telemetry
+
+The app and the CLI collect nothing. Network traffic goes to the cloud providers you sign in to, and to `github.com` for the update manifest when the update check is on. No analytics, no crash reporting, no usage data.
+
 ## Signed updates
 
 Release manifests are signed with an Ed25519 key. The desktop app verifies the signature before it installs an update. macOS builds are signed with a Developer ID certificate and notarized.

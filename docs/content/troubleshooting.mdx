@@ -9,6 +9,10 @@ sidebar:
 
 Set `ROLLE_DEBUG=1`, pass `rolle --debug`, or turn on **Settings → Advanced → Verbose logging**. The desktop app and the CLI then log every provider call.
 
+## `ExpiredToken` or the wrong identity after Start
+
+If `~/.aws/credentials` holds static keys under the same profile name, the AWS credential chain reads those before Rolle's `credential_process`. Rolle refuses to start a session onto such a profile and names the file. Delete that section from `~/.aws/credentials`, or give the session another profile name.
+
 ## "login required" when a role starts
 
 The Identity Center token for that portal has expired. Press **Start** again in the desktop app and it signs in first, or run `rolle integration login <alias>`.

@@ -24,6 +24,9 @@ tools without writing a secret to disk. It covers AWS, Azure, and Google Cloud.
   signed self-updates.
 - **Secrets** live in the OS keychain. Short-lived credentials are cached with
   owner-only permissions and expire on their own.
+- **No telemetry.** The app and the CLI send nothing about you or your usage
+  anywhere. They talk only to the cloud providers you sign in to and to GitHub
+  releases for the update check, which you can turn off.
 
 Rolle imports what your machine already has: Identity Center portals from the
 AWS CLI and Granted, Azure tenants from the az CLI, gcloud credentials, and

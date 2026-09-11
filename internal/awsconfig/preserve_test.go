@@ -235,3 +235,24 @@ func TestRemoveKeepsUserRegionWhenProfileHadNone(t *testing.T) {
 		t.Fatalf("user region lost:\n%s", after)
 	}
 }
+
+func TestWriteRefusesProfileShadowedByCredentialsFile(t *testing.T) {
+	dir := t.TempDir()
+	config := filepath.Join(dir, "config")
+	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", filepath.Join(dir, "credentials"))
+	creds := "[default]\naws_access_key_id = AKIA\naws_secret_access_key = x\n\n[other]\nregion = us-east-1\n"
+	if err := os.WriteFile(filepath.Join(dir, "credentials"), []byte(creds), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	err := Write(config, Profile{Name: "default", SessionID: "s1", Executable: "/bin/rolle"})
+	if err == nil || !strings.Contains(err.Error(), "shadow") {
+		t.Fatalf("err = %v", err)
+	}
+	if _, statErr := os.Stat(config); !os.IsNotExist(statErr) {
+		t.Fatal("config file was written despite the shadowing keys")
+	}
+	// A section without keys does not shadow.
+	if err := Write(config, Profile{Name: "other", SessionID: "s2", Executable: "/bin/rolle"}); err != nil {
+		t.Fatal(err)
+	}
+}

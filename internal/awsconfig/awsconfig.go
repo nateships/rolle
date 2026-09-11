@@ -50,9 +50,42 @@ func init() {
 	ini.PrettyEqual = true
 }
 
+// CredentialsPath returns the shared credentials file that pairs with the
+// config file at configPath.
+func CredentialsPath(configPath string) string {
+	if p := os.Getenv("AWS_SHARED_CREDENTIALS_FILE"); p != "" {
+		return p
+	}
+	return filepath.Join(filepath.Dir(configPath), "credentials")
+}
+
+// checkShadow fails when the shared credentials file holds static keys for the
+// profile. The SDK credential chain reads those before credential_process, so
+// the Rolle profile would never be used.
+func checkShadow(configPath, profile string) error {
+	credPath := CredentialsPath(configPath)
+	f, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, credPath)
+	if err != nil {
+		return nil // no credentials file, nothing shadows
+	}
+	sec, err := f.GetSection(profile)
+	if err != nil {
+		return nil
+	}
+	for _, k := range []string{"aws_access_key_id", "aws_secret_access_key", "aws_session_token"} {
+		if sec.HasKey(k) {
+			return fmt.Errorf("profile %q has static keys in %s that would shadow Rolle; remove that section or give the session another profile name", profile, credPath)
+		}
+	}
+	return nil
+}
+
 // Write adds or replaces the profile in the config file at path. A profile
 // that Rolle does not own is not touched.
 func Write(path string, p Profile) error {
+	if err := checkShadow(path, p.Name); err != nil {
+		return err
+	}
 	f, err := load(path)
 	if err != nil {
 		return err
