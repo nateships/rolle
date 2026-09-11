@@ -10,7 +10,7 @@ It is a Go successor to [Leapp](https://github.com/Noovolari/leapp), which is no
 - `internal/core`: sessions, provider interface, credential storage
 - `cmd/rolled`: background daemon that owns sessions and refresh timers
 - `cmd/rolle`: CLI, thin client for the daemon
-- `apps/desktop`: Wails v3 desktop app (Svelte)
+- `apps/desktop`: Wails v3 desktop app (React, Tailwind v4, shadcn/ui)
 
 ## Develop
 
