@@ -17,9 +17,9 @@ If `~/.aws/credentials` holds static keys under the same profile name, the AWS c
 
 The Identity Center token for that portal has expired. Press **Start** again in the desktop app and it signs in first, or run `rolle integration login <alias>`.
 
-## `gcloud` is not found, or mise reports "No version is set for shim"
+## `gcloud` is not found
 
-Rolle looks for a real `gcloud` binary and skips mise shims. Install the Google Cloud SDK with Homebrew or the official installer, or run the sign-in command that the Google Cloud connect step shows and press **Check again**.
+Rolle looks for `gcloud` on your `PATH`, then in the usual install locations: Homebrew, the Google Cloud SDK installer, and version managers such as mise. An app started from the Dock or Start menu does not get your shell's `PATH`, so a `gcloud` that only your shell can see may be missed. Install the SDK with Homebrew or the official installer, or run the sign-in command shown on the Google Cloud connect step and press **Check again**.
 
 ## macOS asks for keychain access
 
