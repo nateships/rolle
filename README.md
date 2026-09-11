@@ -34,7 +34,7 @@ multi-session tooling is out of scope. The AWS console provides it.
 
 ```sh
 brew install --cask nateships/tap/rolle   # macOS desktop app
-brew install nateships/tap/rolle-cli      # CLI for macOS and Linux
+brew install --cask nateships/tap/rolle-cli  # CLI
 ```
 
 Windows and Linux desktop builds, and CLI archives for every platform, are on

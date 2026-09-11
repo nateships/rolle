@@ -11,29 +11,18 @@ env:
   VERSION: ${{ github.ref_name }}
 
 jobs:
-  cli:
+  prepare:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Strip the v prefix from the tag
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
-        with:
-          cache: false
-      - uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
-        with:
-          version: "~> v2"
-          args: release --clean
+      - name: Create the draft release
+        run: gh release view "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft --verify-tag --title "$GITHUB_REF_NAME" --notes ""
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   desktop:
-    needs: cli
+    needs: prepare
     strategy:
       fail-fast: false
       matrix:
@@ -180,3 +169,63 @@ jobs:
         run: gh release upload "${GITHUB_REF_NAME}" artifacts/manifest.json --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Write the desktop cask into the tap
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release download "$GITHUB_REF_NAME" --dir artifacts --pattern Rolle.dmg
+          sha="$(sha256sum artifacts/Rolle.dmg | cut -d' ' -f1)"
+          git clone --depth 1 "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/nateships/homebrew-tap.git" tap
+          mkdir -p tap/Casks
+          cat > tap/Casks/rolle.rb <<RUBY
+          cask "rolle" do
+            version "$VERSION"
+            sha256 "$sha"
+
+            url "https://github.com/nateships/rolle/releases/download/v#{version}/Rolle.dmg"
+            name "Rolle"
+            desc "Assume any role, any cloud"
+            homepage "https://getrolle.com"
+
+            auto_updates true
+            depends_on macos: ">= :monterey"
+
+            app "Rolle.app"
+
+            zap trash: [
+              "~/.config/rolle",
+              "~/.cache/rolle",
+            ]
+          end
+          RUBY
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Casks/rolle.rb
+          git commit -m "rolle $GITHUB_REF_NAME" || exit 0
+          git push
+
+  # Publishes the CLI archives and notes, turns the draft into a release, and
+  # writes Casks/rolle-cli.rb into the tap.
+  cli:
+    needs: manifest
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2.4.4
+        with:
+          cache: false
+      - uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6.4.0
+        with:
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}

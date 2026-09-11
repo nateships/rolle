@@ -82,7 +82,7 @@ repos:
       - id: zizmor
         name: zizmor
         language: system
-        files: ^\.github/(workflows/.*|zizmor\.yml)$
+        files: ^\.github/workflows/.*\.ya?ml$
         pass_filenames: false
         entry: mise exec -- zizmor --offline .github/workflows
 

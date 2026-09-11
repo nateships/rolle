@@ -7,7 +7,7 @@ description: Install the Rolle desktop app and CLI.
   <Tab title="macOS">
     ```sh
     brew install --cask nateships/tap/rolle   # desktop app
-    brew install nateships/tap/rolle-cli      # command line
+    brew install --cask nateships/tap/rolle-cli  # command line
     ```
 
     Or download `Rolle.dmg` from the [releases page](https://github.com/nateships/rolle/releases). The app is signed and notarized. It runs on macOS 12 or newer on Apple silicon and Intel.
@@ -20,9 +20,7 @@ description: Install the Rolle desktop app and CLI.
   <Tab title="Linux">
     Download `Rolle-linux-amd64.AppImage` or the `.deb` package from the [releases page](https://github.com/nateships/rolle/releases). The app needs GTK 4 and WebKitGTK 6.0.
 
-    ```sh
-    brew install nateships/tap/rolle-cli      # command line, Homebrew on Linux
-    ```
+    The CLI ships as `rolle_<version>_linux_<arch>.tar.gz` on the same page. Put `rolle` on your `PATH`.
   </Tab>
 </Tabs>
 

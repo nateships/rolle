@@ -1,5 +1,0 @@
-rules:
-  artipacked:
-    # The tap checkout needs the token to push the formula and cask.
-    ignore:
-      - homebrew.yml
