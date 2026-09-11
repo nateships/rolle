@@ -7,16 +7,31 @@ package main
 #cgo LDFLAGS: -framework Cocoa
 #import <Cocoa/Cocoa.h>
 
-extern void rolleMouseNav(int button);
+extern void rolleMouseNav(int kind, int button, double deltaX, int keyCode, unsigned long flags);
 
-// WebKit does not forward mouse buttons 3 and 4 to the page, so watch for them
-// at the application level and hand the button number to Go.
+// WebKit does not forward mouse buttons 3 and 4 to the page, so watch at the
+// application level. Also watch swipes and modified keys, because some mouse
+// drivers deliver "back" and "forward" as gestures or as Cmd+[ / Cmd+].
 static void rolleInstallMouseNavMonitor(void) {
-	[NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskOtherMouseUp
-	                                      handler:^NSEvent *(NSEvent *event) {
-		NSInteger button = [event buttonNumber];
-		if (button == 3 || button == 4) {
-			rolleMouseNav((int)button);
+	NSEventMask mask = NSEventMaskOtherMouseDown | NSEventMaskOtherMouseUp | NSEventMaskSwipe | NSEventMaskKeyDown;
+	[NSEvent addLocalMonitorForEventsMatchingMask:mask handler:^NSEvent *(NSEvent *event) {
+		switch ([event type]) {
+		case NSEventTypeOtherMouseDown:
+			rolleMouseNav(1, (int)[event buttonNumber], 0, 0, 0);
+			break;
+		case NSEventTypeOtherMouseUp:
+			rolleMouseNav(2, (int)[event buttonNumber], 0, 0, 0);
+			break;
+		case NSEventTypeSwipe:
+			rolleMouseNav(3, 0, [event deltaX], 0, 0);
+			break;
+		case NSEventTypeKeyDown:
+			if ([event modifierFlags] & (NSEventModifierFlagCommand | NSEventModifierFlagOption)) {
+				rolleMouseNav(4, 0, 0, (int)[event keyCode], (unsigned long)[event modifierFlags]);
+			}
+			break;
+		default:
+			break;
 		}
 		return event;
 	}];
@@ -24,7 +39,12 @@ static void rolleInstallMouseNavMonitor(void) {
 */
 import "C"
 
-import "github.com/wailsapp/wails/v3/pkg/application"
+import (
+	"log"
+	"os"
+
+	"github.com/wailsapp/wails/v3/pkg/application"
+)
 
 const (
 	// EventNavBack fires when the mouse back button is released.
@@ -35,6 +55,9 @@ const (
 
 var navApp *application.App
 
+// navDebug logs every candidate event so unusual mice can be mapped. Enable with ROLLE_NAV_DEBUG=1.
+var navDebug = os.Getenv("ROLLE_NAV_DEBUG") != ""
+
 func init() {
 	application.RegisterEvent[struct{}](EventNavBack)
 	application.RegisterEvent[struct{}](EventNavForward)
@@ -44,17 +67,33 @@ func init() {
 func installMouseNav(a *application.App) {
 	navApp = a
 	C.rolleInstallMouseNavMonitor()
+	if navDebug {
+		log.Println("[mousenav] monitor installed; press your mouse buttons")
+	}
 }
 
 //export rolleMouseNav
-func rolleMouseNav(button C.int) {
+func rolleMouseNav(kind, button C.int, deltaX C.double, keyCode C.int, flags C.ulong) {
+	if navDebug {
+		log.Printf("[mousenav] kind=%d button=%d deltaX=%.2f keyCode=%d flags=%#x", int(kind), int(button), float64(deltaX), int(keyCode), uint64(flags))
+	}
 	if navApp == nil {
 		return
 	}
-	switch button {
-	case 3:
-		navApp.Event.Emit(EventNavBack, struct{}{})
-	case 4:
-		navApp.Event.Emit(EventNavForward, struct{}{})
+	switch int(kind) {
+	case 2: // other mouse up: 3 is back, 4 is forward, higher buttons alternate the same way
+		switch {
+		case int(button) == 3 || (int(button) > 4 && int(button)%2 == 1):
+			navApp.Event.Emit(EventNavBack, struct{}{})
+		case int(button) >= 4:
+			navApp.Event.Emit(EventNavForward, struct{}{})
+		}
+	case 3: // swipe: positive deltaX is a leftward swipe, which macOS treats as back
+		switch {
+		case float64(deltaX) > 0:
+			navApp.Event.Emit(EventNavBack, struct{}{})
+		case float64(deltaX) < 0:
+			navApp.Event.Emit(EventNavForward, struct{}{})
+		}
 	}
 }
