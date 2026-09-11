@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
 
 	"github.com/nateships/rolle/internal/app"
 )
@@ -37,11 +38,12 @@ func main() {
 			Handler: application.AssetFileServerFS(assets),
 		},
 		Mac: application.MacOptions{
-			ApplicationShouldTerminateAfterLastWindowClosed: true,
+			// The app keeps running in the tray; Quit lives in the tray menu.
+			ApplicationShouldTerminateAfterLastWindowClosed: false,
 		},
 	})
 
-	a.Window.NewWithOptions(application.WebviewWindowOptions{
+	window := a.Window.NewWithOptions(application.WebviewWindowOptions{
 		Title:     "Rolle",
 		Width:     1120,
 		Height:    720,
@@ -55,6 +57,13 @@ func main() {
 		BackgroundColour: application.NewRGB(9, 9, 11),
 		URL:              "/",
 	})
+
+	// Closing the window hides it; the tray keeps sessions alive.
+	window.RegisterHook(events.Common.WindowClosing, func(e *application.WindowEvent) {
+		window.Hide()
+		e.Cancel()
+	})
+	newTray(a, svc, rolle, window)
 
 	// Reconcile expiring sessions and nudge the UI so countdowns stay honest.
 	go func() {

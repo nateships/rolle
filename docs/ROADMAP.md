@@ -31,5 +31,5 @@ Out of scope: browser multi-session tooling (AWS provides this natively).
 
 ## 5. Release
 - [ ] goreleaser for the CLI, desktop packaging, signing
-- [ ] System tray with quick start and stop
-- [ ] Expiry notifications
+- [x] System tray with quick start and stop
+- [ ] Expiry notifications (needs a signed bundle on macOS)
