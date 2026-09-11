@@ -1,20 +1,18 @@
 import { useMemo, useState } from "react";
-import { AnimatePresence } from "motion/react";
 import { Cloud, Import, KeyRound, LogIn, LogOut, MoreHorizontal, Pencil, Plus, RefreshCw, Search, Settings as SettingsIcon, ShieldCheck, Star, Trash2, UserCog, Waypoints } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Lockup, Mark } from "@/components/Brand";
-import { SessionRow } from "./SessionRow";
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { SessionTable, useColumnWidths } from "./SessionTable";
 import { DevTools } from "@/components/DevTools";
 import { SettingsDialog } from "@/components/dialogs/SettingsDialog";
 import { RenameDialog } from "@/components/dialogs/RenameDialog";
 import { ImportDialog } from "@/components/dialogs/ImportDialog";
 import { AddSSODialog, AddAssumeRoleDialog, AddIAMUserDialog, AddAzureDialog, AddGCPDialog, AddGCPImpersonationDialog, LoginDialog } from "@/components/dialogs/Dialogs";
-import { api, errorMessage, inWails, Cloud as CloudKind, Status, type Integration, type Session, type Workspace } from "@/lib/api";
-import { cloudOf, isLoggedIn, useNow } from "@/lib/format";
+import { api, errorMessage, inWails, Cloud as CloudKind, Status, type Integration, type Workspace } from "@/lib/api";
+import { isLoggedIn, useNow } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 type Dialog = null | { kind: "sso" } | { kind: "assume" } | { kind: "iam" } | { kind: "azure" } | { kind: "gcp" } | { kind: "gcp-impersonate" } | { kind: "login"; integration: Integration } | { kind: "settings" } | { kind: "rename"; integration: Integration } | { kind: "import" };
@@ -28,6 +26,8 @@ const CLOUD_SECTIONS: { cloud: string; title: string; addKind: Dialog }[] = [
 
 export function Dashboard({ workspace }: { workspace: Workspace }) {
   const [query, setQuery] = useState("");
+  const [activeOnly, setActiveOnly] = useState(false);
+  const [widths, setWidths] = useColumnWidths();
   const [chosenFilter, setFilter] = useState<string | null>(() => (!inWails ? new URLSearchParams(location.search).get("filter") : null));
   const now = useNow();
   // ?settings=1 opens the settings dialog in the browser preview.
@@ -50,14 +50,13 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     const q = query.trim().toLowerCase();
     return workspace.sessions
       .filter((s) => (filter === null ? true : filter === "manual" ? !s.integrationId : filter === "favorites" ? s.favorite : s.integrationId === filter))
-      .filter((s) => !q || s.name.toLowerCase().includes(q) || (s.aws?.accountId ?? "").includes(q) || (s.aws?.roleName ?? "").toLowerCase().includes(q))
-      .sort((a, b) => cloudOrder[cloudOf(a.kind)] - cloudOrder[cloudOf(b.kind)] || a.name.localeCompare(b.name));
-  }, [workspace.sessions, query, filter]);
+      .filter((s) => !activeOnly || s.status === Status.StatusActive)
+      .filter((s) => !q || [s.name, s.aws?.accountId, s.aws?.roleName, s.aws?.profile, s.region].some((v) => (v ?? "").toLowerCase().includes(q)));
+  }, [workspace.sessions, query, filter, activeOnly]);
 
   const favorites = sessions.filter((s) => s.favorite);
-  // Favorites get their own panel on the unfiltered list; elsewhere they sit inline.
+  // Favorites get a shortcut panel on the unfiltered list; account groups below stay complete.
   const showFavoritesPanel = filter === null && favorites.length > 0;
-  const rest = showFavoritesPanel ? sessions.filter((s) => !s.favorite) : sessions;
 
   async function run(label: string, fn: () => Promise<unknown>) {
     try {
@@ -148,6 +147,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search sessions" className="h-8 pl-8" />
           </div>
+          <Button variant={activeOnly ? "secondary" : "outline"} size="sm" className="no-drag h-8" aria-pressed={activeOnly} onClick={() => setActiveOnly((v) => !v)}>Active only</Button>
           <div className="flex-1" />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -190,12 +190,12 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
               {showFavoritesPanel && (
                 <section>
                   <h2 className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground"><Star className="size-3 fill-current text-brand-orange" /> Favorites</h2>
-                  <SessionTable sessions={favorites} workspace={workspace} now={now} onNeedsLogin={(i, startId) => { setPendingStart(startId ?? null); setDialog({ kind: "login", integration: i }); }} />
+                  <SessionTable sessions={favorites} workspace={workspace} now={now} flat widths={widths} onWidths={setWidths} onNeedsLogin={(i, startId) => { setPendingStart(startId ?? null); setDialog({ kind: "login", integration: i }); }} />
                 </section>
               )}
               <section>
                 {showFavoritesPanel && <h2 className="mb-2 px-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">All sessions</h2>}
-                <SessionTable sessions={rest} workspace={workspace} now={now} onNeedsLogin={(i, startId) => { setPendingStart(startId ?? null); setDialog({ kind: "login", integration: i }); }} />
+                <SessionTable sessions={sessions} workspace={workspace} now={now} searching={query.trim() !== ""} widths={widths} onWidths={setWidths} onNeedsLogin={(i, startId) => { setPendingStart(startId ?? null); setDialog({ kind: "login", integration: i }); }} />
               </section>
             </div>
           )}
@@ -226,32 +226,6 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
         target={dialog?.kind === "rename" ? { kind: "integration", id: dialog.integration.id, name: dialog.integration.alias, save: (n) => api.RenameIntegration(dialog.integration.id, n) } : null}
         onClose={() => setDialog(null)}
       />
-    </div>
-  );
-}
-
-const cloudOrder = { aws: 0, azure: 1, gcp: 2 } as const;
-
-function SessionTable({ sessions, workspace, now, onNeedsLogin }: { sessions: Session[]; workspace: Workspace; now: number; onNeedsLogin: (i: Integration, startId?: string) => void }) {
-  return (
-    <div className="overflow-hidden rounded-lg border bg-card">
-      <Table>
-        <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead className="w-14" />
-            <TableHead>Session</TableHead>
-            <TableHead className="w-40">Profile</TableHead>
-            <TableHead className="w-36">Region</TableHead>
-            <TableHead className="w-36">State</TableHead>
-            <TableHead className="w-64" />
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <AnimatePresence initial={false}>
-            {sessions.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} now={now} onNeedsLogin={onNeedsLogin} />)}
-          </AnimatePresence>
-        </TableBody>
-      </Table>
     </div>
   );
 }

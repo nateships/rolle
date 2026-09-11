@@ -25,6 +25,7 @@ function seed() {
   const s = (o: Record<string, unknown>): Session => ({ id: id(), status: "inactive", ...o }) as unknown as Session;
   state.sessions = [
     s({ name: "Acme Prod/AdministratorAccess", kind: "aws-sso-role", region: "us-east-1", integrationId: "acme", aws: { accountId: "123456789012", roleName: "AdministratorAccess" }, status: "active", favorite: true, expires: new Date(Date.now() + 47 * 60e3).toISOString() }),
+    s({ name: "Acme Prod/ReadOnlyAccess", kind: "aws-sso-role", region: "us-east-1", integrationId: "acme", aws: { accountId: "123456789012", roleName: "ReadOnlyAccess" } }),
     s({ name: "Acme Dev/PowerUser", kind: "aws-sso-role", region: "us-east-1", integrationId: "acme", aws: { accountId: "210987654321", roleName: "PowerUserAccess" } }),
     s({ name: "prod-admin", kind: "aws-assume-role", region: "eu-west-1", aws: { roleArn: "arn:aws:iam::123456789012:role/Admin", sourceSessionId: "x" } }),
     s({ name: "personal", kind: "aws-iam-user", region: "us-west-2", aws: { mfaDevice: "arn:aws:iam::1:mfa/me" } }),

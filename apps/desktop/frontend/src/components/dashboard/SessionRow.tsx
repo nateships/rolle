@@ -19,7 +19,8 @@ import { cn } from "@/lib/utils";
 
 const isAWSKind = (k: string) => cloudOf(k) === "aws";
 
-export function SessionRow({ session: s, workspace, now, onNeedsLogin }: { session: Session; workspace: Workspace; now: number; onNeedsLogin?: (integration: Integration, startSessionId?: string) => void }) {
+/** A session row. A nested row sits under its account row and shows the role name only. */
+export function SessionRow({ session: s, workspace, now, nested, onNeedsLogin }: { session: Session; workspace: Workspace; now: number; nested?: boolean; onNeedsLogin?: (integration: Integration, startSessionId?: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
   const [editing, setEditing] = useState<RenameTarget | null>(null);
@@ -69,6 +70,8 @@ export function SessionRow({ session: s, workspace, now, onNeedsLogin }: { sessi
   }
 
   const isAWS = cloudOf(s.kind) === "aws";
+  // The provider mark already names the cloud; only less common kinds get a badge.
+  const badge = s.kind === Kind.KindAWSAssumeRole || s.kind === Kind.KindAWSIAMUser ? kindLabel[s.kind] : "";
 
   async function copy(kind: "env" | "profile") {
     try {
@@ -88,7 +91,7 @@ export function SessionRow({ session: s, workspace, now, onNeedsLogin }: { sessi
       transition={{ duration: 0.18, ease: "easeOut" }}
       className={cn("group border-b transition-colors hover:bg-muted/50", active && "bg-emerald-500/[0.04]")}
     >
-      <TableCell className="w-14 pr-0">
+      <TableCell className="pr-0">
         <div className="flex items-center gap-2">
           <span className={cn("relative size-2 shrink-0 rounded-full", active ? "bg-emerald-400 text-emerald-400 pulse-ring" : "bg-muted-foreground/30")} />
           <button
@@ -101,19 +104,19 @@ export function SessionRow({ session: s, workspace, now, onNeedsLogin }: { sessi
           </button>
         </div>
       </TableCell>
-      <TableCell className="max-w-72">
-        <div className="flex items-center gap-2.5">
-          <CloudGlyph cloud={cloudOf(s.kind)} />
+      <TableCell>
+        <div className={cn("flex items-center gap-2.5", nested && "pl-10")}>
+          {!nested && <CloudGlyph cloud={cloudOf(s.kind)} />}
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <p className="truncate text-sm font-medium">{s.name}</p>
-              <Badge variant="outline" className="h-5 shrink-0 px-1.5 text-[10px] font-normal text-muted-foreground">{kindLabel[s.kind] ?? s.kind}</Badge>
+              <p className="truncate text-sm font-medium">{nested ? s.aws?.roleName ?? s.name : s.name}</p>
+              {badge && <Badge variant="outline" className="h-5 shrink-0 px-1.5 text-[10px] font-normal text-muted-foreground">{badge}</Badge>}
             </div>
-            <p className="truncate font-mono text-[11px] text-muted-foreground">{sessionSubtitle(s)}{source ? ` · via ${source.name}` : ""}</p>
+            {!nested && <p className="truncate font-mono text-[11px] text-muted-foreground">{sessionSubtitle(s)}{source ? ` · via ${source.name}` : ""}</p>}
           </div>
         </div>
       </TableCell>
-      <TableCell className="w-40">
+      <TableCell>
         {isAWS ? (
           <button
             type="button"
@@ -127,7 +130,7 @@ export function SessionRow({ session: s, workspace, now, onNeedsLogin }: { sessi
           <span className="text-xs text-muted-foreground/50">—</span>
         )}
       </TableCell>
-      <TableCell className="w-36">
+      <TableCell>
         {isAWS ? (
           <button
             type="button"
@@ -141,12 +144,12 @@ export function SessionRow({ session: s, workspace, now, onNeedsLogin }: { sessi
           <span className="text-xs text-muted-foreground/50">—</span>
         )}
       </TableCell>
-      <TableCell className="w-36">
+      <TableCell>
         <span className={cn("flex items-center gap-1.5 font-mono text-xs tabular-nums", active ? "text-emerald-300" : "text-muted-foreground/70")}>
           {active ? <><span className="font-sans font-medium">Active</span><span>{remaining(s.expires, now)}</span></> : <span className="font-sans">Inactive</span>}
         </span>
       </TableCell>
-      <TableCell className="w-64 text-right">
+      <TableCell className="text-right">
         <div className="flex items-center justify-end gap-0.5">
           <div className={cn("flex items-center gap-0.5 transition-opacity", active ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100")}>
             {active && (
