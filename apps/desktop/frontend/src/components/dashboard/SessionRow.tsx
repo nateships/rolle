@@ -14,13 +14,13 @@ import { RenameDialog, type RenameTarget } from "@/components/dialogs/RenameDial
 import { api, errorMessage, Kind, Status, type Integration, type Session, type Workspace } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
 import { copyText } from "@/lib/clipboard";
-import { cloudOf, isLoggedIn, kindLabel, remaining, sessionSubtitle } from "@/lib/format";
+import { cloudOf, isLoggedIn, kindLabel, remaining, sessionSubtitle, useNow } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const isAWSKind = (k: string) => cloudOf(k) === "aws";
 
 /** A session row. A nested row sits under its account row and shows the role name only. */
-export function SessionRow({ session: s, workspace, now, nested, onNeedsLogin }: { session: Session; workspace: Workspace; now: number; nested?: boolean; onNeedsLogin?: (integration: Integration, startSessionId?: string) => void }) {
+export function SessionRow({ session: s, workspace, nested, onNeedsLogin }: { session: Session; workspace: Workspace; nested?: boolean; onNeedsLogin?: (integration: Integration, startSessionId?: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
   const [editing, setEditing] = useState<RenameTarget | null>(null);
@@ -85,10 +85,9 @@ export function SessionRow({ session: s, workspace, now, nested, onNeedsLogin }:
 
   return (
     <motion.tr
-      initial={{ opacity: 0, y: 6 }}
+      initial={{ opacity: 0, y: -4 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, transition: { duration: 0.1 } }}
-      transition={{ duration: 0.18, ease: "easeOut" }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
       className={cn("group border-b transition-colors hover:bg-muted/50", active && "bg-emerald-500/[0.04]")}
     >
       <TableCell className="pr-0">
@@ -146,7 +145,7 @@ export function SessionRow({ session: s, workspace, now, nested, onNeedsLogin }:
       </TableCell>
       <TableCell>
         <span className={cn("flex items-center gap-1.5 font-mono text-xs tabular-nums", active ? "text-emerald-300" : "text-muted-foreground/70")}>
-          {active ? <><span className="font-sans font-medium">Active</span><span>{remaining(s.expires, now)}</span></> : <span className="font-sans">Inactive</span>}
+          {active ? <><span className="font-sans font-medium">Active</span><Countdown expires={s.expires} /></> : <span className="font-sans">Inactive</span>}
         </span>
       </TableCell>
       <TableCell className="text-right">
@@ -201,4 +200,10 @@ function IconBtn({ label, onClick, children }: { label: string; onClick: () => v
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>
   );
+}
+
+/** Time left on an active session. Ticks once a second on its own. */
+function Countdown({ expires }: { expires: string | null | undefined }) {
+  const now = useNow();
+  return <span>{remaining(expires, now)}</span>;
 }

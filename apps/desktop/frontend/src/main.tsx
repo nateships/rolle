@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import { Toaster } from "@/components/ui/sonner";
+import { MotionConfig } from "motion/react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import "./index.css";
@@ -18,9 +19,11 @@ if (/Macintosh/.test(navigator.userAgent)) document.documentElement.classList.ad
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <ErrorBoundary>
+      <MotionConfig reducedMotion="user">
       <TooltipProvider delayDuration={300}>
         <App />
       </TooltipProvider>
+      </MotionConfig>
     </ErrorBoundary>
     <Toaster position="bottom-right" richColors closeButton />
   </React.StrictMode>,

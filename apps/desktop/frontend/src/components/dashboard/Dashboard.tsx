@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Cloud, Import, KeyRound, LogIn, LogOut, MoreHorizontal, Pencil, Plus, RefreshCw, Search, Settings as SettingsIcon, ShieldCheck, Star, Trash2, UserCog, Waypoints } from "lucide-react";
+import { motion } from "motion/react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,7 +13,7 @@ import { RenameDialog } from "@/components/dialogs/RenameDialog";
 import { ImportDialog } from "@/components/dialogs/ImportDialog";
 import { AddSSODialog, AddAssumeRoleDialog, AddIAMUserDialog, AddAzureDialog, AddGCPDialog, AddGCPImpersonationDialog, LoginDialog } from "@/components/dialogs/Dialogs";
 import { api, errorMessage, inWails, Cloud as CloudKind, Status, type Integration, type Workspace } from "@/lib/api";
-import { isLoggedIn, useNow } from "@/lib/format";
+import { isLoggedIn } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 type Dialog = null | { kind: "sso" } | { kind: "assume" } | { kind: "iam" } | { kind: "azure" } | { kind: "gcp" } | { kind: "gcp-impersonate" } | { kind: "login"; integration: Integration } | { kind: "settings" } | { kind: "rename"; integration: Integration } | { kind: "import" };
@@ -29,7 +30,6 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   const [activeOnly, setActiveOnly] = useState(false);
   const [widths, setWidths] = useColumnWidths();
   const [chosenFilter, setFilter] = useState<string | null>(() => (!inWails ? new URLSearchParams(location.search).get("filter") : null));
-  const now = useNow();
   // ?settings=1 opens the settings dialog in the browser preview.
   // A session whose start was waiting on a sign-in; started once the login completes.
   const [pendingStart, setPendingStart] = useState<string | null>(null);
@@ -168,7 +168,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
           </DropdownMenu>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-4">
+        <motion.div key={`${filter ?? "all"}:${activeOnly}`} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.16, ease: "easeOut" }} className="flex-1 overflow-y-auto p-4">
           {(() => {
             const integ = workspace.integrations.find((i) => i.id === filter);
             if (!integ || isLoggedIn(integ) || sessions.length === 0) return null;
@@ -190,16 +190,16 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
               {showFavoritesPanel && (
                 <section>
                   <h2 className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground"><Star className="size-3 fill-current text-brand-orange" /> Favorites</h2>
-                  <SessionTable sessions={favorites} workspace={workspace} now={now} flat widths={widths} onWidths={setWidths} onNeedsLogin={(i, startId) => { setPendingStart(startId ?? null); setDialog({ kind: "login", integration: i }); }} />
+                  <SessionTable sessions={favorites} workspace={workspace} flat widths={widths} onWidths={setWidths} onNeedsLogin={(i, startId) => { setPendingStart(startId ?? null); setDialog({ kind: "login", integration: i }); }} />
                 </section>
               )}
               <section>
                 {showFavoritesPanel && <h2 className="mb-2 px-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">All sessions</h2>}
-                <SessionTable sessions={sessions} workspace={workspace} now={now} searching={query.trim() !== ""} widths={widths} onWidths={setWidths} onNeedsLogin={(i, startId) => { setPendingStart(startId ?? null); setDialog({ kind: "login", integration: i }); }} />
+                <SessionTable sessions={sessions} workspace={workspace} searching={query.trim() !== ""} widths={widths} onWidths={setWidths} onNeedsLogin={(i, startId) => { setPendingStart(startId ?? null); setDialog({ kind: "login", integration: i }); }} />
               </section>
             </div>
           )}
-        </div>
+        </motion.div>
       </section>
 
       <AddSSODialog open={dialog?.kind === "sso"} onClose={() => setDialog(null)} onLogin={(integ) => setDialog({ kind: "login", integration: integ })} />

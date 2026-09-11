@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 import { ChevronRight } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CloudGlyph } from "@/components/Brand";
@@ -68,7 +68,6 @@ function useCollapsed() {
 type TableProps = {
   sessions: Session[];
   workspace: Workspace;
-  now: number;
   /** A search is in progress: every account shows its matching roles. */
   searching?: boolean;
   /** Favorites list rows flat, without account groups. */
@@ -78,7 +77,7 @@ type TableProps = {
   onNeedsLogin: (i: Integration, startId?: string) => void;
 };
 
-export function SessionTable({ sessions, workspace, now, searching, flat, widths, onWidths, onNeedsLogin }: TableProps) {
+export function SessionTable({ sessions, workspace, searching, flat, widths, onWidths, onNeedsLogin }: TableProps) {
   const [collapsed, toggle] = useCollapsed();
   const rows = useMemo(() => (flat ? sessions.map<Row>((s) => ({ key: s.id, label: s.name, group: false, session: s })) : groupSessions(sessions)), [sessions, flat]);
 
@@ -123,15 +122,13 @@ export function SessionTable({ sessions, workspace, now, searching, flat, widths
           </TableRow>
         </TableHeader>
         <TableBody>
-          <AnimatePresence initial={false}>
-            {rows.flatMap((r) => {
-              if (!r.group) return [<SessionRow key={r.key} session={r.session} workspace={workspace} now={now} onNeedsLogin={onNeedsLogin} />];
-              const open = searching || !collapsed.includes(r.key);
-              const out = [<AccountRow key={r.key} row={r} open={open} onToggle={() => toggle(r.key)} />];
-              if (open) out.push(...r.sessions.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} now={now} nested onNeedsLogin={onNeedsLogin} />));
-              return out;
-            })}
-          </AnimatePresence>
+          {rows.flatMap((r) => {
+            if (!r.group) return [<SessionRow key={r.key} session={r.session} workspace={workspace} onNeedsLogin={onNeedsLogin} />];
+            const open = searching || !collapsed.includes(r.key);
+            const out = [<AccountRow key={r.key} row={r} open={open} onToggle={() => toggle(r.key)} />];
+            if (open) out.push(...r.sessions.map((s) => <SessionRow key={s.id} session={s} workspace={workspace} nested onNeedsLogin={onNeedsLogin} />));
+            return out;
+          })}
         </TableBody>
       </Table>
     </div>
@@ -144,7 +141,6 @@ function AccountRow({ row, open, onToggle }: { row: Row & { group: true }; open:
     <motion.tr
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      exit={{ opacity: 0, transition: { duration: 0.1 } }}
       transition={{ duration: 0.15 }}
       onClick={onToggle}
       className={cn("cursor-pointer select-none border-b bg-muted/20 transition-colors hover:bg-muted/50", active > 0 && "bg-emerald-500/[0.04]")}

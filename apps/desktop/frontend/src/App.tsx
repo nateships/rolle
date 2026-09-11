@@ -37,11 +37,11 @@ export default function App() {
     <div className="h-full bg-background text-foreground">
       <AnimatePresence mode="wait">
         {workspace.onboarded ? (
-          <motion.div key="dash" className="h-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.35 }}>
+          <motion.div key="dash" className="h-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
             <Dashboard workspace={workspace} />
           </motion.div>
         ) : (
-          <motion.div key="onb" className="h-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.35 }}>
+          <motion.div key="onb" className="h-full" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.2 }}>
             <Onboarding workspace={workspace} />
           </motion.div>
         )}
