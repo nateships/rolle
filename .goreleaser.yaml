@@ -44,14 +44,14 @@ changelog:
     exclude: ["^chore", "^ci", "^docs", "^test"]
 
 release:
-  # The desktop jobs create a draft and upload their packages first.
-  # goreleaser then attaches to that draft, fills in the notes, and publishes.
-  # Without use_existing_draft it cannot see the draft and creates a second
-  # release for the tag.
-  use_existing_draft: true
+  # goreleaser creates the release. The workflow downloads the signed desktop
+  # packages and the update manifest into release-assets/ first, so one step
+  # publishes everything.
   draft: false
   mode: replace
   prerelease: auto
+  extra_files:
+    - glob: release-assets/*
 
 homebrew_casks:
   - name: rolle-cli
