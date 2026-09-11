@@ -25,8 +25,9 @@ jobs:
             task: darwin:package:universal
             artifact: apps/desktop/bin/Rolle.app
           - os: windows-latest
-            task: windows:package
-            artifact: apps/desktop/bin/Rolle-amd64-installer.exe
+            # Windows builds both architectures below; the installer carries both.
+            task: ""
+            artifact: apps/desktop/bin/Rolle-installer.exe
           - os: ubuntu-latest
             task: linux:create:appimage linux:create:deb
             artifact: apps/desktop/bin/Rolle-*
@@ -60,7 +61,13 @@ jobs:
         working-directory: apps/desktop/build
         # The Wails templates carry a fixed 0.0.1. The .app, .deb, and the
         # Windows installer read their version from these files, not from ldflags.
-        run: perl -pi -e "s/\b0\.0\.1\b/${VERSION}/g" config.yml darwin/Info.plist darwin/Info.dev.plist windows/info.json windows/nsis/wails_tools.nsh linux/nfpm/nfpm.yaml
+        # Windows fixed version fields take numbers only, so a pre-release tag
+        # such as 0.1.0-rc.1 becomes 0.1.0 there and stays full in display strings.
+        run: |
+          perl -pi -e "s/\b0\.0\.1\b/${VERSION}/g" config.yml darwin/Info.plist darwin/Info.dev.plist windows/info.json windows/nsis/wails_tools.nsh linux/nfpm/nfpm.yaml
+          NUMERIC="${VERSION%%-*}"
+          perl -pi -e "s/\"file_version\": \"\Q${VERSION}\E\"/\"file_version\": \"${NUMERIC}\"/" windows/info.json
+          perl -pi -e "s/INFO_FILEVERSION \"\Q${VERSION}\E\"/INFO_FILEVERSION \"${NUMERIC}\"/" windows/nsis/wails_tools.nsh
       - name: Import Apple signing certificate
         if: runner.os == 'macOS'
         env:
@@ -94,11 +101,25 @@ jobs:
             echo "Notarization secrets are not set; the app is signed but not notarized."
           fi
       - name: Package
+        if: matrix.task != ''
         working-directory: apps/desktop
         run: for t in ${{ matrix.task }}; do wails3 task "$t"; done
         shell: bash
         env:
           VERSION: ${{ env.VERSION }}
+      - name: Build Windows for amd64 and arm64, then one installer for both
+        if: runner.os == 'Windows'
+        working-directory: apps/desktop
+        shell: bash
+        env:
+          VERSION: ${{ env.VERSION }}
+        run: |
+          wails3 task windows:build ARCH=amd64 && mv bin/Rolle.exe bin/Rolle-amd64.exe
+          wails3 task windows:build ARCH=arm64 && mv bin/Rolle.exe bin/Rolle-arm64.exe
+          wails3 generate webview2bootstrapper -dir build/windows/nsis
+          ROOT="$(cygpath -w "$PWD")"
+          (cd build/windows/nsis && makensis -DARG_WAILS_AMD64_BINARY="$ROOT\bin\Rolle-amd64.exe" -DARG_WAILS_ARM64_BINARY="$ROOT\bin\Rolle-arm64.exe" project.nsi)
+          mv bin/Rolle-amd64_arm64-installer.exe bin/Rolle-installer.exe
       - name: Sign and notarize the macOS app
         if: runner.os == 'macOS' && env.SIGN_IDENTITY != ''
         working-directory: apps/desktop
@@ -125,11 +146,17 @@ jobs:
             xcrun notarytool submit Rolle.dmg --keychain-profile rolle-ci --wait
             xcrun stapler staple Rolle.dmg
           fi
-      - name: Zip Windows executable for the updater
+      - name: Zip the Windows executables for the updater
         if: runner.os == 'Windows'
         working-directory: apps/desktop/bin
         shell: pwsh
-        run: Compress-Archive -Path Rolle.exe -DestinationPath Rolle-windows-amd64.zip -Force
+        # The updater replaces Rolle.exe with the single entry in the archive.
+        run: |
+          foreach ($arch in "amd64", "arm64") {
+            New-Item -ItemType Directory -Force "stage-$arch" | Out-Null
+            Copy-Item "Rolle-$arch.exe" "stage-$arch/Rolle.exe"
+            Compress-Archive -Path "stage-$arch/Rolle.exe" -DestinationPath "Rolle-windows-$arch.zip" -Force
+          }
       - name: Name Linux AppImage for the updater
         if: runner.os == 'Linux'
         working-directory: apps/desktop/bin
@@ -142,8 +169,8 @@ jobs:
           path: |
             apps/desktop/bin/Rolle-macos-universal.zip
             apps/desktop/bin/*.dmg
-            apps/desktop/bin/Rolle-windows-amd64.zip
-            apps/desktop/bin/*-installer.exe
+            apps/desktop/bin/Rolle-windows-*.zip
+            apps/desktop/bin/Rolle-installer.exe
             apps/desktop/bin/*.AppImage
             apps/desktop/bin/*.deb
 
@@ -175,7 +202,7 @@ jobs:
       - name: Keep only the files the updater installs
         run: |
           mkdir artifacts
-          cp packages/Rolle-macos-universal.zip packages/Rolle-windows-amd64.zip packages/Rolle-linux-amd64.AppImage artifacts/
+          cp packages/Rolle-macos-universal.zip packages/Rolle-windows-amd64.zip packages/Rolle-windows-arm64.zip packages/Rolle-linux-amd64.AppImage artifacts/
       - name: Write signing key
         run: printf '%s' "$ROLLE_UPDATER_KEY" > updater.key && chmod 600 updater.key
         env:

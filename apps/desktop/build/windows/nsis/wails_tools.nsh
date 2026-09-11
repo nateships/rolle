@@ -16,6 +16,11 @@
 !ifndef INFO_PRODUCTVERSION
     !define INFO_PRODUCTVERSION "0.0.1"
 !endif
+# Windows fixed version fields take numbers only. A pre-release tag such as
+# 0.1.0-rc.1 keeps its full text in INFO_PRODUCTVERSION for display.
+!ifndef INFO_FILEVERSION
+    !define INFO_FILEVERSION "0.0.1"
+!endif
 !ifndef INFO_COPYRIGHT
     !define INFO_COPYRIGHT "(c) 2026, nateships"
 !endif
