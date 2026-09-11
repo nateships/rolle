@@ -1,0 +1,21 @@
+[tools]
+rust = "1.95"
+node = "26"
+bun = "1.3"
+mr-boxington = { version = "latest", postinstall = "mbx setup --yes" }
+
+[tasks.setup]
+description = "Install frontend dependencies"
+run = "bun install --cwd apps/desktop"
+
+[tasks.check]
+description = "Format check, lint, and test the workspace"
+run = [
+  "cargo fmt --all --check",
+  "cargo clippy --workspace --all-targets -- -D warnings",
+  "cargo test --workspace",
+]
+
+[tasks.desktop]
+description = "Run the desktop app in dev mode"
+run = "bun run --cwd apps/desktop tauri dev"
