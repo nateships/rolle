@@ -118,7 +118,7 @@ func envCmd() *cobra.Command {
 }
 
 func printEnv(sess *core.Session, creds core.Credentials, powershell bool) error {
-	for _, kv := range app.EnvVars(sess, creds) {
+	for _, kv := range svc.EnvVars(sess, creds) {
 		if kv[1] == "" {
 			continue
 		}

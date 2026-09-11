@@ -27,7 +27,7 @@ Out of scope: browser multi-session tooling (AWS provides this natively).
 
 ## 4. GCP
 - [x] gcloud ADC reuse, project discovery, service account impersonation
-- [ ] Write impersonated ADC file for SDKs without env support
+- [x] Write impersonated ADC file for SDKs without env support
 
 ## 5. Release
 - [ ] goreleaser for the CLI, desktop packaging, signing

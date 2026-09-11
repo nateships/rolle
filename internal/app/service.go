@@ -401,6 +401,9 @@ func (s *Service) Start(ctx context.Context, ref string, opts StartOptions) (cor
 	}
 	sess.Status = core.StatusActive
 	sess.Expires = creds.Expiration
+	if err := s.writeCloudFiles(sess); err != nil {
+		return core.Credentials{}, err
+	}
 	if sess.Kind.Cloud() == core.CloudAWS {
 		err := awsconfig.Write(s.AWSConfigPath, awsconfig.Profile{
 			Name: ProfileName(sess), Region: sess.Region, SessionID: sess.ID, Executable: s.Executable,
@@ -430,6 +433,9 @@ func (s *Service) Stop(ref string) error {
 
 func (s *Service) deactivate(sess *core.Session) error {
 	if err := s.Cache.Delete(sess.ID); err != nil {
+		return err
+	}
+	if err := s.removeCloudFiles(sess); err != nil {
 		return err
 	}
 	if sess.Kind.Cloud() == core.CloudAWS {

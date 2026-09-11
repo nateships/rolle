@@ -2,7 +2,10 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/nateships/rolle/internal/azure"
@@ -301,6 +304,40 @@ func (s *Service) ConsoleURLFor(ctx context.Context, ref string) (string, error)
 		return gcp.ConsoleURL(sess.GCP.ProjectID), nil
 	}
 	return "", fmt.Errorf("no console for %s", sess.Name)
+}
+
+// adcPath is where a GCP impersonation session keeps its ADC file.
+func (s *Service) adcPath(sess *core.Session) string {
+	return filepath.Join(s.Cache.Dir, "gcp", sess.ID+".json")
+}
+
+// writeCloudFiles creates per-session files other tools read, for example the
+// impersonated ADC file for GCP service account sessions.
+func (s *Service) writeCloudFiles(sess *core.Session) error {
+	if sess.Kind == core.KindGCP && sess.GCP != nil && sess.GCP.ServiceAccount != "" {
+		return gcp.WriteImpersonatedADC(s.adcPath(sess), sess.GCP.ServiceAccount)
+	}
+	return nil
+}
+
+// removeCloudFiles deletes what writeCloudFiles created.
+func (s *Service) removeCloudFiles(sess *core.Session) error {
+	if sess.Kind == core.KindGCP {
+		if err := os.Remove(s.adcPath(sess)); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+	}
+	return nil
+}
+
+// EnvVars returns the environment variables a session exports, including
+// file paths that only this Service knows.
+func (s *Service) EnvVars(sess *core.Session, creds core.Credentials) [][2]string {
+	vars := EnvVars(sess, creds)
+	if sess.Kind == core.KindGCP && sess.GCP != nil && sess.GCP.ServiceAccount != "" {
+		vars = append(vars, [2]string{"GOOGLE_APPLICATION_CREDENTIALS", s.adcPath(sess)})
+	}
+	return vars
 }
 
 // EnvVars returns the environment variables a session exports.

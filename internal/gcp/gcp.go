@@ -235,3 +235,41 @@ func Impersonate(ctx context.Context, client *http.Client, sourceToken, serviceA
 func ConsoleURL(projectID string) string {
 	return "https://console.cloud.google.com/home/dashboard?project=" + projectID
 }
+
+// WriteImpersonatedADC writes an Application Default Credentials file that
+// makes Google SDKs impersonate serviceAccount using the user's gcloud
+// credentials as the source. The file inherits the source refresh token, so
+// it is written with owner-only permissions next to the credential cache.
+func WriteImpersonatedADC(path, serviceAccount string) error {
+	src, err := ADCPath()
+	if err != nil {
+		return err
+	}
+	data, err := os.ReadFile(src)
+	if errors.Is(err, os.ErrNotExist) {
+		return ErrNoADC
+	}
+	if err != nil {
+		return err
+	}
+	var source map[string]any
+	if err := json.Unmarshal(data, &source); err != nil {
+		return fmt.Errorf("parse %s: %w", src, err)
+	}
+	if source["type"] != "authorized_user" {
+		return fmt.Errorf("%s: expected authorized_user credentials, found %v", src, source["type"])
+	}
+	out, err := json.MarshalIndent(map[string]any{
+		"type":                              "impersonated_service_account",
+		"source_credentials":                source,
+		"service_account_impersonation_url": fmt.Sprintf("https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/%s:generateAccessToken", serviceAccount),
+		"delegates":                         []string{},
+	}, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return err
+	}
+	return os.WriteFile(path, out, 0o600)
+}

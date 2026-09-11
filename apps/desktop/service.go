@@ -235,7 +235,7 @@ func (r *RolleService) EnvText(ref string) (string, error) {
 		return "", err
 	}
 	var b strings.Builder
-	for _, kv := range app.EnvVars(sess, creds) {
+	for _, kv := range r.svc.EnvVars(sess, creds) {
 		if kv[1] != "" {
 			fmt.Fprintf(&b, "export %s=%q\n", kv[0], kv[1])
 		}
