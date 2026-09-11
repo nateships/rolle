@@ -1,6 +1,6 @@
 [tools]
 go = "1.27.1"
-golangci-lint = "latest"
+golangci-lint = "2.13.2"
 node = "26"
 aube = "2.2"
 "go:github.com/wailsapp/wails/v3/cmd/wails3" = "v3.0.0-beta.20"
@@ -10,6 +10,7 @@ shellcheck = "0.11.0" # backs actionlint's run: blocks
 zizmor = "1.30.1"     # workflow security audit
 typos = "1.50.1"      # spell check
 cosign = "3.1.3"      # keyless signature on the CLI checksum file at release
+goreleaser = "2.18.1" # CLI archives and the GitHub release
 
 [tasks."setup:frontend"]
 description = "Install desktop frontend dependencies"
