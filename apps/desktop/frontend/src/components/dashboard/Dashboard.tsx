@@ -165,7 +165,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
 
         <div className="flex-1 overflow-y-auto p-4">
           {sessions.length === 0 ? (
-            <Empty hasAny={workspace.sessions.length > 0} onAdd={() => setDialog({ kind: "sso" })} />
+            <Empty hasAny={workspace.sessions.length > 0} onImport={() => setDialog({ kind: "import" })} onConnect={() => setDialog({ kind: "sso" })} />
           ) : (
             <div className="space-y-5">
               {showFavoritesPanel && (
@@ -219,13 +219,18 @@ function SideItem({ active, onClick, label, count, dot, icon }: { active: boolea
   );
 }
 
-function Empty({ hasAny, onAdd }: { hasAny: boolean; onAdd: () => void }) {
+function Empty({ hasAny, onImport, onConnect }: { hasAny: boolean; onImport: () => void; onConnect: () => void }) {
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
       <div className="rounded-2xl bg-card p-4"><Mark className="size-10" /></div>
       <h3 className="mt-5 text-lg font-medium">{hasAny ? "Nothing matches" : "No sessions yet"}</h3>
-      <p className="mt-1 max-w-sm text-sm text-muted-foreground">{hasAny ? "Try a different search or filter." : "Connect an Identity Center portal to discover every role you can reach."}</p>
-      {!hasAny && <Button className="mt-5 gap-1.5" onClick={onAdd}><Plus className="size-4" /> Add portal</Button>}
+      <p className="mt-1 max-w-sm text-sm text-muted-foreground">{hasAny ? "Try a different search or filter." : "Bring in what your cloud CLIs already know, or connect a cloud from the Add menu."}</p>
+      {!hasAny && (
+        <div className="mt-5 flex gap-2">
+          <Button className="gap-1.5" onClick={onImport}><Import className="size-4" /> Import from this machine</Button>
+          <Button variant="secondary" className="gap-1.5" onClick={onConnect}><ShieldCheck className="size-4" /> Connect AWS Identity Center</Button>
+        </div>
+      )}
     </div>
   );
 }
