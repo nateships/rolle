@@ -68,11 +68,10 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
     }
   };
 
+  // Settings and app info load on mount and again on every open, so the first
+  // open already has content and keeps its size.
   useEffect(() => {
-    if (!open) {
-      setConfirmReset(false);
-      return;
-    }
+    if (!open) setConfirmReset(false);
     api
       .Settings()
       .then(setSettings)
@@ -117,6 +116,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
           </DialogTitle>
           <DialogDescription>Preferences are saved as you change them.</DialogDescription>
         </DialogHeader>
+        {!settings && <div className="min-h-[19rem]" aria-busy="true" />}
         {settings && (
           <Tabs defaultValue={new URLSearchParams(location.search).get("tab") ?? "general"} className="w-full">
             <TabsList className="grid w-full grid-cols-4">
