@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/nateships/rolle/internal/app"
+	"github.com/nateships/rolle/internal/aws"
 	"github.com/nateships/rolle/internal/browser"
 	"github.com/nateships/rolle/internal/core"
 )
@@ -128,12 +129,19 @@ func integrationLoginCmd() *cobra.Command {
 				fmt.Printf("%d new project(s)\n", len(added))
 				return nil
 			}
-			auth, err := svc.SSOLogin(cmd.Context(), args[0])
-			if err != nil {
-				return err
-			}
-			fmt.Printf("Open %s\nand confirm code %s\n", auth.VerificationURI, auth.UserCode)
-			if !noBrowser {
+			var auth *aws.DeviceAuthorization
+			if noBrowser {
+				auth, err = svc.SSODeviceLogin(cmd.Context(), args[0])
+				if err != nil {
+					return err
+				}
+				fmt.Printf("Open %s\nand confirm code %s\n", auth.VerificationURI, auth.UserCode)
+			} else {
+				auth, err = svc.SSOLogin(cmd.Context(), args[0])
+				if err != nil {
+					return err
+				}
+				fmt.Printf("Approve the sign-in in your browser. If it did not open:\n%s\n", auth.VerificationURI)
 				_ = browser.Open(auth.VerificationURI)
 			}
 			fmt.Println("Waiting for approval...")

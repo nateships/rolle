@@ -173,7 +173,7 @@ func (s *Service) sso(in core.Integration) *aws.SSO {
 	return &aws.SSO{Integration: in, Secrets: s.Secrets, Now: s.Now}
 }
 
-// SSOLogin starts the device flow for an Identity Center integration. The
+// SSOLogin starts a browser sign-in for an Identity Center integration. The
 // returned authorization must be completed with Wait; FinishSSOLogin then
 // records the token expiry and discovers roles.
 func (s *Service) SSOLogin(ctx context.Context, ref string) (*aws.DeviceAuthorization, error) {
@@ -186,6 +186,19 @@ func (s *Service) SSOLogin(ctx context.Context, ref string) (*aws.DeviceAuthoriz
 		return nil, err
 	}
 	return s.sso(*in).StartLogin(ctx)
+}
+
+// SSODeviceLogin starts the device code flow, for terminals without a browser.
+func (s *Service) SSODeviceLogin(ctx context.Context, ref string) (*aws.DeviceAuthorization, error) {
+	w, err := s.Load()
+	if err != nil {
+		return nil, err
+	}
+	in, err := ssoIntegration(w, ref)
+	if err != nil {
+		return nil, err
+	}
+	return s.sso(*in).StartDeviceLogin(ctx)
 }
 
 // FinishSSOLogin records the token expiry and syncs roles after a login.

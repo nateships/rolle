@@ -4,9 +4,16 @@ package aws
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
+	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -19,7 +26,11 @@ import (
 	"github.com/nateships/rolle/internal/secrets"
 )
 
-const clientName = "rolle"
+const (
+	clientName         = "rolle"
+	scopeAccountAccess = "sso:account:access"
+	redirectPath       = "/oauth/callback"
+)
 
 // ssoToken is the cached IAM Identity Center access token for one integration.
 type ssoToken struct {
@@ -38,10 +49,12 @@ var ErrSSOLoginRequired = errors.New("aws sso: login required")
 
 // DeviceAuthorization is what the user must do to complete an SSO login.
 type DeviceAuthorization struct {
-	// VerificationURI is the page to open. It already embeds the user code.
+	// VerificationURI is the page to open. For the device flow it embeds the
+	// user code; for the browser flow it is the authorization page.
 	VerificationURI string
-	UserCode        string
-	// complete finishes the flow. It is set by StartSSOLogin.
+	// UserCode is set for the device flow only.
+	UserCode string
+	// complete finishes the flow. It is set by StartLogin and StartDeviceLogin.
 	complete func(ctx context.Context) error
 }
 
@@ -70,9 +83,127 @@ func (s *SSO) cfg(ctx context.Context) (aws.Config, error) {
 	)
 }
 
-// StartLogin begins the device authorization flow. The caller shows the returned
-// verification URI to the user and then calls Wait.
+// StartLogin begins a browser sign-in with the authorization code flow and
+// PKCE. The browser returns to a loopback listener, so the user approves
+// without typing a code. It falls back to the device flow when no loopback
+// port is available.
 func (s *SSO) StartLogin(ctx context.Context) (*DeviceAuthorization, error) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return s.StartDeviceLogin(ctx)
+	}
+	cfg, err := s.cfg(ctx)
+	if err != nil {
+		_ = ln.Close()
+		return nil, err
+	}
+	oidc := ssooidc.NewFromConfig(cfg)
+	redirect := "http://" + ln.Addr().String() + redirectPath
+	reg, err := oidc.RegisterClient(ctx, &ssooidc.RegisterClientInput{
+		ClientName:   aws.String(clientName),
+		ClientType:   aws.String("public"),
+		Scopes:       []string{scopeAccountAccess},
+		GrantTypes:   []string{"authorization_code", "refresh_token"},
+		RedirectUris: []string{redirect},
+		IssuerUrl:    aws.String(s.Integration.AWSSSO.StartURL),
+	})
+	if err != nil {
+		_ = ln.Close()
+		return nil, fmt.Errorf("register client: %w", err)
+	}
+	verifier := randomToken(32)
+	state := randomToken(16)
+	sum := sha256.Sum256([]byte(verifier))
+	challenge := base64.RawURLEncoding.EncodeToString(sum[:])
+
+	type callback struct{ code, state, err string }
+	got := make(chan callback, 1)
+	mux := http.NewServeMux()
+	mux.HandleFunc(redirectPath, func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		select {
+		case got <- callback{code: q.Get("code"), state: q.Get("state"), err: q.Get("error")}:
+		default:
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		if q.Get("error") != "" {
+			_, _ = fmt.Fprint(w, "<!doctype html><title>Rolle</title><p>Sign-in was not approved. You can close this tab.</p>")
+			return
+		}
+		_, _ = fmt.Fprint(w, "<!doctype html><title>Rolle</title><p>Signed in. You can close this tab and return to Rolle.</p>")
+	})
+	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
+	go func() { _ = srv.Serve(ln) }()
+
+	d := &DeviceAuthorization{VerificationURI: authorizeURL(s.Integration.AWSSSO.Region, aws.ToString(reg.ClientId), redirect, state, challenge)}
+	d.complete = func(ctx context.Context) error {
+		defer func() { _ = srv.Close() }()
+		var cb callback
+		select {
+		case cb = <-got:
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-time.After(10 * time.Minute):
+			return errors.New("aws sso: login timed out")
+		}
+		if cb.err != "" {
+			return fmt.Errorf("aws sso: %s", cb.err)
+		}
+		if cb.state != state || cb.code == "" {
+			return errors.New("aws sso: callback did not match this login")
+		}
+		tok, err := oidc.CreateToken(ctx, &ssooidc.CreateTokenInput{
+			ClientId:     reg.ClientId,
+			ClientSecret: reg.ClientSecret,
+			GrantType:    aws.String("authorization_code"),
+			Code:         aws.String(cb.code),
+			CodeVerifier: aws.String(verifier),
+			RedirectUri:  aws.String(redirect),
+		})
+		if err != nil {
+			return fmt.Errorf("create token: %w", err)
+		}
+		return s.storeToken(ssoToken{
+			AccessToken:  aws.ToString(tok.AccessToken),
+			RefreshToken: aws.ToString(tok.RefreshToken),
+			ClientID:     aws.ToString(reg.ClientId),
+			ClientSecret: aws.ToString(reg.ClientSecret),
+			Expires:      s.now().Add(time.Duration(tok.ExpiresIn) * time.Second),
+			Region:       s.Integration.AWSSSO.Region,
+		})
+	}
+	return d, nil
+}
+
+// authorizeURL builds the Identity Center authorization page for the PKCE flow.
+func authorizeURL(region, clientID, redirect, state, challenge string) string {
+	host := "oidc." + region + ".amazonaws.com"
+	if strings.HasPrefix(region, "cn-") {
+		host += ".cn"
+	}
+	q := url.Values{
+		"response_type":         {"code"},
+		"client_id":             {clientID},
+		"redirect_uri":          {redirect},
+		"state":                 {state},
+		"code_challenge":        {challenge},
+		"code_challenge_method": {"S256"},
+		"scopes":                {scopeAccountAccess},
+	}
+	return "https://" + host + "/authorize?" + q.Encode()
+}
+
+func randomToken(n int) string {
+	b := make([]byte, n)
+	if _, err := rand.Read(b); err != nil {
+		panic(err)
+	}
+	return base64.RawURLEncoding.EncodeToString(b)
+}
+
+// StartDeviceLogin begins the device authorization flow. The caller shows the
+// returned verification URI and user code, then calls Wait.
+func (s *SSO) StartDeviceLogin(ctx context.Context) (*DeviceAuthorization, error) {
 	cfg, err := s.cfg(ctx)
 	if err != nil {
 		return nil, err
@@ -81,7 +212,7 @@ func (s *SSO) StartLogin(ctx context.Context) (*DeviceAuthorization, error) {
 	reg, err := oidc.RegisterClient(ctx, &ssooidc.RegisterClientInput{
 		ClientName: aws.String(clientName),
 		ClientType: aws.String("public"),
-		Scopes:     []string{"sso:account:access"},
+		Scopes:     []string{scopeAccountAccess},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("register client: %w", err)

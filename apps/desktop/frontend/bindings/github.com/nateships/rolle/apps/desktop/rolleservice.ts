@@ -280,7 +280,7 @@ export function Start(ref: string, mfaCode: string): $CancellablePromise<core$0.
 }
 
 /**
- * StartSSOLogin begins the device flow and opens the browser. Call WaitSSOLogin next.
+ * StartSSOLogin begins the browser sign-in and opens the page. Call WaitSSOLogin next.
  */
 export function StartSSOLogin(ref: string): $CancellablePromise<$models.DeviceLogin> {
     return $Call.ByID(3044344761, ref);

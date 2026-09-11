@@ -142,10 +142,7 @@ export const mockApi = {
   },
   StartSSOLogin: async () => {
     await wait(600);
-    return {
-      verificationUri: "https://device.sso.us-east-1.amazonaws.com/?user_code=MOCK-CODE",
-      userCode: "MOCK-CODE",
-    };
+    return { verificationUri: "https://oidc.us-east-1.amazonaws.com/authorize?client_id=mock", userCode: "" };
   },
   WaitSSOLogin: async (ref: string) => {
     await wait(2500);

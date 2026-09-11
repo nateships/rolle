@@ -66,13 +66,14 @@ func (r *RolleService) AddAWSSSO(alias, startURL, region string) (core.Integrati
 	return r.svc.AddAWSSSO(alias, startURL, region)
 }
 
-// DeviceLogin is what the user must do to approve a login.
+// DeviceLogin is what the user must do to approve a login. UserCode is empty
+// for the browser flow.
 type DeviceLogin struct {
 	VerificationURI string `json:"verificationUri"`
 	UserCode        string `json:"userCode"`
 }
 
-// StartSSOLogin begins the device flow and opens the browser. Call WaitSSOLogin next.
+// StartSSOLogin begins the browser sign-in and opens the page. Call WaitSSOLogin next.
 func (r *RolleService) StartSSOLogin(ref string) (DeviceLogin, error) {
 	c, cancel := ctx()
 	defer cancel()

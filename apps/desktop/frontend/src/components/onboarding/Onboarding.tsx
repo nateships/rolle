@@ -564,20 +564,26 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                 title={login ? "Approve in your browser" : "Sign in with Microsoft"}
                 hint={
                   login
-                    ? `The ${alias} sign-in page is open in your browser. Enter this code when the page asks for it.`
+                    ? login?.userCode
+                      ? `The ${alias} sign-in page is open in your browser. Enter this code when the page asks for it.`
+                      : `The ${alias} sign-in page is open in your browser. Approve the request there and come back.`
                     : `A browser window is open for ${alias}. Finish signing in there.`
                 }
                 center
                 accent="green"
                 highlight={login ? "browser" : "Microsoft"}
               />
-              {login ? (
+              {login?.userCode ? (
                 <motion.div
                   initial={{ scale: 0.9 }}
                   animate={{ scale: 1 }}
                   className="mt-8 rounded-2xl border border-brand-green/50 bg-card px-8 py-5 font-mono text-4xl font-semibold tracking-[0.3em]"
                 >
                   {login.userCode}
+                </motion.div>
+              ) : login ? (
+                <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="mt-8 rounded-2xl bg-card p-6">
+                  <CloudGlyph cloud="aws" className="size-16 p-3" />
                 </motion.div>
               ) : (
                 <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} className="mt-8 rounded-2xl bg-card p-6">

@@ -106,13 +106,15 @@ export function LoginDialog({
           <DialogDescription>
             {integration?.cloud === Cloud.CloudAzure
               ? "Finish signing in with Microsoft in your browser."
-              : "Approve the request in your browser and confirm this code."}
+              : login?.userCode
+                ? "Approve the request in your browser and confirm this code."
+                : "Approve the request in your browser."}
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center gap-4 py-2">
-          {integration?.cloud === Cloud.CloudAzure ? (
+          {integration?.cloud === Cloud.CloudAzure || (login && !login.userCode) ? (
             <div className="rounded-2xl bg-card p-5">
-              <CloudGlyph cloud="azure" className="size-14 p-2.5" />
+              <CloudGlyph cloud={integration?.cloud === Cloud.CloudAzure ? "azure" : "aws"} className="size-14 p-2.5" />
             </div>
           ) : (
             <div className="rounded-2xl border border-brand-green/50 bg-card px-6 py-4 font-mono text-3xl font-semibold tracking-[0.3em]">

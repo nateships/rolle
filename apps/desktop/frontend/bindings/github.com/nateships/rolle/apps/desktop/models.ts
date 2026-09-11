@@ -12,7 +12,8 @@ export interface AppInfo {
 }
 
 /**
- * DeviceLogin is what the user must do to approve a login.
+ * DeviceLogin is what the user must do to approve a login. UserCode is empty
+ * for the browser flow.
  */
 export interface DeviceLogin {
     "verificationUri": string;
