@@ -1,0 +1,57 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  // Best practices pin GitHub Actions to commit digests and keep lockfiles
+  // exact. Go indirect dependencies get PRs only when they are vulnerable.
+  "extends": [
+    "config:best-practices",
+    "mergeConfidence:all-badges",
+    "security:gomodIndirectSecurityUpdates",
+  ],
+  "timezone": "America/New_York",
+  "minimumReleaseAge": "7 days",
+  "internalChecksFilter": "strict",
+  "labels": ["renovate"],
+  "assignees": ["nateships"],
+  // Frontend and docs lockfiles are pnpm format; aube reads and writes them in place.
+  "postUpdateOptions": ["gomodTidy", "pnpmDedupe"],
+  "automerge": true,
+  "platformAutomerge": true,
+  "customManagers": [
+    {
+      // The aube pin in docs/vercel.json (`aube@X.Y`). mise.toml's pin is
+      // tracked by the mise manager; the rule below groups them into one PR.
+      "customType": "regex",
+      "managerFilePatterns": ["/^docs/vercel\\.json$/"],
+      "matchStrings": ["aube@(?<currentValue>\\d+\\.\\d+(?:\\.\\d+)?)"],
+      "depNameTemplate": "aube",
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "jdx/aube",
+      "extractVersionTemplate": "^v?(?<version>.*)$",
+    },
+  ],
+  "packageRules": [
+    {
+      "description": "Major updates: manual review, never automerge",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "addLabels": ["major-update"],
+    },
+    {
+      "description": "Group every aube pin into one PR",
+      "matchDepNames": ["aube"],
+      "groupName": "aube",
+    },
+    {
+      "description": "Wails runtime and CLI move together",
+      "matchDepNames": ["github.com/wailsapp/wails/v3", "go:github.com/wailsapp/wails/v3/cmd/wails3"],
+      "groupName": "wails",
+      "automerge": false,
+    },
+    {
+      "description": "Indirect Go deps: skip abandonment flagging (transitive, not ours to replace)",
+      "matchManagers": ["gomod"],
+      "matchDepTypes": ["indirect"],
+      "abandonmentThreshold": null,
+    },
+  ],
+}

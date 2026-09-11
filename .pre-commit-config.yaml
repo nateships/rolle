@@ -10,8 +10,8 @@
 exclude: |
   (?x)^(
     apps/desktop/frontend/bindings/.*|
-    apps/desktop/frontend/aube-lock\.yaml|
-    docs/aube-lock\.yaml|
+    apps/desktop/frontend/pnpm-lock\.yaml|
+    docs/pnpm-lock\.yaml|
     docs/brand/.*|
     .*\.icns|
     .*\.min\.(js|css)

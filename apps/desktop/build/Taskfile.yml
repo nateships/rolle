@@ -33,7 +33,7 @@ tasks:
     dir: frontend
     sources:
       - package.json
-      - aube-lock.yaml
+      - pnpm-lock.yaml
     generates:
       - node_modules
     preconditions:
