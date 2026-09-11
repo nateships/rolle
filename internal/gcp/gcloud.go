@@ -48,8 +48,10 @@ func gcloudName() string {
 	return "gcloud"
 }
 
+// isShim reports whether p lives in a version manager's shims directory.
+// Paths are normalised so the check behaves the same on every platform.
 func isShim(p string) bool {
-	return strings.Contains(p, string(filepath.Separator)+"shims"+string(filepath.Separator))
+	return strings.Contains(filepath.ToSlash(p), "/shims/")
 }
 
 // candidates lists common gcloud install paths, newest mise install first.
