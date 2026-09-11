@@ -173,11 +173,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
             const integ = workspace.integrations.find((i) => i.id === filter);
             if (!integ || isLoggedIn(integ) || sessions.length === 0) return null;
             return (
-              <div className="mb-3 flex items-center gap-3 rounded-lg border border-brand-orange/40 bg-brand-orange/5 px-3 py-2 text-sm">
-                <LogIn className="size-4 shrink-0 text-brand-orange" />
-                <span className="flex-1"><span className="font-medium">{integ.alias}</span> is signed out. These are the roles from its last sign-in; sign in again to start them.</span>
-                <Button size="sm" onClick={() => (integ.cloud === CloudKind.CloudGCP ? run("Synced", () => api.SyncGCP(integ.id)) : setDialog({ kind: "login", integration: integ }))}>Sign in</Button>
-              </div>
+              <p className="mb-3 px-1 text-xs text-muted-foreground"><span className="font-medium text-foreground">{integ.alias}</span> is signed out. Start a role to sign in.</p>
             );
           })()}
           {sessions.length === 0 ? (
