@@ -245,7 +245,7 @@ function SessionTable({ sessions, workspace, now, onNeedsLogin }: { sessions: Se
             <TableHead className="w-14" />
             <TableHead>Session</TableHead>
             <TableHead className="w-40">Profile</TableHead>
-            <TableHead className="w-52">Region</TableHead>
+            <TableHead className="w-36">Region</TableHead>
             <TableHead className="w-36">State</TableHead>
             <TableHead className="w-64" />
           </TableRow>

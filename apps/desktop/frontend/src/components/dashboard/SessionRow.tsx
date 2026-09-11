@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clipboard, ExternalLink, Loader2, MoreHorizontal, Pencil, Play, Square, SquareTerminal, Star, Terminal, Trash2 } from "lucide-react";
+import { Clipboard, ExternalLink, Globe, Loader2, MoreHorizontal, Pencil, Play, Square, SquareTerminal, Star, Terminal, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,7 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { motion } from "motion/react";
 import { TableCell } from "@/components/ui/table";
-import { RegionSelect } from "@/components/RegionSelect";
+import { RegionDialog } from "@/components/dialogs/RegionDialog";
 import { CloudGlyph } from "@/components/Brand";
 import { MFADialog } from "@/components/dialogs/Dialogs";
 import { RenameDialog, type RenameTarget } from "@/components/dialogs/RenameDialog";
@@ -23,6 +23,7 @@ export function SessionRow({ session: s, workspace, now, onNeedsLogin }: { sessi
   const [busy, setBusy] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
   const [editing, setEditing] = useState<RenameTarget | null>(null);
+  const [regionOpen, setRegionOpen] = useState(false);
   const profileName = isAWSKind(s.kind) ? (s.aws?.profile || "default") : "";
   const active = s.status === Status.StatusActive;
   const needsMFA = s.kind === Kind.KindAWSIAMUser && !!s.aws?.mfaDevice;
@@ -81,11 +82,10 @@ export function SessionRow({ session: s, workspace, now, onNeedsLogin }: { sessi
 
   return (
     <motion.tr
-      layout
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.98 }}
-      transition={{ type: "spring", stiffness: 320, damping: 28 }}
+      exit={{ opacity: 0, transition: { duration: 0.1 } }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
       className={cn("group border-b transition-colors hover:bg-muted/50", active && "bg-emerald-500/[0.04]")}
     >
       <TableCell className="w-14 pr-0">
@@ -127,9 +127,16 @@ export function SessionRow({ session: s, workspace, now, onNeedsLogin }: { sessi
           <span className="text-xs text-muted-foreground/50">—</span>
         )}
       </TableCell>
-      <TableCell className="w-52">
+      <TableCell className="w-36">
         {isAWS ? (
-          <RegionSelect value={s.region ?? ""} onChange={(r) => api.SetRegion(s.id, r).catch((e) => toast.error(errorMessage(e)))} className="h-7 w-48 justify-between border-transparent bg-transparent px-1.5 font-normal shadow-none hover:bg-accent" />
+          <button
+            type="button"
+            title="Change the region"
+            onClick={() => setRegionOpen(true)}
+            className="rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            {s.region || "—"}
+          </button>
         ) : (
           <span className="text-xs text-muted-foreground/50">—</span>
         )}
@@ -156,6 +163,7 @@ export function SessionRow({ session: s, workspace, now, onNeedsLogin }: { sessi
                 <DropdownMenuItem onClick={() => api.SetFavorite(s.id, !s.favorite).catch((e) => toast.error(errorMessage(e)))}><Star /> {s.favorite ? "Remove from favorites" : "Add to favorites"}</DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setEditing({ kind: "session", id: s.id, name: s.name, save: (n) => api.RenameSession(s.id, n) })}><Pencil /> Rename</DropdownMenuItem>
                 {isAWS && <DropdownMenuItem onClick={() => setEditing({ kind: "profile", id: s.id, name: s.aws?.profile ?? "", save: (n) => api.SetProfile(s.id, n) })}><Terminal /> Set AWS profile name</DropdownMenuItem>}
+                {isAWS && <DropdownMenuItem onClick={() => setRegionOpen(true)}><Globe /> Change region</DropdownMenuItem>}
                 {isAWS && <DropdownMenuItem onClick={() => copy("profile")}><Terminal /> Copy profile command</DropdownMenuItem>}
                 {isAWS && <DropdownMenuSeparator />}
                 <DropdownMenuItem variant="destructive" onClick={() => api.RemoveSession(s.id).catch((e) => toast.error(errorMessage(e)))}><Trash2 /> Remove</DropdownMenuItem>
@@ -175,6 +183,7 @@ export function SessionRow({ session: s, workspace, now, onNeedsLogin }: { sessi
         </div>
         <MFADialog open={mfaOpen} onClose={() => setMfaOpen(false)} onSubmit={(code) => { setMfaOpen(false); void start(code); }} />
         <RenameDialog target={editing} onClose={() => setEditing(null)} />
+        <RegionDialog session={regionOpen ? s : null} onClose={() => setRegionOpen(false)} />
       </TableCell>
     </motion.tr>
   );
