@@ -4,7 +4,7 @@ export default defineConfig({
   title: "Rolle",
   description: "Assume any role, any cloud. Short-lived AWS, Azure, and Google Cloud credentials for your tools, without a secret on disk.",
   // The wordmark is artwork, never typed: the lockup carries the mark and the word.
-  logo: { image: { dark: "/lockup-dark.svg", light: "/lockup-light.svg", alt: "Rolle" }, text: "", href: "/" },
+  logo: { image: { dark: "/logo-dark.svg", light: "/logo-light.svg", alt: "Rolle" }, text: "", href: "/" },
   content: { root: "content" },
   github: { owner: "nateships", repo: "rolle", branch: "main", dir: "docs" },
   navigation: {

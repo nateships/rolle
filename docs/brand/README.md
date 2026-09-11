@@ -33,3 +33,7 @@ Desktop and tray icons use the stack alone. The Go gopher is reserved for the RE
 ## Social card
 
 [og-card.html](og-card.html) is the source of the Open Graph image served as `docs/public/og-brand.png`. Render it at 1200x630 with a headless browser after a brand change.
+
+## Docs site header
+
+`docs/public/logo-dark.svg` and `logo-light.svg` combine the gopher artwork (background keyed out) with the wordmark for the getrolle.com header; `docs/theme.css` sets its height.
