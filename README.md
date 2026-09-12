@@ -81,6 +81,14 @@ mise run cli -- <args>  # run the CLI from source, for example: mise run cli -- 
 mise run docs           # serve the docs site
 ```
 
+Work happens on branches and lands on `main` through a pull request; the
+branch rules require the CI checks and allow no direct pushes. Commit subjects
+follow [Conventional Commits](https://www.conventionalcommits.org): `feat(cli):`,
+`fix(app):`, `docs:`, `chore:`. A commit-msg hook checks the format.
+[release-please](https://github.com/googleapis/release-please) turns those
+commits into a release pull request with the changelog; merging it tags the
+release and starts the build. Until 1.0, a feature bumps the patch version.
+
 Tools come from mise. Frontend and docs packages use [aube](https://aube.sh).
 Set `ROLLE_DEBUG=1` (or pass `rolle --debug`) for verbose diagnostics.
 `mise run reset` wipes the local workspace, secrets, cache, and AWS profiles.
