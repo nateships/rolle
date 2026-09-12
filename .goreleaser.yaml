@@ -51,7 +51,7 @@ homebrew_casks:
   - name: rolle-cli
     ids: [rolle]
     binaries: [rolle]
-    homepage: https://getrolle.com
+    homepage: https://getrolle.com/
     license: GPL-3.0-or-later
     description: Assume any role, any cloud
     directory: Casks
