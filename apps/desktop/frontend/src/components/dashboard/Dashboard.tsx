@@ -22,7 +22,7 @@ import {
   EyeOff,
   Loader2,
 } from "lucide-react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { Events } from "@wailsio/runtime";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -703,60 +703,68 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
           </DropdownMenu>
         </header>
 
-        <motion.div
-          key={filter ?? "all"}
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.16, ease: "easeOut" }}
-          className="flex-1 overflow-y-auto p-4"
-        >
-          {(() => {
-            const integ = workspace.integrations.find((i) => i.id === filter);
-            if (!integ || isLoggedIn(integ) || sessions.length === 0) return null;
-            return (
-              <p className="mb-3 px-1 text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">{integ.alias}</span> is signed out. Start a role to sign
-                in.
-              </p>
-            );
-          })()}
-          {sessions.length === 0 ? (
-            <Empty
-              hasAny={workspace.sessions.length > 0}
-              integration={workspace.integrations.find((i) => i.id === filter) ?? null}
-              onImport={() => setDialog({ kind: "import" })}
-              onConnect={() => setDialog({ kind: "sso" })}
-              onSignIn={(integ) =>
-                integ.cloud === CloudKind.CloudGCP
-                  ? run("Synced", () => api.SyncGCP(integ.id))
-                  : setDialog({ kind: "login", integration: integ })
-              }
-              onSync={(integ) =>
-                run("Synced", () =>
-                  integ.cloud === CloudKind.CloudAzure
-                    ? api.SyncAzure(integ.id)
-                    : integ.cloud === CloudKind.CloudGCP
-                      ? api.SyncGCP(integ.id)
-                      : api.SyncSSO(integ.id),
-                )
-              }
-            />
-          ) : (
-            <div className="space-y-6">
-              <section>
-                <SessionTable
-                  sessions={sessions}
-                  workspace={workspace}
-                  searching={query.trim() !== ""}
-                  widths={widths}
-                  onWidths={setWidths}
-                  onNeedsLogin={needsLogin}
-                  onTagClick={(tag) => setFilter(`tag:${tag}`)}
+        {/* The scroll box stays put; the content inside crossfades when the
+            filter changes. popLayout lifts the old content out of the flow so
+            the new content never jumps. */}
+        <div className="relative flex-1 overflow-y-auto">
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.div
+              key={filter ?? "all"}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
+              className="p-4"
+            >
+              {(() => {
+                const integ = workspace.integrations.find((i) => i.id === filter);
+                if (!integ || isLoggedIn(integ) || sessions.length === 0) return null;
+                return (
+                  <p className="mb-3 px-1 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">{integ.alias}</span> is signed out. Start a role to
+                    sign in.
+                  </p>
+                );
+              })()}
+              {sessions.length === 0 ? (
+                <Empty
+                  hasAny={workspace.sessions.length > 0}
+                  integration={workspace.integrations.find((i) => i.id === filter) ?? null}
+                  onImport={() => setDialog({ kind: "import" })}
+                  onConnect={() => setDialog({ kind: "sso" })}
+                  onSignIn={(integ) =>
+                    integ.cloud === CloudKind.CloudGCP
+                      ? run("Synced", () => api.SyncGCP(integ.id))
+                      : setDialog({ kind: "login", integration: integ })
+                  }
+                  onSync={(integ) =>
+                    run("Synced", () =>
+                      integ.cloud === CloudKind.CloudAzure
+                        ? api.SyncAzure(integ.id)
+                        : integ.cloud === CloudKind.CloudGCP
+                          ? api.SyncGCP(integ.id)
+                          : api.SyncSSO(integ.id),
+                    )
+                  }
                 />
-              </section>
-            </div>
-          )}
-        </motion.div>
+              ) : (
+                <div className="space-y-6">
+                  <section>
+                    <SessionTable
+                      sessions={sessions}
+                      workspace={workspace}
+                      searching={query.trim() !== ""}
+                      widths={widths}
+                      onWidths={setWidths}
+                      onNeedsLogin={needsLogin}
+                      onTagClick={(tag) => setFilter(`tag:${tag}`)}
+                    />
+                  </section>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </section>
 
       <AddSSODialog

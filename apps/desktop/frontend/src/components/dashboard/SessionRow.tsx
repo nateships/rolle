@@ -209,8 +209,8 @@ export function SessionRow({
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <motion.tr
-          initial={{ opacity: 0, y: -4 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.15, ease: "easeOut" }}
           draggable
           // motion.tr owns onDragStart for its own gesture; the capture
