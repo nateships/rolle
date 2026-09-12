@@ -57,4 +57,16 @@ describe("Onboarding", () => {
     );
     expect(await screen.findByRole("button", { name: /install command/i })).toBeInTheDocument();
   });
+
+  it("skips to the final step without a cloud", async () => {
+    const user = userEvent.setup();
+    render(
+      <TooltipProvider>
+        <Onboarding workspace={empty} />
+      </TooltipProvider>,
+    );
+    await user.click(screen.getByRole("button", { name: "Skip" }));
+    expect(await screen.findByRole("heading", { level: 2 })).toHaveTextContent("You're all set.");
+    expect(await screen.findByRole("button", { name: /install command/i })).toBeInTheDocument();
+  });
 });

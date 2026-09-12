@@ -327,11 +327,12 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
             />
           ))}
         </div>
+        {/* Skip lands on the final step, so the command install is still offered. */}
         <Button
           variant="ghost"
           size="sm"
           className="no-drag text-muted-foreground"
-          onClick={finish}
+          onClick={() => go("done")}
           disabled={step === "done"}
         >
           Skip
