@@ -9,6 +9,9 @@ import (
 	"encoding/pem"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/wailsapp/wails/v3/pkg/updater"
@@ -73,5 +76,27 @@ func TestSignedRequiresASignature(t *testing.T) {
 	}
 	if !signed(&updater.Release{Verification: &updater.Verification{Signature: []byte{1}}}) {
 		t.Fatal("a signed manifest must pass")
+	}
+}
+
+func TestAppBundleAndWritable(t *testing.T) {
+	if got := appBundle("/Applications/rolle.app/Contents/MacOS/rolle"); got != "/Applications/rolle.app" {
+		t.Fatalf("appBundle = %q", got)
+	}
+	if got := appBundle("/usr/local/bin/rolle-desktop"); got != "" {
+		t.Fatalf("appBundle outside a bundle = %q", got)
+	}
+	dir := t.TempDir()
+	if !writable(dir) {
+		t.Fatal("a fresh temp dir must be writable")
+	}
+	if runtime.GOOS != "windows" && os.Getuid() != 0 {
+		locked := filepath.Join(dir, "locked")
+		if err := os.Mkdir(locked, 0o555); err != nil {
+			t.Fatal(err)
+		}
+		if writable(locked) {
+			t.Fatal("a read-only dir must not be writable")
+		}
 	}
 }
