@@ -67,6 +67,9 @@ import {
   START_NEEDS_LOGIN,
 } from "@/lib/api";
 import { isLoggedIn } from "@/lib/format";
+import { SESSION_DRAG, TAG_DRAG } from "@/lib/drag";
+import { TagGlyph } from "@/lib/tags";
+import { TagDialog, type TagTarget } from "@/components/dialogs/TagDialog";
 import { cn } from "@/lib/utils";
 
 type Dialog =
@@ -80,6 +83,7 @@ type Dialog =
   | { kind: "login"; integration: Integration }
   | { kind: "settings" }
   | { kind: "rename"; integration: Integration }
+  | { kind: "tag"; target: TagTarget }
   | { kind: "import" }
   | { kind: "shortcuts" };
 
@@ -162,6 +166,10 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   const manualCount = workspace.sessions.filter((s) => !s.integrationId).length;
   const favoriteCount = workspace.sessions.filter((s) => s.favorite).length;
   const hiddenCount = workspace.sessions.filter((s) => s.hidden).length;
+  const tags = workspace.tags ?? [];
+  const tagCount = (tag: string) => workspace.sessions.filter((s) => !s.hidden && (s.tags ?? []).includes(tag)).length;
+  // The tag a drag hovers over; the item lights up as a drop target.
+  const [dropTag, setDropTag] = useState<string | null>(null);
   const visibleCount = workspace.sessions.length - hiddenCount;
   // A filter whose sidebar item is gone falls back to "All sessions".
   const filterExists =
@@ -169,6 +177,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     (chosenFilter === "manual" && manualCount > 0) ||
     (chosenFilter === "favorites" && favoriteCount > 0) ||
     (chosenFilter === "hidden" && hiddenCount > 0) ||
+    (chosenFilter.startsWith("tag:") && tags.some((t) => t.name === chosenFilter.slice(4))) ||
     (chosenFilter === "active" && active > 0) ||
     workspace.integrations.some((i) => i.id === chosenFilter);
   const filter = filterExists ? chosenFilter : null;
@@ -189,7 +198,9 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 ? s.favorite
                 : filter === "active"
                   ? s.status === Status.StatusActive
-                  : s.integrationId === filter,
+                  : filter.startsWith("tag:")
+                    ? (s.tags ?? []).includes(filter.slice(4))
+                    : s.integrationId === filter,
         )
         .filter(
           (s) =>
@@ -294,6 +305,86 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 count={manualCount}
               />
             )}
+          </div>
+          <div>
+            <div className="flex items-center pr-1">
+              <p className="flex-1 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Tags
+              </p>
+              <span className="flex size-6 items-center justify-center">
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="text-muted-foreground"
+                  onClick={() => setDialog({ kind: "tag", target: { kind: "new" } })}
+                  title="New tag"
+                  aria-label="New tag"
+                >
+                  <Plus className="size-3.5" />
+                </Button>
+              </span>
+            </div>
+            {tags.length === 0 && <p className="px-2 py-1 text-xs text-muted-foreground/60">None yet</p>}
+            {tags.map((t, index) => {
+              const tag = t.name;
+              const key = `tag:${tag}`;
+              const actions: Action[] = [
+                {
+                  label: "Edit tag",
+                  icon: <Pencil />,
+                  onSelect: () => setDialog({ kind: "tag", target: { kind: "edit", tag: t } }),
+                },
+                "separator",
+                {
+                  label: "Remove tag",
+                  icon: <Trash2 />,
+                  destructive: true,
+                  onSelect: () => void run(`Tag ${tag} removed`, () => api.RemoveTag(tag)),
+                },
+              ];
+              return (
+                <ContextMenu key={key}>
+                  <ContextMenuTrigger asChild>
+                    <SideItem
+                      active={filter === key}
+                      onClick={() => setFilter(key)}
+                      label={tag}
+                      count={tagCount(tag)}
+                      icon={<TagGlyph tag={t} className="size-3.5" />}
+                      dropping={dropTag === tag}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData(TAG_DRAG, tag);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragOver={(e) => {
+                        const types = Array.from(e.dataTransfer.types);
+                        if (!types.includes(SESSION_DRAG) && !types.includes(TAG_DRAG)) return;
+                        e.preventDefault();
+                        setDropTag(tag);
+                      }}
+                      onDragLeave={() => setDropTag((cur) => (cur === tag ? null : cur))}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setDropTag(null);
+                        const sessionId = e.dataTransfer.getData(SESSION_DRAG);
+                        if (sessionId) {
+                          void run(`Tagged ${tag}`, () => api.SetSessionTag(sessionId, tag, true));
+                          return;
+                        }
+                        const moved = e.dataTransfer.getData(TAG_DRAG);
+                        if (moved && moved !== tag) {
+                          void api.MoveTag(moved, index).catch((err) => toast.error(errorMessage(err)));
+                        }
+                      }}
+                    />
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="min-w-48">
+                    <ActionItems actions={actions} menu="context" />
+                  </ContextMenuContent>
+                </ContextMenu>
+              );
+            })}
           </div>
           {CLOUD_SECTIONS.map((sec) => {
             const items = workspace.integrations.filter((i) => i.cloud === sec.cloud);
@@ -646,6 +737,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
         }
         onClose={() => setDialog(null)}
       />
+      <TagDialog target={dialog?.kind === "tag" ? dialog.target : null} onClose={() => setDialog(null)} />
     </div>
   );
 }
@@ -659,6 +751,7 @@ function SideItem({
   icon,
   trailing,
   hint,
+  dropping,
   ...rest
 }: {
   active: boolean;
@@ -670,6 +763,8 @@ function SideItem({
   trailing?: React.ReactNode;
   /** Shortcut badge shown while the modifier is held. */
   hint?: string;
+  /** A drag hovers over this item. */
+  dropping?: boolean;
 } & React.ComponentProps<"div">) {
   return (
     <div
@@ -679,6 +774,7 @@ function SideItem({
         active
           ? "bg-sidebar-accent text-sidebar-accent-foreground"
           : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+        dropping && "bg-sidebar-accent/60 text-foreground ring-1 ring-ring",
       )}
     >
       <button

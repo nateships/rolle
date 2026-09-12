@@ -14,6 +14,7 @@ import {
   Trash2,
   Eye,
   EyeOff,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,8 @@ import { celebrate } from "@/lib/celebrate";
 import { copyText } from "@/lib/clipboard";
 import { cloudOf, kindLabel, remaining, sessionSubtitle, useNow } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { SESSION_DRAG } from "@/lib/drag";
+import { TagGlyph } from "@/lib/tags";
 
 const isAWSKind = (k: string) => cloudOf(k) === "aws";
 
@@ -126,6 +129,22 @@ export function SessionRow({
       icon: s.hidden ? <Eye /> : <EyeOff />,
       onSelect: () => void api.SetHidden(s.id, !s.hidden).catch((e) => toast.error(errorMessage(e))),
     },
+    ...((workspace.tags ?? []).length > 0
+      ? ([
+          {
+            label: "Tags",
+            icon: <TagGlyph tag={{ color: "", icon: "tag" }} />,
+            items: (workspace.tags ?? []).map((t) => {
+              const on = (s.tags ?? []).includes(t.name);
+              return {
+                label: t.name,
+                icon: on ? <Check /> : <TagGlyph tag={t} />,
+                onSelect: () => void api.SetSessionTag(s.id, t.name, !on).catch((e) => toast.error(errorMessage(e))),
+              };
+            }),
+          },
+        ] as Action[])
+      : []),
     {
       label: "Rename",
       icon: <Pencil />,
@@ -188,6 +207,13 @@ export function SessionRow({
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.15, ease: "easeOut" }}
+          draggable
+          // motion.tr owns onDragStart for its own gesture; the capture
+          // variant is the native drag event.
+          onDragStartCapture={(e) => {
+            e.dataTransfer.setData(SESSION_DRAG, s.id);
+            e.dataTransfer.effectAllowed = "link";
+          }}
           className={cn(
             "group border-b transition-colors hover:bg-muted/50",
             nested && "bg-muted/15",
@@ -249,6 +275,18 @@ export function SessionRow({
                       {badge}
                     </Badge>
                   )}
+                  {(s.tags ?? []).map((name) => {
+                    const t = (workspace.tags ?? []).find((x) => x.name === name) ?? { name, color: "", icon: "" };
+                    return (
+                      <Badge
+                        key={name}
+                        variant="secondary"
+                        className="h-5 shrink-0 gap-1 px-1.5 text-[10px] font-normal text-muted-foreground"
+                      >
+                        <TagGlyph tag={t} className="size-2.5" /> {name}
+                      </Badge>
+                    );
+                  })}
                 </div>
                 {!nested && (
                   <p className="truncate font-mono text-[11px] text-muted-foreground">

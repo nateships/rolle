@@ -101,6 +101,8 @@ type Session struct {
 	Favorite bool `json:"favorite,omitempty"`
 	// Hidden keeps the session out of the lists and the tray menu.
 	Hidden bool `json:"hidden,omitempty"`
+	// Tags are the names of the workspace tags this session belongs to.
+	Tags []string `json:"tags,omitempty"`
 	// Expires is when the current credentials stop working. Nil when inactive.
 	Expires *time.Time `json:"expires,omitempty"`
 
@@ -211,11 +213,30 @@ func (s Settings) Normalize() Settings {
 	return s
 }
 
+// Tag is a user-defined group of sessions shown in the sidebar.
+type Tag struct {
+	Name string `json:"name"`
+	// Color is one of TagColors. Empty means the default.
+	Color string `json:"color,omitempty"`
+	// Icon is one of TagIcons. Empty means the default tag icon.
+	Icon string `json:"icon,omitempty"`
+}
+
+// TagColors are the colors a tag may use, by name; the interface maps them
+// to its palette.
+var TagColors = []string{"gray", "blue", "green", "orange", "red", "purple", "pink", "yellow"}
+
+// TagIcons are the icons a tag may use, by name.
+var TagIcons = []string{"tag", "folder", "briefcase", "shield", "flask", "rocket", "star", "building", "cloud", "wrench"}
+
 // Workspace is everything rolle persists, except secrets.
 type Workspace struct {
 	Version      int           `json:"version"`
 	Integrations []Integration `json:"integrations"`
 	Sessions     []Session     `json:"sessions"`
+	// Tags are user-defined groups, in sidebar order. Sessions refer to
+	// them by name.
+	Tags []Tag `json:"tags,omitempty"`
 	// Onboarded is set once the desktop walkthrough completes.
 	Onboarded bool `json:"onboarded"`
 	// Settings holds user preferences. Nil means defaults.
