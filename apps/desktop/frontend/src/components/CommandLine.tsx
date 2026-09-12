@@ -58,22 +58,27 @@ export function CommandLineInstall({ compact = false, className }: { compact?: b
   }
 
   return (
-    <div
-      className={cn(
-        "flex w-full items-center justify-between gap-4 rounded-lg border bg-card px-4 py-3 text-left",
-        className,
-      )}
-    >
-      <div className="min-w-0">
-        <p className="text-sm font-medium">
-          The <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">rolle</code> command
-        </p>
-        <p className="text-xs text-muted-foreground">
-          {status.installed
-            ? `Ready in your terminal at ${status.path}.`
-            : status.reason === "move"
-              ? "Move Rolle to the Applications folder, then install the command from Settings."
-              : "Ships inside the app. Install it once and `rolle env <name>` works in every terminal."}
+    <div className={cn("flex w-full items-center gap-4 rounded-xl border bg-card p-4 text-left", className)}>
+      <div className="shrink-0 rounded-lg bg-muted p-2.5">
+        <TerminalSquare className="size-5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium">Use Rolle from your terminal</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          {status.installed ? (
+            <>
+              The <code className="rounded bg-muted px-1 py-px font-mono text-[11px]">rolle</code> command is ready at{" "}
+              <span className="font-mono text-[11px]">{status.path}</span>.
+            </>
+          ) : status.reason === "move" ? (
+            "Move Rolle to the Applications folder first, then install the command from Settings."
+          ) : (
+            <>
+              The command ships inside the app. Install it once, and{" "}
+              <code className="rounded bg-muted px-1 py-px font-mono text-[11px]">rolle env &lt;name&gt;</code> works in
+              every shell.
+            </>
+          )}
         </p>
       </div>
       {status.installed ? (

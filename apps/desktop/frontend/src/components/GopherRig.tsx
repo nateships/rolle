@@ -1,4 +1,4 @@
-import { useId, useRef } from "react";
+import { useEffect, useId, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 /**
@@ -9,8 +9,14 @@ import { cn } from "@/lib/utils";
 export function GopherRig({ className }: { className?: string }) {
   const uid = useId().replace(/:/g, "");
   const svg = useRef<SVGSVGElement>(null);
-  const state = useRef<{ frame: number; busy: boolean; next: "dance" | "peek" }>({
+  const state = useRef<{
+    frame: number;
+    timer: ReturnType<typeof setTimeout> | undefined;
+    busy: boolean;
+    next: "dance" | "peek";
+  }>({
     frame: 0,
+    timer: undefined,
     busy: false,
     next: "dance",
   });
@@ -21,21 +27,37 @@ export function GopherRig({ className }: { className?: string }) {
   const tr = (name: string, value: string) => part(name)?.setAttribute("transform", value);
 
   function reset() {
-    for (const name of ["gopher-root", "hands-root", "pupil-left", "pupil-right"]) {
-      part(name)?.removeAttribute("transform");
-    }
-    part("hands-root")?.removeAttribute("opacity");
+    svg.current?.querySelectorAll("[data-part]").forEach((el) => {
+      el.removeAttribute("transform");
+      el.removeAttribute("opacity");
+    });
   }
 
+  // Frames come from requestAnimationFrame; a timer guarantees the final frame
+  // and the callback even when frames stop, as they do for a hidden window.
   function animate(ms: number, paint: (t: number) => void, done?: () => void) {
     const begin = performance.now();
-    const tick = (now: number) => {
-      const t = Math.min(1, (now - begin) / ms);
-      paint(t);
-      if (t < 1) state.current.frame = requestAnimationFrame(tick);
-      else done?.();
+    let finished = false;
+    const end = () => {
+      if (finished) return;
+      finished = true;
+      cancelAnimationFrame(state.current.frame);
+      clearTimeout(state.current.timer);
+      paint(1);
+      done?.();
+    };
+    const tick = () => {
+      if (finished) return;
+      const t = Math.min(1, (performance.now() - begin) / ms);
+      if (t < 1) {
+        paint(t);
+        state.current.frame = requestAnimationFrame(tick);
+      } else {
+        end();
+      }
     };
     state.current.frame = requestAnimationFrame(tick);
+    state.current.timer = setTimeout(end, ms + 50);
   }
 
   const ease = (t: number) => 1 - Math.pow(1 - t, 3);
@@ -88,8 +110,19 @@ export function GopherRig({ className }: { className?: string }) {
 
   function finish() {
     reset();
+    // One more pass after the last painted frame has been committed.
+    requestAnimationFrame(reset);
     state.current.busy = false;
   }
+
+  // Stop everything when the mark unmounts, so no frame lands on a stale node.
+  useEffect(
+    () => () => {
+      cancelAnimationFrame(state.current.frame);
+      clearTimeout(state.current.timer);
+    },
+    [],
+  );
 
   function play() {
     if (state.current.busy) return;
@@ -296,10 +329,6 @@ export function GopherRig({ className }: { className?: string }) {
                 strokeWidth="3.5"
               />
             </g>
-            {/* The card hides the body's own outline at the chin. This line, two units above the card edge, keeps the dark seam the flat artwork had. */}
-            <g data-part="chin" fill="none" stroke="#101114" strokeWidth="4" strokeLinecap="round">
-              <path d="M150 125 Q249 146 348 125" />
-            </g>
             <g
               data-part="nose"
               fill="#F4F0E8"
@@ -317,6 +346,8 @@ export function GopherRig({ className }: { className?: string }) {
             fill="#00CE78"
             d="M139 127 H157 Q249 148 340 127 H346 Q379 127 379 160 V255 Q379 287 346 287 H238 V235 Q238 211 262 211 H286 Q290 211 290 207 V181 Q290 176 286 176 H251 Q187 176 187 241 V287 H140 Q108 287 108 256 V161 Q108 127 139 127 Z"
           />
+          {/* The flat artwork had a dark seam where the gopher rests on the card. */}
+          <path d="M157 127 Q249 148 340 127" fill="none" stroke="#101114" strokeWidth="4" strokeLinecap="round" />
         </g>
         <g data-part="hands-root">
           <g
