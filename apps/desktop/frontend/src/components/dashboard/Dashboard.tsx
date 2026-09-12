@@ -201,10 +201,6 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     );
   }, [workspace.sessions, query, filter]);
 
-  const favorites = sessions.filter((s) => s.favorite);
-  // Favorites get a shortcut panel on the unfiltered list; account groups below stay complete.
-  const showFavoritesPanel = filter === null && favorites.length > 0;
-
   async function run(label: string, fn: () => Promise<unknown>) {
     try {
       await fn();
@@ -574,26 +570,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
             />
           ) : (
             <div className="space-y-6">
-              {showFavoritesPanel && (
-                <section>
-                  <h2 className="mb-2 flex items-center gap-1.5 px-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                    <Star className="size-3 fill-current text-brand-orange" /> Favorites
-                  </h2>
-                  <SessionTable
-                    sessions={favorites}
-                    workspace={workspace}
-                    widths={widths}
-                    onWidths={setWidths}
-                    onNeedsLogin={needsLogin}
-                  />
-                </section>
-              )}
               <section>
-                {showFavoritesPanel && (
-                  <h2 className="mb-2 px-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                    All sessions
-                  </h2>
-                )}
                 <SessionTable
                   sessions={sessions}
                   workspace={workspace}
