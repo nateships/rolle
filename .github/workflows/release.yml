@@ -39,12 +39,12 @@ jobs:
       - name: Install NSIS
         if: runner.os == 'Windows'
         shell: pwsh
-        # The Chocolatey feed times out now and then and choco still exits 0,
-        # so the step checks for makensis itself and retries.
+        # winget exits non-zero on transient source errors; the step checks for
+        # makensis itself and retries.
         run: |
           $exe = 'C:\Program Files (x86)\NSIS\makensis.exe'
           foreach ($attempt in 1..3) {
-            choco install nsis --no-progress -y
+            winget install --id NSIS.NSIS --exact --silent --disable-interactivity --accept-source-agreements --accept-package-agreements
             if (Test-Path $exe) { break }
             Start-Sleep -Seconds 30
           }
