@@ -228,6 +228,10 @@ jobs:
       - name: Publish the release
         run: goreleaser release --clean --release-notes release-notes/notes.md
         env:
+          # A final tag often sits on the same commit as its last release
+          # candidate. Name the tag that triggered this run so goreleaser does
+          # not pick the other one.
+          GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
