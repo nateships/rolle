@@ -150,9 +150,6 @@ function IconPicker({
             <p className="col-span-8 py-2 text-center text-xs text-muted-foreground">No icon matches</p>
           )}
         </div>
-        {results.length === MAX_ICON_RESULTS && (
-          <p className="text-[11px] text-muted-foreground">Showing the first {MAX_ICON_RESULTS}. Type to narrow.</p>
-        )}
         <div className="flex items-center gap-2">
           {TAG_PRESETS.map((p) => (
             <button
