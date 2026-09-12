@@ -1,0 +1,10 @@
+# Vulnerabilities that do not apply to what rolle ships. Scorecard and
+# osv-scanner read this file.
+
+[[IgnoredVulns]]
+id = "GHSA-5p2g-fcmc-qvqq"
+reason = "image-size is a build-time dependency of the docs site (docs/), used on images in this repository. No fixed release exists yet. Nothing in the app or CLI uses it."
+
+[[IgnoredVulns]]
+id = "GHSA-w3rx-r6r6-pgpr"
+reason = "Same as GHSA-5p2g-fcmc-qvqq: docs build tooling only, no fixed release yet."
