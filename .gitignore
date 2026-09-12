@@ -20,3 +20,6 @@ coverage.out
 # go build ./cmd/rolle output
 /rolle
 /rolle.exe
+
+# CI keeps the Go and lint caches inside the checkout
+/.cache/

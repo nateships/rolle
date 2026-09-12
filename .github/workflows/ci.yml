@@ -8,6 +8,13 @@ on:
 permissions:
   contents: read
 
+# Go and golangci-lint write their caches where these point, so the cache
+# step names one fixed directory on every OS instead of looking paths up.
+env:
+  GOMODCACHE: ${{ github.workspace }}/.cache/go/mod
+  GOCACHE: ${{ github.workspace }}/.cache/go/build
+  GOLANGCI_LINT_CACHE: ${{ github.workspace }}/.cache/golangci-lint
+
 # A new push to the same branch cancels the run that is still going.
 concurrency:
   group: ci-${{ github.ref }}
@@ -30,33 +37,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev build-essential pkg-config
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
-      # mise caches the tools. The Go module and build caches, the lint cache,
-      # and the frontend package store are what make a warm run fast.
-      - name: Locate the caches
-        id: paths
-        shell: bash
-        run: |
-          {
-            echo "gomod=$(go env GOMODCACHE)"
-            echo "gobuild=$(go env GOCACHE)"
-            echo "aube=$(aube store path)"
-          } >> "$GITHUB_OUTPUT"
+      # mise caches the tools; this caches what Go and the linter build. The
+      # build cache changes every run, so the sha in the key saves each one
+      # and the restore keys pick the newest match.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: |
-            ${{ steps.paths.outputs.gomod }}
-            ${{ steps.paths.outputs.gobuild }}
-            ~/.cache/golangci-lint
-          # The build cache changes every run; the sha in the key saves each
-          # one and the restore keys pick the newest match.
+          path: .cache
           key: go-${{ runner.os }}-${{ hashFiles('go.sum') }}-${{ github.sha }}
           restore-keys: |
             go-${{ runner.os }}-${{ hashFiles('go.sum') }}-
             go-${{ runner.os }}-
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.paths.outputs.aube }}
-          key: aube-${{ runner.os }}-${{ hashFiles('apps/desktop/frontend/pnpm-lock.yaml') }}
       - run: mise run setup
       - run: mise run check
       # The frontend checks give the same answer on every OS; Linux runs them.
