@@ -21,6 +21,11 @@ archives:
 
 checksum:
   name_template: checksums.txt
+  # The desktop packages and the update manifest join the CLI archives in
+  # the checksum file, so one signature and one provenance attestation over
+  # checksums.txt cover every release asset.
+  extra_files:
+    - glob: release-assets/*
 
 # Keyless Sigstore signature over the checksum file. The GitHub Actions OIDC
 # identity of the release workflow is the signer; there is no key to manage.

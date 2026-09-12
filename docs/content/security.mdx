@@ -19,7 +19,14 @@ rolle marks each profile it writes with a `rolle_session` key. It refuses to tou
 
 ## No telemetry
 
-The app and the CLI collect nothing. Network traffic goes to the cloud providers you sign in to, and to `github.com` for the update manifest when the update check is on. No analytics, no crash reporting, no usage data.
+The app and the CLI collect nothing: no analytics, no crash reports, no usage data, no account. Every network connection rolle makes is one of these:
+
+- The cloud providers you sign in to: Identity Center portals, AWS OIDC and STS endpoints, Microsoft Entra and Azure Resource Manager, Google APIs, and the consoles that **Open console** launches in your browser.
+- `github.com`, for the update manifest at launch and every six hours while **Settings → General → Automatic updates** is on, for the update download you confirm, and for the issue form that **Report a problem** opens in your browser.
+
+Nothing is sent that you did not ask for. The support bundle is a file in your Downloads folder; you decide whether to attach it to an issue.
+
+This is checkable. A test in the repository, `tools/policy`, scans the shipped source for every URL and fails when a host outside that list appears, and fails when a Go module or npm package is added without a matching entry in its allow list. A new destination or dependency cannot arrive without a visible change to that test. The source is public, and the build provenance below ties each release file to the exact commit it was built from.
 
 ## Enterprise networks
 
@@ -27,7 +34,17 @@ rolle verifies TLS against the OS trust store: the macOS Keychain, the Windows c
 
 ## Signed updates
 
-An Ed25519 key signs every release manifest. The desktop app verifies the signature before it installs an update. A Developer ID certificate signs the macOS builds, and Apple notarizes them. The CLI checksum file carries a keyless Sigstore signature from the release workflow; [Install](/install#cli-archives) shows how to verify it.
+An Ed25519 key signs every release manifest. The desktop app verifies the signature before it installs an update. A Developer ID certificate signs the macOS builds, and Apple notarizes them. The release checksum file lists every asset, CLI archives and desktop packages alike, and carries a keyless Sigstore signature from the release workflow; [Install](/install#cli-archives) shows how to verify it.
+
+## Build provenance
+
+The release workflow writes a [SLSA build provenance](https://slsa.dev/provenance) attestation for every file in `checksums.txt`. It records the repository, the commit, and the workflow run that produced the file, and GitHub signs it with the workflow's identity. Verify a download with the GitHub CLI:
+
+```sh
+gh attestation verify rolle.dmg --repo nateships/rolle
+```
+
+A passing check means the file came out of `.github/workflows/release.yml` in this repository at the commit it names, not from a laptop or a fork.
 
 ## Reset
 
