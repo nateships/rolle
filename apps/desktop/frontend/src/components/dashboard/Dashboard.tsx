@@ -703,18 +703,19 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
           </DropdownMenu>
         </header>
 
-        {/* The scroll box stays put; the content inside crossfades when the
-            filter changes. popLayout lifts the old content out of the flow so
-            the new content never jumps. */}
+        {/* The scroll box stays put. Between two lists the table stays mounted
+            and only rows that change fade, so the header holds still. An empty
+            state crossfades in and out; popLayout lifts the old content out of
+            the flow so the new content never jumps. */}
         <div className="relative flex-1 overflow-y-auto">
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.div
-              key={filter ?? "all"}
+              key={sessions.length === 0 ? `empty:${filter ?? "all"}` : "list"}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
-              className="p-4"
+              className="flex min-h-full flex-col p-4"
             >
               {(() => {
                 const integ = workspace.integrations.find((i) => i.id === filter);
@@ -950,7 +951,7 @@ function Empty({
   if (integration) {
     const signedIn = isLoggedIn(integration);
     return (
-      <div className="flex h-full flex-col items-center justify-center text-center">
+      <div className="flex flex-1 flex-col items-center justify-center text-center">
         <GopherMark className="size-24" autoplay />
         <h3 className="mt-5 text-lg font-medium">
           {signedIn ? `No sessions in ${integration.alias}` : `${integration.alias} is signed out`}
@@ -973,7 +974,7 @@ function Empty({
     );
   }
   return (
-    <div className="flex h-full flex-col items-center justify-center text-center">
+    <div className="flex flex-1 flex-col items-center justify-center text-center">
       <GopherMark className="size-24" autoplay />
       <h3 className="mt-5 text-lg font-medium">{hasAny ? "Nothing matches" : "No sessions yet"}</h3>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">

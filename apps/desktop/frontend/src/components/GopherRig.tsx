@@ -3,8 +3,8 @@ import { cn } from "@/lib/utils";
 
 /**
  * The gopher on its cards as editable vector layers, from docs/brand/animation-kit.
- * A click alternates between a short dance and a hide-then-peek behind the green
- * card. Nothing else happens; that is the point. Reduced motion skips it.
+ * A click plays a short dance or a hide-then-peek behind the green card, picked
+ * at random. Nothing else happens; that is the point. Reduced motion skips it.
  * With autoplay, the first move plays on its own shortly after mount.
  */
 export function GopherRig({ className, autoplay }: { className?: string; autoplay?: boolean }) {
@@ -14,12 +14,10 @@ export function GopherRig({ className, autoplay }: { className?: string; autopla
     frame: number;
     timer: ReturnType<typeof setTimeout> | undefined;
     busy: boolean;
-    next: "dance" | "peek";
   }>({
     frame: 0,
     timer: undefined,
     busy: false,
-    next: "dance",
   });
 
   function part(name: string): SVGGElement | null {
@@ -137,11 +135,9 @@ export function GopherRig({ className, autoplay }: { className?: string; autopla
     if (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     state.current.busy = true;
     reset();
-    if (state.current.next === "dance") {
-      state.current.next = "peek";
+    if (Math.random() < 0.5) {
       animate(2400, dance, finish);
     } else {
-      state.current.next = "dance";
       hideThenPeek();
     }
   }
