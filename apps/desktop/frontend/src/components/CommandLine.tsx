@@ -67,16 +67,14 @@ export function CommandLineInstall({ compact = false, className }: { compact?: b
         <p className="mt-0.5 text-xs text-muted-foreground">
           {status.installed ? (
             <>
-              The <code className="rounded bg-muted px-1 py-px font-mono text-[11px]">rolle</code> command is ready at{" "}
+              <code className="rounded bg-muted px-1 py-px font-mono text-[11px]">rolle</code> is on your PATH at{" "}
               <span className="font-mono text-[11px]">{status.path}</span>.
             </>
           ) : status.reason === "move" ? (
-            "Move Rolle to the Applications folder first, then install the command from Settings."
+            "Move Rolle to Applications first."
           ) : (
             <>
-              The command ships inside the app. Install it once, and{" "}
-              <code className="rounded bg-muted px-1 py-px font-mono text-[11px]">rolle env &lt;name&gt;</code> works in
-              every shell.
+              Adds <code className="rounded bg-muted px-1 py-px font-mono text-[11px]">rolle</code> to your PATH.
             </>
           )}
         </p>
