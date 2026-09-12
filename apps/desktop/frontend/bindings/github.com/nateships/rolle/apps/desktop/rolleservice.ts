@@ -137,6 +137,14 @@ export function EnvText(ref: string): $CancellablePromise<string> {
 }
 
 /**
+ * ExportSupportBundle writes the redacted support zip to the Downloads folder,
+ * shows it in the file manager, and returns its path.
+ */
+export function ExportSupportBundle(): $CancellablePromise<string> {
+    return $Call.ByID(2085165976);
+}
+
+/**
  * GCPStatus checks for local gcloud credentials and the gcloud CLI.
  */
 export function GCPStatus(): $CancellablePromise<$models.GCPStatus> {

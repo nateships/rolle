@@ -231,6 +231,10 @@ export const mockApi = {
   },
   EnvText: async () => "export AWS_ACCESS_KEY_ID=ASIAMOCK\n",
   OpenConsole: async () => {},
+  ExportSupportBundle: async () => {
+    await wait(500);
+    return "~/Downloads/rolle-support-20260911-230000.zip";
+  },
   SupportURL: async () =>
     "https://github.com/nateships/rolle/issues/new?template=bug.yml&version=0.0.1-dev&platform=browser",
   OpenURL: async (u: string) => {

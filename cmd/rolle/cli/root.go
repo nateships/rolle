@@ -45,6 +45,6 @@ func Root() *cobra.Command {
 	}
 	root.PersistentFlags().BoolVar(&debugFlag, "debug", false, "verbose diagnostics (same as ROLLE_DEBUG=1)")
 	root.SetContext(context.Background())
-	root.AddCommand(integrationCmd(), sessionCmd(), startCmd(), stopCmd(), credsCmd(), envCmd(), consoleCmd(), statusCmd(), resetCmd(), shellCmd())
+	root.AddCommand(integrationCmd(), sessionCmd(), startCmd(), stopCmd(), credsCmd(), envCmd(), consoleCmd(), statusCmd(), resetCmd(), shellCmd(), supportCmd())
 	return root
 }

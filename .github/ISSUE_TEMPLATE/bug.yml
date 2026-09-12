@@ -31,8 +31,7 @@ body:
       multiple: true
       options: [AWS Identity Center, AWS IAM user or assume role, Azure, Google Cloud, Not cloud specific]
   - type: textarea
-    id: logs
+    id: bundle
     attributes:
-      label: Verbose log
-      description: Turn on Settings → General → Verbose logging or run with ROLLE_DEBUG=1, reproduce, and paste the relevant lines. Remove account ids and URLs you do not want public.
-      render: text
+      label: Support bundle
+      description: Settings → About → Support bundle, or `rolle support`, writes a zip to Downloads with settings, a redacted workspace, and recent diagnostics. Drag it here. Account ids, emails, and portal hosts are already replaced.
