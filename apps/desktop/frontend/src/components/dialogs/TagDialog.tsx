@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -12,8 +12,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { api, errorMessage, type Tag } from "@/lib/api";
-import { TAG_COLORS, TAG_ICONS, TagGlyph } from "@/lib/tags";
+import { DEFAULT_TAG_COLOR, ICON_NAMES, TAG_PRESETS, TagGlyph } from "@/lib/tags";
 import { cn } from "@/lib/utils";
 
 export type TagTarget = { kind: "new" } | { kind: "edit"; tag: Tag };
@@ -37,9 +38,11 @@ export function TagDialog({ target, onClose }: { target: TagTarget | null; onClo
   );
 }
 
+const MAX_ICON_RESULTS = 48;
+
 function TagForm({ editing, onClose }: { editing: Tag | null; onClose: () => void }) {
   const [name, setName] = useState(editing?.name ?? "");
-  const [color, setColor] = useState(editing?.color || "gray");
+  const [color, setColor] = useState(editing?.color || DEFAULT_TAG_COLOR);
   const [icon, setIcon] = useState(editing?.icon || "tag");
   const [busy, setBusy] = useState(false);
 
@@ -68,51 +71,16 @@ function TagForm({ editing, onClose }: { editing: Tag | null; onClose: () => voi
     >
       <div className="space-y-1.5">
         <Label htmlFor="tag-name">Name</Label>
-        <Input
-          id="tag-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Production"
-          autoFocus
-        />
-      </div>
-      <div className="space-y-1.5">
-        <Label>Color</Label>
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(TAG_COLORS).map(([c, v]) => (
-            <button
-              key={c}
-              type="button"
-              aria-label={c}
-              aria-pressed={color === c}
-              onClick={() => setColor(c)}
-              className={cn(
-                "size-6 rounded-full ring-offset-2 ring-offset-background transition-shadow",
-                v.swatch,
-                color === c && "ring-2 ring-ring",
-              )}
-            />
-          ))}
-        </div>
-      </div>
-      <div className="space-y-1.5">
-        <Label>Icon</Label>
-        <div className="flex flex-wrap gap-1">
-          {Object.keys(TAG_ICONS).map((i) => (
-            <button
-              key={i}
-              type="button"
-              aria-label={i}
-              aria-pressed={icon === i}
-              onClick={() => setIcon(i)}
-              className={cn(
-                "flex size-8 items-center justify-center rounded-md border transition-colors hover:bg-muted",
-                icon === i && "border-ring bg-muted",
-              )}
-            >
-              <TagGlyph tag={{ color, icon: i }} className="size-4" />
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <IconPicker color={color} icon={icon} onColor={setColor} onIcon={setIcon} />
+          <Input
+            id="tag-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Production"
+            autoFocus
+            className="flex-1"
+          />
         </div>
       </div>
       <DialogFooter>
@@ -124,5 +92,88 @@ function TagForm({ editing, onClose }: { editing: Tag | null; onClose: () => voi
         </Button>
       </DialogFooter>
     </form>
+  );
+}
+
+/** The tag's icon as a button; it opens a search over every Lucide icon and the color choices. */
+function IconPicker({
+  color,
+  icon,
+  onColor,
+  onIcon,
+}: {
+  color: string;
+  icon: string;
+  onColor: (c: string) => void;
+  onIcon: (i: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const list = q ? ICON_NAMES.filter((n) => n.includes(q)) : ICON_NAMES;
+    return list.slice(0, MAX_ICON_RESULTS);
+  }, [query]);
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button type="button" variant="outline" size="icon" aria-label="Choose icon and color">
+          <TagGlyph tag={{ color, icon }} className="size-4" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-72 space-y-3">
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search icons"
+          aria-label="Search icons"
+          autoFocus
+        />
+        <div className="grid max-h-40 grid-cols-8 gap-1 overflow-y-auto" role="listbox" aria-label="Icons">
+          {results.map((n) => (
+            <button
+              key={n}
+              type="button"
+              role="option"
+              aria-selected={icon === n}
+              aria-label={n}
+              title={n}
+              onClick={() => onIcon(n)}
+              className={cn(
+                "flex size-8 items-center justify-center rounded-md transition-colors hover:bg-muted",
+                icon === n && "bg-muted ring-1 ring-ring",
+              )}
+            >
+              <TagGlyph tag={{ color, icon: n }} className="size-4" />
+            </button>
+          ))}
+          {results.length === 0 && (
+            <p className="col-span-8 py-2 text-center text-xs text-muted-foreground">No icon matches</p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {TAG_PRESETS.map((p) => (
+            <button
+              key={p.hex}
+              type="button"
+              aria-label={p.name}
+              aria-pressed={color === p.hex}
+              onClick={() => onColor(p.hex)}
+              style={{ backgroundColor: p.hex }}
+              className={cn(
+                "size-5 rounded-full ring-offset-2 ring-offset-background transition-shadow",
+                color === p.hex && "ring-2 ring-ring",
+              )}
+            />
+          ))}
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => onColor(e.target.value)}
+            aria-label="Custom color"
+            className="ml-auto size-6 cursor-pointer rounded-md border bg-transparent p-0"
+          />
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

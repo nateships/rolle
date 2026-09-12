@@ -21,7 +21,7 @@ func TestTagsLifecycle(t *testing.T) {
 	addSession(t, s, core.Session{ID: "a", Name: "prod-admin", Kind: core.KindAWSIAMUser, Status: core.StatusInactive})
 	addSession(t, s, core.Session{ID: "b", Name: "personal", Kind: core.KindAWSIAMUser, Status: core.StatusInactive})
 
-	if err := s.AddTag(core.Tag{Name: "  Prod   Accounts ", Color: "red", Icon: "shield"}); err != nil {
+	if err := s.AddTag(core.Tag{Name: "  Prod   Accounts ", Color: "#FF0000", Icon: "shield"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.AddTag(core.Tag{Name: "prod accounts"}); !errors.Is(err, ErrTagExists) {
@@ -33,17 +33,17 @@ func TestTagsLifecycle(t *testing.T) {
 	if err := s.AddTag(core.Tag{Name: strings.Repeat("x", maxTagLength+1)}); err == nil {
 		t.Fatal("long name accepted")
 	}
-	if err := s.AddTag(core.Tag{Name: "Odd", Color: "mauve"}); err == nil {
-		t.Fatal("unknown color accepted")
+	if err := s.AddTag(core.Tag{Name: "Odd", Color: "red"}); err == nil {
+		t.Fatal("color that is not #rrggbb accepted")
 	}
-	if err := s.AddTag(core.Tag{Name: "Odd", Icon: "unicorn"}); err == nil {
-		t.Fatal("unknown icon accepted")
+	if err := s.AddTag(core.Tag{Name: "Odd", Icon: "Two Words"}); err == nil {
+		t.Fatal("icon that is not a lucide name accepted")
 	}
 	if err := s.AddTag(core.Tag{Name: "Sandbox"}); err != nil {
 		t.Fatal(err)
 	}
 	w, _ := s.Load()
-	if tagNames(w.Tags) != "Prod Accounts,Sandbox" || w.Tags[0].Color != "red" || w.Tags[0].Icon != "shield" {
+	if tagNames(w.Tags) != "Prod Accounts,Sandbox" || w.Tags[0].Color != "#ff0000" || w.Tags[0].Icon != "shield" {
 		t.Fatalf("tags = %+v", w.Tags)
 	}
 
@@ -69,7 +69,7 @@ func TestTagsLifecycle(t *testing.T) {
 	s.OnChange = nil
 
 	// Update renames on the sessions too and keeps the other fields it is given.
-	if err := s.UpdateTag("prod accounts", core.Tag{Name: "Production", Color: "green", Icon: "rocket"}); err != nil {
+	if err := s.UpdateTag("prod accounts", core.Tag{Name: "Production", Color: "#00ce78", Icon: "rocket"}); err != nil {
 		t.Fatal(err)
 	}
 	if err := s.UpdateTag("Sandbox", core.Tag{Name: "production"}); !errors.Is(err, ErrTagExists) {
@@ -80,7 +80,7 @@ func TestTagsLifecycle(t *testing.T) {
 	}
 	w, _ = s.Load()
 	got, _ := FindSession(w, "prod-admin")
-	if strings.Join(got.Tags, ",") != "Production,Sandbox" || w.Tags[0] != (core.Tag{Name: "Production", Color: "green", Icon: "rocket"}) {
+	if strings.Join(got.Tags, ",") != "Production,Sandbox" || w.Tags[0] != (core.Tag{Name: "Production", Color: "#00ce78", Icon: "rocket"}) {
 		t.Fatalf("after update: tags=%+v session=%v", w.Tags, got.Tags)
 	}
 

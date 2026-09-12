@@ -46,7 +46,7 @@ Exit codes: `0` success, `1` error, `3` a sign-in is needed (run `rolle integrat
 | Command | Purpose |
 | --- | --- |
 | `rolle tag list` | List tags in sidebar order |
-| `rolle tag add <name> [--color C] [--icon I]` | Create a tag. Colors: gray, blue, green, orange, red, purple, pink, yellow. Icons: tag, folder, briefcase, shield, flask, rocket, star, building, cloud, wrench |
+| `rolle tag add <name> [--color #rrggbb] [--icon <name>]` | Create a tag; the icon is a [Lucide](https://lucide.dev/icons) name such as `shield` |
 | `rolle tag set <name> [--name N] [--color C] [--icon I]` | Change a tag; a new name follows through to every session |
 | `rolle tag move <name> <index>` | Put a tag at a position in the sidebar, counting from 0 |
 | `rolle tag remove <name>` | Delete a tag and take it off every session |

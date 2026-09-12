@@ -1,49 +1,38 @@
-import type { ComponentType } from "react";
-import {
-  Briefcase,
-  Building2,
-  Cloud,
-  FlaskConical,
-  Folder,
-  Rocket,
-  Shield,
-  Star,
-  Tag as TagIcon,
-  Wrench,
-} from "lucide-react";
+import { Suspense } from "react";
+import { Tag as TagIcon } from "lucide-react";
+import { DynamicIcon, iconNames, type IconName } from "lucide-react/dynamic";
 import type { Tag } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-/** The palette a tag may use. Keys match core.TagColors on the backend. */
-export const TAG_COLORS: Record<string, { text: string; swatch: string }> = {
-  gray: { text: "text-muted-foreground", swatch: "bg-muted-foreground" },
-  blue: { text: "text-brand-blue", swatch: "bg-brand-blue" },
-  green: { text: "text-brand-green", swatch: "bg-brand-green" },
-  orange: { text: "text-brand-orange", swatch: "bg-brand-orange" },
-  red: { text: "text-red-500", swatch: "bg-red-500" },
-  purple: { text: "text-purple-500", swatch: "bg-purple-500" },
-  pink: { text: "text-pink-500", swatch: "bg-pink-500" },
-  yellow: { text: "text-yellow-500", swatch: "bg-yellow-500" },
-};
+/** Quick picks in the tag dialog; the color input takes any other value. */
+export const TAG_PRESETS: { name: string; hex: string }[] = [
+  { name: "gray", hex: "#8b9099" },
+  { name: "blue", hex: "#244cff" },
+  { name: "green", hex: "#00ce78" },
+  { name: "orange", hex: "#ff7900" },
+  { name: "red", hex: "#e5484d" },
+  { name: "purple", hex: "#8e4ec6" },
+  { name: "pink", hex: "#e93d82" },
+  { name: "yellow", hex: "#f5b400" },
+];
 
-/** The icons a tag may use. Keys match core.TagIcons on the backend. */
-export const TAG_ICONS: Record<string, ComponentType<{ className?: string }>> = {
-  tag: TagIcon,
-  folder: Folder,
-  briefcase: Briefcase,
-  shield: Shield,
-  flask: FlaskConical,
-  rocket: Rocket,
-  star: Star,
-  building: Building2,
-  cloud: Cloud,
-  wrench: Wrench,
-};
+export const DEFAULT_TAG_COLOR = TAG_PRESETS[0].hex;
 
-export const tagColorClass = (color?: string | null) => (TAG_COLORS[color ?? ""] ?? TAG_COLORS.gray).text;
+const names = new Set<string>(iconNames);
 
-/** The tag's icon in its color. */
+/** Every Lucide icon name, for the picker's search. */
+export const ICON_NAMES: string[] = iconNames;
+
+export const isIconName = (name: string): name is IconName => names.has(name);
+
+/** The tag's icon in its color. An unknown or empty icon falls back to the tag glyph. */
 export function TagGlyph({ tag, className }: { tag: Pick<Tag, "color" | "icon">; className?: string }) {
-  const Icon = TAG_ICONS[tag.icon ?? ""] ?? TagIcon;
-  return <Icon className={cn(tagColorClass(tag.color), className)} aria-hidden />;
+  const style = { color: tag.color || DEFAULT_TAG_COLOR };
+  const cls = cn("shrink-0", className);
+  if (!tag.icon || !isIconName(tag.icon)) return <TagIcon className={cls} style={style} aria-hidden />;
+  return (
+    <Suspense fallback={<span className={cn("inline-block", cls)} aria-hidden />}>
+      <DynamicIcon name={tag.icon} className={cls} style={style} aria-hidden />
+    </Suspense>
+  );
 }

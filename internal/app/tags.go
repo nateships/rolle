@@ -3,6 +3,7 @@ package app
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -16,8 +17,14 @@ const maxTagLength = 40
 // already exists.
 var ErrTagExists = errors.New("tag exists")
 
+// hexColor matches a #rrggbb value.
+var hexColor = regexp.MustCompile(`^#[0-9a-fA-F]{6}$`)
+
+// iconName matches a Lucide icon name: lower-case words joined by hyphens.
+var iconName = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
+
 // normalizeTag checks a tag: the name trimmed with inner whitespace
-// collapsed, and the color and icon from the known sets.
+// collapsed, the color a #rrggbb value, and the icon a Lucide icon name.
 func normalizeTag(t core.Tag) (core.Tag, error) {
 	t.Name = strings.Join(strings.Fields(t.Name), " ")
 	if t.Name == "" {
@@ -26,11 +33,13 @@ func normalizeTag(t core.Tag) (core.Tag, error) {
 	if len(t.Name) > maxTagLength {
 		return t, fmt.Errorf("tag name is longer than %d characters", maxTagLength)
 	}
-	if t.Color != "" && !slices.Contains(core.TagColors, t.Color) {
-		return t, fmt.Errorf("tag color %q is not one of %s", t.Color, strings.Join(core.TagColors, ", "))
+	if t.Color != "" && !hexColor.MatchString(t.Color) {
+		return t, fmt.Errorf("tag color %q is not a #rrggbb value", t.Color)
 	}
-	if t.Icon != "" && !slices.Contains(core.TagIcons, t.Icon) {
-		return t, fmt.Errorf("tag icon %q is not one of %s", t.Icon, strings.Join(core.TagIcons, ", "))
+	t.Color = strings.ToLower(t.Color)
+	t.Icon = strings.TrimSpace(t.Icon)
+	if t.Icon != "" && (len(t.Icon) > 50 || !iconName.MatchString(t.Icon)) {
+		return t, fmt.Errorf("tag icon %q is not a Lucide icon name such as shield", t.Icon)
 	}
 	return t, nil
 }

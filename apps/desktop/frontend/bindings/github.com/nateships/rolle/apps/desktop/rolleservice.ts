@@ -405,17 +405,6 @@ export function SyncSSO(ref: string): $CancellablePromise<core$0.Session[] | nul
 }
 
 /**
- * TagColors and TagIcons are the choices the tag dialog offers.
- */
-export function TagColors(): $CancellablePromise<string[] | null> {
-    return $Call.ByID(389164081);
-}
-
-export function TagIcons(): $CancellablePromise<string[] | null> {
-    return $Call.ByID(777863353);
-}
-
-/**
  * UnhideAll shows every hidden session again.
  */
 export function UnhideAll(): $CancellablePromise<void> {

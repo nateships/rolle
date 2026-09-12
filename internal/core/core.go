@@ -216,18 +216,11 @@ func (s Settings) Normalize() Settings {
 // Tag is a user-defined group of sessions shown in the sidebar.
 type Tag struct {
 	Name string `json:"name"`
-	// Color is one of TagColors. Empty means the default.
+	// Color is a #rrggbb value. Empty means the default.
 	Color string `json:"color,omitempty"`
-	// Icon is one of TagIcons. Empty means the default tag icon.
+	// Icon is a Lucide icon name, such as "shield". Empty means the tag icon.
 	Icon string `json:"icon,omitempty"`
 }
-
-// TagColors are the colors a tag may use, by name; the interface maps them
-// to its palette.
-var TagColors = []string{"gray", "blue", "green", "orange", "red", "purple", "pink", "yellow"}
-
-// TagIcons are the icons a tag may use, by name.
-var TagIcons = []string{"tag", "folder", "briefcase", "shield", "flask", "rocket", "star", "building", "cloud", "wrench"}
 
 // Workspace is everything rolle persists, except secrets.
 type Workspace struct {

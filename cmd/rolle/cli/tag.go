@@ -24,8 +24,8 @@ func tagCmd() *cobra.Command {
 			return svc.AddTag(add)
 		},
 	}
-	addCmd.Flags().StringVar(&add.Color, "color", "", "one of "+strings.Join(core.TagColors, ", "))
-	addCmd.Flags().StringVar(&add.Icon, "icon", "", "one of "+strings.Join(core.TagIcons, ", "))
+	addCmd.Flags().StringVar(&add.Color, "color", "", "a #rrggbb value")
+	addCmd.Flags().StringVar(&add.Icon, "icon", "", "a Lucide icon name, for example shield")
 	setCmd := &cobra.Command{
 		Use:   "set <name>",
 		Short: "Change a tag's name, color, or icon",
@@ -58,8 +58,8 @@ func tagCmd() *cobra.Command {
 		},
 	}
 	setCmd.Flags().StringVar(&set.Name, "name", "", "new name")
-	setCmd.Flags().StringVar(&set.Color, "color", "", "one of "+strings.Join(core.TagColors, ", "))
-	setCmd.Flags().StringVar(&set.Icon, "icon", "", "one of "+strings.Join(core.TagIcons, ", "))
+	setCmd.Flags().StringVar(&set.Color, "color", "", "a #rrggbb value")
+	setCmd.Flags().StringVar(&set.Icon, "icon", "", "a Lucide icon name, for example shield")
 	cmd.AddCommand(
 		&cobra.Command{
 			Use:   "list",

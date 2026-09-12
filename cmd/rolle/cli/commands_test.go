@@ -186,13 +186,13 @@ func TestIntegrationLoginDeviceFlowDiscoversRoles(t *testing.T) {
 		t.Fatalf("list after hiding the account:\n%s", out)
 	}
 	// Tags group sessions in the sidebar; the CLI manages them too.
-	mustRun(t, "tag", "add", "Prod", "--color", "red", "--icon", "shield")
+	mustRun(t, "tag", "add", "Prod", "--color", "#FF0000", "--icon", "shield")
 	mustRun(t, "tag", "add", "Sandbox")
-	if _, err := run(t, "tag", "add", "Odd", "--color", "mauve"); err == nil {
-		t.Fatal("unknown color must fail")
+	if _, err := run(t, "tag", "add", "Odd", "--color", "red"); err == nil {
+		t.Fatal("a color that is not #rrggbb must fail")
 	}
 	mustRun(t, "session", "tag", "Acme/Admin", "prod")
-	if row := fields(lines(mustRun(t, "tag", "list"))[1]); strings.Join(row, " ") != "Prod red shield" {
+	if row := fields(lines(mustRun(t, "tag", "list"))[1]); strings.Join(row, " ") != "Prod #ff0000 shield" {
 		t.Fatalf("tag list row = %v", row)
 	}
 	mustRun(t, "tag", "move", "Sandbox", "0")
@@ -201,7 +201,7 @@ func TestIntegrationLoginDeviceFlowDiscoversRoles(t *testing.T) {
 	if err := json.Unmarshal([]byte(mustRun(t, "tag", "list", "--json")), &tags); err != nil {
 		t.Fatal(err)
 	}
-	if len(tags) != 2 || tags[1]["name"] != "Production" || tags[1]["color"] != "red" || tags[1]["icon"] != "rocket" {
+	if len(tags) != 2 || tags[1]["name"] != "Production" || tags[1]["color"] != "#ff0000" || tags[1]["icon"] != "rocket" {
 		t.Fatalf("tag list --json = %v", tags)
 	}
 	var tagged []map[string]any

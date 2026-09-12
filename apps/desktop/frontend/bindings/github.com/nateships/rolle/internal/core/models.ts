@@ -290,12 +290,12 @@ export interface Tag {
     "name": string;
 
     /**
-     * Color is one of TagColors. Empty means the default.
+     * Color is a #rrggbb value. Empty means the default.
      */
     "color"?: string;
 
     /**
-     * Icon is one of TagIcons. Empty means the default tag icon.
+     * Icon is a Lucide icon name, such as "shield". Empty means the tag icon.
      */
     "icon"?: string;
 }

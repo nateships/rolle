@@ -376,10 +376,6 @@ func (r *RolleService) RemoveTag(name string) error { return r.svc.RemoveTag(nam
 // MoveTag puts a tag at index in the sidebar order.
 func (r *RolleService) MoveTag(name string, index int) error { return r.svc.MoveTag(name, index) }
 
-// TagColors and TagIcons are the choices the tag dialog offers.
-func (r *RolleService) TagColors() []string { return core.TagColors }
-func (r *RolleService) TagIcons() []string  { return core.TagIcons }
-
 // SetSessionTag adds a tag to a session or takes it off.
 func (r *RolleService) SetSessionTag(ref, tag string, on bool) error {
 	return r.svc.SetSessionTag(ref, tag, on)

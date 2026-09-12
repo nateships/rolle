@@ -110,7 +110,7 @@ describe("Dashboard", () => {
     await user.type(await screen.findByPlaceholderText("Production"), "Staging");
     await user.click(screen.getByRole("button", { name: "Save" }));
     await waitFor(() =>
-      expect(add).toHaveBeenCalledWith(expect.objectContaining({ name: "Staging", color: "gray", icon: "tag" })),
+      expect(add).toHaveBeenCalledWith(expect.objectContaining({ name: "Staging", color: "#8b9099", icon: "tag" })),
     );
   });
 
