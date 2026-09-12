@@ -634,4 +634,19 @@ func TestSetHiddenAndSetAccountHidden(t *testing.T) {
 	if got, _ := FindSession(w, "Acme/Admin"); got.Hidden {
 		t.Fatal("unhide failed")
 	}
+	if err := s.UnhideAll(); err != nil {
+		t.Fatal(err)
+	}
+	w, _ = s.Load()
+	for _, sess := range w.Sessions {
+		if sess.Hidden {
+			t.Fatalf("%s still hidden after UnhideAll", sess.Name)
+		}
+	}
+	// Nothing hidden: no save, no error.
+	saves := 0
+	s.OnChange = func() { saves++ }
+	if err := s.UnhideAll(); err != nil || saves != 0 {
+		t.Fatalf("UnhideAll with nothing hidden: err=%v saves=%d", err, saves)
+	}
 }

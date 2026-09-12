@@ -377,6 +377,13 @@ export function SyncSSO(ref: string): $CancellablePromise<core$0.Session[] | nul
 }
 
 /**
+ * UnhideAll shows every hidden session again.
+ */
+export function UnhideAll(): $CancellablePromise<void> {
+    return $Call.ByID(3014630259);
+}
+
+/**
  * UninstallCLI removes what Install made: the link on macOS, the user copy on
  * Windows and Linux. A command installed another way is left alone.
  */

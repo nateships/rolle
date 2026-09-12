@@ -152,9 +152,12 @@ func TestIntegrationLoginDeviceFlowDiscoversRoles(t *testing.T) {
 	if out := mustRun(t, "session", "list"); strings.Contains(out, "Acme/") && !strings.Contains(out, "active") {
 		t.Fatalf("list after hiding the account:\n%s", out)
 	}
-	mustRun(t, "session", "unhide", "--account", "111111111111")
-	if out := mustRun(t, "session", "list"); !strings.Contains(out, "ReadOnly") {
-		t.Fatalf("list after unhide:\n%s", out)
+	mustRun(t, "session", "unhide", "--all")
+	if out := mustRun(t, "session", "list"); !strings.Contains(out, "ReadOnly") || !strings.Contains(out, "Acme/Admin") {
+		t.Fatalf("list after unhide --all:\n%s", out)
+	}
+	if _, err := run(t, "session", "unhide"); err == nil {
+		t.Fatal("unhide without a target must fail")
 	}
 	if _, err := run(t, "session", "hide", "--account", "000000000000"); err == nil {
 		t.Fatal("hiding an unknown account must fail")

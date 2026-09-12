@@ -18,6 +18,7 @@ import {
   Trash2,
   UserCog,
   Waypoints,
+  Eye,
   EyeOff,
 } from "lucide-react";
 import { motion } from "motion/react";
@@ -260,14 +261,32 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
               />
             )}
             {hiddenCount > 0 && (
-              <SideItem
-                active={filter === "hidden"}
-                onClick={() => setFilter("hidden")}
-                label="Hidden"
-                hint={hint("4")}
-                count={hiddenCount}
-                icon={<EyeOff className="size-3.5" />}
-              />
+              <ContextMenu>
+                <ContextMenuTrigger asChild>
+                  <div>
+                    <SideItem
+                      active={filter === "hidden"}
+                      onClick={() => setFilter("hidden")}
+                      label="Hidden"
+                      hint={hint("4")}
+                      count={hiddenCount}
+                      icon={<EyeOff className="size-3.5" />}
+                    />
+                  </div>
+                </ContextMenuTrigger>
+                <ContextMenuContent className="min-w-40">
+                  <ActionItems
+                    menu="context"
+                    actions={[
+                      {
+                        label: "Unhide all",
+                        icon: <Eye />,
+                        onSelect: () => void run("Every session is visible again", () => api.UnhideAll()),
+                      },
+                    ]}
+                  />
+                </ContextMenuContent>
+              </ContextMenu>
             )}
             {manualCount > 0 && (
               <SideItem

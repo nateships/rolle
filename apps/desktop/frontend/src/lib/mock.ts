@@ -427,6 +427,10 @@ export const mockApi = {
     if (x) Object.assign(x, { hidden, favorite: hidden ? false : x.favorite });
     emit();
   },
+  UnhideAll: async () => {
+    for (const x of state.sessions) Object.assign(x, { hidden: false });
+    emit();
+  },
   SetAccountHidden: async (integrationId: string, accountId: string, hidden: boolean) => {
     for (const x of state.sessions) {
       if (x.integrationId === integrationId && x.aws?.accountId === accountId) {

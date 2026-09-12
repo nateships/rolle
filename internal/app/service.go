@@ -1164,6 +1164,25 @@ func (s *Service) SetHidden(ref string, hidden bool) error {
 	return s.Save(w)
 }
 
+// UnhideAll shows every hidden session again.
+func (s *Service) UnhideAll() error {
+	w, err := s.Load()
+	if err != nil {
+		return err
+	}
+	changed := false
+	for i := range w.Sessions {
+		if w.Sessions[i].Hidden {
+			w.Sessions[i].Hidden = false
+			changed = true
+		}
+	}
+	if !changed {
+		return nil
+	}
+	return s.Save(w)
+}
+
 // SetAccountHidden hides or shows every Identity Center role of one account.
 func (s *Service) SetAccountHidden(integrationID, accountID string, hidden bool) error {
 	w, err := s.Load()
