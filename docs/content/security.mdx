@@ -19,19 +19,19 @@ rolle marks each profile it writes with a `rolle_session` key. It refuses to tou
 
 ## No telemetry
 
-The app and the CLI collect nothing: no analytics, no crash reports, no usage data, no account. Every network connection rolle makes is one of these:
+rolle sends no analytics, no crash reports, and no usage data. It has no account. It connects only to:
 
-- The cloud providers you sign in to: Identity Center portals, AWS OIDC and STS endpoints, Microsoft Entra and Azure Resource Manager, Google APIs, and the consoles that **Open console** launches in your browser.
-- `github.com`, for the update manifest at launch and every six hours while **Settings → General → Automatic updates** is on, for the update download you confirm, and for the issue form that **Report a problem** opens in your browser.
+- The cloud providers you sign in to: Identity Center portals, AWS OIDC and STS, Microsoft Entra and Azure Resource Manager, Google APIs, and the consoles that **Open console** opens in your browser.
+- `github.com`: the update manifest at launch and every six hours while **Settings → General → Automatic updates** is on, the update download you confirm, and the issue form that **Report a problem** opens in your browser.
 
-Nothing is sent that you did not ask for. The support bundle is a file in your Downloads folder; you decide whether to attach it to an issue.
+The support bundle is a file in your Downloads folder. You choose whether to attach it to an issue.
 
-You do not have to take that on trust:
+Four ways to check this:
 
-- **Watch it yourself.** Run `rolle --debug` or set `ROLLE_DEBUG=1`. Every HTTP client in the process, the cloud SDKs included, goes through one transport that logs the method and host of each request, and nothing else. The desktop app's **Verbose logging** setting does the same, and the support bundle carries the last lines of that log.
-- **Capability analysis in CI.** [Capslock](https://github.com/google/capslock) reads the Go call graph and reports which capabilities each package reaches through its whole dependency tree: network, process execution, file access, and so on. `capslock.json` in the repository is the recorded set, and the `capabilities` job fails a pull request that changes it. A dependency that starts talking to the network shows up as a diff in that file.
-- **[OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/nateships/rolle).** An independent weekly rating of the repository's practices: pinned actions, branch protection, signed releases, token permissions, static analysis, and dependency updates.
-- **Build provenance and reproducible builds** below tie each release file to the public source at a named commit.
+- **Host log.** Run `rolle --debug` or set `ROLLE_DEBUG=1`. Every HTTP client in the process, the cloud SDKs included, uses one transport. It logs the method and the host of each request and nothing else. **Verbose logging** in the desktop app does the same, and the support bundle carries the last lines.
+- **Capability analysis.** [Capslock](https://github.com/google/capslock) reads the Go call graph and reports the capabilities each package reaches through its full dependency tree: network, process execution, file access. `capslock.json` in the repository holds that set. The `capabilities` CI job fails a pull request that changes it, so a dependency that starts to use the network shows as a diff in that file.
+- **[OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/nateships/rolle).** A weekly independent rating of the repository: pinned actions, branch protection, signed releases, token permissions, static analysis, dependency updates.
+- **Provenance and reproducible builds**, below.
 
 ## Enterprise networks
 
@@ -39,21 +39,21 @@ rolle verifies TLS against the OS trust store: the macOS Keychain, the Windows c
 
 ## Signed updates
 
-An Ed25519 key signs every release manifest. The desktop app verifies the signature before it installs an update. A Developer ID certificate signs the macOS builds, and Apple notarizes them. The release checksum file lists every asset, CLI archives and desktop packages alike, and carries a keyless Sigstore signature from the release workflow; [Install](/install#cli-archives) shows how to verify it.
+An Ed25519 key signs every release manifest, and the desktop app verifies the signature before it installs an update. A Developer ID certificate signs the macOS builds, and Apple notarizes them. `checksums.txt` lists every release asset, CLI archives and desktop packages alike, and carries a keyless Sigstore signature from the release workflow. [Install](/install#cli-archives) shows the check.
 
 ## Build provenance
 
-The release workflow writes a [SLSA build provenance](https://slsa.dev/provenance) attestation for every file in `checksums.txt`. It records the repository, the commit, and the workflow run that produced the file, and GitHub signs it with the workflow's identity. Verify a download with the GitHub CLI:
+The release workflow writes a [SLSA build provenance](https://slsa.dev/provenance) attestation for every file in `checksums.txt`. It names the repository, the commit, and the workflow run that built the file, and GitHub signs it with the workflow's identity. Check a download with the GitHub CLI:
 
 ```sh
 gh attestation verify rolle.dmg --repo nateships/rolle
 ```
 
-A passing check means the file came out of `.github/workflows/release.yml` in this repository at the commit it names, not from a laptop or a fork.
+A pass means the file comes from `.github/workflows/release.yml` in this repository at the commit it names.
 
 ## Reproducible builds
 
-From 0.1.4 on, the CLI archives are built with `-trimpath` and no cgo, so the same source, toolchain, and flags give a byte-identical binary. To check a release, clone the tag with a clean tree, use the Go version that `go version -m rolle` prints for the released binary, and build:
+The CLI archives are built with `-trimpath` and without cgo. The same source, toolchain, and flags give a byte-identical binary. To check a release: clone the tag, use the Go version that `go version -m rolle` prints for the released binary, and build.
 
 ```sh
 git clone --branch v<version> https://github.com/nateships/rolle && cd rolle
@@ -63,7 +63,7 @@ CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath \
 sha256sum rolle-rebuilt rolle   # rolle from the release archive
 ```
 
-The two hashes match. The desktop packages are signed and, on macOS, notarized, so they cannot be compared byte for byte; for those, the build provenance above is the link to the source.
+The two hashes match. The desktop packages are signed, and on macOS notarized, so they do not compare byte for byte. For those, the provenance attestation is the link to the source.
 
 ## Reset
 

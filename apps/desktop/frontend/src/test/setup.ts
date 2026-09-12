@@ -2,10 +2,13 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { MotionGlobalConfig } from "motion/react";
 import { afterEach, vi } from "vitest";
-// The Wails runtime polls for its environment for 50 ms after it loads and
-// reads window when the poll stops. Load it here, at the start of every test
-// file, so the poll ends long before jsdom is torn down.
-import "@wailsio/runtime";
+
+// The Wails runtime starts a 50 ms environment poll when it loads and reads
+// window when the poll stops. Under fake timers the poll never runs, so a
+// test file that ends quickly cannot hit it after jsdom is gone.
+vi.useFakeTimers();
+await import("@wailsio/runtime");
+vi.useRealTimers();
 
 // Finish every animation at once so presence checks do not wait on timers.
 MotionGlobalConfig.skipAnimations = true;

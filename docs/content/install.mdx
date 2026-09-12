@@ -42,7 +42,7 @@ cosign verify-blob checksums.txt \
 sha256sum --check --ignore-missing checksums.txt
 ```
 
-`checksums.txt` also lists `rolle.dmg`, the Windows installer, the AppImage, the deb, and `manifest.json`, so the same check covers a desktop download. Every file in it carries a [build provenance attestation](/security#build-provenance) as well:
+`checksums.txt` also lists `rolle.dmg`, the Windows installer, the AppImage, the deb, and `manifest.json`, so the same check covers a desktop download. Every file in it has a [build provenance attestation](/security#build-provenance):
 
 ```sh
 gh attestation verify rolle.dmg --repo nateships/rolle
