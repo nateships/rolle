@@ -149,6 +149,8 @@ func main() {
 		if err := svc.ReconcileProfiles(); err != nil {
 			debug.Logf("app", "reconcile profiles: %v", err)
 		}
+		// An update replaced the app; bring the app's copy of the command along.
+		refreshCLI()
 		alerts := newNotifier(notify)
 		w, _ := svc.Refresh()
 		alerts.tick(w, currentSettings(svc))

@@ -460,6 +460,7 @@ export const mockApi = {
     path: cliInstalled ? "/usr/local/bin/rolle" : "",
     target: "/Applications/rolle.app/Contents/Helpers/rolle",
     reason: "",
+    note: "",
   }),
   InstallCLI: async () => {
     await wait(600);

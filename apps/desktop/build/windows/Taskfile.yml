@@ -165,17 +165,34 @@ tasks:
     summary: amd64 and arm64 builds, one installer, and updater zips in bin/
     platforms: [windows]
     cmds:
+      # The app embeds the command from build/cli, so each architecture
+      # builds its command first and the app right after.
+      - task: release:cli
+        vars: { ARCH: amd64 }
       - task: build
         vars: { ARCH: amd64 }
       - powershell Move-Item -Force "{{.BIN_DIR}}/{{.APP_NAME}}.exe" "{{.BIN_DIR}}/{{.APP_NAME}}-amd64.exe"
+      - task: release:cli
+        vars: { ARCH: arm64 }
       - task: build
         vars: { ARCH: arm64 }
       - powershell Move-Item -Force "{{.BIN_DIR}}/{{.APP_NAME}}.exe" "{{.BIN_DIR}}/{{.APP_NAME}}-arm64.exe"
+      - powershell Remove-Item -Force "build/cli/rolle.exe"
       - task: create:nsis:installer:universal
       - task: release:zip
         vars: { ARCH: amd64 }
       - task: release:zip
         vars: { ARCH: arm64 }
+
+  # The rolle command the app carries and installs into %LOCALAPPDATA%\rolle\bin.
+  release:cli:
+    internal: true
+    cmds:
+      - go build -trimpath -buildvcs=false -ldflags="-s -w -X github.com/nateships/rolle/internal/version.Version={{.VERSION | default "0.0.1-dev"}}" -o "build/cli/rolle.exe" ../../cmd/rolle
+    env:
+      GOOS: windows
+      GOARCH: '{{.ARCH}}'
+      CGO_ENABLED: 0
 
   create:nsis:installer:universal:
     summary: One installer that installs the amd64 or arm64 binary

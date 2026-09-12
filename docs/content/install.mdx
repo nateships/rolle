@@ -19,12 +19,14 @@ description: Install the rolle desktop app with Homebrew, a signed DMG, the Wind
   <Tab title="Windows">
     Download `rolle-installer.exe` from the [releases page](https://github.com/nateships/rolle/releases). One installer covers x64 and Arm64. Portable builds ship as `rolle-windows-amd64.zip` and `rolle-windows-arm64.zip`.
 
+    The app carries the `rolle` command. The last onboarding step and **Settings → General** offer **Install command**, which writes it to `%LOCALAPPDATA%\rolle\bin` and adds that folder to your user `PATH`. Open a new terminal afterwards. The app keeps the command at its own version after each update.
+
     The Windows build is not code signed. SmartScreen shows a warning on first launch.
   </Tab>
   <Tab title="Linux">
     Download `rolle-linux-amd64.AppImage` or the `.deb` package from the [releases page](https://github.com/nateships/rolle/releases). The app needs GTK 4 and WebKitGTK 6.0.
 
-    The CLI ships as `rolle_<version>_linux_<arch>.tar.gz` on the same page. Put `rolle` on your `PATH`.
+    The deb installs the `rolle` command in `/usr/local/bin`. The AppImage carries it: **Install command** in the last onboarding step and in **Settings → General** writes it to `~/.local/bin`, and the app keeps it at its own version after each update. The CLI also ships on its own as `rolle_<version>_linux_<arch>.tar.gz` for machines without the app.
   </Tab>
 </Tabs>
 

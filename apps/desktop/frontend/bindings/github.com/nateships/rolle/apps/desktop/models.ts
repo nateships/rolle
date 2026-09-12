@@ -26,15 +26,22 @@ export interface CLIStatus {
     "path"?: string;
 
     /**
-     * Target is the command inside the app bundle.
+     * Target is the command the app installs: inside the bundle on macOS, a
+     * file in the user's directory on Windows and Linux.
      */
     "target"?: string;
 
     /**
-     * Reason is empty when Install can run: "move" when the app runs from a
-     * disk image or a temporary location, "unsupported" off macOS bundles.
+     * Reason is empty when Install can run. "move": the macOS app runs from a
+     * disk image or a temporary location. "outdated": the installed command
+     * is from another version. "unsupported": this build has no command.
      */
     "reason"?: string;
+
+    /**
+     * Note is a hint for the user, such as opening a new terminal.
+     */
+    "note"?: string;
 }
 
 /**

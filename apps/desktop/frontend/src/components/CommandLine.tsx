@@ -33,9 +33,11 @@ export function CommandLineInstall({ compact = false, className }: { compact?: b
 
   const install = () => run(() => api.InstallCLI(), "rolle command installed");
   const remove = () => run(() => api.UninstallCLI(), "rolle command removed");
+  const outdated = status.reason === "outdated";
+  const actionLabel = outdated ? "Update command" : "Install command";
 
   if (compact) {
-    return status.installed ? (
+    return status.installed && !outdated ? (
       <div className={cn("flex items-center gap-2 text-xs", className)}>
         <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
           <Check className="size-3.5" /> Installed
@@ -52,7 +54,7 @@ export function CommandLineInstall({ compact = false, className }: { compact?: b
         onClick={install}
         disabled={busy || status.reason === "move"}
       >
-        {busy ? <Loader2 className="size-3.5 animate-spin" /> : <TerminalSquare className="size-3.5" />} Install command
+        {busy ? <Loader2 className="size-3.5 animate-spin" /> : <TerminalSquare className="size-3.5" />} {actionLabel}
       </Button>
     );
   }
@@ -65,7 +67,11 @@ export function CommandLineInstall({ compact = false, className }: { compact?: b
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">Use rolle from your terminal</p>
         <p className="mt-0.5 text-xs text-muted-foreground">
-          {status.installed ? (
+          {outdated ? (
+            <>
+              The command at <span className="font-mono text-[11px]">{status.path}</span> is from another version.
+            </>
+          ) : status.installed ? (
             <>
               <code className="rounded bg-muted px-1 py-px font-mono text-[11px]">rolle</code> is on your PATH at{" "}
               <span className="font-mono text-[11px]">{status.path}</span>.
@@ -77,16 +83,16 @@ export function CommandLineInstall({ compact = false, className }: { compact?: b
               Adds <code className="rounded bg-muted px-1 py-px font-mono text-[11px]">rolle</code> to your PATH.
             </>
           )}
+          {status.note ? <> {status.note}</> : null}
         </p>
       </div>
-      {status.installed ? (
+      {status.installed && !outdated ? (
         <span className="flex shrink-0 items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
           <Check className="size-4" /> Installed
         </span>
       ) : (
         <Button size="sm" className="shrink-0 gap-1.5" onClick={install} disabled={busy || status.reason === "move"}>
-          {busy ? <Loader2 className="size-3.5 animate-spin" /> : <TerminalSquare className="size-3.5" />} Install
-          command
+          {busy ? <Loader2 className="size-3.5 animate-spin" /> : <TerminalSquare className="size-3.5" />} {actionLabel}
         </Button>
       )}
     </div>
