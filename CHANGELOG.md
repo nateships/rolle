@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.9](https://github.com/nateships/rolle/compare/v0.1.8...v0.1.9) (2026-09-12)
+
+
+### Features
+
+* tag drag polish, chip filters, smoother section changes ([#46](https://github.com/nateships/rolle/issues/46)) ([c6a6dec](https://github.com/nateships/rolle/commit/c6a6dec2a7d81a26c1be3b6c04209178ee2adc6d))
+* tag sessions ([#44](https://github.com/nateships/rolle/issues/44)) ([8ff1082](https://github.com/nateships/rolle/commit/8ff1082ad64ab4f6a5294e63b20c5e4790f35328))
+
 ## [0.1.8](https://github.com/nateships/rolle/compare/v0.1.7...v0.1.8) (2026-09-12)
 
 
