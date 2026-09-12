@@ -79,6 +79,10 @@ description = "Build the docs site"
 run = ["aube ci", "aube run build"]
 dir = "docs"
 
+[tasks.cli]
+description = "Run the CLI from source against your real workspace: mise run cli -- integration list"
+run = "go run ./cmd/rolle"
+
 [tasks.reset]
 description = "Wipe the local rolle workspace, secrets, cache, and AWS profiles (back to onboarding)"
 run = "go run ./cmd/rolle reset --yes"

@@ -77,6 +77,7 @@ mise run check:frontend # typecheck, lint, format, tests
 mise run hooks          # every pre-commit hook on the whole tree
 mise run desktop        # run the desktop app in dev mode
 mise run desktop:demo   # same, on fictional data; nothing real is touched
+mise run cli -- <args>  # run the CLI from source, for example: mise run cli -- integration list
 mise run docs           # serve the docs site
 ```
 
