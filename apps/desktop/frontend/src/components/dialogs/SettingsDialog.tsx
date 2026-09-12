@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Copy, Download, Loader2, Monitor, Moon, RefreshCw, RotateCcw, Sun, Trash2 } from "lucide-react";
+import { Bug, Check, Copy, Download, Loader2, Monitor, Moon, RefreshCw, RotateCcw, Sun, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -301,6 +301,24 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                   expire on their own.
                 </p>
               </div>
+              <Row
+                label="Help"
+                hint="Bug reports go to GitHub. The form arrives with your version and platform filled in."
+              >
+                <div className="flex shrink-0 gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="gap-1.5"
+                    onClick={() => void api.SupportURL().then((u) => api.OpenURL(u))}
+                  >
+                    <Bug className="size-3.5" /> Report a problem
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => void api.OpenURL("https://getrolle.com")}>
+                    Docs
+                  </Button>
+                </div>
+              </Row>
             </TabsContent>
 
             <TabsContent value="advanced" className="mt-4 min-h-[27rem] space-y-3">

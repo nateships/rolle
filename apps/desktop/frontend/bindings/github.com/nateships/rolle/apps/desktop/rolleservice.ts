@@ -325,6 +325,13 @@ export function Stop(ref: string): $CancellablePromise<void> {
 }
 
 /**
+ * SupportURL is the GitHub bug report form with version and platform filled in.
+ */
+export function SupportURL(): $CancellablePromise<string> {
+    return $Call.ByID(2961329235);
+}
+
+/**
  * SyncAzure rediscovers subscriptions.
  */
 export function SyncAzure(ref: string): $CancellablePromise<core$0.Session[] | null> {

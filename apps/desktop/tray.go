@@ -17,6 +17,7 @@ import (
 	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/debug"
 	"github.com/nateships/rolle/internal/terminal"
+	"github.com/nateships/rolle/internal/version"
 )
 
 // EventOpenSettings asks the window to open the settings dialog.
@@ -295,6 +296,11 @@ func (t *tray) addSessionMenu(menu *application.Menu, sess core.Session) {
 func (t *tray) addFooter(menu *application.Menu) {
 	menu.AddSeparator()
 	menu.Add("Open Rolle").OnClick(func(*application.Context) { t.showWindow() })
+	menu.Add("Report a problem…").OnClick(func(*application.Context) {
+		if err := browser.Open(supportURL(version.Version, runtime.GOOS, runtime.GOARCH)); err != nil {
+			debug.Logf("tray", "support: %v", err)
+		}
+	})
 	menu.Add("Settings…").OnClick(func(*application.Context) {
 		t.showWindow()
 		t.app.Event.Emit(EventOpenSettings, struct{}{})

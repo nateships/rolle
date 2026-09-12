@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"runtime"
@@ -414,3 +415,19 @@ func (r *RolleService) OpenTerminal(ref string) error {
 
 // OpenURL opens a link in the default browser.
 func (r *RolleService) OpenURL(u string) error { return browser.Open(u) }
+
+// SupportURL is the GitHub bug report form with version and platform filled in.
+func (r *RolleService) SupportURL() string {
+	return supportURL(version.Version, runtime.GOOS, runtime.GOARCH)
+}
+
+func supportURL(ver, goos, goarch string) string {
+	if ver == "" {
+		ver = "dev"
+	}
+	q := url.Values{}
+	q.Set("template", "bug.yml")
+	q.Set("version", ver)
+	q.Set("platform", goos+" "+goarch)
+	return "https://github.com/nateships/rolle/issues/new?" + q.Encode()
+}

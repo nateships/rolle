@@ -63,6 +63,10 @@ Google Cloud, role chaining, IAM users, and every flag are in the
 [CLI reference](https://getrolle.com/cli). [getrolle.com/roadmap](https://getrolle.com/roadmap)
 lists what works and what does not.
 
+## Support
+
+Bugs and questions go to [GitHub issues](https://github.com/nateships/rolle/issues/new/choose). In the app, **Settings → About → Report a problem** opens the form with your version and platform filled in.
+
 ## Contributing
 
 ```sh

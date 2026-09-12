@@ -1,0 +1,38 @@
+name: Bug report
+description: Something in Rolle does not work as documented.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, what happened instead.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Rolle version
+      description: Settings → About shows it. The in-app button fills this in.
+      placeholder: 0.1.1
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform
+      placeholder: macOS 15 arm64
+    validations:
+      required: true
+  - type: dropdown
+    id: cloud
+    attributes:
+      label: Cloud
+      multiple: true
+      options: [AWS Identity Center, AWS IAM user or assume role, Azure, Google Cloud, Not cloud specific]
+  - type: textarea
+    id: logs
+    attributes:
+      label: Verbose log
+      description: Turn on Settings → General → Verbose logging or run with ROLLE_DEBUG=1, reproduce, and paste the relevant lines. Remove account ids and URLs you do not want public.
+      render: text

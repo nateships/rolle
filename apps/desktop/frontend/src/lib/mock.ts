@@ -231,6 +231,8 @@ export const mockApi = {
   },
   EnvText: async () => "export AWS_ACCESS_KEY_ID=ASIAMOCK\n",
   OpenConsole: async () => {},
+  SupportURL: async () =>
+    "https://github.com/nateships/rolle/issues/new?template=bug.yml&version=0.0.1-dev&platform=browser",
   OpenURL: async (u: string) => {
     window.open(u, "_blank");
   },
