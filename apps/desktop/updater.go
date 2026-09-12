@@ -35,6 +35,13 @@ const releasesAPI = "https://api.github.com/repos/nateships/rolle/releases?per_p
 // checkInterval is how often background update checks run.
 const checkInterval = 6 * time.Hour
 
+// startupCheckDelay gives the window time to appear before the first check.
+const startupCheckDelay = 20 * time.Second
+
+// EventUpdateAvailable carries an UpdateInfo when a background check finds a
+// newer release. The sidebar shows it; the updater window opens on request.
+const EventUpdateAvailable = "update:available"
+
 // updaterPublicKey is the Ed25519 trust root, generated with `wails3 updater genkey`.
 // Release artifacts are signed with the matching private key in CI.
 //
@@ -67,32 +74,42 @@ func setupUpdater(a *application.App, svc *app.Service) error {
 	if err := a.Updater.Init(cfg); err != nil {
 		return err
 	}
-	debug.Logf("updater", "configured for %s, background checks every %v", cfg.CurrentVersion, checkInterval)
+	debug.Logf("updater", "configured for %s, first check in %v, then every %v", cfg.CurrentVersion, startupCheckDelay, checkInterval)
 	go func() {
-		for range time.Tick(checkInterval) {
-			if st, err := svc.Settings(); err != nil || st.AutoUpdateOff {
-				continue
-			}
-			// Check silently first. CheckAndInstall opens the updater window,
-			// which must not appear when nothing is available.
-			c, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			rel, err := a.Updater.Check(c)
-			cancel()
-			if err != nil {
-				debug.Logf("updater", "background check: %v", err)
-				continue
-			}
-			if rel == nil {
-				continue
-			}
-			// The updater window keeps this context for its Install and
-			// Retry buttons, so it must outlive the call.
-			if err := a.Updater.CheckAndInstall(context.Background()); err != nil {
-				debug.Logf("updater", "background install: %v", err)
-			}
+		time.Sleep(startupCheckDelay)
+		for {
+			backgroundCheck(a, svc)
+			time.Sleep(checkInterval)
 		}
 	}()
 	return nil
+}
+
+// backgroundCheck asks the feed for a newer release and tells the frontend
+// when there is one. It never opens the updater window on its own.
+func backgroundCheck(a *application.App, svc *app.Service) {
+	if st, err := svc.Settings(); err != nil || st.AutoUpdateOff {
+		return
+	}
+	c, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	rel, err := a.Updater.Check(c)
+	if err != nil {
+		debug.Logf("updater", "background check: %v", err)
+		return
+	}
+	if rel == nil {
+		return
+	}
+	debug.Logf("updater", "background check: %s available", rel.Version)
+	a.Event.Emit(EventUpdateAvailable, UpdateInfo{
+		Enabled:        true,
+		CurrentVersion: version.Version,
+		Available:      true,
+		Version:        rel.Version,
+		Notes:          rel.Notes,
+		State:          string(a.Updater.State()),
+	})
 }
 
 // parsePublicKey accepts the PEM file written by `wails3 updater genkey` or

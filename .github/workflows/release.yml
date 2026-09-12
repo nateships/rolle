@@ -127,7 +127,29 @@ jobs:
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          fetch-depth: 0
           persist-credentials: false
+      - name: Write the release notes
+        # Commit subjects since the previous tag. A stable release compares
+        # against the previous stable tag, so it also covers its pre-releases.
+        run: |
+          if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+            prev="$(git tag --merged "${GITHUB_REF_NAME}^" --sort=-v:refname | head -1)"
+          else
+            prev="$(git tag --merged "${GITHUB_REF_NAME}^" --sort=-v:refname | grep -v -- - | head -1)"
+          fi
+          {
+            echo "## Rolle ${VERSION}"
+            echo
+            if [ -n "$prev" ]; then
+              git log --no-merges --format='- %s' "${prev}..${GITHUB_REF_NAME}"
+              echo
+              echo "Full changelog: https://github.com/${GITHUB_REPOSITORY}/compare/${prev}...${GITHUB_REF_NAME}"
+            else
+              echo "First release."
+            fi
+          } > notes.md
+          cat notes.md
       # mise builds wails3 from source, which needs the GTK headers.
       - name: Install Wails Linux dependencies
         run: |
@@ -154,6 +176,7 @@ jobs:
         run: |
           channel=stable; case "$GITHUB_REF_NAME" in *-*) channel=beta;; esac
           wails3 updater manifest -version "${VERSION}" -channel "$channel" -key updater.key \
+            -name "Rolle ${VERSION}" -notes-file notes.md \
             -url-prefix "https://github.com/nateships/rolle/releases/download/${GITHUB_REF_NAME}/" \
             -output artifacts/manifest.json artifacts
           wails3 updater verify -manifest artifacts/manifest.json -publickey apps/desktop/build/updater.pub
@@ -163,6 +186,12 @@ jobs:
           name: manifest
           if-no-files-found: error
           path: artifacts/manifest.json
+      - name: Store the release notes
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-notes
+          if-no-files-found: error
+          path: notes.md
 
   # Builds the CLI archives, then creates the GitHub release with every desktop
   # package and the manifest attached, and writes Casks/rolle-cli.rb into the tap.
@@ -187,11 +216,17 @@ jobs:
       - name: Collect the desktop packages and the manifest
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
+          pattern: "{desktop-*,manifest}"
           merge-multiple: true
           path: release-assets
-      - run: ls -la release-assets
+      - name: Collect the release notes
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-notes
+          path: release-notes
+      - run: ls -la release-assets release-notes
       - name: Publish the release
-        run: goreleaser release --clean
+        run: goreleaser release --clean --release-notes release-notes/notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}

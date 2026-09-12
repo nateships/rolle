@@ -1,0 +1,51 @@
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+
+/** True on macOS, where the modifier is ⌘. Everywhere else it is Ctrl. */
+export const isMac = /Mac/.test(navigator.platform) || /Mac OS/.test(navigator.userAgent);
+
+const MOD = isMac ? "⌘" : "Ctrl";
+
+/** Every shortcut the dashboard handles, in the order the sheet lists them. */
+export const SHORTCUTS: { keys: string[]; label: string }[] = [
+  { keys: [MOD, ","], label: "Settings" },
+  { keys: [MOD, "F"], label: "Search sessions" },
+  { keys: [MOD, "I"], label: "Import from this machine" },
+  { keys: [MOD, "1"], label: "All sessions" },
+  { keys: [MOD, "2"], label: "Active sessions" },
+  { keys: [MOD, "3"], label: "Favorites" },
+  { keys: ["Esc"], label: "Clear the search, close a dialog" },
+  { keys: [MOD, "/"], label: "Keyboard shortcuts" },
+];
+
+function Key({ children }: { children: string }) {
+  return (
+    <kbd className="inline-flex h-6 min-w-6 items-center justify-center rounded-md border bg-muted px-1.5 font-sans text-[11px] font-medium text-foreground shadow-[inset_0_-1px_0_var(--color-border)]">
+      {children}
+    </kbd>
+  );
+}
+
+export function ShortcutsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Keyboard shortcuts</DialogTitle>
+          <DialogDescription>Work the dashboard without the mouse.</DialogDescription>
+        </DialogHeader>
+        <ul className="divide-y text-sm">
+          {SHORTCUTS.map((s) => (
+            <li key={s.label} className="flex items-center justify-between gap-4 py-2">
+              <span>{s.label}</span>
+              <span className="flex items-center gap-1">
+                {s.keys.map((k) => (
+                  <Key key={k}>{k}</Key>
+                ))}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </DialogContent>
+    </Dialog>
+  );
+}

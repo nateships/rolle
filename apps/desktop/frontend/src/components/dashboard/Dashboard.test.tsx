@@ -100,4 +100,20 @@ describe("Dashboard", () => {
     renderDashboard();
     expect(rowNames()).toEqual(["Acme Prod", "AdministratorAccess", "deployer"]);
   });
+
+  it("opens settings and the shortcut sheet from the keyboard", async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+    await user.keyboard("{Meta>},{/Meta}");
+    expect(await screen.findByRole("dialog", { name: /settings/i })).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    await user.keyboard("{Control>}/{/Control}");
+    expect(await screen.findByRole("dialog", { name: /keyboard shortcuts/i })).toBeInTheDocument();
+  });
+
+  it("offers a found update in the sidebar footer", async () => {
+    window.history.replaceState({}, "", "/?view=dashboard&update=1");
+    renderDashboard();
+    expect(await screen.findByRole("button", { name: /update to 0\.2\.0/i }, { timeout: 3000 })).toBeInTheDocument();
+  });
 });

@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowUpCircle,
   Cloud,
   Import,
+  Keyboard,
   KeyRound,
   LogIn,
   LogOut,
@@ -37,6 +39,7 @@ import { DevTools } from "@/components/DevTools";
 import { SettingsDialog } from "@/components/dialogs/SettingsDialog";
 import { RenameDialog } from "@/components/dialogs/RenameDialog";
 import { ImportDialog } from "@/components/dialogs/ImportDialog";
+import { ShortcutsDialog } from "@/components/dialogs/ShortcutsDialog";
 import {
   AddSSODialog,
   AddAssumeRoleDialog,
@@ -55,6 +58,8 @@ import {
   type Integration,
   type Workspace,
   OPEN_SETTINGS,
+  UPDATE_AVAILABLE,
+  type UpdateInfo,
 } from "@/lib/api";
 import { isLoggedIn } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -70,7 +75,8 @@ type Dialog =
   | { kind: "login"; integration: Integration }
   | { kind: "settings" }
   | { kind: "rename"; integration: Integration }
-  | { kind: "import" };
+  | { kind: "import" }
+  | { kind: "shortcuts" };
 
 const CLOUD_SECTIONS: { cloud: string; title: string; addKind: Dialog }[] = [
   { cloud: CloudKind.CloudAWS, title: "AWS Identity Center", addKind: { kind: "sso" } },
@@ -96,6 +102,39 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   useEffect(() => {
     if (!inWails) return;
     return Events.On(OPEN_SETTINGS, () => setDialog({ kind: "settings" }));
+  }, []);
+
+  // A background check found a newer release. The footer offers it; the
+  // updater window opens on click. ?update=1 previews it in the browser.
+  const [update, setUpdate] = useState<UpdateInfo | null>(null);
+  useEffect(() => {
+    if (inWails) return Events.On(UPDATE_AVAILABLE, (e: { data: UpdateInfo }) => setUpdate(e.data));
+    if (new URLSearchParams(location.search).get("update") === "1") {
+      void api.CheckForUpdates().then((u) => setUpdate(u.available ? u : null));
+    }
+  }, []);
+
+  const searchRef = useRef<HTMLInputElement>(null);
+  // Keyboard shortcuts. ShortcutsDialog lists them; keep the two in step.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
+      const actions: Record<string, () => void> = {
+        ",": () => setDialog({ kind: "settings" }),
+        f: () => searchRef.current?.select(),
+        i: () => setDialog({ kind: "import" }),
+        "1": () => setFilter(null),
+        "2": () => setFilter("active"),
+        "3": () => setFilter("favorites"),
+        "/": () => setDialog({ kind: "shortcuts" }),
+      };
+      const action = actions[e.key.toLowerCase()];
+      if (!action) return;
+      e.preventDefault();
+      action();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   const active = workspace.sessions.filter((s) => s.status === Status.StatusActive).length;
@@ -318,7 +357,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
           })}
         </nav>
         <div className="flex items-center justify-between border-t p-3 text-xs text-muted-foreground">
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
             <span
               className={cn(
                 "relative inline-block size-2 rounded-full",
@@ -328,7 +367,26 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
             {active} active
           </div>
           <div className="flex items-center gap-1">
+            {update?.available && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 gap-1 px-2 text-xs text-brand-blue hover:text-brand-blue"
+                aria-label={`Update to ${update.version}`}
+                onClick={() => void api.InstallUpdate()}
+              >
+                <ArrowUpCircle className="size-3.5" /> Update
+              </Button>
+            )}
             <DevTools />
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Keyboard shortcuts"
+              onClick={() => setDialog({ kind: "shortcuts" })}
+            >
+              <Keyboard className="size-4" />
+            </Button>
             <Button
               variant="ghost"
               size="icon-sm"
@@ -346,8 +404,10 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
           <div className="no-drag relative max-w-sm flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
+              ref={searchRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Escape" && setQuery("")}
               placeholder="Search sessions"
               className="h-8 pl-8"
             />
@@ -509,6 +569,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
         }}
       />
       <SettingsDialog open={dialog?.kind === "settings"} onClose={() => setDialog(null)} />
+      <ShortcutsDialog open={dialog?.kind === "shortcuts"} onClose={() => setDialog(null)} />
       <ImportDialog
         open={dialog?.kind === "import"}
         onClose={() => setDialog(null)}

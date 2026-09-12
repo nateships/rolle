@@ -37,12 +37,6 @@ signs:
       - ${artifact}
       - --yes
 
-changelog:
-  use: github
-  sort: asc
-  filters:
-    exclude: ["^chore", "^ci", "^docs", "^test"]
-
 release:
   # goreleaser creates the release. The workflow downloads the signed desktop
   # packages and the update manifest into release-assets/ first, so one step
