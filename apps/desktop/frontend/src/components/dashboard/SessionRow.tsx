@@ -15,6 +15,7 @@ import {
   Eye,
   EyeOff,
   Check,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -289,9 +290,19 @@ export function SessionRow({
                       >
                         <Badge
                           variant="secondary"
-                          className="h-5 shrink-0 gap-1 px-1.5 text-[10px] font-normal text-muted-foreground"
+                          className="group/chip h-5 shrink-0 gap-1 px-1.5 text-[10px] font-normal text-muted-foreground"
                         >
                           <TagGlyph tag={t} className="size-2.5" /> {name}
+                          <button
+                            type="button"
+                            aria-label={`Remove tag ${name}`}
+                            onClick={() =>
+                              void api.SetSessionTag(s.id, name, false).catch((e) => toast.error(errorMessage(e)))
+                            }
+                            className="-mr-0.5 hidden rounded-full hover:text-foreground group-hover/chip:inline-flex"
+                          >
+                            <X className="size-2.5" />
+                          </button>
                         </Badge>
                       </motion.span>
                     );

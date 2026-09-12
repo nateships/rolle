@@ -237,6 +237,11 @@ describe("SessionRow actions", () => {
     });
     expect(screen.getByText("Production")).toBeInTheDocument();
     // A submenu opens on hover, or with the right arrow from its trigger.
+    // The chip's x takes the tag off.
+    await user.click(screen.getByRole("button", { name: "Remove tag Production" }));
+    expect(setTag).toHaveBeenCalledWith(plain.id, "Production", false);
+    setTag.mockClear();
+
     // Keyboard: open the Tags submenu with the right arrow, move to Sandbox, choose it.
     fireEvent.contextMenu(screen.getByText("personal"));
     await user.hover(await screen.findByRole("menuitem", { name: /^tags$/i }));

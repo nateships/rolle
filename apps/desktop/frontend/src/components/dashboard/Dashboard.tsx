@@ -108,6 +108,28 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     return q.get("settings") ? { kind: "settings" } : q.get("import") ? { kind: "import" } : null;
   });
   // The tray's Settings entry opens the dialog.
+  async function run(label: string, fn: () => Promise<unknown>) {
+    try {
+      await fn();
+      toast.success(label);
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  }
+
+  // A Google Cloud integration has no sign-in dialog: a sync re-reads the gcloud credentials.
+  function needsLogin(integ: Integration, startId?: string) {
+    if (integ.cloud !== CloudKind.CloudGCP) {
+      setPendingStart(startId ?? null);
+      setDialog({ kind: "login", integration: integ });
+      return;
+    }
+    void run(startId ? "Session started" : "Synced", async () => {
+      await api.SyncGCP(integ.id);
+      if (startId) await api.Start(startId, "");
+    });
+  }
+
   useEffect(() => {
     if (!inWails) return;
     return Events.On(OPEN_SETTINGS, () => setDialog({ kind: "settings" }));
@@ -136,6 +158,60 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   // Holding the modifier shows each shortcut as a badge next to its control.
   const held = useModifierHeld();
   const hint = (key: string) => (held ? combo(key) : undefined);
+
+  const active = workspace.sessions.filter((s) => s.status === Status.StatusActive).length;
+  const manualCount = workspace.sessions.filter((s) => !s.integrationId).length;
+  const favoriteCount = workspace.sessions.filter((s) => s.favorite).length;
+  const hiddenCount = workspace.sessions.filter((s) => s.hidden).length;
+  const tags = useMemo(() => workspace.tags ?? [], [workspace.tags]);
+  // A tag filter is "tag:<name>"; the other filters are keywords or integration ids.
+  const tagFilter = chosenFilter?.startsWith("tag:") ? chosenFilter.slice(4) : null;
+  const tagCount = (tag: string) => workspace.sessions.filter((s) => !s.hidden && (s.tags ?? []).includes(tag)).length;
+  // The tag a drag hovers over; the item lights up as a drop target.
+  const [dropTag, setDropTag] = useState<string | null>(null);
+  // The tag that just took a drop; it pops for a moment.
+  const [poppedTag, setPoppedTag] = useState<string | null>(null);
+  const pop = (key: string) => {
+    setPoppedTag(key);
+    window.setTimeout(() => setPoppedTag((cur) => (cur === key ? null : cur)), 600);
+  };
+  // Favorites and Hidden take a dropped session like a tag does.
+  const sessionDrop = (key: string, done: string, act: (id: string) => Promise<unknown>) => ({
+    dropping: dropTag === key,
+    popped: poppedTag === key,
+    onDragOver: (e: React.DragEvent) => {
+      if (!Array.from(e.dataTransfer.types).includes(SESSION_DRAG)) return;
+      e.preventDefault();
+      setDropTag(key);
+    },
+    onDragLeave: () => setDropTag((cur) => (cur === key ? null : cur)),
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      setDropTag(null);
+      const id = e.dataTransfer.getData(SESSION_DRAG);
+      if (!id) return;
+      pop(key);
+      void run(done, () => act(id));
+    },
+  });
+  // Sidebar filters in display order. Cmd+1 through Cmd+9 pick them, and the
+  // hold-modifier badges show each item's number.
+  const filterKeys = useMemo<(string | null)[]>(
+    () => [
+      null,
+      ...(active > 0 ? ["active"] : []),
+      ...(favoriteCount > 0 ? ["favorites"] : []),
+      ...(manualCount > 0 ? ["manual"] : []),
+      ...tags.map((t) => `tag:${t.name}`),
+      ...CLOUD_SECTIONS.flatMap((sec) => workspace.integrations.filter((i) => i.cloud === sec.cloud).map((i) => i.id)),
+      ...(hiddenCount > 0 ? ["hidden"] : []),
+    ],
+    [active, favoriteCount, manualCount, tags, workspace.integrations, hiddenCount],
+  );
+  const hintFor = (key: string | null) => {
+    const i = filterKeys.indexOf(key);
+    return i >= 0 && i < 9 ? hint(String(i + 1)) : undefined;
+  };
   // Keyboard shortcuts. ShortcutsDialog lists them; keep the two in step.
   useEffect(() => {
     // The same key closes the dialog it opened.
@@ -145,7 +221,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
       if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
       // Digits pick the sidebar filters in the order they show, top to bottom.
       if (/^[1-9]$/.test(e.key)) {
-        const key = filterKeysRef.current[Number(e.key) - 1];
+        const key = filterKeys[Number(e.key) - 1];
         if (key !== undefined) {
           e.preventDefault();
           setFilter(key);
@@ -165,41 +241,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  const active = workspace.sessions.filter((s) => s.status === Status.StatusActive).length;
-  const manualCount = workspace.sessions.filter((s) => !s.integrationId).length;
-  const favoriteCount = workspace.sessions.filter((s) => s.favorite).length;
-  const hiddenCount = workspace.sessions.filter((s) => s.hidden).length;
-  const tags = workspace.tags ?? [];
-  // A tag filter is "tag:<name>"; the other filters are keywords or integration ids.
-  const tagFilter = chosenFilter?.startsWith("tag:") ? chosenFilter.slice(4) : null;
-  const tagCount = (tag: string) => workspace.sessions.filter((s) => !s.hidden && (s.tags ?? []).includes(tag)).length;
-  // The tag a drag hovers over; the item lights up as a drop target.
-  const [dropTag, setDropTag] = useState<string | null>(null);
-  // The tag that just took a drop; it pops for a moment.
-  const [poppedTag, setPoppedTag] = useState<string | null>(null);
-  const pop = (tag: string) => {
-    setPoppedTag(tag);
-    window.setTimeout(() => setPoppedTag((cur) => (cur === tag ? null : cur)), 450);
-  };
-  // Sidebar filters in display order. Cmd+1 through Cmd+9 pick them, and the
-  // hold-modifier badges show each item's number.
-  const filterKeys: (string | null)[] = [
-    null,
-    ...(active > 0 ? ["active"] : []),
-    ...(favoriteCount > 0 ? ["favorites"] : []),
-    ...(manualCount > 0 ? ["manual"] : []),
-    ...tags.map((t) => `tag:${t.name}`),
-    ...CLOUD_SECTIONS.flatMap((sec) => workspace.integrations.filter((i) => i.cloud === sec.cloud).map((i) => i.id)),
-    ...(hiddenCount > 0 ? ["hidden"] : []),
-  ];
-  const filterKeysRef = useRef(filterKeys);
-  filterKeysRef.current = filterKeys;
-  const hintFor = (key: string | null) => {
-    const i = filterKeys.indexOf(key);
-    return i >= 0 && i < 9 ? hint(String(i + 1)) : undefined;
-  };
+  }, [filterKeys]);
   const visibleCount = workspace.sessions.length - hiddenCount;
   // A filter whose sidebar item is gone falls back to "All sessions".
   const filterExists =
@@ -242,28 +284,6 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     );
   }, [workspace.sessions, query, filter, tagFilter]);
 
-  async function run(label: string, fn: () => Promise<unknown>) {
-    try {
-      await fn();
-      toast.success(label);
-    } catch (e) {
-      toast.error(errorMessage(e));
-    }
-  }
-
-  // A Google Cloud integration has no sign-in dialog: a sync re-reads the gcloud credentials.
-  function needsLogin(integ: Integration, startId?: string) {
-    if (integ.cloud !== CloudKind.CloudGCP) {
-      setPendingStart(startId ?? null);
-      setDialog({ kind: "login", integration: integ });
-      return;
-    }
-    void run(startId ? "Session started" : "Synced", async () => {
-      await api.SyncGCP(integ.id);
-      if (startId) await api.Start(startId, "");
-    });
-  }
-
   return (
     <div className="flex h-full">
       <aside className="flex w-64 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
@@ -297,6 +317,8 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 hint={hintFor("favorites")}
                 count={favoriteCount}
                 icon={<Star className="size-3.5 fill-current text-brand-orange" />}
+                accent="var(--color-brand-orange)"
+                {...sessionDrop("favorites", "Added to favorites", (id) => api.SetFavorite(id, true))}
               />
             )}
             {manualCount > 0 && (
@@ -357,6 +379,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                       icon={<TagGlyph tag={t} className="size-3.5" />}
                       dropping={dropTag === tag}
                       popped={poppedTag === tag}
+                      accent={t.color || undefined}
                       draggable
                       onDragStart={(e) => {
                         e.dataTransfer.setData(TAG_DRAG, tag);
@@ -522,6 +545,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                       hint={hintFor("hidden")}
                       count={hiddenCount}
                       icon={<EyeOff className="size-3.5" />}
+                      {...sessionDrop("hidden", "Hidden", (id) => api.SetHidden(id, true))}
                     />
                   </div>
                 </ContextMenuTrigger>
@@ -795,6 +819,7 @@ function SideItem({
   hint,
   dropping,
   popped,
+  accent,
   ...rest
 }: {
   active: boolean;
@@ -810,10 +835,13 @@ function SideItem({
   dropping?: boolean;
   /** A drop just landed here; plays the pop. */
   popped?: boolean;
+  /** Color of the pop's ring. Defaults to the focus ring. */
+  accent?: string;
 } & React.ComponentProps<"div">) {
   return (
     <div
       {...rest}
+      style={accent ? ({ "--pop-color": accent } as React.CSSProperties) : undefined}
       className={cn(
         "group relative flex items-center rounded-md pr-1 transition-colors",
         active
@@ -840,9 +868,13 @@ function SideItem({
         <span className="truncate">{label}</span>
         {count !== undefined && (
           <span
+            // The key remounts the badge when the count changes, so the bump
+            // plays on the new number.
+            key={count}
             className={cn(
               "rounded-full px-1.5 py-px text-[10px] tabular-nums",
               active ? "bg-background/70 text-foreground/70" : "bg-muted text-muted-foreground",
+              popped && "count-bump",
             )}
           >
             {count}

@@ -84,6 +84,8 @@ describe("Dashboard", () => {
 
   it("lists tags in the sidebar, filters by one, and takes a dropped session", async () => {
     const user = userEvent.setup();
+    // One hidden session, so the Hidden entry is there to drop on.
+    Object.assign(workspace.sessions[0], { hidden: true });
     renderDashboard();
     // Seeded: Production with one session, Sandbox with none.
     expect(screen.getByRole("button", { name: /^Production/ })).toHaveTextContent("1");
@@ -103,6 +105,13 @@ describe("Dashboard", () => {
     fireEvent.dragOver(sandbox, { dataTransfer });
     fireEvent.drop(sandbox, { dataTransfer });
     expect(setTag).toHaveBeenCalledWith("s-personal", "Sandbox", true);
+
+    // Hidden takes a drop too.
+    const hide = vi.spyOn(api, "SetHidden").mockResolvedValue();
+    const hidden = screen.getByRole("button", { name: /^Hidden/ }).closest("div")!;
+    fireEvent.dragOver(hidden, { dataTransfer });
+    fireEvent.drop(hidden, { dataTransfer });
+    expect(hide).toHaveBeenCalledWith("s-personal", true);
 
     // The + button opens the new-tag dialog, which saves through AddTag.
     const add = vi.spyOn(api, "AddTag").mockResolvedValue();
