@@ -296,6 +296,10 @@ export function GopherRig({ className }: { className?: string }) {
                 strokeWidth="3.5"
               />
             </g>
+            {/* The card hides the body's own outline at the chin. This line, two units above the card edge, keeps the dark seam the flat artwork had. */}
+            <g data-part="chin" fill="none" stroke="#101114" strokeWidth="4" strokeLinecap="round">
+              <path d="M150 125 Q249 146 348 125" />
+            </g>
             <g
               data-part="nose"
               fill="#F4F0E8"
