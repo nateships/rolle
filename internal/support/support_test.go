@@ -43,7 +43,7 @@ func TestWriteBundle(t *testing.T) {
 		_ = rc.Close()
 		files[f.Name] = string(b)
 	}
-	for _, name := range []string{"info.json", "workspace.json", "log.txt", "README.txt"} {
+	for _, name := range []string{"info.json", "workspace.json", "log.txt", "clouds.txt", "README.txt"} {
 		if _, ok := files[name]; !ok {
 			t.Errorf("bundle lacks %s", name)
 		}

@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"runtime"
@@ -114,6 +115,9 @@ func Write(w io.Writer, in Inputs) error {
 			}
 		}
 	}
+	if err := add("clouds.txt", Redact(cloudTools())); err != nil {
+		return err
+	}
 	if err := add("log.txt", Redact(strings.Join(in.Log, "\n"))+"\n"); err != nil {
 		return err
 	}
@@ -121,6 +125,47 @@ func Write(w io.Writer, in Inputs) error {
 		return err
 	}
 	return z.Close()
+}
+
+// cloudTools describes the Azure and Google Cloud command line setups Rolle
+// reads: where the tools are, and their non-secret profile files. Token caches
+// and application default credentials are never included.
+func cloudTools() string {
+	var b strings.Builder
+	home, _ := os.UserHomeDir()
+	for _, tool := range []string{"az", "gcloud", "aws"} {
+		if p, err := exec.LookPath(tool); err == nil {
+			fmt.Fprintf(&b, "%s: %s\n", tool, p)
+		} else {
+			fmt.Fprintf(&b, "%s: not on PATH\n", tool)
+		}
+	}
+	azDir := os.Getenv("AZURE_CONFIG_DIR")
+	if azDir == "" {
+		azDir = filepath.Join(home, ".azure")
+	}
+	gcDir := os.Getenv("CLOUDSDK_CONFIG")
+	if gcDir == "" {
+		gcDir = filepath.Join(home, ".config", "gcloud")
+	}
+	files := []string{filepath.Join(azDir, "azureProfile.json"), filepath.Join(azDir, "config"), filepath.Join(gcDir, "active_config")}
+	if name, err := os.ReadFile(filepath.Join(gcDir, "active_config")); err == nil {
+		files = append(files, filepath.Join(gcDir, "configurations", "config_"+strings.TrimSpace(string(name))))
+	}
+	adc := filepath.Join(gcDir, "application_default_credentials.json")
+	if _, err := os.Stat(adc); err == nil {
+		fmt.Fprintf(&b, "\n%s: present (contents withheld)\n", adc)
+	} else {
+		fmt.Fprintf(&b, "\n%s: absent\n", adc)
+	}
+	for _, f := range files {
+		body, err := os.ReadFile(f)
+		if err != nil {
+			continue
+		}
+		fmt.Fprintf(&b, "\n--- %s ---\n%s\n", f, strings.TrimSpace(string(body)))
+	}
+	return b.String()
 }
 
 // WriteFile builds the bundle at path, creating parent directories.

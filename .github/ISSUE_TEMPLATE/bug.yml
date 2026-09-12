@@ -34,4 +34,4 @@ body:
     id: bundle
     attributes:
       label: Support bundle
-      description: Settings → About → Support bundle, or `rolle support`, writes a zip to Downloads with settings, a redacted workspace, and recent diagnostics. Drag it here. Account ids, emails, and portal hosts are already replaced.
+      description: Settings → About → Support bundle, or `rolle support`, writes a zip to Downloads with settings, a redacted workspace, cloud CLI profiles, and recent diagnostics from every provider. Drag it here. Account ids, emails, and portal hosts are already replaced.
