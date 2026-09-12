@@ -17,7 +17,18 @@ exclude: |
     .*\.min\.(js|css)
   )$
 
+# commit-msg hooks need their own hook type; prek install reads this list.
+default_install_hook_types: [pre-commit, commit-msg]
+
 repos:
+  # release-please reads the commit subjects, so they follow Conventional
+  # Commits: feat(cli): ..., fix(app): ..., docs: ..., chore: ...
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [feat, fix, docs, chore, ci, build, refactor, perf, test, style, revert]
   - repo: builtin
     hooks:
       - id: trailing-whitespace

@@ -130,9 +130,19 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Write the release notes
-        # Commit subjects since the previous tag. A stable release compares
-        # against the previous stable tag, so it also covers its pre-releases.
+        # A release that release-please created already carries its notes;
+        # reuse them so the updater and the release agree. A tag pushed by
+        # hand gets the commit subjects since the previous tag. A stable
+        # release compares against the previous stable tag, so it also covers
+        # its pre-releases.
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          if gh release view "$GITHUB_REF_NAME" --json body --jq .body > notes.md 2>/dev/null && [ -s notes.md ]; then
+            echo "Using the notes of the existing release."
+            cat notes.md
+            exit 0
+          fi
           if [[ "$GITHUB_REF_NAME" == *-* ]]; then
             prev="$(git tag --merged "${GITHUB_REF_NAME}^" --sort=-v:refname | head -1)"
           else
