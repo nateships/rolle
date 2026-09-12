@@ -12,13 +12,15 @@ priority: "extra"
 maintainer: ${GIT_COMMITTER_NAME} <${GIT_COMMITTER_EMAIL}>
 description: "Assume any role, any cloud"
 vendor: "nateships"
-homepage: "https://wails.io"
-license: "MIT"
+homepage: "https://getrolle.com"
+license: "GPL-3.0"
 release: "1"
 
 contents:
   - src: "./bin/rolle"
     dst: "/usr/local/bin/rolle-desktop"
+  - src: "./build/cli/rolle"
+    dst: "/usr/local/bin/rolle"
   - src: "./build/appicon.png"
     dst: "/usr/share/icons/hicolor/128x128/apps/rolle.png"
   - src: "./build/linux/rolle.desktop"

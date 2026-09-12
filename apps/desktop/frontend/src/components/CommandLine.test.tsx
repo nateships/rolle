@@ -40,6 +40,19 @@ describe("CommandLineInstall", () => {
     expect(screen.getByRole("button", { name: /install command/i })).toBeDisabled();
   });
 
+  it("offers an update when the installed command is another version", async () => {
+    vi.spyOn(api, "CLIStatus").mockResolvedValue({ ...linked, reason: "outdated" });
+    render(<CommandLineInstall />);
+    expect(await screen.findByText(/is from another version/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /update command/i })).toBeEnabled();
+  });
+
+  it("passes the platform's note along", async () => {
+    vi.spyOn(api, "CLIStatus").mockResolvedValue({ ...linked, note: "Open a new terminal to use it." });
+    render(<CommandLineInstall />);
+    expect(await screen.findByText(/Open a new terminal to use it\./)).toBeInTheDocument();
+  });
+
   it("removes the command from the compact view", async () => {
     const user = userEvent.setup();
     vi.spyOn(api, "CLIStatus").mockResolvedValueOnce(linked).mockResolvedValue(missing);

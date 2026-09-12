@@ -180,6 +180,15 @@ tasks:
     summary: AppImage and deb in bin/, the AppImage named for the updater
     platforms: [linux]
     cmds:
+      # The app embeds the command from build/cli and installs it into
+      # ~/.local/bin; the deb also puts the same file in /usr/local/bin.
+      - task: release:cli
       - task: create:appimage
       - task: create:deb
+      - rm -f build/cli/rolle
       - mv "{{.BIN_DIR}}/rolle-x86_64.AppImage" "{{.BIN_DIR}}/{{.APP_NAME}}-linux-amd64.AppImage"
+
+  release:cli:
+    internal: true
+    cmds:
+      - CGO_ENABLED=0 GOOS=linux GOARCH={{ARCH}} go build -trimpath -buildvcs=false -ldflags="-s -w -X github.com/nateships/rolle/internal/version.Version={{.VERSION | default "0.0.1-dev"}}" -o build/cli/rolle ../../cmd/rolle

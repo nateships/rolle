@@ -181,8 +181,10 @@ export function Info(): $CancellablePromise<$models.AppInfo> {
 }
 
 /**
- * InstallCLI links the bundled command into /usr/local/bin. When that
- * directory is not writable, macOS asks for an administrator password once.
+ * InstallCLI puts the command on the PATH. macOS links the bundle's helper
+ * into /usr/local/bin and asks for an administrator password once when the
+ * directory refuses. Windows and Linux write the embedded command to a user
+ * directory; Windows adds that directory to the user's PATH.
  */
 export function InstallCLI(): $CancellablePromise<$models.CLIStatus> {
     return $Call.ByID(904278096);
@@ -361,7 +363,8 @@ export function SyncSSO(ref: string): $CancellablePromise<core$0.Session[] | nul
 }
 
 /**
- * UninstallCLI removes the link. The app keeps its own copy of the command.
+ * UninstallCLI removes what Install made: the link on macOS, the user copy on
+ * Windows and Linux. A command installed another way is left alone.
  */
 export function UninstallCLI(): $CancellablePromise<void> {
     return $Call.ByID(1017279095);

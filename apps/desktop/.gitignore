@@ -10,3 +10,5 @@ build/windows/nsis/MicrosoftEdgeWebview2Setup.exe
 
 # Wails build config lives here. Re-include it in case a global ignore rule hides build/.
 !build/
+build/cli/rolle
+build/cli/rolle.exe
