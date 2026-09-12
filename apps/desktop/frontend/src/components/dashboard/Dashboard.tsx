@@ -171,6 +171,8 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   const [dropTag, setDropTag] = useState<string | null>(null);
   // The tag that just took a drop; it pops for a moment.
   const [poppedTag, setPoppedTag] = useState<string | null>(null);
+  // Where a dragged tag would land: a line above or below the hovered tag.
+  const [dropLine, setDropLine] = useState<{ tag: string; side: "before" | "after" } | null>(null);
   const pop = (key: string) => {
     setPoppedTag(key);
     window.setTimeout(() => setPoppedTag((cur) => (cur === key ? null : cur)), 600);
@@ -385,16 +387,28 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                         e.dataTransfer.setData(TAG_DRAG, tag);
                         e.dataTransfer.effectAllowed = "move";
                       }}
+                      dropLine={dropLine?.tag === tag ? dropLine.side : undefined}
                       onDragOver={(e) => {
                         const types = Array.from(e.dataTransfer.types);
-                        if (!types.includes(SESSION_DRAG) && !types.includes(TAG_DRAG)) return;
+                        if (types.includes(TAG_DRAG)) {
+                          e.preventDefault();
+                          // The pointer's half of the row picks the side of the line.
+                          const box = e.currentTarget.getBoundingClientRect();
+                          setDropLine({ tag, side: e.clientY < box.top + box.height / 2 ? "before" : "after" });
+                          return;
+                        }
+                        if (!types.includes(SESSION_DRAG)) return;
                         e.preventDefault();
                         setDropTag(tag);
                       }}
-                      onDragLeave={() => setDropTag((cur) => (cur === tag ? null : cur))}
+                      onDragLeave={() => {
+                        setDropTag((cur) => (cur === tag ? null : cur));
+                        setDropLine((cur) => (cur?.tag === tag ? null : cur));
+                      }}
                       onDrop={(e) => {
                         e.preventDefault();
                         setDropTag(null);
+                        setDropLine(null);
                         const sessionId = e.dataTransfer.getData(SESSION_DRAG);
                         if (sessionId) {
                           pop(tag);
@@ -402,9 +416,15 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                           return;
                         }
                         const moved = e.dataTransfer.getData(TAG_DRAG);
-                        if (moved && moved !== tag) {
-                          void api.MoveTag(moved, index).catch((err) => toast.error(errorMessage(err)));
-                        }
+                        if (!moved || moved === tag) return;
+                        // The tag lands where the line was drawn.
+                        const after = dropLine?.tag === tag && dropLine.side === "after";
+                        // The list shifts once the moved tag leaves its old slot.
+                        const from = tags.findIndex((x) => x.name === moved);
+                        let to = after ? index + 1 : index;
+                        if (from >= 0 && from < to) to -= 1;
+                        if (to === from) return;
+                        void api.MoveTag(moved, to).catch((err) => toast.error(errorMessage(err)));
                       }}
                     />
                   </ContextMenuTrigger>
@@ -821,6 +841,7 @@ function SideItem({
   dropping,
   popped,
   accent,
+  dropLine,
   ...rest
 }: {
   active: boolean;
@@ -838,6 +859,8 @@ function SideItem({
   popped?: boolean;
   /** Color of the pop's ring. Defaults to the focus ring. */
   accent?: string;
+  /** A dragged item would land above or below this one; draws the line. */
+  dropLine?: "before" | "after";
 } & React.ComponentProps<"div">) {
   return (
     <div
@@ -886,6 +909,16 @@ function SideItem({
       {/* Fixed slot keeps counts aligned whether or not a row has a control. */}
       <span className="flex size-6 shrink-0 items-center justify-center">{trailing}</span>
       {hint && <Key className="absolute right-1.5 top-1/2 h-5 -translate-y-1/2 text-[10px]">{hint}</Key>}
+      {dropLine && (
+        <span
+          aria-hidden
+          data-drop-line={dropLine}
+          className={cn(
+            "pointer-events-none absolute inset-x-1 h-0.5 rounded-full bg-ring",
+            dropLine === "before" ? "-top-px" : "-bottom-px",
+          )}
+        />
+      )}
     </div>
   );
 }

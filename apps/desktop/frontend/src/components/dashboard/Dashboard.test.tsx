@@ -112,6 +112,21 @@ describe("Dashboard", () => {
     fireEvent.drop(sandbox, { dataTransfer });
     expect(setTag).toHaveBeenCalledWith("s-personal", "Sandbox", true);
 
+    // A dragged tag shows a line on the side of the row the pointer is in,
+    // and lands there. jsdom has no layout, so the row is a zero box at 0,0:
+    // a positive clientY is the lower half.
+    const move = vi.spyOn(api, "MoveTag").mockResolvedValue();
+    const tagData = {
+      ...dataTransfer,
+      types: ["application/x-rolle-tag"],
+      getData: (k: string) => (k === "application/x-rolle-tag" ? "Production" : ""),
+    };
+    fireEvent.dragOver(sandbox, { dataTransfer: tagData, clientY: 1 });
+    expect(sandbox.querySelector("[data-drop-line]")).toHaveAttribute("data-drop-line", "after");
+    fireEvent.drop(sandbox, { dataTransfer: tagData, clientY: 1 });
+    expect(move).toHaveBeenCalledWith("Production", 1);
+    expect(sandbox.querySelector("[data-drop-line]")).toBeNull();
+
     // Hidden takes a drop too.
     const hide = vi.spyOn(api, "SetHidden").mockResolvedValue();
     const hidden = sidebar.getByRole("button", { name: /^Hidden/ }).closest("div")!;
