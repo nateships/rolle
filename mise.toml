@@ -11,6 +11,8 @@ zizmor = "1.30.1"     # workflow security audit
 typos = "1.50.1"      # spell check
 cosign = "3.1.3"      # keyless signature on the CLI checksum file at release
 goreleaser = "2.18.1" # CLI archives and the GitHub release
+"go:github.com/google/capslock/cmd/capslock" = "0.3.3" # capability analysis of the Go module graph
+jq = "1.8.2"          # trims the capslock baseline
 
 [env]
 # macOS: compile cgo objects for the same minimum version the Go linker
@@ -82,6 +84,18 @@ dir = "docs"
 [tasks.cli]
 description = "Run the CLI from source against your real workspace: mise run cli -- integration list"
 run = "go run ./cmd/rolle"
+
+# The capability set depends on the target OS (the Linux keyring speaks
+# D-Bus), so both tasks analyze the Linux build wherever they run.
+[tasks.capabilities]
+description = "Rewrite capslock.json: the capabilities (network, exec, files) each Go package reaches, transitive dependencies included"
+run = "capslock -packages ./cmd/...,./internal/... -granularity=package -output=json | jq -S 'del(.capabilityInfo[].path, .capabilityInfo[].depPath)' > capslock.json"
+env = { GOOS = "linux" }
+
+[tasks."capabilities:check"]
+description = "Fail when a Go package gained or lost a capability since capslock.json"
+run = "capslock -packages ./cmd/...,./internal/... -granularity=package -output=compare capslock.json"
+env = { GOOS = "linux" }
 
 [tasks.reset]
 description = "Wipe the local rolle workspace, secrets, cache, and AWS profiles (back to onboarding)"

@@ -30,6 +30,21 @@ jobs:
       - run: mise run check:frontend
       - run: mise run desktop:build
 
+  # Capslock reports which capabilities (network, exec, files, ...) each Go
+  # package reaches through its whole dependency graph. The job fails when the
+  # set drifts from capslock.json, so a dependency that starts talking to the
+  # network cannot arrive without a visible change to that file.
+  capabilities:
+    runs-on: ubuntu-latest
+    env:
+      MISE_DISABLE_TOOLS: go:github.com/wailsapp/wails/v3/cmd/wails3
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - run: mise run capabilities:check
+
   hooks:
     runs-on: ubuntu-latest
     env:

@@ -42,6 +42,12 @@ cosign verify-blob checksums.txt \
 sha256sum --check --ignore-missing checksums.txt
 ```
 
+`checksums.txt` also lists `rolle.dmg`, the Windows installer, the AppImage, the deb, and `manifest.json`, so the same check covers a desktop download. Every file in it has a [build provenance attestation](/security#build-provenance):
+
+```sh
+gh attestation verify rolle.dmg --repo nateships/rolle
+```
+
 ## Updates
 
 The desktop app checks for a signed update shortly after launch and every six hours. When a newer version is available, an **Update** button appears at the bottom of the sidebar. It opens the release notes and installs when you confirm. Turn this off in **Settings → General → Automatic updates**. With Homebrew, `brew upgrade --greedy rolle` updates the app and the command together. A plain `brew upgrade` skips the app because the app updates itself.

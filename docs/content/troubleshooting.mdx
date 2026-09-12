@@ -15,7 +15,7 @@ If `~/.aws/credentials` holds static keys under the same profile name, the AWS c
 
 ## "login required" when a role starts
 
-The Identity Center token for that portal has expired. Press **Start** again in the desktop app and it signs in first, or run `rolle integration login <alias>`.
+The Identity Center token for that portal is expired or revoked. **Start** in the desktop app and in the tray menu opens the sign-in first. On the command line, `rolle integration sync <alias>` signs in when it must, and `rolle integration login <alias>` always signs in. The integration's dot in the sidebar turns gray within thirty seconds of the token going bad.
 
 ## `gcloud` is not found
 
@@ -28,6 +28,10 @@ rolle trusts the OS trust store. Install your organisation's root there (Keychai
 ## macOS asks for keychain access
 
 rolle stores refresh tokens and access keys in the login keychain under the service `rolle`. Choose **Always Allow** so every start does not prompt.
+
+## The Dock or Finder says "Rolle"
+
+The updater replaces the app inside the installed folder and keeps the folder's name, and macOS shows that name. The app works. To get the lowercase name, move the app to the Trash and install it again from the DMG or with `brew reinstall --cask rolle`.
 
 ## Windows SmartScreen warning
 

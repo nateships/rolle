@@ -2,6 +2,14 @@
   <img src="docs/brand/readme-gopher.png" alt="Go gopher with rolle credential cards and an r cutout" width="280">
 </p>
 
+<p align="center">
+  <a href="https://github.com/nateships/rolle/actions/workflows/ci.yml"><img src="https://github.com/nateships/rolle/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
+  <a href="https://github.com/nateships/rolle/releases/latest"><img src="https://img.shields.io/github/v/release/nateships/rolle?label=release" alt="Latest release"></a>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/nateships/rolle"><img src="https://api.scorecard.dev/projects/github.com/nateships/rolle/badge" alt="OpenSSF Scorecard"></a>
+  <a href="https://docs.renovatebot.com/"><img src="https://img.shields.io/badge/renovate-enabled-brightgreen?logo=renovatebot" alt="Renovate enabled"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/nateships/rolle" alt="License"></a>
+</p>
+
 # rolle
 
 Assume any role, any cloud.
@@ -78,16 +86,16 @@ mise run hooks          # every pre-commit hook on the whole tree
 mise run desktop        # run the desktop app in dev mode
 mise run desktop:demo   # same, on fictional data; nothing real is touched
 mise run cli -- <args>  # run the CLI from source, for example: mise run cli -- integration list
+mise run capabilities:check # compare the Go capability graph with capslock.json; mise run capabilities rewrites it
 mise run docs           # serve the docs site
 ```
 
-Work happens on branches and lands on `main` through a pull request; the
-branch rules require the CI checks and allow no direct pushes. Commit subjects
-follow [Conventional Commits](https://www.conventionalcommits.org): `feat(cli):`,
-`fix(app):`, `docs:`, `chore:`. A commit-msg hook checks the format.
-[release-please](https://github.com/googleapis/release-please) turns those
-commits into a release pull request with the changelog; merging it tags the
-release and starts the build. Until 1.0, a feature bumps the patch version.
+Changes reach `main` through pull requests that pass CI. Commit subjects follow
+[Conventional Commits](https://www.conventionalcommits.org): `feat(cli):`,
+`fix(app):`, `docs:`, `chore:`; a commit-msg hook checks them.
+[release-please](https://github.com/googleapis/release-please) keeps a release
+pull request open from those commits. Merging it tags the release and starts the
+build. Until 1.0, a feature bumps the patch version.
 
 Tools come from mise. Frontend and docs packages use [aube](https://aube.sh).
 Set `ROLLE_DEBUG=1` (or pass `rolle --debug`) for verbose diagnostics.

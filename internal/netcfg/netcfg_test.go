@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/nateships/rolle/internal/core"
+	"github.com/nateships/rolle/internal/debug"
 )
 
 func restore(t *testing.T) {
@@ -45,7 +46,7 @@ func TestApplyTrustsExtraBundle(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = resp.Body.Close()
-	if tc := http.DefaultTransport.(*http.Transport).TLSClientConfig; tc == nil || tc.MinVersion != tls.VersionTLS12 {
+	if tc := http.DefaultTransport.(logged).rt.(*http.Transport).TLSClientConfig; tc == nil || tc.MinVersion != tls.VersionTLS12 {
 		t.Fatal("TLS config not applied")
 	}
 }
@@ -75,14 +76,14 @@ func TestApplyProxy(t *testing.T) {
 		t.Fatal(err)
 	}
 	req, _ := http.NewRequest(http.MethodGet, "https://example.com/", nil)
-	u, err := http.DefaultTransport.(*http.Transport).Proxy(req)
+	u, err := http.DefaultTransport.(logged).rt.(*http.Transport).Proxy(req)
 	if err != nil || u == nil || u.Host != "proxy.corp:3128" {
 		t.Fatalf("proxy = %v, %v", u, err)
 	}
 	if err := Apply(core.Settings{}); err != nil {
 		t.Fatal(err)
 	}
-	if u, _ := http.DefaultTransport.(*http.Transport).Proxy(req); u != nil && strings.Contains(u.Host, "proxy.corp") {
+	if u, _ := http.DefaultTransport.(logged).rt.(*http.Transport).Proxy(req); u != nil && strings.Contains(u.Host, "proxy.corp") {
 		t.Fatal("clearing the setting kept the proxy")
 	}
 }
@@ -105,4 +106,32 @@ func base64Lines(b []byte) string {
 	}
 	sb.WriteString(enc + "\n")
 	return sb.String()
+}
+
+func TestEveryRequestLogsItsHost(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }))
+	defer srv.Close()
+	if err := Apply(core.Settings{}); err != nil {
+		t.Fatal(err)
+	}
+	// A client with no transport of its own rides on the default one, as the
+	// SDKs do.
+	resp, err := (&http.Client{}).Get(srv.URL + "/secret/path?token=1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	host := strings.TrimPrefix(srv.URL, "http://")
+	var found bool
+	for _, line := range debug.Recent() {
+		if strings.Contains(line, "[rolle:net] GET "+host) {
+			found = true
+		}
+		if strings.Contains(line, "secret") || strings.Contains(line, "token") {
+			t.Fatalf("host log leaks the path or query: %s", line)
+		}
+	}
+	if !found {
+		t.Fatalf("no host log line for %s in %q", host, debug.Recent())
+	}
 }
