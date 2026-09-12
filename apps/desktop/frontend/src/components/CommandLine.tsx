@@ -63,7 +63,7 @@ export function CommandLineInstall({ compact = false, className }: { compact?: b
         <TerminalSquare className="size-5" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">Use Rolle from your terminal</p>
+        <p className="text-sm font-medium">Use rolle from your terminal</p>
         <p className="mt-0.5 text-xs text-muted-foreground">
           {status.installed ? (
             <>
@@ -71,7 +71,7 @@ export function CommandLineInstall({ compact = false, className }: { compact?: b
               <span className="font-mono text-[11px]">{status.path}</span>.
             </>
           ) : status.reason === "move" ? (
-            "Move Rolle to Applications first."
+            "Move rolle to Applications first."
           ) : (
             <>
               Adds <code className="rounded bg-muted px-1 py-px font-mono text-[11px]">rolle</code> to your PATH.

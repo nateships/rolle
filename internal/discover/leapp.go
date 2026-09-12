@@ -20,7 +20,7 @@ import (
 )
 
 // Leapp keeps its workspace at ~/.Leapp/Leapp-lock.json, AES-encrypted with
-// the machine id. This reader imports what maps onto Rolle: Identity Center
+// the machine id. This reader imports what maps onto rolle: Identity Center
 // portals, Azure tenants, IAM users, and chained roles.
 
 // LeappIAMUser is an IAM user session from Leapp. Access keys live in the OS
@@ -42,13 +42,13 @@ type LeappChainedRole struct {
 	Profile    string `json:"profile,omitempty"`
 }
 
-// LeappWorkspace is the subset of a Leapp workspace Rolle can import.
+// LeappWorkspace is the subset of a Leapp workspace rolle can import.
 type LeappWorkspace struct {
 	Portals      []AWSPortal        `json:"portals"`
 	Tenants      []AzureTenant      `json:"tenants"`
 	IAMUsers     []LeappIAMUser     `json:"iamUsers"`
 	ChainedRoles []LeappChainedRole `json:"chainedRoles"`
-	// SSORoles counts sessions that Rolle rediscovers by syncing the portal.
+	// SSORoles counts sessions that rolle rediscovers by syncing the portal.
 	SSORoles int `json:"ssoRoles"`
 }
 
@@ -264,8 +264,8 @@ func encryptCryptoJS(plain []byte, passphrase string, salt []byte) string {
 // MD5 is the only choice here. crypto-js derives its AES key this way, and
 // Leapp encrypted its workspace with crypto-js, so any other function cannot
 // read the file. The passphrase is the machine id, not a user password, and
-// Rolle never writes this format for its own data; the encrypt side above
-// exists for test fixtures. Rolle's secrets live in the OS keychain.
+// rolle never writes this format for its own data; the encrypt side above
+// exists for test fixtures. rolle's secrets live in the OS keychain.
 func evpBytesToKey(pass, salt []byte, keyLen, ivLen int) (key, iv []byte) {
 	var d, prev []byte
 	for len(d) < keyLen+ivLen {

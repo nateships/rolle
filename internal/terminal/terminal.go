@@ -78,7 +78,7 @@ func posixScript(o Options) string {
 	b.WriteString("rm -f \"$0\"\n")
 	b.WriteString(Exports(o.Env, false))
 	fmt.Fprintf(&b, "export ROLLE_SESSION=%s\n", shQuote(o.Title))
-	fmt.Fprintf(&b, "printf '\\033[1mRolle:\\033[0m %%s ready\\n' %s\n", shQuote(o.Title))
+	fmt.Fprintf(&b, "printf '\\033[1mrolle:\\033[0m %%s ready\\n' %s\n", shQuote(o.Title))
 	b.WriteString("exec \"${SHELL:-/bin/sh}\" -l\n")
 	return b.String()
 }
@@ -136,7 +136,7 @@ func openCmux(o Options, script string) error {
 	if err != nil {
 		cli = "/opt/homebrew/bin/cmux"
 	}
-	args := []string{"new-workspace", "--name", "Rolle: " + o.Title, "--command", "/bin/sh " + shQuote(script)}
+	args := []string{"new-workspace", "--name", "rolle: " + o.Title, "--command", "/bin/sh " + shQuote(script)}
 	if err := exec.Command(cli, args...).Run(); err == nil {
 		return nil
 	}
@@ -218,7 +218,7 @@ func openWindows(o Options) (err error) {
 	b.WriteString("Remove-Item -LiteralPath $PSCommandPath -Force\n")
 	b.WriteString(Exports(o.Env, true))
 	fmt.Fprintf(&b, "$env:ROLLE_SESSION = %s\n", psQuote(o.Title))
-	fmt.Fprintf(&b, "Write-Host ('Rolle: ' + %s + ' ready')\n", psQuote(o.Title))
+	fmt.Fprintf(&b, "Write-Host ('rolle: ' + %s + ' ready')\n", psQuote(o.Title))
 	path, err := writeScript(o.Dir, "rolle-session-*.ps1", b.String())
 	if err != nil {
 		return err

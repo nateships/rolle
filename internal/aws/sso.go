@@ -149,19 +149,19 @@ func (s *SSO) StartLogin(ctx context.Context) (*DeviceAuthorization, error) {
 		// else on the loopback port is ignored and does not consume the slot.
 		if q.Get("state") != state {
 			w.WriteHeader(http.StatusBadRequest)
-			_ = callbackPage.Execute(w, callbackView{Class: "err", Title: "This page does not belong to the current sign-in", Text: "You can close this tab and try again from Rolle."})
+			_ = callbackPage.Execute(w, callbackView{Class: "err", Title: "This page does not belong to the current sign-in", Text: "You can close this tab and try again from rolle."})
 			return
 		}
 		// A redirect with neither a code nor an error is not an outcome. It
 		// must not take the single slot a real redirect needs.
 		if q.Get("code") == "" && q.Get("error") == "" {
 			w.WriteHeader(http.StatusBadRequest)
-			_ = callbackPage.Execute(w, callbackView{Class: "err", Title: "The sign-in did not complete", Text: "You can close this tab and try again from Rolle."})
+			_ = callbackPage.Execute(w, callbackView{Class: "err", Title: "The sign-in did not complete", Text: "You can close this tab and try again from rolle."})
 			return
 		}
-		view := callbackView{Class: "ok", Title: "Signed in", Text: "You can close this tab and return to Rolle."}
+		view := callbackView{Class: "ok", Title: "Signed in", Text: "You can close this tab and return to rolle."}
 		if q.Get("error") != "" {
-			view = callbackView{Class: "err", Title: "Sign-in was not approved", Text: "You can close this tab and try again from Rolle."}
+			view = callbackView{Class: "err", Title: "Sign-in was not approved", Text: "You can close this tab and try again from rolle."}
 		}
 		_ = callbackPage.Execute(w, view)
 		// The page is sent before the flow continues, so the tab never sees a dropped connection.

@@ -128,11 +128,11 @@ describe("SettingsDialog", () => {
     await open();
     await tab(user, "About");
 
-    expect(await screen.findByText("Rolle 0.0.1-dev")).toBeInTheDocument();
+    expect(await screen.findByText("rolle 0.0.1-dev")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /check for updates/i }));
 
     expect(await screen.findByText("Version 0.2.0 is ready to install.")).toBeInTheDocument();
-    expect(success).toHaveBeenCalledWith("Rolle 0.2.0 is available");
+    expect(success).toHaveBeenCalledWith("rolle 0.2.0 is available");
     await user.click(screen.getByRole("button", { name: /install 0\.2\.0/i }));
     await waitFor(() => expect(install).toHaveBeenCalledTimes(1));
   });
@@ -252,7 +252,7 @@ describe("SettingsDialog", () => {
     await user.click(screen.getByRole("button", { name: /yes, remove everything/i }));
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
     expect(reset).toHaveBeenCalledTimes(1);
-    expect(success).toHaveBeenCalledWith("Rolle was reset");
+    expect(success).toHaveBeenCalledWith("rolle was reset");
   });
 
   it("shows a reset failure and stays open", async () => {

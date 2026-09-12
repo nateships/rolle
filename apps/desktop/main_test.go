@@ -24,7 +24,7 @@ func TestModTimeIsZeroForMissingFile(t *testing.T) {
 }
 
 func TestCurrentSettingsFallsBackToDefaults(t *testing.T) {
-	r := testRolle(t)
+	r := testrolle(t)
 	if got := currentSettings(r.svc); got != core.DefaultSettings() {
 		t.Fatalf("settings = %+v", got)
 	}

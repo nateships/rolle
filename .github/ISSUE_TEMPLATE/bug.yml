@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in Rolle does not work as documented.
+description: Something in rolle does not work as documented.
 labels: [bug]
 body:
   - type: textarea
@@ -12,7 +12,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Rolle version
+      label: rolle version
       description: Settings → About shows it. The in-app button fills this in.
       placeholder: 0.1.1
     validations:

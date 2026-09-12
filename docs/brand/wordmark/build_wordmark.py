@@ -1,4 +1,4 @@
-"""Build Rolle wordmark outlines. Requires fonttools==4.65.0; no runtime fonts.
+"""Build rolle wordmark outlines. Requires fonttools==4.65.0; no runtime fonts.
 
 Usage: python build_wordmark.py FONT_TTF STACK_SVG OUTPUT_DIRECTORY
 The unmodified font is MuseoModerno at weight 700. Only the logo's r is custom.
@@ -46,7 +46,7 @@ def svg(width, height, body, title):
     return f'<svg xmlns="http://www.w3.org/2000/svg" width="{width:.3f}" height="{height:.3f}" viewBox="0 0 {width:.3f} {height:.3f}" role="img" aria-label="{title}"><title>{title}</title>{body}</svg>\n'
 
 for name, ink in [('wordmark-ivory','#F4F0E8'),('wordmark-charcoal','#181A1E'),('wordmark-blue','#244CFF')]:
-    (OUT/(name+'.svg')).write_text(svg(width+32,height+32,f'<g transform="translate(16 16)" fill="{ink}">{word}</g>','Rolle custom wordmark'))
+    (OUT/(name+'.svg')).write_text(svg(width+32,height+32,f'<g transform="translate(16 16)" fill="{ink}">{word}</g>','rolle custom wordmark'))
 
 stack = ET.parse(STACK).getroot()
 paths = ''.join(f'<path fill="{p.attrib["fill"]}" d="{p.attrib["d"]}"/>' for p in stack.findall('{http://www.w3.org/2000/svg}path'))
@@ -56,10 +56,10 @@ assert 'L 312 414 L 312 346 Q 312 316 342 316 L 366 316 L 366 282 L 336 282 Q 26
 lockup_width = 352+70+width+64
 lockup_height = 380
 body = f'<g transform="translate(-48 -66)" >{paths}</g><g transform="translate(454 {(lockup_height-height)/2:.6f})" fill="#F4F0E8">{word}</g>'
-(OUT/'lockup-dark.svg').write_text(svg(lockup_width,lockup_height,body,'Rolle stack and custom wordmark for dark backgrounds'))
+(OUT/'lockup-dark.svg').write_text(svg(lockup_width,lockup_height,body,'rolle stack and custom wordmark for dark backgrounds'))
 body_light = body.replace('#F4F0E8','#181A1E')
-(OUT/'lockup-light.svg').write_text(svg(lockup_width,lockup_height,body_light,'Rolle stack and custom wordmark for light backgrounds'))
-(OUT/'icon-r.svg').write_text(svg(134,164,f'<path transform="translate(16 16)" fill="#244CFF" d="{ICON_R}"/>','Rolle icon r, exact positive shape'))
+(OUT/'lockup-light.svg').write_text(svg(lockup_width,lockup_height,body_light,'rolle stack and custom wordmark for light backgrounds'))
+(OUT/'icon-r.svg').write_text(svg(134,164,f'<path transform="translate(16 16)" fill="#244CFF" d="{ICON_R}"/>','rolle icon r, exact positive shape'))
 
 preview = '<rect width="1200" height="720" fill="#101114"/>'
 preview += '<text x="44" y="46" fill="#B4B8C0" font-family="sans-serif" font-size="16" letter-spacing="3">ROLLE / ORIGINAL CIRCUIT</text>'
@@ -70,5 +70,5 @@ preview += '<text x="44" y="585" fill="#B4B8C0" font-family="sans-serif" font-si
 preview += f'<rect x="716" y="544" width="104" height="116" rx="12" fill="#00CE78"/><path transform="translate(734 556) scale(.67)" fill="#181A1E" d="{ICON_R}"/>'
 preview += f'<path transform="translate(932 556) scale(.67)" fill="#F4F0E8" d="{ICON_R}"/>'
 preview += '<text x="716" y="688" fill="#B4B8C0" font-family="sans-serif" font-size="13">Icon counter</text><text x="917" y="688" fill="#B4B8C0" font-family="sans-serif" font-size="13">Wordmark letter</text>'
-(OUT/'wordmark-preview.svg').write_text(svg(1200,720,preview,'Rolle wordmark matched to the icon r'))
+(OUT/'wordmark-preview.svg').write_text(svg(1200,720,preview,'rolle wordmark matched to the icon r'))
 print(f'Created outlined wordmark and lockups. Wordmark bounds: {width:.2f} × {height:.2f}. Exact icon r reused.')

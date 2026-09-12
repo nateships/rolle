@@ -1,16 +1,16 @@
 <p align="center">
-  <img src="docs/brand/readme-gopher.png" alt="Go gopher with Rolle credential cards and an r cutout" width="280">
+  <img src="docs/brand/readme-gopher.png" alt="Go gopher with rolle credential cards and an r cutout" width="280">
 </p>
 
-# Rolle
+# rolle
 
 Assume any role, any cloud.
 
 <p align="center">
-  <img src="docs/public/screenshots/dashboard-dark.png" alt="Rolle dashboard: AWS accounts with their roles, an Azure subscription, and Google Cloud projects, two sessions active" width="900">
+  <img src="docs/public/screenshots/dashboard-dark.png" alt="rolle dashboard: AWS accounts with their roles, an Azure subscription, and Google Cloud projects, two sessions active" width="900">
 </p>
 
-Rolle is a desktop app and CLI that hands short-lived cloud credentials to your
+rolle is a desktop app and CLI that hands short-lived cloud credentials to your
 tools without writing a secret to disk. It covers AWS, Azure, and Google Cloud.
 
 ## What it does
@@ -26,13 +26,13 @@ tools without writing a secret to disk. It covers AWS, Azure, and Google Cloud.
 - **Desktop app**: dark or light theme, guided onboarding, a dashboard with live
   expiry countdowns, favorites, one-click console and terminal actions, and
   signed self-updates.
-- **Secrets** live in the OS keychain. Rolle caches short-lived credentials
+- **Secrets** live in the OS keychain. rolle caches short-lived credentials
   with owner-only permissions, and they expire on their own.
 - **No telemetry.** The app and the CLI send nothing about you or your usage
   anywhere. They talk only to the cloud providers you sign in to and to GitHub
   releases for the update check, which you can turn off.
 
-Rolle imports what your machine already has: Identity Center portals from the
+rolle imports what your machine already has: Identity Center portals from the
 AWS CLI and Granted, Azure tenants from the az CLI, gcloud credentials, and
 sessions from a [Leapp](https://github.com/Noovolari/leapp) workspace.
 
@@ -103,4 +103,4 @@ icons, typography, or brand colors.
 
 [GPL-3.0-or-later](LICENSE). Forks and redistributions must stay open under the same terms.
 The Go gopher artwork is by [Renee French](https://go.dev/blog/gopher),
-adapted for Rolle under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+adapted for rolle under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).

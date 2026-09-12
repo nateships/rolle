@@ -988,7 +988,7 @@ func (s *Service) ReplayOnboarding() error {
 }
 
 // ResetAll removes every integration and session, their secrets, cached
-// credentials, and Rolle-owned AWS profiles, then deletes the workspace file.
+// credentials, and rolle-owned AWS profiles, then deletes the workspace file.
 func (s *Service) ResetAll() error {
 	w, err := s.Load()
 	if err != nil {

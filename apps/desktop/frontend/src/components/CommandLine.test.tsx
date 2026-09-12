@@ -5,8 +5,8 @@ import { describe, expect, it, vi } from "vitest";
 import { CommandLineInstall } from "@/components/CommandLine";
 import { api, type CLIStatus } from "@/lib/api";
 
-const missing: CLIStatus = { installed: false, path: "", target: "/Applications/Rolle.app/rolle", reason: "" };
-const linked: CLIStatus = { installed: true, path: "/usr/local/bin/rolle", target: "/Applications/Rolle.app/rolle" };
+const missing: CLIStatus = { installed: false, path: "", target: "/Applications/rolle.app/rolle", reason: "" };
+const linked: CLIStatus = { installed: true, path: "/usr/local/bin/rolle", target: "/Applications/rolle.app/rolle" };
 
 describe("CommandLineInstall", () => {
   it("renders nothing where the command cannot be linked", async () => {
@@ -36,7 +36,7 @@ describe("CommandLineInstall", () => {
   it("asks the user to move the app first", async () => {
     vi.spyOn(api, "CLIStatus").mockResolvedValue({ ...missing, reason: "move" });
     render(<CommandLineInstall />);
-    expect(await screen.findByText("Move Rolle to Applications first.")).toBeInTheDocument();
+    expect(await screen.findByText("Move rolle to Applications first.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /install command/i })).toBeDisabled();
   });
 

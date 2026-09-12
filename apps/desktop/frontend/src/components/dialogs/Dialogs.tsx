@@ -26,7 +26,7 @@ export function AddSSODialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add Identity Center portal</DialogTitle>
-          <DialogDescription>Sign in once. Rolle discovers every account and role you can reach.</DialogDescription>
+          <DialogDescription>Sign in once. rolle discovers every account and role you can reach.</DialogDescription>
         </DialogHeader>
         <SSOForm
           busy={busy}
@@ -351,7 +351,7 @@ export function AddAzureDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Add Azure tenant</DialogTitle>
-          <DialogDescription>Sign in with Microsoft. Rolle discovers every subscription you can see.</DialogDescription>
+          <DialogDescription>Sign in with Microsoft. rolle discovers every subscription you can see.</DialogDescription>
         </DialogHeader>
         <AzureForm
           busy={busy}

@@ -121,13 +121,13 @@ func Write(w io.Writer, in Inputs) error {
 	if err := add("log.txt", Redact(strings.Join(in.Log, "\n"))+"\n"); err != nil {
 		return err
 	}
-	if err := add("README.txt", fmt.Sprintf("Rolle support bundle, %s %s.\n\nAttach this zip to a GitHub issue: https://github.com/nateships/rolle/issues/new/choose\n\nAccount ids, emails, GUIDs, portal hosts, and secrets are replaced with <placeholders>.\nNo keychain entries or cached credentials are included.\n", in.App, in.Version)); err != nil {
+	if err := add("README.txt", fmt.Sprintf("rolle support bundle, %s %s.\n\nAttach this zip to a GitHub issue: https://github.com/nateships/rolle/issues/new/choose\n\nAccount ids, emails, GUIDs, portal hosts, and secrets are replaced with <placeholders>.\nNo keychain entries or cached credentials are included.\n", in.App, in.Version)); err != nil {
 		return err
 	}
 	return z.Close()
 }
 
-// cloudTools describes the Azure and Google Cloud command line setups Rolle
+// cloudTools describes the Azure and Google Cloud command line setups rolle
 // reads: where the tools are, and their non-secret profile files. Token caches
 // and application default credentials are never included.
 func cloudTools() string {

@@ -274,7 +274,7 @@ export enum Status {
 };
 
 /**
- * Workspace is everything Rolle persists, except secrets.
+ * Workspace is everything rolle persists, except secrets.
  */
 export interface Workspace {
     "version": number;

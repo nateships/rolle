@@ -72,7 +72,7 @@ func (r *RolleService) InstallCLI() (CLIStatus, error) {
 	st := cliStatus(exe)
 	switch st.Reason {
 	case "move":
-		return st, errors.New("move Rolle to the Applications folder first")
+		return st, errors.New("move rolle to the Applications folder first")
 	case "unsupported":
 		return st, errors.New("the command ships inside the macOS app")
 	}

@@ -46,11 +46,11 @@ func TestWriteThenRemoveKeepsForeignProfiles(t *testing.T) {
 
 func TestQuoteExecutableWithSpaces(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config")
-	if err := Write(path, Profile{Name: "default", SessionID: "x", Executable: "/Applications/Rolle.app/Contents/MacOS/rolle cli"}); err != nil {
+	if err := Write(path, Profile{Name: "default", SessionID: "x", Executable: "/Applications/rolle.app/Contents/MacOS/rolle cli"}); err != nil {
 		t.Fatal(err)
 	}
 	data, _ := os.ReadFile(path)
-	if !strings.Contains(string(data), `[default]`) || !strings.Contains(string(data), `"/Applications/Rolle.app/Contents/MacOS/rolle cli" creds`) {
+	if !strings.Contains(string(data), `[default]`) || !strings.Contains(string(data), `"/Applications/rolle.app/Contents/MacOS/rolle cli" creds`) {
 		t.Fatalf("config:\n%s", data)
 	}
 }

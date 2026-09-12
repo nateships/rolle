@@ -49,7 +49,7 @@ type Result struct {
 	AWSPortals   []AWSPortal   `json:"awsPortals"`
 	AzureTenants []AzureTenant `json:"azureTenants"`
 	GCP          *GCPAccount   `json:"gcp,omitempty"`
-	// Leapp holds sessions from a Leapp workspace that Rolle can recreate.
+	// Leapp holds sessions from a Leapp workspace that rolle can recreate.
 	Leapp *LeappWorkspace `json:"leapp,omitempty"`
 }
 

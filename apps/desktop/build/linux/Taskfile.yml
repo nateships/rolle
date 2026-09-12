@@ -219,7 +219,7 @@ tasks:
       - task: sign:deb
       - task: sign:rpm
 
-  # Rolle release packaging.
+  # rolle release packaging.
   release:
     summary: AppImage and deb in bin/, the AppImage named for the updater
     platforms: [linux]

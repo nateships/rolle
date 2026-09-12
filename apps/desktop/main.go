@@ -1,4 +1,4 @@
-// Command desktop is the Rolle desktop app.
+// Command desktop is the rolle desktop app.
 package main
 
 import (
@@ -56,10 +56,10 @@ func main() {
 	// ROLLE_DEMO=1 runs on fictional data in a temp directory: no real
 	// workspace, keychain, or AWS config. For screenshots and UI work.
 	newService := app.Default
-	title := "Rolle"
+	title := "rolle"
 	if os.Getenv("ROLLE_DEMO") == "1" {
 		newService = app.Demo
-		title = "Rolle · demo data"
+		title = "rolle · demo data"
 	}
 	svc, err := newService()
 	if err != nil {
@@ -91,7 +91,7 @@ func main() {
 		services = append(services, application.NewService(notify))
 	}
 	a := application.New(application.Options{
-		Name:        "Rolle",
+		Name:        "rolle",
 		Description: "Assume any role, any cloud",
 		LogLevel:    logLevel,
 		Services:    services,

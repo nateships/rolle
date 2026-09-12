@@ -59,7 +59,7 @@
 }
 
 :root {
-  /* Rolle light theme: warm ivory ground, charcoal text, cobalt focus. */
+  /* rolle light theme: warm ivory ground, charcoal text, cobalt focus. */
   --brand-green-text: #0b8f5a;
   --background: #f4f0e8;
   --foreground: #181a1e;
@@ -97,7 +97,7 @@
 
 .dark {
   --brand-green-text: #00ce78;
-  /* Rolle brand palette (docs/brand/tokens.json), tuned for stronger dark-mode contrast:
+  /* rolle brand palette (docs/brand/tokens.json), tuned for stronger dark-mode contrast:
        neutral charcoal, lifted surfaces, brighter borders and secondary text. */
   --background: #101114;
   --foreground: #f4f0e8;
@@ -143,7 +143,7 @@
     @apply font-sans;
   }
 }
-/* Rolle additions */
+/* rolle additions */
 html,
 body,
 #root {

@@ -291,7 +291,7 @@ func TestResetYes(t *testing.T) {
 	mustRun(t, "start", "dev")
 	sess := reload(t, s, "dev")
 	out := mustRun(t, "reset", "--yes")
-	if !strings.HasPrefix(out, "Rolle reset.") {
+	if !strings.HasPrefix(out, "rolle reset.") {
 		t.Fatalf("reset output:\n%s", out)
 	}
 	if _, err := os.Stat(s.WorkspacePath); !errors.Is(err, os.ErrNotExist) {

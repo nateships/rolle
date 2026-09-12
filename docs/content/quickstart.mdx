@@ -1,13 +1,13 @@
 ---
 seo:
   image: /og-brand.png
-  title: "Rolle quickstart: your first cloud session"
+  title: "rolle quickstart: your first cloud session"
 title: Quickstart
 description: Connect AWS, Azure, or Google Cloud, import what your machine already has, and start a role your tools can use in one click.
 ---
 
 <Steps>
-  <Step title="Open Rolle">
+  <Step title="Open rolle">
     The first launch runs an onboarding flow. Pick a cloud, sign in, and choose the roles you want. You can connect more clouds at the end, or later from the **Add** menu.
 
     ![Onboarding: identities found on this machine and the three clouds to connect](/screenshots/onboarding-cloud.png)
@@ -16,7 +16,7 @@ description: Connect AWS, Azure, or Google Cloud, import what your machine alrea
     Onboarding offers **Import from this machine**. It finds AWS Identity Center portals in the AWS CLI and Granted configs, Azure tenants from the az CLI, and gcloud Application Default Credentials. The same import is available later under **Add → Import from this machine**.
   </Step>
   <Step title="Start a session">
-    Press **Start** on a role. If the integration is signed out, Rolle signs in first. An active AWS session is a profile you can use right away:
+    Press **Start** on a role. If the integration is signed out, rolle signs in first. An active AWS session is a profile you can use right away:
 
     ```sh
     aws sts get-caller-identity --profile default

@@ -1,4 +1,4 @@
-// Command icons renders Rolle's desktop mark: three credential cards with an r
+// Command icons renders rolle's desktop mark: three credential cards with an r
 // cutout. The Go gopher belongs to the README artwork, never the desktop icons.
 // Run from the repository root: go run ./tools/icons [output-directory]
 package main
@@ -107,7 +107,7 @@ func hex(c color.NRGBA) string { return fmt.Sprintf("#%02X%02X%02X", c.R, c.G, c
 
 func svg(inks [3]color.NRGBA, background color.NRGBA) string {
 	var b strings.Builder
-	b.WriteString("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1024\" height=\"1024\" viewBox=\"0 0 512 512\" role=\"img\" aria-label=\"Rolle credential stack with r cutout\">\n")
+	b.WriteString("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1024\" height=\"1024\" viewBox=\"0 0 512 512\" role=\"img\" aria-label=\"rolle credential stack with r cutout\">\n")
 	if background.A != 0 {
 		fmt.Fprintf(&b, "  <path fill=\"%s\" d=\"%s\"/>\n", hex(background), tile)
 	}

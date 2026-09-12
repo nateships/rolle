@@ -165,7 +165,7 @@ func TestOpenWindowsScriptContent(t *testing.T) {
 	rm := strings.Index(s, "Remove-Item -LiteralPath $PSCommandPath -Force\n")
 	export := strings.Index(s, "$env:AZURE_TENANT_ID = 't-1'\n")
 	session := strings.Index(s, "$env:ROLLE_SESSION = 'it''s prod'\n")
-	host := strings.Index(s, "Write-Host ('Rolle: ' + 'it''s prod' + ' ready')\n")
+	host := strings.Index(s, "Write-Host ('rolle: ' + 'it''s prod' + ' ready')\n")
 	if rm != 0 || export < 0 || session < 0 || host < 0 || export >= session || session >= host {
 		t.Fatalf("script:\n%s", s)
 	}

@@ -1,4 +1,4 @@
-// Package paths resolves where Rolle keeps its files. The same rules run in
+// Package paths resolves where rolle keeps its files. The same rules run in
 // the CLI and the desktop app, so both find one workspace even when only the
 // shell has XDG variables set.
 package paths

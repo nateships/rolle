@@ -43,7 +43,7 @@ func ADCPath() (string, error) {
 	return filepath.Join(home, ".config", "gcloud", "application_default_credentials.json"), nil
 }
 
-// adc is the subset of the ADC file Rolle reads.
+// adc is the subset of the ADC file rolle reads.
 type adc struct {
 	Type         string `json:"type"`
 	ClientID     string `json:"client_id"`

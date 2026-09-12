@@ -386,7 +386,7 @@ func TestResetAsksForConfirmation(t *testing.T) {
 	}
 
 	withStdin(t, "y\n")
-	if out, err := run(t, "reset"); err != nil || !strings.HasPrefix(out, "Rolle reset.") {
+	if out, err := run(t, "reset"); err != nil || !strings.HasPrefix(out, "rolle reset.") {
 		t.Fatalf("reset with y: %q, %v", out, err)
 	}
 	if _, err := os.Stat(s.WorkspacePath); !errors.Is(err, os.ErrNotExist) {

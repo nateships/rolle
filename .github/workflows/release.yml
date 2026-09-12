@@ -110,10 +110,10 @@ jobs:
           name: desktop-${{ runner.os }}
           if-no-files-found: error
           path: |
-            apps/desktop/bin/Rolle-macos-universal.zip
+            apps/desktop/bin/rolle-macos-universal.zip
             apps/desktop/bin/*.dmg
-            apps/desktop/bin/Rolle-windows-*.zip
-            apps/desktop/bin/Rolle-installer.exe
+            apps/desktop/bin/rolle-windows-*.zip
+            apps/desktop/bin/rolle-installer.exe
             apps/desktop/bin/*.AppImage
             apps/desktop/bin/*.deb
 
@@ -139,7 +139,7 @@ jobs:
             prev="$(git tag --merged "${GITHUB_REF_NAME}^" --sort=-v:refname | grep -v -- - | head -1)"
           fi
           {
-            echo "## Rolle ${VERSION}"
+            echo "## rolle ${VERSION}"
             echo
             if [ -n "$prev" ]; then
               git log --no-merges --format='- %s' "${prev}..${GITHUB_REF_NAME}"
@@ -167,7 +167,7 @@ jobs:
       - name: Keep only the files the updater installs
         run: |
           mkdir artifacts
-          cp packages/Rolle-macos-universal.zip packages/Rolle-windows-amd64.zip packages/Rolle-windows-arm64.zip packages/Rolle-linux-amd64.AppImage artifacts/
+          cp packages/rolle-macos-universal.zip packages/rolle-windows-amd64.zip packages/rolle-windows-arm64.zip packages/rolle-linux-amd64.AppImage artifacts/
       - name: Write signing key
         run: printf '%s' "$ROLLE_UPDATER_KEY" > updater.key && chmod 600 updater.key
         env:
@@ -176,7 +176,7 @@ jobs:
         run: |
           channel=stable; case "$GITHUB_REF_NAME" in *-*) channel=beta;; esac
           wails3 updater manifest -version "${VERSION}" -channel "$channel" -key updater.key \
-            -name "Rolle ${VERSION}" -notes-file notes.md \
+            -name "rolle ${VERSION}" -notes-file notes.md \
             -url-prefix "https://github.com/nateships/rolle/releases/download/${GITHUB_REF_NAME}/" \
             -output artifacts/manifest.json artifacts
           wails3 updater verify -manifest artifacts/manifest.json -publickey apps/desktop/build/updater.pub

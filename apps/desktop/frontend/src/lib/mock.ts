@@ -458,7 +458,7 @@ export const mockApi = {
   CLIStatus: async () => ({
     installed: cliInstalled,
     path: cliInstalled ? "/usr/local/bin/rolle" : "",
-    target: "/Applications/Rolle.app/Contents/Helpers/rolle",
+    target: "/Applications/rolle.app/Contents/Helpers/rolle",
     reason: "",
   }),
   InstallCLI: async () => {

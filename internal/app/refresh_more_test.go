@@ -293,7 +293,7 @@ func TestReconcileProfilesRewritesExecutable(t *testing.T) {
 	if _, err := s.Start(context.Background(), active.ID, StartOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	s.Executable = "/Applications/Rolle.app/Contents/MacOS/rolle"
+	s.Executable = "/Applications/rolle.app/Contents/MacOS/rolle"
 	if err := s.ReconcileProfiles(); err != nil {
 		t.Fatal(err)
 	}

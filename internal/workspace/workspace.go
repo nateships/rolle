@@ -1,4 +1,4 @@
-// Package workspace loads and saves the Rolle workspace file.
+// Package workspace loads and saves the rolle workspace file.
 package workspace
 
 import (

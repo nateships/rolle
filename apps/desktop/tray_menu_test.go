@@ -72,7 +72,7 @@ func TestCountLabelAndTooltipWithoutExpiry(t *testing.T) {
 	if countLabel(0) != "no active sessions" || countLabel(3) != "3 active sessions" {
 		t.Fatal(countLabel(0), countLabel(3))
 	}
-	if got := tooltip([]core.Session{{Name: "a"}}); got != "Rolle · 1 active session" {
+	if got := tooltip([]core.Session{{Name: "a"}}); got != "rolle · 1 active session" {
 		t.Fatal(got)
 	}
 }
@@ -143,7 +143,7 @@ func TestSessionMenuOffersProfileCommandForAWSOnly(t *testing.T) {
 func TestFooterKeepsOpenAndQuitReachable(t *testing.T) {
 	m := application.NewMenu()
 	(&tray{}).addFooter(m)
-	want := []string{"---", "Open Rolle", "Report a problem…", "Settings…", "Quit Rolle"}
+	want := []string{"---", "Open rolle", "Report a problem…", "Settings…", "Quit rolle"}
 	if got := menuLabels(m); !reflect.DeepEqual(got, want) {
 		t.Fatalf("footer = %v, want %v", got, want)
 	}

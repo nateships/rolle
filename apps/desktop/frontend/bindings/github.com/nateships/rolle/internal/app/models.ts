@@ -34,7 +34,7 @@ export interface ImportResult {
     "integration": core$0.Integration;
 
     /**
-     * LoggedIn is true when Rolle reuses a valid AWS CLI token and discovers roles.
+     * LoggedIn is true when rolle reuses a valid AWS CLI token and discovers roles.
      */
     "loggedIn": boolean;
     "sessions": core$0.Session[] | null;

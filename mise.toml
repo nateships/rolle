@@ -73,5 +73,5 @@ run = ["aube ci", "aube run build"]
 dir = "docs"
 
 [tasks.reset]
-description = "Wipe the local Rolle workspace, secrets, cache, and AWS profiles (back to onboarding)"
+description = "Wipe the local rolle workspace, secrets, cache, and AWS profiles (back to onboarding)"
 run = "go run ./cmd/rolle reset --yes"

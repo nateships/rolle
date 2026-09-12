@@ -6,7 +6,7 @@ version: '3'
 # This information is used to generate the build assets.
 info:
   companyName: "nateships" # The name of the company
-  productName: "Rolle" # The name of the application
+  productName: "rolle" # The name of the application
   productIdentifier: "com.getrolle.app" # The unique product identifier
   description: "Assume any role, any cloud" # The application description
   copyright: "(c) 2026, nateships" # Copyright text

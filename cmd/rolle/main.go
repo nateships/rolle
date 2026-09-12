@@ -1,4 +1,4 @@
-// Command rolle is the Rolle CLI.
+// Command rolle is the rolle CLI.
 package main
 
 import (

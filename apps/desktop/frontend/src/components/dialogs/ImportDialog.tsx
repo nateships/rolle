@@ -46,7 +46,7 @@ export function ImportDialog({
           </div>
         ) : d.count === 0 ? (
           <div className="space-y-3 py-4 text-center text-sm text-muted-foreground">
-            <p>Nothing new found. Everything the CLIs know is already in Rolle, or no CLI is signed in.</p>
+            <p>Nothing new found. Everything the CLIs know is already in rolle, or no CLI is signed in.</p>
             <Button variant="secondary" size="sm" className="gap-1.5" onClick={d.rescan}>
               <RefreshCw className="size-3.5" /> Scan again
             </Button>

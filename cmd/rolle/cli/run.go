@@ -165,7 +165,7 @@ func resetCmd() *cobra.Command {
 		Short: "Remove every session, integration, secret, and cached credential",
 		RunE: func(_ *cobra.Command, _ []string) error {
 			if !yes {
-				fmt.Fprint(os.Stderr, "This removes all Rolle sessions, integrations, keychain secrets, cached credentials, and Rolle-owned AWS profiles. Continue? [y/N] ")
+				fmt.Fprint(os.Stderr, "This removes all rolle sessions, integrations, keychain secrets, cached credentials, and rolle-owned AWS profiles. Continue? [y/N] ")
 				var answer string
 				_, _ = fmt.Scanln(&answer)
 				if answer != "y" && answer != "Y" {
@@ -175,7 +175,7 @@ func resetCmd() *cobra.Command {
 			if err := svc.ResetAll(); err != nil {
 				return err
 			}
-			fmt.Println("Rolle reset. The desktop app will show onboarding again.")
+			fmt.Println("rolle reset. The desktop app will show onboarding again.")
 			return nil
 		},
 	}

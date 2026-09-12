@@ -29,8 +29,8 @@ export function GopherLockup({ className }: { className?: string }) {
   return (
     <span className={cn("inline-flex h-10 items-center gap-[0.15em]", className)}>
       <GopherMark className="h-full w-auto" />
-      <img src={wordmarkCharcoal} alt="Rolle" className="h-[55%] w-auto select-none dark:hidden" draggable={false} />
-      <img src={wordmarkIvory} alt="Rolle" className="hidden h-[55%] w-auto select-none dark:block" draggable={false} />
+      <img src={wordmarkCharcoal} alt="rolle" className="h-[55%] w-auto select-none dark:hidden" draggable={false} />
+      <img src={wordmarkIvory} alt="rolle" className="hidden h-[55%] w-auto select-none dark:block" draggable={false} />
     </span>
   );
 }

@@ -1,6 +1,6 @@
-# Rolle brand kit
+# rolle brand kit
 
-Rolle uses the Original Circuit palette, a three-card stack with an open lowercase r, and a custom MuseoModerno wordmark.
+rolle uses the Original Circuit palette, a three-card stack with an open lowercase r, and a custom MuseoModerno wordmark.
 
 | Use | Artwork | Source |
 | --- | --- | --- |
@@ -11,9 +11,9 @@ Rolle uses the Original Circuit palette, a three-card stack with an open lowerca
 
 ## Palette
 
-![Rolle identity](wordmark/wordmark-preview.png)
+![rolle identity](wordmark/wordmark-preview.png)
 
-The stack uses flat cobalt blue **#244CFF** at the back, orange **#FF7900** in the middle, and green **#00CE78** at the front. These are Rolle colors inspired by Azure, AWS, and GCP.
+The stack uses flat cobalt blue **#244CFF** at the back, orange **#FF7900** in the middle, and green **#00CE78** at the front. These are rolle colors inspired by Azure, AWS, and GCP.
 
 The interface uses neutral charcoal #101114, lifted surfaces #1E2024, warm ivory text #F4F0E8, neutral primary controls #E8EAED, and light-blue focus rings #8BA9FF. Bright colors are concentrated in the logo. Use solid fills with clear surface, border and secondary-text contrast. Credential states require explicit labels in addition to color.
 

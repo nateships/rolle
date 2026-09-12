@@ -11,8 +11,8 @@ import (
 // executable path inside it.
 func fakeBundle(t *testing.T, dir string) string {
 	t.Helper()
-	exe := filepath.Join(dir, "Rolle.app", "Contents", "MacOS", "Rolle")
-	helper := filepath.Join(dir, "Rolle.app", "Contents", "Helpers", "rolle")
+	exe := filepath.Join(dir, "rolle.app", "Contents", "MacOS", "rolle")
+	helper := filepath.Join(dir, "rolle.app", "Contents", "Helpers", "rolle")
 	for _, p := range []string{exe, helper} {
 		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
 			t.Fatal(err)
@@ -61,7 +61,7 @@ func TestCLIStatusOutsideABundleIsUnsupported(t *testing.T) {
 	}
 	// A bundle without the helper is a dev bundle.
 	dir := t.TempDir()
-	exe := filepath.Join(dir, "Rolle.app", "Contents", "MacOS", "Rolle")
+	exe := filepath.Join(dir, "rolle.app", "Contents", "MacOS", "rolle")
 	if st := cliStatus(exe); st.Reason != "unsupported" {
 		t.Fatalf("status = %+v", st)
 	}
@@ -78,7 +78,7 @@ func TestCLIStatusFindsHelperInBundle(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
 	dir := t.TempDir()
 	st := cliStatus(fakeBundle(t, dir))
-	if st.Reason != "" || st.Target != filepath.Join(dir, "Rolle.app", "Contents", "Helpers", "rolle") {
+	if st.Reason != "" || st.Target != filepath.Join(dir, "rolle.app", "Contents", "Helpers", "rolle") {
 		t.Fatalf("status = %+v", st)
 	}
 	_, linkErr := os.Lstat(cliLink)

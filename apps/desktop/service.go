@@ -316,7 +316,7 @@ func (r *RolleService) ReplayOnboarding() error {
 }
 
 // Reset removes every session, integration, secret, cached credential, and
-// Rolle-owned AWS profile. The UI confirms before calling this.
+// rolle-owned AWS profile. The UI confirms before calling this.
 func (r *RolleService) Reset() error {
 	return r.svc.ResetAll()
 }

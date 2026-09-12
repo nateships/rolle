@@ -3,7 +3,7 @@ title: IAM Identity Center
 description: Sign in to an Identity Center portal and get every account and role you can reach.
 ---
 
-An Identity Center integration is one portal start URL. Rolle signs in through your browser (OIDC authorization code with PKCE, returning to a loopback port) and lists every account and permission set your user can reach. Each pair becomes a session named `Account/Role`.
+An Identity Center integration is one portal start URL. rolle signs in through your browser (OIDC authorization code with PKCE, returning to a loopback port) and lists every account and permission set your user can reach. Each pair becomes a session named `Account/Role`.
 
 ```sh
 rolle integration add aws-sso --alias acme --start-url https://acme.awsapps.com/start --region us-east-1
@@ -27,4 +27,4 @@ The credential lifetime is the permission set's session duration, set by your Id
 
 ## Import
 
-Rolle imports portals from the AWS CLI config (`sso-session` and legacy `sso_start_url` sections) and from Granted profiles. If the AWS CLI already holds a valid token for a portal, Rolle reuses it and you do not sign in again.
+rolle imports portals from the AWS CLI config (`sso-session` and legacy `sso_start_url` sections) and from Granted profiles. If the AWS CLI already holds a valid token for a portal, rolle reuses it and you do not sign in again.

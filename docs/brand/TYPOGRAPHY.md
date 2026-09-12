@@ -1,4 +1,4 @@
-# Rolle typography: match the icon r
+# rolle typography: match the icon r
 
 The custom wordmark uses the exact icon r, followed by **MuseoModerno Bold (700)** o, l, l, and e outlines. The bundled MuseoModerno font is unmodified; use the SVG master for the custom logo.
 

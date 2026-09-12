@@ -44,7 +44,7 @@ func TestNewestManifestURLSkipsDraftsAndReleasesWithoutManifest(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = w.Write([]byte(`[
 		 {"draft": true, "assets": [{"name": "manifest.json", "browser_download_url": "https://x/draft"}]},
-		 {"draft": false, "prerelease": true, "assets": [{"name": "Rolle.dmg", "browser_download_url": "https://x/dmg"}]},
+		 {"draft": false, "prerelease": true, "assets": [{"name": "rolle.dmg", "browser_download_url": "https://x/dmg"}]},
 		 {"draft": false, "prerelease": true, "assets": [{"name": "manifest.json", "browser_download_url": "https://x/rc/manifest.json"}]},
 		 {"draft": false, "assets": [{"name": "manifest.json", "browser_download_url": "https://x/stable/manifest.json"}]}
 		]`))

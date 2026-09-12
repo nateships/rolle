@@ -123,7 +123,7 @@ func TestRemoveIsNoopForUnknownProfileOrMissingFile(t *testing.T) {
 	}
 }
 
-func TestRemoveDropsRegionThatRolleAdded(t *testing.T) {
+func TestRemoveDropsRegionThatrolleAdded(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config")
 	orig := "[profile prod]\noutput = json\n"
 	mustWrite(t, path, orig)
@@ -195,7 +195,7 @@ func TestSectionNameAndQuote(t *testing.T) {
 			t.Errorf("sectionName(%q) = %q, want %q", in, got, want)
 		}
 	}
-	quotes := map[string]string{"": "", "/opt/rolle": "/opt/rolle", "/Applications/Rolle.app/rolle cli": `"/Applications/Rolle.app/rolle cli"`, `C:\Program Files\rolle.exe`: `"C:\Program Files\rolle.exe"`}
+	quotes := map[string]string{"": "", "/opt/rolle": "/opt/rolle", "/Applications/rolle.app/rolle cli": `"/Applications/rolle.app/rolle cli"`, `C:\Program Files\rolle.exe`: `"C:\Program Files\rolle.exe"`}
 	for in, want := range quotes {
 		if got := quote(in); got != want {
 			t.Errorf("quote(%q) = %q, want %q", in, got, want)

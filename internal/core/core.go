@@ -209,7 +209,7 @@ func (s Settings) Normalize() Settings {
 	return s
 }
 
-// Workspace is everything Rolle persists, except secrets.
+// Workspace is everything rolle persists, except secrets.
 type Workspace struct {
 	Version      int           `json:"version"`
 	Integrations []Integration `json:"integrations"`

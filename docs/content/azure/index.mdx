@@ -3,7 +3,7 @@ title: Tenants
 description: Sign in to an Entra ID tenant and discover its subscriptions.
 ---
 
-An Azure integration is one Entra ID tenant. Rolle signs in with your Microsoft account through MSAL, stores the token cache in the OS keychain, and lists every subscription you can reach. Each subscription becomes a session that yields Azure Resource Manager tokens.
+An Azure integration is one Entra ID tenant. rolle signs in with your Microsoft account through MSAL, stores the token cache in the OS keychain, and lists every subscription you can reach. Each subscription becomes a session that yields Azure Resource Manager tokens.
 
 ```sh
 rolle integration add azure --alias contoso                 # home tenant
@@ -17,6 +17,6 @@ rolle integration sync contoso
 | `--alias` | Short name for the tenant |
 | `--tenant` | Tenant ID or domain. Defaults to your home tenant |
 
-The desktop app offers browser sign-in and device-code sign-in. Rolle imports tenants that the az CLI already knows from `azureProfile.json`.
+The desktop app offers browser sign-in and device-code sign-in. rolle imports tenants that the az CLI already knows from `azureProfile.json`.
 
 Each subscription is a session; see [Sessions](/azure/sessions).

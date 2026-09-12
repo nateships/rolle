@@ -91,7 +91,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
       const update = await api.CheckForUpdates();
       setUpdateInfo(update);
       if (!update.enabled) toast.info("Updates are disabled in development builds");
-      else if (update.available) toast.success(`Rolle ${update.version} is available`);
+      else if (update.available) toast.success(`rolle ${update.version} is available`);
       else toast.success("You're on the latest version");
     } catch (e) {
       toast.error(errorMessage(e));
@@ -295,7 +295,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
             <TabsContent value="about" className="mt-4 min-h-[27rem] space-y-5 text-xs">
               <div className="flex items-center justify-between rounded-lg border bg-card px-3 py-2">
                 <div>
-                  <p className="text-sm font-medium text-foreground">Rolle {info?.version ?? "…"}</p>
+                  <p className="text-sm font-medium text-foreground">rolle {info?.version ?? "…"}</p>
                   <p className="text-[11px] text-muted-foreground">
                     {updateInfo === null
                       ? "Updates are signed and verified before they install."
@@ -402,7 +402,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                     variant="destructive"
                     size="sm"
                     className="gap-1.5"
-                    onClick={run("Rolle was reset", () => api.Reset())}
+                    onClick={run("rolle was reset", () => api.Reset())}
                   >
                     <Check className="size-3.5" /> Yes, remove everything
                   </Button>
@@ -413,12 +413,12 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                     className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10"
                     onClick={() => setConfirmReset(true)}
                   >
-                    <Trash2 className="size-3.5" /> Reset Rolle…
+                    <Trash2 className="size-3.5" /> Reset rolle…
                   </Button>
                 )}
               </div>
               <p className="text-[11px] text-muted-foreground">
-                Reset removes every session, integration, keychain secret, cached credential, and Rolle-owned AWS
+                Reset removes every session, integration, keychain secret, cached credential, and rolle-owned AWS
                 profile.
               </p>
             </TabsContent>

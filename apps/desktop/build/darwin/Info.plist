@@ -3,9 +3,9 @@
 <plist version="1.0">
 	<dict>
 		<key>CFBundleDisplayName</key>
-		<string>Rolle</string>
+		<string>rolle</string>
 		<key>CFBundleExecutable</key>
-		<string>Rolle</string>
+		<string>rolle</string>
 		<key>CFBundleGetInfoString</key>
 		<string>Cloud credential and role manager</string>
 		<key>CFBundleIconFile</key>
@@ -13,7 +13,7 @@
 		<key>CFBundleIdentifier</key>
 		<string>com.getrolle.app</string>
 		<key>CFBundleName</key>
-		<string>Rolle</string>
+		<string>rolle</string>
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
 		<key>CFBundleShortVersionString</key>

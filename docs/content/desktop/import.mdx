@@ -7,11 +7,11 @@ description: Bring in what your machine already has.
 
 ![Import from this machine dialog](/screenshots/import.png)
 
-| Source | What Rolle reads | Result |
+| Source | What rolle reads | Result |
 | --- | --- | --- |
-| AWS CLI | `~/.aws/config` `sso-session` and legacy `sso_start_url` sections | Identity Center portals. Rolle reuses a valid token in `~/.aws/sso/cache` |
+| AWS CLI | `~/.aws/config` `sso-session` and legacy `sso_start_url` sections | Identity Center portals. rolle reuses a valid token in `~/.aws/sso/cache` |
 | Granted | Profiles with `granted_sso_*` keys or a Granted `credential_process` | Identity Center portals |
 | az CLI | `azureProfile.json` | Azure tenants |
 | gcloud | Application Default Credentials | A Google Cloud integration |
 
-Rolle treats portals that differ only by a trailing slash as one.
+rolle treats portals that differ only by a trailing slash as one.

@@ -10,7 +10,7 @@ import (
 )
 
 func TestExportSupportBundleWritesZipToDownloads(t *testing.T) {
-	r := testRolle(t)
+	r := testrolle(t)
 	addIAMUser(t, r, "bundled")
 	downloads := filepath.Join(os.Getenv("HOME"), "Downloads")
 	if err := os.MkdirAll(downloads, 0o755); err != nil {
@@ -52,7 +52,7 @@ func TestExportSupportBundleWritesZipToDownloads(t *testing.T) {
 }
 
 func TestExportSupportBundleFailsOnUnreadableWorkspace(t *testing.T) {
-	r := testRolle(t)
+	r := testrolle(t)
 	if err := os.WriteFile(r.svc.WorkspacePath, []byte("{not json"), 0o600); err != nil {
 		t.Fatal(err)
 	}

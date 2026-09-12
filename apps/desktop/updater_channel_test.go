@@ -195,7 +195,7 @@ func TestPendingUpdateReportsLastBackgroundResult(t *testing.T) {
 }
 
 func TestBackgroundCheckHonoursAutoUpdateOff(t *testing.T) {
-	r := testRolle(t)
+	r := testrolle(t)
 	st, _ := r.Settings()
 	st.AutoUpdateOff = true
 	if _, err := r.UpdateSettings(st); err != nil {

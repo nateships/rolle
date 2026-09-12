@@ -9,13 +9,13 @@ sidebar:
 
 Identity Center refresh tokens, Azure token caches, and IAM user access keys live in the OS keychain (macOS Keychain, Windows Credential Manager, Secret Service on Linux) under the service name `rolle`. Large tokens are split into chunks to fit platform limits.
 
-## Rolle caches short-lived credentials until they expire
+## rolle caches short-lived credentials until they expire
 
 A started session caches its temporary credentials in `credentials/` under the cache directory (see [Storage](/#storage)) with owner-only permissions. `credential_process` reads that cache. Each entry carries its expiry. The app renews or removes entries. An IAM user without MFA has no temporary credentials: its access key stays in the keychain and never enters the cache.
 
-## Rolle writes only its own AWS profiles
+## rolle writes only its own AWS profiles
 
-Rolle marks each profile it writes with a `rolle_session` key. It refuses to touch a section that holds `aws_access_key_id` or other credential keys. Rolle takes over a plain `[default]` section that only sets region or output, and restores it on stop.
+rolle marks each profile it writes with a `rolle_session` key. It refuses to touch a section that holds `aws_access_key_id` or other credential keys. rolle takes over a plain `[default]` section that only sets region or output, and restores it on stop.
 
 ## No telemetry
 
@@ -23,7 +23,7 @@ The app and the CLI collect nothing. Network traffic goes to the cloud providers
 
 ## Enterprise networks
 
-Rolle verifies TLS against the OS trust store: the macOS Keychain, the Windows certificate store, or the Linux system bundle. A corporate root installed there, as TLS inspection products require, works with no Rolle configuration. For a root that is not in the OS store, point **Settings → Advanced → Extra CA bundle** at a PEM file. **HTTPS proxy** routes every request through one proxy when the app cannot see your shell's `HTTPS_PROXY`. Both apply to the CLI and the app, including the AWS SDK calls.
+rolle verifies TLS against the OS trust store: the macOS Keychain, the Windows certificate store, or the Linux system bundle. A corporate root installed there, as TLS inspection products require, works with no rolle configuration. For a root that is not in the OS store, point **Settings → Advanced → Extra CA bundle** at a PEM file. **HTTPS proxy** routes every request through one proxy when the app cannot see your shell's `HTTPS_PROXY`. Both apply to the CLI and the app, including the AWS SDK calls.
 
 ## Signed updates
 
@@ -31,4 +31,4 @@ An Ed25519 key signs every release manifest. The desktop app verifies the signat
 
 ## Reset
 
-`rolle reset` and **Settings → Advanced → Reset** remove the workspace, every keychain entry, the credential cache, and the AWS profiles Rolle wrote.
+`rolle reset` and **Settings → Advanced → Reset** remove the workspace, every keychain entry, the credential cache, and the AWS profiles rolle wrote.

@@ -61,7 +61,7 @@ func newTray(a *application.App, svc *app.Service, window *application.WebviewWi
 	t := &tray{app: a, svc: svc, window: window}
 	t.item = a.SystemTray.New()
 	t.setIcon(false)
-	t.item.SetTooltip("Rolle")
+	t.item.SetTooltip("rolle")
 	t.rebuild()
 	a.Event.On(EventWorkspaceChanged, func(*application.CustomEvent) { t.rebuild() })
 	// Countdowns in the menu refresh once a minute while something is active.
@@ -112,7 +112,7 @@ func (t *tray) rebuild() {
 	}
 	sort.Slice(active, func(i, j int) bool { return active[i].Name < active[j].Name })
 
-	menu.Add(fmt.Sprintf("Rolle · %s", countLabel(len(active)))).SetEnabled(false)
+	menu.Add(fmt.Sprintf("rolle · %s", countLabel(len(active)))).SetEnabled(false)
 	menu.AddSeparator()
 
 	if len(w.Sessions) == 0 {
@@ -295,7 +295,7 @@ func (t *tray) addSessionMenu(menu *application.Menu, sess core.Session) {
 
 func (t *tray) addFooter(menu *application.Menu) {
 	menu.AddSeparator()
-	menu.Add("Open Rolle").OnClick(func(*application.Context) { t.showWindow() })
+	menu.Add("Open rolle").OnClick(func(*application.Context) { t.showWindow() })
 	menu.Add("Report a problem…").OnClick(func(*application.Context) {
 		if err := browser.Open(supportURL(version.Version, runtime.GOOS, runtime.GOARCH)); err != nil {
 			debug.Logf("tray", "support: %v", err)
@@ -305,7 +305,7 @@ func (t *tray) addFooter(menu *application.Menu) {
 		t.showWindow()
 		t.app.Event.Emit(EventOpenSettings, struct{}{})
 	})
-	menu.Add("Quit Rolle").OnClick(func(*application.Context) { t.app.Quit() })
+	menu.Add("Quit rolle").OnClick(func(*application.Context) { t.app.Quit() })
 }
 
 func (t *tray) showWindow() {
@@ -345,7 +345,7 @@ func countLabel(n int) string {
 // tooltip names the active count and the soonest expiry.
 func tooltip(active []core.Session) string {
 	if len(active) == 0 {
-		return "Rolle · no active sessions"
+		return "rolle · no active sessions"
 	}
 	var next *time.Time
 	for _, s := range active {
@@ -353,7 +353,7 @@ func tooltip(active []core.Session) string {
 			next = s.Expires
 		}
 	}
-	out := "Rolle · " + countLabel(len(active))
+	out := "rolle · " + countLabel(len(active))
 	if next != nil {
 		out += " · next expiry in " + until(*next)
 	}

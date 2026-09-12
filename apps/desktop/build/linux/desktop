@@ -1,11 +1,11 @@
 [Desktop Entry]
 Version=1.0
-Name=Rolle
+Name=rolle
 Comment=Assume any role, any cloud
 # The Exec line includes %u to pass the URL to the application
-Exec=/usr/local/bin/Rolle %u
+Exec=/usr/local/bin/rolle-desktop %u
 Terminal=false
 Type=Application
-Icon=Rolle
+Icon=rolle
 Categories=Utility;
-StartupWMClass=Rolle
+StartupWMClass=rolle

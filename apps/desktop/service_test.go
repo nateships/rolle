@@ -13,11 +13,11 @@ import (
 	"github.com/nateships/rolle/internal/version"
 )
 
-// testRolle returns a RolleService on a throwaway workspace, AWS config, and
+// testrolle returns a RolleService on a throwaway workspace, AWS config, and
 // in-memory secret store. It has no Wails app, so window and event calls stay
 // guarded. HOME and the cloud CLI config paths point at empty directories so
 // no test reads the real machine.
-func testRolle(t *testing.T) *RolleService {
+func testrolle(t *testing.T) *RolleService {
 	t.Helper()
 	dir := t.TempDir()
 	home := filepath.Join(dir, "home")
@@ -47,7 +47,7 @@ func addIAMUser(t *testing.T, r *RolleService, name string) core.Session {
 }
 
 func TestServiceIdentity(t *testing.T) {
-	r := testRolle(t)
+	r := testrolle(t)
 	if r.ServiceName() != "rolle" {
 		t.Fatal(r.ServiceName())
 	}
@@ -64,7 +64,7 @@ func TestServiceIdentity(t *testing.T) {
 }
 
 func TestDemoModeFollowsEnvironment(t *testing.T) {
-	r := testRolle(t)
+	r := testrolle(t)
 	t.Setenv("ROLLE_DEMO", "")
 	if r.DemoMode() {
 		t.Fatal("demo mode on without ROLLE_DEMO")
@@ -86,7 +86,7 @@ func TestDemoModeFollowsEnvironment(t *testing.T) {
 }
 
 func TestOnboardingFlagRoundTrips(t *testing.T) {
-	r := testRolle(t)
+	r := testrolle(t)
 	w, err := r.Workspace()
 	if err != nil || w.Onboarded {
 		t.Fatalf("fresh workspace = %+v %v", w, err)
@@ -106,7 +106,7 @@ func TestOnboardingFlagRoundTrips(t *testing.T) {
 }
 
 func TestSettingsRoundTrip(t *testing.T) {
-	r := testRolle(t)
+	r := testrolle(t)
 	st, err := r.Settings()
 	if err != nil || st.Theme != "system" || st.AssumeRoleMinutes != 60 {
 		t.Fatalf("defaults = %+v %v", st, err)
@@ -127,7 +127,7 @@ func TestSettingsRoundTrip(t *testing.T) {
 }
 
 func TestAWSSSOIntegrationLifecycle(t *testing.T) {
-	r := testRolle(t)
+	r := testrolle(t)
 	in, err := r.AddAWSSSO("acme", "https://acme.awsapps.com/start", "us-east-1")
 	if err != nil || in.AWSSSO == nil {
 		t.Fatalf("add = %+v %v", in, err)
@@ -172,7 +172,7 @@ func TestAWSSSOIntegrationLifecycle(t *testing.T) {
 }
 
 func TestImportAWSSSOWithoutCLITokenRegistersOnly(t *testing.T) {
-	r := testRolle(t)
+	r := testrolle(t)
 	res, err := r.ImportAWSSSO("acme", "https://acme.awsapps.com/start", "us-east-1")
 	if err != nil {
 		t.Fatal(err)
@@ -183,7 +183,7 @@ func TestImportAWSSSOWithoutCLITokenRegistersOnly(t *testing.T) {
 }
 
 func TestIAMUserSessionLifecycle(t *testing.T) {
-	r := testRolle(t)
+	r := testrolle(t)
 	sess := addIAMUser(t, r, "dev user")
 	if sess.Kind != core.KindAWSIAMUser || sess.Region != "us-east-1" {
 		t.Fatalf("session = %+v", sess)
@@ -228,7 +228,7 @@ func TestIAMUserSessionLifecycle(t *testing.T) {
 }
 
 func TestAssumeRoleChainsFromSource(t *testing.T) {
-	r := testRolle(t)
+	r := testrolle(t)
 	src := addIAMUser(t, r, "src")
 	chained, err := r.AddAssumeRole(app.AddAssumeRoleInput{Name: "admin", Region: "us-east-1", RoleARN: "arn:aws:iam::123456789012:role/Admin", SourceRef: src.ID})
 	if err != nil {
@@ -243,7 +243,7 @@ func TestAssumeRoleChainsFromSource(t *testing.T) {
 }
 
 func TestSessionSetters(t *testing.T) {
-	r := testRolle(t)
+	r := testrolle(t)
 	sess := addIAMUser(t, r, "personal")
 	if err := r.SetFavorite(sess.ID, true); err != nil {
 		t.Fatal(err)
@@ -274,7 +274,7 @@ func TestSessionSetters(t *testing.T) {
 }
 
 func TestResetRemovesEverything(t *testing.T) {
-	r := testRolle(t)
+	r := testrolle(t)
 	addIAMUser(t, r, "gone")
 	if _, err := r.AddAWSSSO("acme", "https://acme.awsapps.com/start", "us-east-1"); err != nil {
 		t.Fatal(err)
@@ -289,7 +289,7 @@ func TestResetRemovesEverything(t *testing.T) {
 }
 
 func TestAzureCallsRejectUnknownTenant(t *testing.T) {
-	r := testRolle(t)
+	r := testrolle(t)
 	in, err := r.AddAzure("contoso", "7a1c2e40-3d5b-4f6a-9b8c-0d1e2f3a4b5c")
 	if err != nil || in.Azure == nil || in.Azure.TenantID != "7a1c2e40-3d5b-4f6a-9b8c-0d1e2f3a4b5c" {
 		t.Fatalf("add = %+v %v", in, err)
@@ -306,7 +306,7 @@ func TestAzureCallsRejectUnknownTenant(t *testing.T) {
 }
 
 func TestGCPWithoutCredentials(t *testing.T) {
-	r := testRolle(t)
+	r := testrolle(t)
 	st := r.GCPStatus()
 	if st.Ready || st.Account != "" || st.LoginCommand == "" || st.InstallURL == "" {
 		t.Fatalf("status = %+v", st)
@@ -323,7 +323,7 @@ func TestGCPWithoutCredentials(t *testing.T) {
 }
 
 func TestDiscoverOnEmptyMachine(t *testing.T) {
-	r := testRolle(t)
+	r := testrolle(t)
 	t.Setenv("ROLLE_DEMO", "")
 	got := r.Discover()
 	if len(got.AWSPortals) != 0 || len(got.AzureTenants) != 0 || got.GCP != nil {
@@ -337,7 +337,7 @@ func TestDiscoverOnEmptyMachine(t *testing.T) {
 }
 
 func TestOpenCallsRefuseBadInput(t *testing.T) {
-	r := testRolle(t)
+	r := testrolle(t)
 	if err := r.OpenURL("file:///etc/passwd"); err == nil {
 		t.Fatal("non-http URL opened")
 	}

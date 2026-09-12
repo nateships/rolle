@@ -3,7 +3,7 @@
 #
 # The lines below are called `modelines`. See `:help modeline`
 
-name: "Rolle"
+name: "rolle"
 arch: ${GOARCH}
 platform: "linux"
 version: "0.0.1"
@@ -17,12 +17,12 @@ license: "MIT"
 release: "1"
 
 contents:
-  - src: "./bin/Rolle"
-    dst: "/usr/local/bin/Rolle"
+  - src: "./bin/rolle"
+    dst: "/usr/local/bin/rolle-desktop"
   - src: "./build/appicon.png"
-    dst: "/usr/share/icons/hicolor/128x128/apps/Rolle.png"
-  - src: "./build/linux/Rolle.desktop"
-    dst: "/usr/share/applications/Rolle.desktop"
+    dst: "/usr/share/icons/hicolor/128x128/apps/rolle.png"
+  - src: "./build/linux/rolle.desktop"
+    dst: "/usr/share/applications/rolle.desktop"
 
 # Default dependencies for the GTK4 + WebKitGTK 6.0 stack (Ubuntu 24.04+ / Debian 13+)
 depends:

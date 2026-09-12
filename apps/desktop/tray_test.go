@@ -8,13 +8,13 @@ import (
 )
 
 func TestTooltipAndCountLabel(t *testing.T) {
-	if got := tooltip(nil); got != "Rolle · no active sessions" {
+	if got := tooltip(nil); got != "rolle · no active sessions" {
 		t.Fatal(got)
 	}
 	soon := time.Now().Add(5 * time.Minute)
 	later := time.Now().Add(3 * time.Hour)
 	got := tooltip([]core.Session{{Name: "a", Expires: &later}, {Name: "b", Expires: &soon}})
-	if got != "Rolle · 2 active sessions · next expiry in 5m" && got != "Rolle · 2 active sessions · next expiry in 4m" {
+	if got != "rolle · 2 active sessions · next expiry in 5m" && got != "rolle · 2 active sessions · next expiry in 4m" {
 		t.Fatal(got)
 	}
 	if countLabel(1) != "1 active session" {

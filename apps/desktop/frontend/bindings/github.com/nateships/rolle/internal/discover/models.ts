@@ -65,7 +65,7 @@ export interface LeappIAMUser {
 }
 
 /**
- * LeappWorkspace is the subset of a Leapp workspace Rolle can import.
+ * LeappWorkspace is the subset of a Leapp workspace rolle can import.
  */
 export interface LeappWorkspace {
     "portals": AWSPortal[] | null;
@@ -74,7 +74,7 @@ export interface LeappWorkspace {
     "chainedRoles": LeappChainedRole[] | null;
 
     /**
-     * SSORoles counts sessions that Rolle rediscovers by syncing the portal.
+     * SSORoles counts sessions that rolle rediscovers by syncing the portal.
      */
     "ssoRoles": number;
 }
@@ -88,7 +88,7 @@ export interface Result {
     "gcp"?: GCPAccount | null;
 
     /**
-     * Leapp holds sessions from a Leapp workspace that Rolle can recreate.
+     * Leapp holds sessions from a Leapp workspace that rolle can recreate.
      */
     "leapp"?: LeappWorkspace | null;
 }

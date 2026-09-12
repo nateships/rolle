@@ -270,7 +270,7 @@ export function ReplayOnboarding(): $CancellablePromise<void> {
 
 /**
  * Reset removes every session, integration, secret, cached credential, and
- * Rolle-owned AWS profile. The UI confirms before calling this.
+ * rolle-owned AWS profile. The UI confirms before calling this.
  */
 export function Reset(): $CancellablePromise<void> {
     return $Call.ByID(4248150206);

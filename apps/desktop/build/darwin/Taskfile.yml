@@ -215,7 +215,7 @@ tasks:
     cmds:
       - wails3 tool sign --input "{{.BIN_DIR}}/{{.APP_NAME}}.app" --notarize {{.CLI_ARGS}}
 
-  # Rolle release packaging. SIGN_IDENTITY and NOTARY_PROFILE come from the
+  # rolle release packaging. SIGN_IDENTITY and NOTARY_PROFILE come from the
   # environment; without them the app and the DMG ship unsigned.
   release:
     summary: Signed universal app as a zip and a DMG in bin/
@@ -234,7 +234,7 @@ tasks:
   # The rolle command ships inside the bundle. The Homebrew cask links it into
   # PATH, and the app updater carries it along with every update. Helpers/ is
   # the nested-code location codesign and notarization expect. The name stays
-  # away from Contents/MacOS/Rolle on case-insensitive volumes.
+  # away from Contents/MacOS/rolle on case-insensitive volumes.
   release:cli:
     internal: true
     cmds:

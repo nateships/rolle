@@ -26,7 +26,7 @@ func (s *Service) Discover(ctx context.Context) discover.Result { return discove
 // ImportResult describes an imported Identity Center portal.
 type ImportResult struct {
 	Integration core.Integration `json:"integration"`
-	// LoggedIn is true when Rolle reuses a valid AWS CLI token and discovers roles.
+	// LoggedIn is true when rolle reuses a valid AWS CLI token and discovers roles.
 	LoggedIn bool           `json:"loggedIn"`
 	Sessions []core.Session `json:"sessions"`
 }
@@ -586,7 +586,7 @@ func (s *Service) ImportLeappSessions(lw *discover.LeappWorkspace) (LeappImportR
 			continue
 		}
 		if !names[r.ParentName] {
-			res.Skipped = append(res.Skipped, r.Name+": source session "+r.ParentName+" is not in Rolle yet")
+			res.Skipped = append(res.Skipped, r.Name+": source session "+r.ParentName+" is not in rolle yet")
 			continue
 		}
 		sess, err := s.AddAssumeRole(AddAssumeRoleInput{Name: r.Name, Region: r.Region, RoleARN: r.RoleARN, SourceRef: r.ParentName, Profile: r.Profile})

@@ -1,4 +1,4 @@
-# Rolle gopher animation kit
+# rolle gopher animation kit
 
 This is a vector reconstruction for animation, following your existing ivory gopher, dark outlines and Original Circuit colors. It is a reviewable starting rig, not a lossless separation of the PNG. The hidden body, legs, arms and completed rear card surfaces are newly drawn. Your repository and production assets have not been modified.
 
@@ -48,4 +48,4 @@ Use the SVG inline to target groups; an `<img>` does not expose its internal ele
 
 Give one accessible name to the whole mark; hide decorative parts from assistive technology. Keep a static pose for reduced motion. Avoid perpetually dancing in navigation: the demo is intentionally user-triggered. Do not replace launcher/tray artwork with the mascot without an intentional brand decision.
 
-Creator credit: Go gopher by Renee French, licensed under CC BY 4.0. Adapted for Rolle; this kit adds a vector reconstruction, hidden anatomy and animation layers. Preserve `ATTRIBUTION.md` with redistributed artwork.
+Creator credit: Go gopher by Renee French, licensed under CC BY 4.0. Adapted for rolle; this kit adds a vector reconstruction, hidden anatomy and animation layers. Preserve `ATTRIBUTION.md` with redistributed artwork.

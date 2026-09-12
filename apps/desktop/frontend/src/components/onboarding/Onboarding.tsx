@@ -356,7 +356,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                 <span className="text-brand-green">cloud</span>.
               </h1>
               <p className="mt-4 max-w-md text-balance text-muted-foreground">
-                Rolle keeps short-lived credentials flowing to your tools without writing a single secret to disk. Two
+                rolle keeps short-lived credentials flowing to your tools without writing a single secret to disk. Two
                 minutes to set up.
               </p>
               <Button size="lg" className="mt-8 gap-2" onClick={() => go("cloud")}>
@@ -537,7 +537,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
               <StepTitle
                 eyebrow="Step 2"
                 title="Connect to Azure"
-                hint="Sign in with your Microsoft account. Rolle discovers every subscription you can see."
+                hint="Sign in with your Microsoft account. rolle discovers every subscription you can see."
                 accent="blue"
                 highlight="Azure"
               />
@@ -572,7 +572,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
               <StepTitle
                 eyebrow="Step 2"
                 title="Connect to Google Cloud"
-                hint="Rolle uses the credentials gcloud already has on this machine."
+                hint="rolle uses the credentials gcloud already has on this machine."
                 accent="green"
                 highlight="Google Cloud"
               />
@@ -1129,7 +1129,7 @@ export function GCPConnect({ busy, onSubmit }: { busy: boolean; onSubmit: (alias
         <div className="space-y-3 rounded-lg border border-dashed p-3 text-sm">
           {status.gcloudFound ? (
             <>
-              <p>No Application Default Credentials yet. Sign in with gcloud and Rolle will pick them up.</p>
+              <p>No Application Default Credentials yet. Sign in with gcloud and rolle will pick them up.</p>
               <Button className="w-full gap-2" onClick={login} disabled={loggingIn || checking}>
                 {loggingIn ? <Loader2 className="size-4 animate-spin" /> : <Terminal className="size-4" />}
                 {loggingIn ? "Waiting for gcloud…" : "Sign in with gcloud"}
@@ -1138,7 +1138,7 @@ export function GCPConnect({ busy, onSubmit }: { busy: boolean; onSubmit: (alias
           ) : (
             <>
               <p>
-                The gcloud CLI is not installed, so Rolle cannot sign you in. Install it, then come back and check
+                The gcloud CLI is not installed, so rolle cannot sign you in. Install it, then come back and check
                 again.
               </p>
               <Button className="w-full gap-2" onClick={() => void api.OpenURL(status.installUrl)}>

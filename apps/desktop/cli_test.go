@@ -3,8 +3,8 @@ package main
 import "testing"
 
 func TestCLITarget(t *testing.T) {
-	got := cliTarget("/Applications/Rolle.app/Contents/MacOS/Rolle")
-	if want := "/Applications/Rolle.app/Contents/Helpers/rolle"; got != want {
+	got := cliTarget("/Applications/rolle.app/Contents/MacOS/rolle")
+	if want := "/Applications/rolle.app/Contents/Helpers/rolle"; got != want {
 		t.Fatalf("cliTarget = %q, want %q", got, want)
 	}
 	if got := cliTarget("/Users/nate/go/bin/rolle-desktop"); got != "" {
@@ -14,11 +14,11 @@ func TestCLITarget(t *testing.T) {
 
 func TestNeedsMove(t *testing.T) {
 	for path, want := range map[string]bool{
-		"/Applications/Rolle.app/Contents/Helpers/rolle":                               false,
-		"/Users/nate/Applications/Rolle.app/Contents/Helpers/rolle":                    false,
-		"/Volumes/Rolle/Rolle.app/Contents/Helpers/rolle":                              true,
-		"/Users/nate/Downloads/Rolle.app/Contents/Helpers/rolle":                       true,
-		"/private/var/folders/x/AppTranslocation/y/d/Rolle.app/Contents/Helpers/rolle": true,
+		"/Applications/rolle.app/Contents/Helpers/rolle":                               false,
+		"/Users/nate/Applications/rolle.app/Contents/Helpers/rolle":                    false,
+		"/Volumes/rolle/rolle.app/Contents/Helpers/rolle":                              true,
+		"/Users/nate/Downloads/rolle.app/Contents/Helpers/rolle":                       true,
+		"/private/var/folders/x/AppTranslocation/y/d/rolle.app/Contents/Helpers/rolle": true,
 	} {
 		if got := needsMove(path); got != want {
 			t.Errorf("needsMove(%q) = %v, want %v", path, got, want)

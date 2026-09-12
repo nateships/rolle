@@ -1,5 +1,5 @@
-// Package awsconfig manages Rolle-owned profiles in ~/.aws/config. Each
-// profile points at the Rolle CLI through credential_process, so no secret is
+// Package awsconfig manages rolle-owned profiles in ~/.aws/config. Each
+// profile points at the rolle CLI through credential_process, so no secret is
 // written to disk.
 package awsconfig
 
@@ -23,7 +23,7 @@ func DefaultPath() (string, error) {
 	return filepath.Join(home, ".aws", "config"), nil
 }
 
-// Profile is one Rolle-managed profile.
+// Profile is one rolle-managed profile.
 type Profile struct {
 	Name      string
 	Region    string
@@ -34,13 +34,13 @@ type Profile struct {
 
 const (
 	marker = "rolle_session"
-	// preexisting records that the section existed before Rolle wrote it, so
+	// preexisting records that the section existed before rolle wrote it, so
 	// Remove restores it instead of deleting it.
 	preexisting = "rolle_preexisting"
 	prevRegion  = "rolle_previous_region"
 )
 
-// credentialKeys make a foreign profile off limits: Rolle never overwrites
+// credentialKeys make a foreign profile off limits: rolle never overwrites
 // another tool's credential configuration.
 var credentialKeys = []string{"credential_process", "aws_access_key_id", "aws_secret_access_key", "aws_session_token", "sso_start_url", "sso_session", "role_arn", "source_profile", "credential_source", "web_identity_token_file", "granted_sso_start_url"}
 
@@ -61,7 +61,7 @@ func CredentialsPath(configPath string) string {
 
 // checkShadow fails when the shared credentials file holds static keys for the
 // profile. The SDK credential chain reads those before credential_process, so
-// the SDK never uses the Rolle profile.
+// the SDK never uses the rolle profile.
 func checkShadow(configPath, profile string) error {
 	credPath := CredentialsPath(configPath)
 	f, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, credPath)
@@ -74,14 +74,14 @@ func checkShadow(configPath, profile string) error {
 	}
 	for _, k := range []string{"aws_access_key_id", "aws_secret_access_key", "aws_session_token"} {
 		if sec.HasKey(k) {
-			return fmt.Errorf("profile %q has static keys in %s that would shadow Rolle; remove that section or give the session another profile name", profile, credPath)
+			return fmt.Errorf("profile %q has static keys in %s that would shadow rolle; remove that section or give the session another profile name", profile, credPath)
 		}
 	}
 	return nil
 }
 
 // Write adds or replaces the profile in the config file at path. A profile
-// that Rolle does not own is not touched.
+// that rolle does not own is not touched.
 func Write(path string, p Profile) error {
 	if err := checkShadow(path, p.Name); err != nil {
 		return err
@@ -98,7 +98,7 @@ func Write(path string, p Profile) error {
 			return err
 		}
 	case !sec.HasKey(marker):
-		// Rolle takes over a plain section (region, output, ...) and restores
+		// rolle takes over a plain section (region, output, ...) and restores
 		// it on Remove. A section with credentials belongs to another tool.
 		for _, k := range credentialKeys {
 			if sec.HasKey(k) {
@@ -133,7 +133,7 @@ func Remove(path, name, sessionID string) error {
 		f.DeleteSection(sec.Name())
 		return save(path, f)
 	}
-	// Restore the section the user had before Rolle took it over.
+	// Restore the section the user had before rolle took it over.
 	sec.DeleteKey("credential_process")
 	sec.DeleteKey(marker)
 	sec.DeleteKey(preexisting)
@@ -195,6 +195,6 @@ func save(path string, f *ini.File) error {
 	return os.Rename(tmp, path)
 }
 
-// wroteRegion reports whether Rolle added the region key: a taken-over
+// wroteRegion reports whether rolle added the region key: a taken-over
 // section without a saved previous region had none before.
 func wroteRegion(sec *ini.Section) bool { return !sec.HasKey(prevRegion) }

@@ -20,7 +20,7 @@ if (new URLSearchParams(location.search).get("shot") === "1") MotionGlobalConfig
 // document so headers can inset their leading content past them.
 if (/Macintosh/.test(navigator.userAgent)) document.documentElement.classList.add("mac");
 
-// Release builds show only Rolle's own context menus. Dev builds keep the web view's for Inspect.
+// Release builds show only rolle's own context menus. Dev builds keep the web view's for Inspect.
 if (inWails && import.meta.env.PROD) document.addEventListener("contextmenu", (e) => e.preventDefault());
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
