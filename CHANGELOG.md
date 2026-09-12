@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.7](https://github.com/nateships/rolle/compare/v0.1.6...v0.1.7) (2026-09-12)
+
+
+### Features
+
+* **cli:** json output and exit codes for scripts and agents ([#37](https://github.com/nateships/rolle/issues/37)) ([d2fc314](https://github.com/nateships/rolle/commit/d2fc314c6f02fc226117f7b8c38802716a468878))
+
 ## [0.1.6](https://github.com/nateships/rolle/compare/v0.1.5...v0.1.6) (2026-09-12)
 
 
