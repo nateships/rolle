@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -70,6 +70,12 @@ describe("Dashboard", () => {
     await user.click(screen.getByRole("button", { name: /^Hidden/ }));
     expect(rowNames()).toEqual(["personal"]);
     expect(screen.getByLabelText("Hidden")).toBeInTheDocument();
+
+    // The sidebar item's menu brings everything back at once.
+    const unhide = vi.spyOn(api, "UnhideAll").mockResolvedValue();
+    fireEvent.contextMenu(screen.getByRole("button", { name: /^Hidden/ }));
+    await user.click(await screen.findByRole("menuitem", { name: "Unhide all" }));
+    expect(unhide).toHaveBeenCalled();
 
     // A search names it even on the full list.
     await user.click(screen.getByRole("button", { name: /^All sessions/ }));

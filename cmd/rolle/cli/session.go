@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"text/tabwriter"
@@ -48,7 +49,7 @@ func sessionListCmd() *cobra.Command {
 // sessionHideCmd builds hide and unhide: one session by name or ID, or every
 // role of an Identity Center account with --account.
 func sessionHideCmd(hide bool) *cobra.Command {
-	var account bool
+	var account, all bool
 	verb, short := "hide", "Keep a session out of the lists and the tray"
 	if !hide {
 		verb, short = "unhide", "Show a hidden session again"
@@ -56,8 +57,14 @@ func sessionHideCmd(hide bool) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   verb + " <session|account-id>",
 		Short: short + "; --account applies to every role of an AWS account",
-		Args:  cobra.ExactArgs(1),
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
+			if all {
+				return svc.UnhideAll()
+			}
+			if len(args) != 1 {
+				return errors.New("name a session, or an account with --account")
+			}
 			if !account {
 				return svc.SetHidden(args[0], hide)
 			}
@@ -78,6 +85,9 @@ func sessionHideCmd(hide bool) *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&account, "account", false, "treat the argument as an AWS account ID")
+	if !hide {
+		cmd.Flags().BoolVar(&all, "all", false, "show every hidden session again")
+	}
 	return cmd
 }
 

@@ -364,6 +364,9 @@ func (r *RolleService) SetFavorite(ref string, favorite bool) error {
 // SetHidden hides or shows a session.
 func (r *RolleService) SetHidden(ref string, hidden bool) error { return r.svc.SetHidden(ref, hidden) }
 
+// UnhideAll shows every hidden session again.
+func (r *RolleService) UnhideAll() error { return r.svc.UnhideAll() }
+
 // SetAccountHidden hides or shows every role of an Identity Center account.
 func (r *RolleService) SetAccountHidden(integrationID, accountID string, hidden bool) error {
 	return r.svc.SetAccountHidden(integrationID, accountID, hidden)
