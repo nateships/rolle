@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/nateships/rolle/compare/v0.1.5...v0.1.6) (2026-09-12)
+
+
+### Bug Fixes
+
+* drop the favorites panel from the session list ([#33](https://github.com/nateships/rolle/issues/33)) ([a870af6](https://github.com/nateships/rolle/commit/a870af6fcc19210aad020f410fb8353da884a6b8))
+
 ## [0.1.5](https://github.com/nateships/rolle/compare/v0.1.4...v0.1.5) (2026-09-12)
 
 
