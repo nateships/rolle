@@ -110,57 +110,63 @@ func integrationLoginCmd() *cobra.Command {
 		Short: "Sign in and discover roles",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			w, err := svc.Load()
-			if err != nil {
-				return err
-			}
-			in, err := app.FindIntegration(w, args[0])
-			if err != nil {
-				return err
-			}
-			switch in.Cloud {
-			case core.CloudAzure:
-				return azureLogin(cmd, args[0], noBrowser)
-			case core.CloudGCP:
-				added, err := svc.SyncGCP(cmd.Context(), args[0])
-				if err != nil {
-					return err
-				}
-				fmt.Printf("%d new project(s)\n", len(added))
-				return nil
-			}
-			var auth *aws.DeviceAuthorization
-			if noBrowser {
-				auth, err = svc.SSODeviceLogin(cmd.Context(), args[0])
-				if err != nil {
-					return err
-				}
-				fmt.Printf("Open %s\nand confirm code %s\n", auth.VerificationURI, auth.UserCode)
-			} else {
-				auth, err = svc.SSOLogin(cmd.Context(), args[0])
-				if err != nil {
-					return err
-				}
-				fmt.Printf("Approve the sign-in in your browser. If it did not open:\n%s\n", auth.VerificationURI)
-				_ = browser.Open(auth.VerificationURI)
-			}
-			fmt.Println("Waiting for approval...")
-			if err := auth.Wait(cmd.Context()); err != nil {
-				return err
-			}
-			added, err := svc.FinishSSOLogin(cmd.Context(), args[0])
-			if err != nil {
-				return err
-			}
-			fmt.Printf("Logged in. %d new role(s) discovered.\n", len(added))
-			for _, s := range added {
-				fmt.Printf("  %s\n", s.Name)
-			}
-			return nil
+			return loginIntegration(cmd, args[0], noBrowser)
 		},
 	}
 	cmd.Flags().BoolVar(&noBrowser, "no-browser", false, "print the URL instead of opening a browser")
 	return cmd
+}
+
+// loginIntegration signs in to one integration and discovers what it grants.
+// The sync command falls back to it when the integration has no valid token.
+func loginIntegration(cmd *cobra.Command, ref string, noBrowser bool) error {
+	w, err := svc.Load()
+	if err != nil {
+		return err
+	}
+	in, err := app.FindIntegration(w, ref)
+	if err != nil {
+		return err
+	}
+	switch in.Cloud {
+	case core.CloudAzure:
+		return azureLogin(cmd, ref, noBrowser)
+	case core.CloudGCP:
+		added, err := svc.SyncGCP(cmd.Context(), ref)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("%d new project(s)\n", len(added))
+		return nil
+	}
+	var auth *aws.DeviceAuthorization
+	if noBrowser {
+		auth, err = svc.SSODeviceLogin(cmd.Context(), ref)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Open %s\nand confirm code %s\n", auth.VerificationURI, auth.UserCode)
+	} else {
+		auth, err = svc.SSOLogin(cmd.Context(), ref)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Approve the sign-in in your browser. If it did not open:\n%s\n", auth.VerificationURI)
+		_ = browser.Open(auth.VerificationURI)
+	}
+	fmt.Println("Waiting for approval...")
+	if err := auth.Wait(cmd.Context()); err != nil {
+		return err
+	}
+	added, err := svc.FinishSSOLogin(cmd.Context(), ref)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("Logged in. %d new role(s) discovered.\n", len(added))
+	for _, s := range added {
+		fmt.Printf("  %s\n", s.Name)
+	}
+	return nil
 }
 
 func integrationLogoutCmd() *cobra.Command {
@@ -189,9 +195,10 @@ func integrationLogoutCmd() *cobra.Command {
 }
 
 func integrationSyncCmd() *cobra.Command {
-	return &cobra.Command{
+	var noBrowser bool
+	cmd := &cobra.Command{
 		Use:   "sync <integration>",
-		Short: "Rediscover accounts and roles",
+		Short: "Rediscover accounts and roles, signing in first if needed",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			w, err := svc.Load()
@@ -211,6 +218,12 @@ func integrationSyncCmd() *cobra.Command {
 			default:
 				added, err = svc.SyncSSO(cmd.Context(), args[0])
 			}
+			// GCP signs in through gcloud, so its error already names the command.
+			if app.LoginRequired(err) && in.Cloud != core.CloudGCP {
+				// Signing in discovers roles too, so the login output replaces the count.
+				fmt.Printf("%s needs a sign-in.\n", in.Alias)
+				return loginIntegration(cmd, args[0], noBrowser)
+			}
 			if err != nil {
 				return err
 			}
@@ -218,6 +231,8 @@ func integrationSyncCmd() *cobra.Command {
 			return nil
 		},
 	}
+	cmd.Flags().BoolVar(&noBrowser, "no-browser", false, "print the URL instead of opening a browser")
+	return cmd
 }
 
 func integrationRemoveCmd() *cobra.Command {

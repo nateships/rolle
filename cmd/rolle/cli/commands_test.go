@@ -15,7 +15,6 @@ import (
 
 	"github.com/nateships/rolle/internal/app"
 	"github.com/nateships/rolle/internal/aws"
-	"github.com/nateships/rolle/internal/azure"
 	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/debug"
 	"github.com/nateships/rolle/internal/gcp"
@@ -151,8 +150,15 @@ func TestIntegrationLoginDeviceFlowDiscoversRoles(t *testing.T) {
 	if _, err := run(t, "start", "Acme/Admin"); !errors.Is(err, aws.ErrSSOLoginRequired) {
 		t.Fatalf("start after logout = %v", err)
 	}
-	if _, err := run(t, "integration", "sync", "acme"); !errors.Is(err, aws.ErrSSOLoginRequired) {
-		t.Fatalf("sync after logout = %v", err)
+	// A sync with no valid token runs the sign-in instead of failing.
+	out = mustRun(t, "integration", "sync", "acme", "--no-browser")
+	for _, want := range []string{"acme needs a sign-in.\n", "and confirm code ABCD-EFGH\n", "Logged in. 0 new role(s) discovered.\n"} {
+		if !strings.Contains(out, want) {
+			t.Fatalf("sync after logout lacks %q:\n%s", want, out)
+		}
+	}
+	if row := fields(lines(mustRun(t, "int", "list"))[1]); strings.Join(row[2:5], " ") != "logged in until" {
+		t.Fatalf("list row after sync = %v", row)
 	}
 }
 
@@ -208,9 +214,8 @@ func TestIntegrationCommandsForAzureAndGCP(t *testing.T) {
 		t.Fatalf("azure row with account = %v", row)
 	}
 
-	if _, err := run(t, "integration", "sync", "contoso"); !errors.Is(err, azure.ErrLoginRequired) {
-		t.Fatalf("sync azure without login = %v", err)
-	}
+	// An Azure sync without a login runs the Microsoft sign-in, which needs the
+	// network, so the CLI test stops here for contoso.
 	if _, err := run(t, "integration", "sync", "gcp"); !errors.Is(err, gcp.ErrNoADC) {
 		t.Fatalf("sync gcp without ADC = %v", err)
 	}
