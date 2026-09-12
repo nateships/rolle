@@ -39,8 +39,16 @@ jobs:
       - name: Install NSIS
         if: runner.os == 'Windows'
         shell: pwsh
+        # The Chocolatey feed times out now and then and choco still exits 0,
+        # so the step checks for makensis itself and retries.
         run: |
-          choco install nsis --no-progress -y
+          $exe = 'C:\Program Files (x86)\NSIS\makensis.exe'
+          foreach ($attempt in 1..3) {
+            choco install nsis --no-progress -y
+            if (Test-Path $exe) { break }
+            Start-Sleep -Seconds 30
+          }
+          if (-not (Test-Path $exe)) { throw 'NSIS did not install' }
           Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files (x86)\NSIS'
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
