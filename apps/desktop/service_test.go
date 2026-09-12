@@ -22,6 +22,7 @@ func testRolle(t *testing.T) *RolleService {
 	dir := t.TempDir()
 	home := filepath.Join(dir, "home")
 	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
 	t.Setenv("AWS_CONFIG_FILE", filepath.Join(home, ".aws", "config"))
 	t.Setenv("AZURE_CONFIG_DIR", filepath.Join(home, ".azure"))
 	t.Setenv("LEAPP_HOME", filepath.Join(home, ".leapp"))

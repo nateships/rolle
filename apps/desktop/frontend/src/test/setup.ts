@@ -9,6 +9,14 @@ MotionGlobalConfig.skipAnimations = true;
 // Confetti draws on a canvas, which jsdom lacks. Stub the library so tests can observe celebrate().
 vi.mock("canvas-confetti", () => ({ default: vi.fn(() => Promise.resolve()) }));
 
+// The Wails runtime warns once per module graph that it runs outside the
+// webview. Tests always do, so drop that one message and keep the rest.
+const warn = console.warn.bind(console);
+console.warn = (...args: unknown[]) => {
+  if (typeof args[0] === "string" && args[0].includes("Browser Environment Detected")) return;
+  warn(...args);
+};
+
 // jsdom has no matchMedia. Default to a light OS theme; tests override as needed.
 function matchMedia(query: string): MediaQueryList {
   return {

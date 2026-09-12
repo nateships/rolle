@@ -12,6 +12,13 @@ typos = "1.50.1"      # spell check
 cosign = "3.1.3"      # keyless signature on the CLI checksum file at release
 goreleaser = "2.18.1" # CLI archives and the GitHub release
 
+[env]
+# macOS: compile cgo objects for the same minimum version the Go linker
+# targets (12.0), the same floor as Info.plist, and keep the linker quiet about the repeated -lobjc that
+# the Wails cgo directives add. Other platforms keep the Go defaults.
+CGO_CFLAGS = { value = "-g -O2 -mmacosx-version-min=12.0", os = ["macos"] }
+CGO_LDFLAGS = { value = "-g -O2 -mmacosx-version-min=12.0 -Wl,-no_warn_duplicate_libraries", os = ["macos"] }
+
 [tasks."setup:frontend"]
 description = "Install desktop frontend dependencies"
 run = "aube install"

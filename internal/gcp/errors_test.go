@@ -145,6 +145,12 @@ func TestGCloudLoginRunsTheCLI(t *testing.T) {
 	}
 
 	t.Setenv("PATH", t.TempDir())
+	// A system install at a well-known path is still found. Skip there.
+	for _, c := range candidates() {
+		if _, err := os.Stat(c); err == nil {
+			t.Skipf("gcloud installed at %s", c)
+		}
+	}
 	if err := GCloudLogin(context.Background()); !errors.Is(err, ErrGCloudMissing) {
 		t.Fatalf("missing gcloud = %v", err)
 	}
