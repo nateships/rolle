@@ -6,10 +6,11 @@ builds:
     main: ./cmd/rolle
     binary: rolle
     env: [CGO_ENABLED=0]
-    # -trimpath keeps the builder's paths out of the binary, so a build of the
-    # same tag with the same toolchain is byte for byte identical. The docs
-    # security page gives the recipe.
-    flags: [-trimpath]
+    # -trimpath keeps the builder's paths out of the binary and -buildvcs=false
+    # keeps the checkout state out, so a build of the same tag with the same
+    # toolchain is byte for byte identical, and the same as the command the
+    # desktop app carries. The docs security page gives the recipe.
+    flags: [-trimpath, -buildvcs=false]
     goos: [darwin, linux, windows]
     goarch: [amd64, arm64]
     ldflags:

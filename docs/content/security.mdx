@@ -53,11 +53,11 @@ A pass means the file comes from `.github/workflows/release.yml` in this reposit
 
 ## Reproducible builds
 
-The CLI archives are built with `-trimpath` and without cgo. The same source, toolchain, and flags give a byte-identical binary. To check a release: clone the tag, use the Go version that `go version -m rolle` prints for the released binary, and build.
+The CLI archives are built with `-trimpath -buildvcs=false` and without cgo. The same source, toolchain, and flags give a byte-identical binary, and the copy inside the desktop app is built the same way. To check a release: clone the tag, use the Go version that `go version -m rolle` prints for the released binary, and build.
 
 ```sh
 git clone --branch v<version> https://github.com/nateships/rolle && cd rolle
-CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath \
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false \
   -ldflags "-s -w -X github.com/nateships/rolle/internal/version.Version=<version>" \
   -o rolle-rebuilt ./cmd/rolle
 sha256sum rolle-rebuilt rolle   # rolle from the release archive
