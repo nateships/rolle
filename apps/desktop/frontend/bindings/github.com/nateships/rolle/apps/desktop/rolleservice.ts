@@ -195,6 +195,14 @@ export function OpenURL(u: string): $CancellablePromise<void> {
 }
 
 /**
+ * PendingUpdate returns the release the last background check found, or nil.
+ * The frontend calls it on mount to catch a check that ran before it loaded.
+ */
+export function PendingUpdate(): $CancellablePromise<$models.UpdateInfo | null> {
+    return $Call.ByID(1900173335);
+}
+
+/**
  * Relaunch starts a second copy of this app, on fictional data when demo is
  * true and on the real workspace otherwise, then quits this one. Dev builds only.
  */

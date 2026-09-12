@@ -35,12 +35,17 @@ const releasesAPI = "https://api.github.com/repos/nateships/rolle/releases?per_p
 // checkInterval is how often background update checks run.
 const checkInterval = 6 * time.Hour
 
-// startupCheckDelay gives the window time to appear before the first check.
-const startupCheckDelay = 20 * time.Second
-
 // EventUpdateAvailable carries an UpdateInfo when a background check finds a
 // newer release. The sidebar shows it; the updater window opens on request.
 const EventUpdateAvailable = "update:available"
+
+// pendingUpdate remembers the last release a background check found. The
+// first check runs at launch, often before the frontend listens for the
+// event, so the frontend asks for this on mount.
+var pendingUpdate struct {
+	mu   sync.Mutex
+	info *UpdateInfo
+}
 
 // updaterPublicKey is the Ed25519 trust root, generated with `wails3 updater genkey`.
 // Release artifacts are signed with the matching private key in CI.
@@ -74,9 +79,8 @@ func setupUpdater(a *application.App, svc *app.Service) error {
 	if err := a.Updater.Init(cfg); err != nil {
 		return err
 	}
-	debug.Logf("updater", "configured for %s, first check in %v, then every %v", cfg.CurrentVersion, startupCheckDelay, checkInterval)
+	debug.Logf("updater", "configured for %s, checking now and every %v", cfg.CurrentVersion, checkInterval)
 	go func() {
-		time.Sleep(startupCheckDelay)
 		for {
 			backgroundCheck(a, svc)
 			time.Sleep(checkInterval)
@@ -102,14 +106,26 @@ func backgroundCheck(a *application.App, svc *app.Service) {
 		return
 	}
 	debug.Logf("updater", "background check: %s available", rel.Version)
-	a.Event.Emit(EventUpdateAvailable, UpdateInfo{
+	info := UpdateInfo{
 		Enabled:        true,
 		CurrentVersion: version.Version,
 		Available:      true,
 		Version:        rel.Version,
 		Notes:          rel.Notes,
 		State:          string(a.Updater.State()),
-	})
+	}
+	pendingUpdate.mu.Lock()
+	pendingUpdate.info = &info
+	pendingUpdate.mu.Unlock()
+	a.Event.Emit(EventUpdateAvailable, info)
+}
+
+// PendingUpdate returns the release the last background check found, or nil.
+// The frontend calls it on mount to catch a check that ran before it loaded.
+func (r *RolleService) PendingUpdate() *UpdateInfo {
+	pendingUpdate.mu.Lock()
+	defer pendingUpdate.mu.Unlock()
+	return pendingUpdate.info
 }
 
 // parsePublicKey accepts the PEM file written by `wails3 updater genkey` or

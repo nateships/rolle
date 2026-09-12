@@ -446,6 +446,10 @@ export const mockApi = {
       state: avail ? "available" : "up-to-date",
     };
   },
+  PendingUpdate: async () => {
+    const avail = new URLSearchParams(location.search).get("update") === "1";
+    return avail ? mockApi.CheckForUpdates() : null;
+  },
   InstallUpdate: async () => {
     await wait(1200);
   },

@@ -106,13 +106,13 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   }, []);
 
   // A background check found a newer release. The footer offers it; the
-  // updater window opens on click. ?update=1 previews it in the browser.
+  // updater window opens on click. The first check runs at launch, so the
+  // mount asks for a result the event may have delivered before this listened.
+  // ?update=1 previews it in the browser.
   const [update, setUpdate] = useState<UpdateInfo | null>(null);
   useEffect(() => {
+    void api.PendingUpdate().then((u) => u?.available && setUpdate(u));
     if (inWails) return Events.On(UPDATE_AVAILABLE, (e: { data: UpdateInfo }) => setUpdate(e.data));
-    if (new URLSearchParams(location.search).get("update") === "1") {
-      void api.CheckForUpdates().then((u) => setUpdate(u.available ? u : null));
-    }
   }, []);
 
   const searchRef = useRef<HTMLInputElement>(null);
