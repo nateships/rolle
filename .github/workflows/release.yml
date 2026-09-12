@@ -266,38 +266,7 @@ jobs:
           tap="$(brew --repository nateships/tap)"
           git -C "$tap" config user.name "github-actions[bot]"
           git -C "$tap" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          if [ -f "$tap/Casks/rolle.rb" ]; then
-            brew bump-cask-pr nateships/tap/rolle --version "$VERSION" --write-only --commit --no-audit --no-browse
-          else
-            # First release: write the cask once. bump-cask-pr owns it from here.
-            curl -fsSL -o Rolle.dmg "https://github.com/${GITHUB_REPOSITORY}/releases/download/${GITHUB_REF_NAME}/Rolle.dmg"
-            sha="$(shasum -a 256 Rolle.dmg | cut -d' ' -f1)"
-            cat > "$tap/Casks/rolle.rb" <<RUBY
-          cask "rolle" do
-            version "$VERSION"
-            sha256 "$sha"
-
-            url "https://github.com/nateships/rolle/releases/download/v#{version}/Rolle.dmg"
-            name "Rolle"
-            desc "Assume any role, any cloud"
-            homepage "https://getrolle.com/"
-
-            auto_updates true
-            depends_on macos: :monterey
-
-            app "Rolle.app"
-
-            # The app stores its files in the XDG directories, which on macOS
-            # resolve under ~/Library. The dot paths cover XDG_* overrides.
-            zap trash: [
-              "~/.cache/rolle",
-              "~/.config/rolle",
-              "~/Library/Application Support/rolle",
-              "~/Library/Caches/rolle",
-            ]
-          end
-          RUBY
-            git -C "$tap" add Casks/rolle.rb
-            git -C "$tap" commit -m "rolle $VERSION"
-          fi
+          # The cask lives in the tap. bump-cask-pr downloads the DMG for this
+          # tag and rewrites version and sha256; a missing cask fails the job.
+          brew bump-cask-pr nateships/tap/rolle --version "$VERSION" --write-only --commit --no-audit --no-browse
           git -C "$tap" push "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/nateships/homebrew-tap.git" HEAD:main
