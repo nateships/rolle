@@ -74,13 +74,6 @@ tasks:
     cmds:
       - cp "{{.APP_BINARY}}" "{{.APP_NAME}}"
       - cp ../../appicon.png "{{.APP_NAME}}.png"
-      # wails3 downloads linuxdeploy's continuous build unless the file is
-      # already in the build directory. Fetch one pinned release instead and
-      # check its hash, so the AppImage is built by a reviewed tool. Renovate
-      # bumps LINUXDEPLOY_RELEASE; the hash then needs a manual update.
-      - mkdir -p build
-      - curl -fsSL -o "build/{{.LINUXDEPLOY}}" "https://github.com/linuxdeploy/linuxdeploy/releases/download/{{.LINUXDEPLOY_RELEASE}}/{{.LINUXDEPLOY}}"
-      - echo "{{.LINUXDEPLOY_SHA256}}  build/{{.LINUXDEPLOY}}" | sha256sum -c -
       - wails3 generate appimage -binary "{{.APP_NAME}}" -icon {{.ICON}} -desktopfile {{.DESKTOP_FILE}} -outputdir {{.OUTPUT_DIR}} -builddir {{.ROOT_DIR}}/build/linux/appimage/build
     vars:
       APP_NAME: '{{.APP_NAME}}'
@@ -88,10 +81,6 @@ tasks:
       ICON: '{{.APP_NAME}}.png'
       DESKTOP_FILE: '../{{.APP_NAME}}.desktop'
       OUTPUT_DIR: '../../../bin'
-      LINUXDEPLOY_RELEASE: 1-alpha-20251107-1
-      LINUXDEPLOY_ARCH: '{{if eq ARCH "arm64"}}aarch64{{else}}x86_64{{end}}'
-      LINUXDEPLOY: 'linuxdeploy-{{.LINUXDEPLOY_ARCH}}.AppImage'
-      LINUXDEPLOY_SHA256: '{{if eq ARCH "arm64"}}620095110d693282b8ebeb244a95b5e911cf8f65f76c88b4b47d16ae6346fcff{{else}}c20cd71e3a4e3b80c3483cef793cda3f4e990aca14014d23c544ca3ce1270b4d{{end}}'
 
   create:deb:
     summary: Creates a deb package

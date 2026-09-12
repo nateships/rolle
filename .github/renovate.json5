@@ -39,17 +39,6 @@
       "packageNameTemplate": "goreleaser/goreleaser",
       "extractVersionTemplate": "^v(?<version>.*)$",
     },
-    {
-      // linuxdeploy release pinned in the AppImage task. The checksum next to
-      // it needs a manual update after a bump; the build fails until then.
-      "customType": "regex",
-      "managerFilePatterns": ["/^apps/desktop/build/linux/Taskfile\\.yml$/"],
-      "matchStrings": ["LINUXDEPLOY_RELEASE: (?<currentValue>\\S+)"],
-      "depNameTemplate": "linuxdeploy",
-      "datasourceTemplate": "github-releases",
-      "packageNameTemplate": "linuxdeploy/linuxdeploy",
-      "versioningTemplate": "regex:^(?<major>\\d+)-alpha-(?<minor>\\d+)-(?<patch>\\d+)$",
-    },
   ],
   "packageRules": [
     {
