@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ export function TagDialog({ target, onClose }: { target: TagTarget | null; onClo
   const editing = target?.kind === "edit" ? target.tag : null;
   return (
     <Dialog open={target !== null} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-sm">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{editing ? "Edit tag" : "New tag"}</DialogTitle>
           <DialogDescription>
@@ -37,7 +37,8 @@ export function TagDialog({ target, onClose }: { target: TagTarget | null; onClo
   );
 }
 
-const MAX_ICON_RESULTS = 160;
+/** Icons render in batches as the grid scrolls; each one loads on first sight. */
+const ICON_BATCH = 96;
 
 function TagForm({ editing, onClose }: { editing: Tag | null; onClose: () => void }) {
   const [name, setName] = useState(editing?.name ?? "");
@@ -136,22 +137,48 @@ function IconPanel({
   onIcon: (i: string) => void;
 }) {
   const [query, setQuery] = useState("");
-  const results = useMemo(() => {
+  const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const list = q ? ICON_NAMES.filter((n) => n.includes(q)) : ICON_NAMES;
-    return list.slice(0, MAX_ICON_RESULTS);
+    return q ? ICON_NAMES.filter((n) => n.includes(q)) : ICON_NAMES;
   }, [query]);
+  const [shown, setShown] = useState(ICON_BATCH);
+  const grid = useRef<HTMLDivElement>(null);
+  const observer = useRef<IntersectionObserver | null>(null);
+  // The sentinel sits after the last rendered icon; when it scrolls into
+  // view, the next batch renders. The callback ref follows the element as it
+  // mounts and unmounts.
+  const sentinel = useCallback((el: HTMLDivElement | null) => {
+    observer.current?.disconnect();
+    observer.current = null;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    observer.current = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) setShown((n) => n + ICON_BATCH);
+      },
+      { root: grid.current },
+    );
+    observer.current.observe(el);
+  }, []);
+  const results = matches.slice(0, shown);
   const custom = !TAG_PRESETS.some((p) => p.hex === color);
   return (
-    <div className="space-y-3 rounded-md border bg-muted/30 p-3">
+    <div className="min-w-0 space-y-3 rounded-md border bg-muted/30 p-3">
       <Input
         value={query}
-        onChange={(e) => setQuery(e.target.value)}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setShown(ICON_BATCH);
+        }}
         placeholder="Search icons"
         aria-label="Search icons"
         autoFocus
       />
-      <div className="grid max-h-48 grid-cols-8 gap-1 overflow-y-auto pr-1" role="listbox" aria-label="Icons">
+      <div
+        ref={grid}
+        className="grid max-h-48 grid-cols-8 gap-1 overflow-y-auto pr-1"
+        role="listbox"
+        aria-label="Icons"
+      >
         {results.map((n) => (
           <button
             key={n}
@@ -172,8 +199,9 @@ function IconPanel({
         {results.length === 0 && (
           <p className="col-span-8 py-2 text-center text-xs text-muted-foreground">No icon matches</p>
         )}
+        {shown < matches.length && <div ref={sentinel} className="col-span-8 h-1" aria-hidden />}
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
         {TAG_PRESETS.map((p) => (
           <button
             key={p.hex}
