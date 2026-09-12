@@ -70,6 +70,10 @@ func cliStatus(exe string) CLIStatus {
 	if target == "" {
 		return CLIStatus{Reason: "unsupported"}
 	}
+	// Dev bundles carry no helper; the release task adds it.
+	if _, err := os.Stat(target); err != nil {
+		return CLIStatus{Reason: "unsupported"}
+	}
 	st := CLIStatus{Target: target}
 	if needsMove(target) {
 		st.Reason = "move"

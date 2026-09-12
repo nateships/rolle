@@ -73,7 +73,7 @@ export function CommandLineInstall({ compact = false, className }: { compact?: b
             ? `Ready in your terminal at ${status.path}.`
             : status.reason === "move"
               ? "Move Rolle to the Applications folder, then install the command from Settings."
-              : "Ships inside the app. Link it into /usr/local/bin for every terminal."}
+              : "Ships inside the app. Install it once and `rolle env <name>` works in every terminal."}
         </p>
       </div>
       {status.installed ? (
