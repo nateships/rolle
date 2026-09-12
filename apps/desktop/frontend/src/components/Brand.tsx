@@ -11,7 +11,7 @@ import gcpLogo from "@/assets/vendors/gcp.svg";
  * The gopher artwork at full size. On light surfaces a blurred gray halo sits behind it so the
  * ivory body stays visible. The halo scales with the artwork and fades into the background.
  */
-export function GopherMark({ className }: { className?: string }) {
+export function GopherMark({ className, autoplay }: { className?: string; autoplay?: boolean }) {
   return (
     <span
       className={cn(
@@ -19,7 +19,7 @@ export function GopherMark({ className }: { className?: string }) {
         className,
       )}
     >
-      <GopherRig />
+      <GopherRig autoplay={autoplay} />
     </span>
   );
 }

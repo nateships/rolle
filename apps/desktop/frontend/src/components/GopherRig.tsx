@@ -5,8 +5,9 @@ import { cn } from "@/lib/utils";
  * The gopher on its cards as editable vector layers, from docs/brand/animation-kit.
  * A click alternates between a short dance and a hide-then-peek behind the green
  * card. Nothing else happens; that is the point. Reduced motion skips it.
+ * With autoplay, the first move plays on its own shortly after mount.
  */
-export function GopherRig({ className }: { className?: string }) {
+export function GopherRig({ className, autoplay }: { className?: string; autoplay?: boolean }) {
   const uid = useId().replace(/:/g, "");
   const svg = useRef<SVGSVGElement>(null);
   const state = useRef<{
@@ -123,6 +124,13 @@ export function GopherRig({ className }: { className?: string }) {
     },
     [],
   );
+
+  // Autoplay waits for the section's own entrance to settle first.
+  useEffect(() => {
+    if (!autoplay) return;
+    const t = setTimeout(play, 350);
+    return () => clearTimeout(t);
+  }, [autoplay]);
 
   function play() {
     if (state.current.busy) return;

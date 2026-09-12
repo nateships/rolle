@@ -10,6 +10,15 @@ describe("GopherRig", () => {
     return container.querySelector(`[data-part="${name}"]`)!;
   }
 
+  it("plays the first move on its own with autoplay", () => {
+    const { container } = render(<GopherRig autoplay />);
+    // Nothing moves before the section has settled.
+    act(() => void vi.advanceTimersByTime(200));
+    expect(part(container, "hands-root").getAttribute("transform")).toBeNull();
+    act(() => void vi.advanceTimersByTime(500));
+    expect(part(container, "hands-root").getAttribute("transform")).not.toBeNull();
+  });
+
   it("returns every part to rest after the dance and after the peek", () => {
     const { container } = render(<GopherRig />);
     const svg = container.querySelector("svg")!;

@@ -951,7 +951,7 @@ function Empty({
     const signedIn = isLoggedIn(integration);
     return (
       <div className="flex h-full flex-col items-center justify-center text-center">
-        <GopherMark className="size-24" />
+        <GopherMark className="size-24" autoplay />
         <h3 className="mt-5 text-lg font-medium">
           {signedIn ? `No sessions in ${integration.alias}` : `${integration.alias} is signed out`}
         </h3>
@@ -974,7 +974,7 @@ function Empty({
   }
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
-      <GopherMark className="size-24" />
+      <GopherMark className="size-24" autoplay />
       <h3 className="mt-5 text-lg font-medium">{hasAny ? "Nothing matches" : "No sessions yet"}</h3>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">
         {hasAny
