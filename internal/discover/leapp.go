@@ -260,6 +260,12 @@ func encryptCryptoJS(plain []byte, passphrase string, salt []byte) string {
 }
 
 // evpBytesToKey implements OpenSSL EVP_BytesToKey with MD5 and one iteration.
+//
+// MD5 is the only choice here. crypto-js derives its AES key this way, and
+// Leapp encrypted its workspace with crypto-js, so any other function cannot
+// read the file. The passphrase is the machine id, not a user password, and
+// Rolle never writes this format for its own data; the encrypt side above
+// exists for test fixtures. Rolle's secrets live in the OS keychain.
 func evpBytesToKey(pass, salt []byte, keyLen, ivLen int) (key, iv []byte) {
 	var d, prev []byte
 	for len(d) < keyLen+ivLen {
