@@ -71,10 +71,32 @@ func writeCLITokenCache(t *testing.T, home string, expires time.Time) {
 type fakeSSO struct {
 	roles []string
 	calls int
+	// tokenStatus is the OIDC /token reply: 0 or 200 issues a fresh access
+	// token, 400 refuses the refresh token, 500 fails the request with an
+	// error the SDK does not retry, so a fault costs one call.
+	tokenStatus int
+	tokenCalls  int
 }
 
 func (f *fakeSSO) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	f.calls++
+	if r.URL.Path == "/token" {
+		f.tokenCalls++
+		w.Header().Set("Content-Type", "application/json")
+		switch f.tokenStatus {
+		case http.StatusBadRequest:
+			w.Header().Set("x-amzn-ErrorType", "InvalidGrantException")
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, `{"error":"invalid_grant","error_description":"refresh token expired"}`)
+		case http.StatusInternalServerError:
+			w.Header().Set("x-amzn-ErrorType", "InvalidRequestException")
+			w.WriteHeader(http.StatusBadRequest)
+			fmt.Fprint(w, `{"error":"invalid_request","error_description":"service fault stand-in"}`)
+		default:
+			fmt.Fprintf(w, `{"accessToken":%q,"tokenType":"Bearer","expiresIn":3600,"refreshToken":"rt-2"}`, cliToken)
+		}
+		return
+	}
 	if r.Header.Get("x-amz-sso_bearer_token") != cliToken {
 		w.Header().Set("x-amzn-ErrorType", "UnauthorizedException")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -106,6 +128,7 @@ func startFakeSSO(t *testing.T, roles ...string) *fakeSSO {
 	srv := httptest.NewServer(f)
 	t.Cleanup(srv.Close)
 	t.Setenv("AWS_ENDPOINT_URL_SSO", srv.URL)
+	t.Setenv("AWS_ENDPOINT_URL_SSO_OIDC", srv.URL)
 	return f
 }
 

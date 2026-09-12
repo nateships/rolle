@@ -611,6 +611,38 @@ func (s *Service) Start(ctx context.Context, ref string, opts StartOptions) (cor
 	return creds, s.Save(w)
 }
 
+// probeSSOLogins checks the Identity Center integrations that show a login
+// whose access token has lapsed. A silent refresh proves the login and gives
+// the new expiry; a refused refresh clears it, so the interface stops showing
+// a login the portal no longer honours. A transport fault changes nothing and
+// the next tick tries again. The result holds only the expiries that change.
+func (s *Service) probeSSOLogins(ctx context.Context, w *core.Workspace) map[string]*time.Time {
+	now := time.Now()
+	if s.Now != nil {
+		now = s.Now()
+	}
+	out := map[string]*time.Time{}
+	for i := range w.Integrations {
+		in := &w.Integrations[i]
+		if in.AWSSSO == nil || in.AWSSSO.TokenExpires == nil || now.Add(time.Minute).Before(*in.AWSSSO.TokenExpires) {
+			continue
+		}
+		exp, err := s.sso(*in).Probe(ctx)
+		switch {
+		case err == nil:
+			if !exp.Equal(*in.AWSSSO.TokenExpires) {
+				out[in.ID] = exp
+			}
+		case errors.Is(err, aws.ErrSSOLoginRequired):
+			debug.Logf("refresh", "%s login is gone: %v", in.Alias, err)
+			out[in.ID] = nil
+		default:
+			debug.Logf("refresh", "%s token check failed, will retry: %v", in.Alias, err)
+		}
+	}
+	return out
+}
+
 // recordSSOToken writes the portal token state of an integration into the
 // workspace, so the interface shows a login that the portal has refused.
 func (s *Service) recordSSOToken(integrationID string) {
@@ -888,11 +920,17 @@ func (s *Service) Refresh() (*core.Workspace, error) {
 		}
 		renewed[sess.ID] = creds.Expiration
 	}
-	if len(renewed) == 0 && len(expired) == 0 {
+	logins := s.probeSSOLogins(ctx, w)
+	if len(renewed) == 0 && len(expired) == 0 && len(logins) == 0 {
 		return w, nil
 	}
 	if w, err = s.Load(); err != nil {
 		return nil, err
+	}
+	for id, exp := range logins {
+		if in, err := w.Integration(id); err == nil && in.AWSSSO != nil {
+			in.AWSSSO.TokenExpires = exp
+		}
 	}
 	tokenSeen := map[string]bool{}
 	for i := range w.Sessions {

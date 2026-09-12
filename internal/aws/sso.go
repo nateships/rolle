@@ -355,6 +355,18 @@ func (s *SSO) TokenExpiry() *time.Time {
 	return nil
 }
 
+// Probe reports whether the stored portal token still works and returns its
+// expiry. A lapsed access token is refreshed, so the call proves the login
+// rather than the record of it. ErrSSOLoginRequired means only a new login
+// can help; any other error is a transport or service fault.
+func (s *SSO) Probe(ctx context.Context) (*time.Time, error) {
+	t, err := s.token(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &t.Expires, nil
+}
+
 // valid reports whether the access token has more than one minute left.
 func (s *SSO) valid(t ssoToken) bool { return s.now().Add(time.Minute).Before(t.Expires) }
 

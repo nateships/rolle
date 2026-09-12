@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
@@ -634,5 +635,63 @@ func TestCredentialsRefreshRecordsNewExpiry(t *testing.T) {
 	}
 	if got := session(t, s, sess.ID); got.Status != core.StatusInactive || got.Expires != nil {
 		t.Fatalf("saveExpires revived a stopped session: %+v", got)
+	}
+}
+
+func TestRefreshProbesIdleSSOLogins(t *testing.T) {
+	cases := []struct {
+		name        string
+		tokenStatus int
+		wantLogin   bool
+		// secondCalls is the /token count after a second Refresh: a refused
+		// login is not probed again, a renewed one is valid, a fault retries.
+		secondCalls int
+	}{
+		{"refused refresh clears the login", http.StatusBadRequest, false, 1},
+		{"service fault keeps the login", http.StatusInternalServerError, true, 2},
+		{"silent refresh renews the login", http.StatusOK, true, 1},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			fakeHome(t)
+			portal := startFakeSSO(t)
+			portal.tokenStatus = tc.tokenStatus
+			s := testService(t)
+			in, err := s.AddAWSSSO("acme", portalURL, "us-east-1")
+			if err != nil {
+				t.Fatal(err)
+			}
+			// The access token lapsed an hour ago, but the refresh token is
+			// there, so the workspace still records a login.
+			past := time.Now().Add(-time.Hour).UTC().Truncate(time.Second)
+			if err := s.sso(in).StoreImportedToken("old", "rt-1", "cid", "csecret", "us-east-1", past); err != nil {
+				t.Fatal(err)
+			}
+			s.recordSSOToken(in.ID)
+			if w, _ := s.Load(); w.Integrations[0].AWSSSO.TokenExpires == nil {
+				t.Fatal("setup: login must be recorded")
+			}
+
+			w, err := s.Refresh()
+			if err != nil {
+				t.Fatal(err)
+			}
+			integ, _ := FindIntegration(w, "acme")
+			if got := integ.AWSSSO.TokenExpires != nil; got != tc.wantLogin {
+				t.Fatalf("TokenExpires = %v, want login %v", integ.AWSSSO.TokenExpires, tc.wantLogin)
+			}
+			if tc.tokenStatus == http.StatusOK && !integ.AWSSSO.TokenExpires.After(time.Now().Add(50*time.Minute)) {
+				t.Fatalf("renewed TokenExpires = %v", integ.AWSSSO.TokenExpires)
+			}
+			if portal.tokenCalls != 1 {
+				t.Fatalf("token calls = %d", portal.tokenCalls)
+			}
+			if _, err := s.Refresh(); err != nil {
+				t.Fatal(err)
+			}
+			if portal.tokenCalls != tc.secondCalls {
+				t.Fatalf("token calls after second refresh = %d, want %d", portal.tokenCalls, tc.secondCalls)
+			}
+		})
 	}
 }
