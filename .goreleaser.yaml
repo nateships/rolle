@@ -46,26 +46,3 @@ release:
   prerelease: auto
   extra_files:
     - glob: release-assets/*
-
-homebrew_casks:
-  - name: rolle-cli
-    ids: [rolle]
-    binaries: [rolle]
-    homepage: https://getrolle.com/
-    license: GPL-3.0-or-later
-    description: Assume any role, any cloud
-    directory: Casks
-    skip_upload: auto
-    generate_completions_from_executable:
-      executable: rolle
-      args: [completion]
-      shells: [bash, zsh, fish]
-    commit_msg_template: "rolle-cli {{ .Tag }}"
-    commit_author:
-      name: github-actions[bot]
-      email: 41898282+github-actions[bot]@users.noreply.github.com
-    repository:
-      owner: nateships
-      name: homebrew-tap
-      branch: main
-      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
