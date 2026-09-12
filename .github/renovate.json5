@@ -28,6 +28,28 @@
       "packageNameTemplate": "jdx/aube",
       "extractVersionTemplate": "^v?(?<version>.*)$",
     },
+    {
+      // The goreleaser version the release workflow asks the action for.
+      // mise.toml's pin is tracked by the mise manager; the rule below groups them.
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.github/workflows/release\\.yml$/"],
+      "matchStrings": ["goreleaser/goreleaser-action@[^\\n]*\\n\\s+with:\\n\\s+version: v(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      "depNameTemplate": "goreleaser",
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "goreleaser/goreleaser",
+      "extractVersionTemplate": "^v(?<version>.*)$",
+    },
+    {
+      // linuxdeploy release pinned in the AppImage task. The checksum next to
+      // it needs a manual update after a bump; the build fails until then.
+      "customType": "regex",
+      "managerFilePatterns": ["/^apps/desktop/build/linux/Taskfile\\.yml$/"],
+      "matchStrings": ["LINUXDEPLOY_RELEASE: (?<currentValue>\\S+)"],
+      "depNameTemplate": "linuxdeploy",
+      "datasourceTemplate": "github-releases",
+      "packageNameTemplate": "linuxdeploy/linuxdeploy",
+      "versioningTemplate": "regex:^(?<major>\\d+)-alpha-(?<minor>\\d+)-(?<patch>\\d+)$",
+    },
   ],
   "packageRules": [
     {
@@ -40,6 +62,11 @@
       "description": "Group every aube pin into one PR",
       "matchDepNames": ["aube"],
       "groupName": "aube",
+    },
+    {
+      "description": "goreleaser in mise.toml and in the release workflow move together",
+      "matchDepNames": ["goreleaser", "goreleaser/goreleaser"],
+      "groupName": "goreleaser",
     },
     {
       "description": "Wails runtime and CLI move together",

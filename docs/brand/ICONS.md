@@ -1,6 +1,6 @@
 # Desktop icon assets
 
-Desktop icons use only the credential stack and open r. The gopher is reserved for the README mascot. No launcher or tray icon includes text or requires a font.
+Desktop icons use only the credential stack and open r. The gopher appears in the lockup (README, docs, app), never in a launcher or tray icon. No icon includes text or requires a font.
 
 ## Files
 
