@@ -382,7 +382,9 @@ func (s *Service) SyncSSO(ctx context.Context, ref string) ([]core.Session, erro
 			Region:        in.AWSSSO.Region,
 			IntegrationID: in.ID,
 			Status:        core.StatusInactive,
-			AWS:           &core.AWSSession{AccountID: acct.ID, RoleName: role.Name},
+			// A new role in a hidden account stays out of sight too.
+			Hidden: accountHidden(w, in.ID, acct.ID),
+			AWS:    &core.AWSSession{AccountID: acct.ID, RoleName: role.Name},
 		}
 		w.Sessions = append(w.Sessions, sess)
 		added = append(added, sess)
@@ -405,6 +407,23 @@ func (s *Service) SyncSSO(ctx context.Context, ref string) ([]core.Session, erro
 		return added, s.Save(w)
 	}
 	return added, nil
+}
+
+// accountHidden reports whether the account has roles and every one of them
+// is hidden. Roles added by this sync do not count, so the answer holds for a
+// whole sync.
+func accountHidden(w *core.Workspace, integrationID, accountID string) bool {
+	found := false
+	for _, sess := range w.Sessions {
+		if sess.IntegrationID != integrationID || sess.Kind != core.KindAWSSSORole || sess.AWS == nil || sess.AWS.AccountID != accountID {
+			continue
+		}
+		if !sess.Hidden {
+			return false
+		}
+		found = true
+	}
+	return found
 }
 
 func hasSSORole(w *core.Workspace, integrationID, accountID, role string) bool {
@@ -1144,6 +1163,47 @@ func (s *Service) SetFavorite(ref string, favorite bool) error {
 		return err
 	}
 	sess.Favorite = favorite
+	return s.Save(w)
+}
+
+// SetHidden hides or shows a session. A hidden session leaves the favorites.
+func (s *Service) SetHidden(ref string, hidden bool) error {
+	w, err := s.Load()
+	if err != nil {
+		return err
+	}
+	sess, err := FindSession(w, ref)
+	if err != nil {
+		return err
+	}
+	sess.Hidden = hidden
+	if hidden {
+		sess.Favorite = false
+	}
+	return s.Save(w)
+}
+
+// SetAccountHidden hides or shows every Identity Center role of one account.
+func (s *Service) SetAccountHidden(integrationID, accountID string, hidden bool) error {
+	w, err := s.Load()
+	if err != nil {
+		return err
+	}
+	n := 0
+	for i := range w.Sessions {
+		sess := &w.Sessions[i]
+		if sess.IntegrationID != integrationID || sess.Kind != core.KindAWSSSORole || sess.AWS == nil || sess.AWS.AccountID != accountID {
+			continue
+		}
+		sess.Hidden = hidden
+		if hidden {
+			sess.Favorite = false
+		}
+		n++
+	}
+	if n == 0 {
+		return fmt.Errorf("account %s: %w", accountID, core.ErrNotFound)
+	}
 	return s.Save(w)
 }
 

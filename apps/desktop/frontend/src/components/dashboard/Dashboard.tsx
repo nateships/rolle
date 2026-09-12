@@ -18,6 +18,7 @@ import {
   Trash2,
   UserCog,
   Waypoints,
+  EyeOff,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { Events } from "@wailsio/runtime";
@@ -142,6 +143,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
         "1": () => setFilter(null),
         "2": () => setFilter("active"),
         "3": () => setFilter("favorites"),
+        "4": () => setFilter("hidden"),
         "/": () => toggle("shortcuts"),
       };
       const action = actions[e.key.toLowerCase()];
@@ -156,36 +158,44 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   const active = workspace.sessions.filter((s) => s.status === Status.StatusActive).length;
   const manualCount = workspace.sessions.filter((s) => !s.integrationId).length;
   const favoriteCount = workspace.sessions.filter((s) => s.favorite).length;
+  const hiddenCount = workspace.sessions.filter((s) => s.hidden).length;
+  const visibleCount = workspace.sessions.length - hiddenCount;
   // A filter whose sidebar item is gone falls back to "All sessions".
   const filterExists =
     chosenFilter === null ||
     (chosenFilter === "manual" && manualCount > 0) ||
     (chosenFilter === "favorites" && favoriteCount > 0) ||
+    (chosenFilter === "hidden" && hiddenCount > 0) ||
     (chosenFilter === "active" && active > 0) ||
     workspace.integrations.some((i) => i.id === chosenFilter);
   const filter = filterExists ? chosenFilter : null;
 
   const sessions = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return workspace.sessions
-      .filter((s) =>
-        filter === null
-          ? true
-          : filter === "manual"
-            ? !s.integrationId
-            : filter === "favorites"
-              ? s.favorite
-              : filter === "active"
-                ? s.status === Status.StatusActive
-                : s.integrationId === filter,
-      )
-      .filter(
-        (s) =>
-          !q ||
-          [s.name, s.aws?.accountId, s.aws?.roleName, s.aws?.profile, s.region].some((v) =>
-            (v ?? "").toLowerCase().includes(q),
-          ),
-      );
+    return (
+      workspace.sessions
+        // Hidden sessions show under their own filter, while they run, or when a
+        // search names them.
+        .filter((s) => (filter === "hidden" ? s.hidden : !s.hidden || s.status === Status.StatusActive || q !== ""))
+        .filter((s) =>
+          filter === null || filter === "hidden"
+            ? true
+            : filter === "manual"
+              ? !s.integrationId
+              : filter === "favorites"
+                ? s.favorite
+                : filter === "active"
+                  ? s.status === Status.StatusActive
+                  : s.integrationId === filter,
+        )
+        .filter(
+          (s) =>
+            !q ||
+            [s.name, s.aws?.accountId, s.aws?.roleName, s.aws?.profile, s.region].some((v) =>
+              (v ?? "").toLowerCase().includes(q),
+            ),
+        )
+    );
   }, [workspace.sessions, query, filter]);
 
   const favorites = sessions.filter((s) => s.favorite);
@@ -227,7 +237,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
               onClick={() => setFilter(null)}
               label="All sessions"
               hint={hint("1")}
-              count={workspace.sessions.length}
+              count={visibleCount}
             />
             {active > 0 && (
               <SideItem
@@ -247,6 +257,16 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 hint={hint("3")}
                 count={favoriteCount}
                 icon={<Star className="size-3.5 fill-current text-brand-orange" />}
+              />
+            )}
+            {hiddenCount > 0 && (
+              <SideItem
+                active={filter === "hidden"}
+                onClick={() => setFilter("hidden")}
+                label="Hidden"
+                hint={hint("4")}
+                count={hiddenCount}
+                icon={<EyeOff className="size-3.5" />}
               />
             )}
             {manualCount > 0 && (

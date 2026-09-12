@@ -422,6 +422,19 @@ export const mockApi = {
     if (x) (x as unknown as { favorite: boolean }).favorite = fav;
     emit();
   },
+  SetHidden: async (ref: string, hidden: boolean) => {
+    const x = state.sessions.find((s) => s.id === ref);
+    if (x) Object.assign(x, { hidden, favorite: hidden ? false : x.favorite });
+    emit();
+  },
+  SetAccountHidden: async (integrationId: string, accountId: string, hidden: boolean) => {
+    for (const x of state.sessions) {
+      if (x.integrationId === integrationId && x.aws?.accountId === accountId) {
+        Object.assign(x, { hidden, favorite: hidden ? false : x.favorite });
+      }
+    }
+    emit();
+  },
   SetRegion: async (ref: string, region: string) => {
     const x = state.sessions.find((s) => s.id === ref);
     if (x) x.region = region;

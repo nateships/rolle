@@ -12,6 +12,8 @@ import {
   Star,
   Terminal,
   Trash2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -120,6 +122,11 @@ export function SessionRow({
       onSelect: () => void api.SetFavorite(s.id, !s.favorite).catch((e) => toast.error(errorMessage(e))),
     },
     {
+      label: s.hidden ? "Unhide" : "Hide",
+      icon: s.hidden ? <Eye /> : <EyeOff />,
+      onSelect: () => void api.SetHidden(s.id, !s.hidden).catch((e) => toast.error(errorMessage(e))),
+    },
+    {
       label: "Rename",
       icon: <Pencil />,
       onSelect: () => setEditing({ kind: "session", id: s.id, name: s.name, save: (n) => api.RenameSession(s.id, n) }),
@@ -185,6 +192,7 @@ export function SessionRow({
             "group border-b transition-colors hover:bg-muted/50",
             nested && "bg-muted/15",
             active && "bg-emerald-500/[0.04]",
+            s.hidden && "opacity-60",
           )}
         >
           <TableCell className="pr-0">
@@ -229,7 +237,10 @@ export function SessionRow({
               {!nested && <CloudGlyph cloud={cloudOf(s.kind)} />}
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <p className="truncate text-sm font-medium">{nested ? roleLabel(s.name) : s.name}</p>
+                  <p className="flex items-center gap-1.5 truncate text-sm font-medium">
+                    {nested ? roleLabel(s.name) : s.name}
+                    {s.hidden && <EyeOff className="size-3 shrink-0 text-muted-foreground" aria-label="Hidden" />}
+                  </p>
                   {badge && (
                     <Badge
                       variant="outline"

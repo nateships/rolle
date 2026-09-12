@@ -286,10 +286,24 @@ export function SSOLogout(ref: string): $CancellablePromise<void> {
 }
 
 /**
+ * SetAccountHidden hides or shows every role of an Identity Center account.
+ */
+export function SetAccountHidden(integrationID: string, accountID: string, hidden: boolean): $CancellablePromise<void> {
+    return $Call.ByID(3353278944, integrationID, accountID, hidden);
+}
+
+/**
  * SetFavorite pins or unpins a session.
  */
 export function SetFavorite(ref: string, favorite: boolean): $CancellablePromise<void> {
     return $Call.ByID(141333789, ref, favorite);
+}
+
+/**
+ * SetHidden hides or shows a session.
+ */
+export function SetHidden(ref: string, hidden: boolean): $CancellablePromise<void> {
+    return $Call.ByID(2816945065, ref, hidden);
 }
 
 /**

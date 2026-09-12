@@ -1,9 +1,9 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionTable, type ColumnWidths } from "@/components/dashboard/SessionTable";
-import { Kind, type Session, type Workspace } from "@/lib/api";
+import { api, Kind, type Session, type Workspace } from "@/lib/api";
 import { integration, session, ssoRole } from "@/test/fixtures";
 
 const widths: ColumnWidths = { profile: 150, region: 130, state: 130 };
@@ -50,6 +50,21 @@ describe("SessionTable", () => {
     expect(bodyRows()).toHaveLength(4);
     // Nested rows show the role name, not the full "account/role" name.
     expect(screen.queryByText("Acme Prod/Admin")).not.toBeInTheDocument();
+  });
+
+  it("hides and unhides a whole account from its context menu", async () => {
+    const user = userEvent.setup();
+    const hide = vi.spyOn(api, "SetAccountHidden").mockResolvedValue();
+    const view = renderTable(roles);
+    fireEvent.contextMenu(screen.getByText("Acme Prod"));
+    await user.click(await screen.findByRole("menuitem", { name: "Hide account" }));
+    expect(hide).toHaveBeenCalledWith("acme", "111", true);
+    view.unmount();
+
+    renderTable(roles.map((r) => ({ ...r, hidden: true })));
+    fireEvent.contextMenu(screen.getByText("Acme Prod"));
+    await user.click(await screen.findByRole("menuitem", { name: "Unhide account" }));
+    expect(hide).toHaveBeenCalledWith("acme", "111", false);
   });
 
   it("collapses an account when its row is clicked and remembers it", async () => {

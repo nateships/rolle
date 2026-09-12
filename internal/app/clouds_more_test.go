@@ -558,3 +558,34 @@ func TestImportLeappSessionsNil(t *testing.T) {
 		t.Fatalf("nil import = %+v, %v", res, err)
 	}
 }
+
+func TestSyncSSOKeepsAHiddenAccountHidden(t *testing.T) {
+	home := fakeHome(t)
+	writeCLITokenCache(t, home, time.Now().Add(2*time.Hour))
+	f := startFakeSSO(t, "Admin", "ReadOnly")
+	s := testService(t)
+	res, err := s.ImportAWSSSO(context.Background(), "acme", portalURL, "us-east-1")
+	if err != nil || len(res.Sessions) != 2 {
+		t.Fatalf("import = %+v, %v", res, err)
+	}
+	if err := s.SetAccountHidden(res.Integration.ID, "111111111111", true); err != nil {
+		t.Fatal(err)
+	}
+	f.roles = []string{"Admin", "ReadOnly", "Billing"}
+	added, err := s.SyncSSO(context.Background(), "acme")
+	if err != nil || len(added) != 1 {
+		t.Fatalf("sync = %+v, %v", added, err)
+	}
+	if !added[0].Hidden {
+		t.Fatalf("new role in a hidden account must be hidden: %+v", added[0])
+	}
+	// One visible role means the account is not hidden; the next new role shows.
+	if err := s.SetHidden("Acme/Admin", false); err != nil {
+		t.Fatal(err)
+	}
+	f.roles = append(f.roles, "Audit")
+	added, err = s.SyncSSO(context.Background(), "acme")
+	if err != nil || len(added) != 1 || added[0].Hidden {
+		t.Fatalf("sync after unhide = %+v, %v", added, err)
+	}
+}

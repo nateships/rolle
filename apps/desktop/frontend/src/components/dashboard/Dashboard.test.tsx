@@ -59,6 +59,24 @@ describe("Dashboard", () => {
     expect(screen.queryByRole("heading", { name: /favorites/i })).not.toBeInTheDocument();
   });
 
+  it("keeps hidden sessions out of the lists until asked", async () => {
+    const user = userEvent.setup();
+    const personal = workspace.sessions.find((s) => s.name === "personal")!;
+    Object.assign(personal, { hidden: true });
+    renderDashboard();
+    expect(rowNames()).not.toContain("personal");
+    expect(screen.getByText("All sessions", { selector: "span" }).closest("button")).toHaveTextContent("7");
+
+    await user.click(screen.getByRole("button", { name: /^Hidden/ }));
+    expect(rowNames()).toEqual(["personal"]);
+    expect(screen.getByLabelText("Hidden")).toBeInTheDocument();
+
+    // A search names it even on the full list.
+    await user.click(screen.getByRole("button", { name: /^All sessions/ }));
+    await user.type(screen.getByPlaceholderText(/search/i), "personal");
+    expect(rowNames()).toContain("personal");
+  });
+
   it("filters to favorites", async () => {
     const user = userEvent.setup();
     renderDashboard();

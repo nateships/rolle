@@ -586,3 +586,57 @@ func TestAddAssumeRoleRejectsEmptyNameAndBadARN(t *testing.T) {
 		t.Fatal("bad ARN accepted")
 	}
 }
+
+func TestSetHiddenAndSetAccountHidden(t *testing.T) {
+	s := testService(t)
+	in, err := s.AddAWSSSO("acme", portalURL, "us-east-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"Acme/Admin", "Acme/ReadOnly"} {
+		addSession(t, s, core.Session{ID: name, Name: name, Kind: core.KindAWSSSORole, IntegrationID: in.ID, Status: core.StatusInactive, Favorite: true,
+			AWS: &core.AWSSession{AccountID: "111111111111", RoleName: strings.TrimPrefix(name, "Acme/")}})
+	}
+	addSession(t, s, core.Session{ID: "other", Name: "Other/Admin", Kind: core.KindAWSSSORole, IntegrationID: in.ID, Status: core.StatusInactive,
+		AWS: &core.AWSSession{AccountID: "222222222222", RoleName: "Admin"}})
+
+	// Hiding one role drops its favorite; the sibling keeps everything.
+	if err := s.SetHidden("Acme/Admin", true); err != nil {
+		t.Fatal(err)
+	}
+	w, _ := s.Load()
+	if got, _ := FindSession(w, "Acme/Admin"); !got.Hidden || got.Favorite {
+		t.Fatalf("hidden role = %+v", got)
+	}
+	if got, _ := FindSession(w, "Acme/ReadOnly"); got.Hidden || !got.Favorite {
+		t.Fatalf("sibling = %+v", got)
+	}
+	if accountHidden(w, in.ID, "111111111111") {
+		t.Fatal("account with a visible role counts as hidden")
+	}
+
+	// Hiding the account covers every role and no other account.
+	if err := s.SetAccountHidden(in.ID, "111111111111", true); err != nil {
+		t.Fatal(err)
+	}
+	w, _ = s.Load()
+	if !accountHidden(w, in.ID, "111111111111") || accountHidden(w, in.ID, "222222222222") {
+		t.Fatalf("account hidden flags wrong: %+v", w.Sessions)
+	}
+	if got, _ := FindSession(w, "Other/Admin"); got.Hidden {
+		t.Fatal("other account touched")
+	}
+	if err := s.SetAccountHidden(in.ID, "999999999999", true); !errors.Is(err, core.ErrNotFound) {
+		t.Fatalf("unknown account = %v", err)
+	}
+	if err := s.SetHidden("Acme/Admin", false); err != nil {
+		t.Fatal(err)
+	}
+	w, _ = s.Load()
+	if got, _ := FindSession(w, "Acme/Admin"); got.Hidden {
+		t.Fatal("unhide failed")
+	}
+	if accountHidden(w, in.ID, "333333333333") {
+		t.Fatal("an account with no roles is not hidden")
+	}
+}

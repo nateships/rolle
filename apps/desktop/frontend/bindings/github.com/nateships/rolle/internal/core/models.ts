@@ -189,6 +189,12 @@ export interface Session {
     "favorite"?: boolean;
 
     /**
+     * Hidden keeps the session out of the lists and the tray menu. An
+     * account is hidden when every role in it is hidden.
+     */
+    "hidden"?: boolean;
+
+    /**
      * Expires is when the current credentials stop working. Nil when inactive.
      */
     "expires"?: string | null;
