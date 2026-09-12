@@ -226,6 +226,9 @@ tasks:
       - ditto -c -k --keepParent "{{.BIN_DIR}}/{{.APP_NAME}}.app" "{{.BIN_DIR}}/{{.APP_NAME}}-macos-universal.zip"
       - task: create:dmg
       - task: release:sign:dmg
+      # The bundle carries its own copy. A leftover universal binary here
+      # blocks the next go build, which cannot overwrite a fat Mach-O.
+      - rm -f "{{.BIN_DIR}}/{{.APP_NAME}}"
 
   release:sign:app:
     internal: true
