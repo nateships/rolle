@@ -13,6 +13,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -231,7 +232,12 @@ func (r *RolleService) installElevated(target string) error {
 	if err := elevatedSwap(staged, target); err != nil {
 		return err
 	}
-	if err := relaunchAfterExit(os.Getpid(), target); err != nil {
+	// The swap copied the staged file, so the staging directory is now
+	// garbage. The updater's helper removes it on the normal path.
+	if dir := filepath.Dir(staged); strings.HasPrefix(filepath.Base(dir), "wails-update-") {
+		_ = os.RemoveAll(dir)
+	}
+	if err := relaunchAfterExit(target); err != nil {
 		debug.Logf("updater", "relaunch: %v", err)
 	}
 	r.app.Quit()

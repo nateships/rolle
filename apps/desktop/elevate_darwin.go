@@ -14,6 +14,6 @@ func elevatedSwap(staged, target string) error {
 
 // relaunchAfterExit opens the bundle once this process is gone. The child
 // outlives its parent.
-func relaunchAfterExit(_ int, target string) error {
+func relaunchAfterExit(target string) error {
 	return exec.Command("/bin/sh", "-c", "sleep 1; open "+shellQuote(target)).Start()
 }

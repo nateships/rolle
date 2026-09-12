@@ -4,33 +4,29 @@ package main
 
 import (
 	"errors"
-	"fmt"
+	"os"
 	"os/exec"
-	"strings"
 	"syscall"
 )
 
+// hiddenPowerShell runs script in a PowerShell with no visible window.
+func hiddenPowerShell(script string) *exec.Cmd {
+	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", script)
+	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
+	return cmd
+}
+
 // elevatedSwap replaces the executable through the UAC prompt.
 func elevatedSwap(staged, target string) error {
-	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-Command", windowsElevateScript(windowsSwapCommand(staged, target)))
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		msg := strings.TrimSpace(string(out))
-		if strings.Contains(msg, "canceled by the user") {
-			return errors.New("cancelled")
-		}
-		if msg == "" {
-			msg = err.Error()
-		}
-		return fmt.Errorf("install failed: %s", msg)
+	out, err := hiddenPowerShell(windowsElevateScript(windowsSwapCommand(staged, target))).CombinedOutput()
+	if err == nil {
+		return nil
 	}
-	return nil
+	var exit *exec.ExitError
+	return installError(out, err, errors.As(err, &exit) && exit.ExitCode() == errorCancelled)
 }
 
 // relaunchAfterExit starts the new executable once this process is gone.
-func relaunchAfterExit(pid int, target string) error {
-	cmd := exec.Command("powershell", "-NoProfile", "-NonInteractive", "-WindowStyle", "Hidden", "-Command", windowsRelaunchScript(pid, target))
-	cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true}
-	return cmd.Start()
+func relaunchAfterExit(target string) error {
+	return hiddenPowerShell(windowsRelaunchScript(os.Getpid(), target)).Start()
 }

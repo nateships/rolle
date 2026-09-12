@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -113,27 +114,35 @@ func TestUpdateTargetAndWindowsScripts(t *testing.T) {
 	if target, elevate := updateTarget("darwin", "/usr/local/bin/rolle-desktop"); target != "" || elevate {
 		t.Fatalf("darwin outside a bundle = %q %v", target, elevate)
 	}
-	swap := windowsSwapCommand(`C:\Temp\wails-update-1\rolle.exe`, `C:\Program Files\nateships\rolle\rolle.exe`)
-	if !strings.HasPrefix(swap, `/c move /y "C:\Program Files\nateships\rolle\rolle.exe" "C:\Program Files\nateships\rolle\rolle.exe.old.`) ||
-		!strings.HasSuffix(swap, `" && copy /y "C:\Temp\wails-update-1\rolle.exe" "C:\Program Files\nateships\rolle\rolle.exe"`) {
-		t.Fatalf("swap = %s", swap)
+	const exe = `C:\Program Files\nateships\rolle\rolle.exe`
+	swap := windowsSwapCommand(`C:\Temp\wails-update-1\rolle.exe`, exe)
+	aside := swap[strings.Index(swap, `move /y "`+exe+`" "`)+len(`move /y "`+exe+`" "`):]
+	aside = aside[:strings.Index(aside, `"`)]
+	if !strings.HasPrefix(aside, exe+".old.") {
+		t.Fatalf("aside = %q in %s", aside, swap)
+	}
+	want := `/c del /q "` + exe + `.old.*" 2>nul & copy /y "C:\Temp\wails-update-1\rolle.exe" "` + exe + `.new" && move /y "` + exe + `" "` + aside + `" && move /y "` + exe + `.new" "` + exe + `" || (move /y "` + aside + `" "` + exe + `" & exit 1)`
+	if swap != want {
+		t.Fatalf("swap = %s\nwant   %s", swap, want)
 	}
 	script := windowsElevateScript(`/c echo it's`)
-	if !strings.Contains(script, `-ArgumentList '/c echo it''s' -Verb RunAs -Wait`) {
+	if !strings.Contains(script, `-ArgumentList 'cmd.exe', '/c echo it''s'; $i.Verb = 'RunAs'`) ||
+		!strings.Contains(script, `NativeErrorCode -eq 1223) { exit 1223 }`) {
 		t.Fatalf("elevate script = %s", script)
 	}
 	if got := windowsRelaunchScript(42, `C:\rolle.exe`); got != `Wait-Process -Id 42 -ErrorAction SilentlyContinue; Start-Process -FilePath 'C:\rolle.exe'` {
 		t.Fatalf("relaunch script = %s", got)
 	}
-	exe := filepath.Join(dir, "rolle.exe")
-	for _, n := range []string{exe + ".old.1", exe + ".old.2", filepath.Join(dir, "other.old.1")} {
-		if err := os.WriteFile(n, nil, 0o644); err != nil {
-			t.Fatal(err)
-		}
+}
+
+func TestInstallError(t *testing.T) {
+	if err := installError([]byte("anything"), errors.New("exit status 1223"), true); err == nil || err.Error() != "cancelled" {
+		t.Fatalf("cancelled = %v", err)
 	}
-	sweepAsides(exe)
-	left, _ := filepath.Glob(filepath.Join(dir, "*"))
-	if len(left) != 1 || filepath.Base(left[0]) != "other.old.1" {
-		t.Fatalf("after sweep = %v", left)
+	if err := installError([]byte(" Access is denied. \n"), errors.New("exit status 1"), false); err == nil || err.Error() != "install failed: Access is denied." {
+		t.Fatalf("with output = %v", err)
+	}
+	if err := installError(nil, errors.New("exit status 1"), false); err == nil || err.Error() != "install failed: exit status 1" {
+		t.Fatalf("without output = %v", err)
 	}
 }

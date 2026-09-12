@@ -105,7 +105,8 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
     try {
       await api.InstallUpdate();
     } catch (e) {
-      toast.error(errorMessage(e));
+      const msg = errorMessage(e);
+      if (msg !== "cancelled") toast.error(msg);
     } finally {
       setInstalling(false);
     }
