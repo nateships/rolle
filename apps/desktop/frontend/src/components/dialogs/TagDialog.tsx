@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -18,8 +18,16 @@ import { cn } from "@/lib/utils";
 
 export type TagTarget = { kind: "new" } | { kind: "edit"; tag: Tag };
 
-/** Create a tag or change its name, color, and icon. */
-export function TagDialog({ target, onClose }: { target: TagTarget | null; onClose: () => void }) {
+/** Create a tag or change its name, color, and icon. onRenamed reports a name change. */
+export function TagDialog({
+  target,
+  onClose,
+  onRenamed,
+}: {
+  target: TagTarget | null;
+  onClose: () => void;
+  onRenamed?: (from: string, to: string) => void;
+}) {
   const editing = target?.kind === "edit" ? target.tag : null;
   return (
     <Dialog open={target !== null} onOpenChange={(o) => !o && onClose()}>
@@ -31,16 +39,24 @@ export function TagDialog({ target, onClose }: { target: TagTarget | null; onClo
           </DialogDescription>
         </DialogHeader>
         {/* The key resets the form for each target the dialog opens with. */}
-        {target && <TagForm key={editing?.name ?? "new"} editing={editing} onClose={onClose} />}
+        {target && <TagForm key={editing?.name ?? "new"} editing={editing} onClose={onClose} onRenamed={onRenamed} />}
       </DialogContent>
     </Dialog>
   );
 }
 
-/** Icons render in batches as the grid scrolls; each one loads on first sight. */
+/** The grid renders this many icons at a time and adds a batch when it scrolls near the end. */
 const ICON_BATCH = 96;
 
-function TagForm({ editing, onClose }: { editing: Tag | null; onClose: () => void }) {
+function TagForm({
+  editing,
+  onClose,
+  onRenamed,
+}: {
+  editing: Tag | null;
+  onClose: () => void;
+  onRenamed?: (from: string, to: string) => void;
+}) {
   const [name, setName] = useState(editing?.name ?? "");
   const [color, setColor] = useState(editing?.color || DEFAULT_TAG_COLOR);
   const [icon, setIcon] = useState(editing?.icon || "tag");
@@ -50,9 +66,10 @@ function TagForm({ editing, onClose }: { editing: Tag | null; onClose: () => voi
   async function save() {
     setBusy(true);
     try {
-      const tag = { name: name.trim(), color, icon } as Tag;
+      const tag: Tag = { name: name.trim(), color, icon };
       if (editing) await api.UpdateTag(editing.name, tag);
       else await api.AddTag(tag);
+      if (editing && editing.name !== tag.name) onRenamed?.(editing.name, tag.name);
       toast.success(editing ? `Tag ${tag.name} updated` : `Tag ${tag.name} created`);
       onClose();
     } catch (e) {
@@ -73,7 +90,16 @@ function TagForm({ editing, onClose }: { editing: Tag | null; onClose: () => voi
       <div className="space-y-1.5">
         <Label htmlFor="tag-name">Name</Label>
         <div className="flex items-center gap-2">
-          <IconPicker color={color} icon={icon} open={pickerOpen} onToggle={() => setPickerOpen((o) => !o)} />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            aria-label="Choose icon and color"
+            aria-expanded={pickerOpen}
+            onClick={() => setPickerOpen((o) => !o)}
+          >
+            <TagGlyph tag={{ color, icon }} className="size-4" />
+          </Button>
           <Input
             id="tag-name"
             value={name}
@@ -97,34 +123,9 @@ function TagForm({ editing, onClose }: { editing: Tag | null; onClose: () => voi
   );
 }
 
-/** The tag's icon as a button. It opens a panel inside the dialog with a search
- * over every Lucide icon and the color choices. Inline rather than a popover:
- * the dialog's scroll lock would swallow wheel events in a portal. */
-function IconPicker({
-  color,
-  icon,
-  open,
-  onToggle,
-}: {
-  color: string;
-  icon: string;
-  open: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      size="icon"
-      aria-label="Choose icon and color"
-      aria-expanded={open}
-      onClick={onToggle}
-    >
-      <TagGlyph tag={{ color, icon }} className="size-4" />
-    </Button>
-  );
-}
-
+/** A search over every Lucide icon and the color choices. It sits inline in
+ * the dialog rather than in a popover: the dialog's scroll lock would swallow
+ * wheel events in a portal. */
 function IconPanel({
   color,
   icon,
@@ -142,23 +143,6 @@ function IconPanel({
     return q ? ICON_NAMES.filter((n) => n.includes(q)) : ICON_NAMES;
   }, [query]);
   const [shown, setShown] = useState(ICON_BATCH);
-  const grid = useRef<HTMLDivElement>(null);
-  const observer = useRef<IntersectionObserver | null>(null);
-  // The sentinel sits after the last rendered icon; when it scrolls into
-  // view, the next batch renders. The callback ref follows the element as it
-  // mounts and unmounts.
-  const sentinel = useCallback((el: HTMLDivElement | null) => {
-    observer.current?.disconnect();
-    observer.current = null;
-    if (!el || typeof IntersectionObserver === "undefined") return;
-    observer.current = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((e) => e.isIntersecting)) setShown((n) => n + ICON_BATCH);
-      },
-      { root: grid.current },
-    );
-    observer.current.observe(el);
-  }, []);
   const results = matches.slice(0, shown);
   const custom = !TAG_PRESETS.some((p) => p.hex === color);
   return (
@@ -174,10 +158,13 @@ function IconPanel({
         autoFocus
       />
       <div
-        ref={grid}
         className="grid max-h-48 grid-cols-8 gap-1 overflow-y-auto pr-1"
         role="listbox"
         aria-label="Icons"
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          if (el.scrollTop + el.clientHeight >= el.scrollHeight - 64) setShown((n) => n + ICON_BATCH);
+        }}
       >
         {results.map((n) => (
           <button
@@ -199,7 +186,6 @@ function IconPanel({
         {results.length === 0 && (
           <p className="col-span-8 py-2 text-center text-xs text-muted-foreground">No icon matches</p>
         )}
-        {shown < matches.length && <div ref={sentinel} className="col-span-8 h-1" aria-hidden />}
       </div>
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         {TAG_PRESETS.map((p) => (
@@ -216,7 +202,7 @@ function IconPanel({
             )}
           />
         ))}
-        {/* The color input itself wears the rainbow, so the click is the user's own. */}
+        {/* The color input is the rainbow swatch, so a click opens the native picker directly. */}
         <input
           type="color"
           value={color}

@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 	"text/tabwriter"
 
 	"github.com/spf13/cobra"
 
+	"github.com/nateships/rolle/internal/app"
 	"github.com/nateships/rolle/internal/core"
 )
 
@@ -30,31 +30,26 @@ func tagCmd() *cobra.Command {
 		Use:   "set <name>",
 		Short: "Change a tag's name, color, or icon",
 		Args:  cobra.ExactArgs(1),
-		RunE: func(_ *cobra.Command, args []string) error {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			w, err := svc.Load()
 			if err != nil {
 				return err
 			}
-			i := -1
-			for k, t := range w.Tags {
-				if strings.EqualFold(t.Name, args[0]) {
-					i = k
-				}
+			t, err := app.FindTag(w, args[0])
+			if err != nil {
+				return err
 			}
-			if i < 0 {
-				return fmt.Errorf("tag %s: %w", args[0], core.ErrNotFound)
-			}
-			t := w.Tags[i]
-			if set.Name != "" {
+			// A flag given as "" clears the field back to the default.
+			if cmd.Flags().Changed("name") {
 				t.Name = set.Name
 			}
-			if set.Color != "" {
+			if cmd.Flags().Changed("color") {
 				t.Color = set.Color
 			}
-			if set.Icon != "" {
+			if cmd.Flags().Changed("icon") {
 				t.Icon = set.Icon
 			}
-			return svc.UpdateTag(args[0], t)
+			return svc.UpdateTag(args[0], *t)
 		},
 	}
 	setCmd.Flags().StringVar(&set.Name, "name", "", "new name")
@@ -70,7 +65,8 @@ func tagCmd() *cobra.Command {
 					return err
 				}
 				if jsonFlag {
-					return writeJSON(w.Tags)
+					// An empty list prints as [], as the other list commands do.
+					return writeJSON(append([]core.Tag{}, w.Tags...))
 				}
 				tw := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 				fmt.Fprintln(tw, "NAME\tCOLOR\tICON")

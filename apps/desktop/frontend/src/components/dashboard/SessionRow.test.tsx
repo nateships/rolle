@@ -232,7 +232,9 @@ describe("SessionRow actions", () => {
     const user = userEvent.setup();
     const setTag = vi.spyOn(api, "SetSessionTag").mockResolvedValue();
     const plain = session({ name: "personal", kind: Kind.KindAWSIAMUser, tags: ["Production"] });
-    renderRow(plain, { tags: [{ name: "Production", color: "red", icon: "shield" }, { name: "Sandbox" }] as Tag[] });
+    renderRow(plain, {
+      tags: [{ name: "Production", color: "#e5484d", icon: "shield" }, { name: "Sandbox" }] as Tag[],
+    });
     expect(screen.getByText("Production")).toBeInTheDocument();
     // A submenu opens on hover, or with the right arrow from its trigger.
     // Keyboard: open the Tags submenu with the right arrow, move to Sandbox, choose it.

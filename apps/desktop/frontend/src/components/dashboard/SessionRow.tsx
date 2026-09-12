@@ -59,6 +59,7 @@ export function SessionRow({
   const [editing, setEditing] = useState<RenameTarget | null>(null);
   const [regionOpen, setRegionOpen] = useState(false);
   const profileName = isAWSKind(s.kind) ? s.aws?.profile || "default" : "";
+  const tags = workspace.tags ?? [];
   const active = s.status === Status.StatusActive;
   const needsMFA = s.kind === Kind.KindAWSIAMUser && !!s.aws?.mfaDevice;
   const source = s.aws?.sourceSessionId ? workspace.sessions.find((x) => x.id === s.aws?.sourceSessionId) : undefined;
@@ -129,12 +130,12 @@ export function SessionRow({
       icon: s.hidden ? <Eye /> : <EyeOff />,
       onSelect: () => void api.SetHidden(s.id, !s.hidden).catch((e) => toast.error(errorMessage(e))),
     },
-    ...((workspace.tags ?? []).length > 0
+    ...(tags.length > 0
       ? ([
           {
             label: "Tags",
             icon: <TagGlyph tag={{ color: "", icon: "tag" }} />,
-            items: (workspace.tags ?? []).map((t) => {
+            items: tags.map((t) => {
               const on = (s.tags ?? []).includes(t.name);
               return {
                 label: t.name,
@@ -276,7 +277,7 @@ export function SessionRow({
                     </Badge>
                   )}
                   {(s.tags ?? []).map((name) => {
-                    const t = (workspace.tags ?? []).find((x) => x.name === name) ?? { name, color: "", icon: "" };
+                    const t = tags.find((x) => x.name === name) ?? { name, color: "", icon: "" };
                     return (
                       <Badge
                         key={name}

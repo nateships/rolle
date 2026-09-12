@@ -204,6 +204,11 @@ func TestIntegrationLoginDeviceFlowDiscoversRoles(t *testing.T) {
 	if len(tags) != 2 || tags[1]["name"] != "Production" || tags[1]["color"] != "#ff0000" || tags[1]["icon"] != "rocket" {
 		t.Fatalf("tag list --json = %v", tags)
 	}
+	// An empty flag value clears the field back to the default.
+	mustRun(t, "tag", "set", "Production", "--icon", "")
+	if row := fields(lines(mustRun(t, "tag", "list"))[2]); strings.Join(row, " ") != "Production #ff0000" {
+		t.Fatalf("tag list row after clearing the icon = %v", row)
+	}
 	var tagged []map[string]any
 	if err := json.Unmarshal([]byte(mustRun(t, "session", "list", "--json", "--all")), &tagged); err != nil {
 		t.Fatal(err)

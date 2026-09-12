@@ -6,7 +6,7 @@ import {
   type Integration,
   type Session,
   type Workspace as CoreWorkspace,
-  Tag,
+  type Tag,
 } from "../../bindings/github.com/nateships/rolle/internal/core";
 type Workspace = Omit<CoreWorkspace, "sessions" | "integrations"> & {
   sessions: Session[];
@@ -118,8 +118,8 @@ function seed() {
     }),
   ];
   state.tags = [
-    { name: "Production", color: "red", icon: "shield" },
-    { name: "Sandbox", color: "green", icon: "flask" },
+    { name: "Production", color: "#e5484d", icon: "shield" },
+    { name: "Sandbox", color: "#00ce78", icon: "flask" },
   ] as Tag[];
 }
 if (state.onboarded) seed();
@@ -429,19 +429,6 @@ export const mockApi = {
     if (x) (x as unknown as { favorite: boolean }).favorite = fav;
     emit();
   },
-  TagColors: async () => ["gray", "blue", "green", "orange", "red", "purple", "pink", "yellow"],
-  TagIcons: async () => [
-    "tag",
-    "folder",
-    "briefcase",
-    "shield",
-    "flask",
-    "rocket",
-    "star",
-    "building",
-    "cloud",
-    "wrench",
-  ],
   AddTag: async (tag: Tag) => {
     state.tags = [...(state.tags ?? []), { ...tag, name: tag.name.trim() } as Tag];
     emit();

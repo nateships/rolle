@@ -1,4 +1,4 @@
-import { Suspense } from "react";
+import type { ReactElement } from "react";
 import { Tag as TagIcon } from "lucide-react";
 import { DynamicIcon, iconNames, type IconName } from "lucide-react/dynamic";
 import type { Tag } from "@/lib/api";
@@ -25,14 +25,22 @@ export const ICON_NAMES: string[] = iconNames;
 
 export const isIconName = (name: string): name is IconName => names.has(name);
 
+// DynamicIcon loads the icon in an effect and renders a fallback until then. The
+// fallback holds the icon's space; one component per class list keeps it stable.
+const blanks = new Map<string, () => ReactElement>();
+function blank(cls: string) {
+  let b = blanks.get(cls);
+  if (!b) {
+    b = () => <span className={cn("inline-block", cls)} aria-hidden />;
+    blanks.set(cls, b);
+  }
+  return b;
+}
+
 /** The tag's icon in its color. An unknown or empty icon falls back to the tag glyph. */
 export function TagGlyph({ tag, className }: { tag: Pick<Tag, "color" | "icon">; className?: string }) {
   const style = { color: tag.color || DEFAULT_TAG_COLOR };
   const cls = cn("shrink-0", className);
   if (!tag.icon || !isIconName(tag.icon)) return <TagIcon className={cls} style={style} aria-hidden />;
-  return (
-    <Suspense fallback={<span className={cn("inline-block", cls)} aria-hidden />}>
-      <DynamicIcon name={tag.icon} className={cls} style={style} aria-hidden />
-    </Suspense>
-  );
+  return <DynamicIcon name={tag.icon} className={cls} style={style} aria-hidden fallback={blank(cls)} />;
 }

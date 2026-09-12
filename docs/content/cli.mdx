@@ -40,6 +40,14 @@ Exit codes: `0` success, `1` error, `3` a sign-in is needed (run `rolle integrat
 | `rolle session hide --account <id>` / `unhide --account <id>` | Same for every role of an Identity Center account |
 | `rolle session unhide --all` | Show every hidden session again |
 | `rolle session tag <session> <tag>` / `untag <session> <tag>` | Add a session to a sidebar tag, or take it off |
+| `rolle session add assume-role --name N --role-arn ARN --source S --region R [--external-id ID] [--profile P]` | Assume a role from another session |
+| `rolle session add iam-user --name N --access-key-id ID --region R [--secret-access-key K] [--mfa-device M] [--profile P]` | Add an IAM user |
+| `rolle session add gcp-impersonate --name N --project P --service-account SA [--integration I]` | Impersonate a service account |
+| `rolle session profile <session> [name]` | Set the AWS profile name. Omit the name to restore `default` |
+| `rolle session region <session> <region>` | Change the region of an AWS session |
+| `rolle session remove <session>` | Remove a session |
+
+`sess` is an alias for `session`. A `<session>` argument accepts the name or the ID.
 
 ## Tags
 
@@ -50,14 +58,6 @@ Exit codes: `0` success, `1` error, `3` a sign-in is needed (run `rolle integrat
 | `rolle tag set <name> [--name N] [--color C] [--icon I]` | Change a tag; a new name follows through to every session |
 | `rolle tag move <name> <index>` | Put a tag at a position in the sidebar, counting from 0 |
 | `rolle tag remove <name>` | Delete a tag and take it off every session |
-| `rolle session add assume-role --name N --role-arn ARN --source S --region R [--external-id ID] [--profile P]` | Assume a role from another session |
-| `rolle session add iam-user --name N --access-key-id ID --region R [--secret-access-key K] [--mfa-device M] [--profile P]` | Add an IAM user |
-| `rolle session add gcp-impersonate --name N --project P --service-account SA [--integration I]` | Impersonate a service account |
-| `rolle session profile <session> [name]` | Set the AWS profile name. Omit the name to restore `default` |
-| `rolle session region <session> <region>` | Change the region of an AWS session |
-| `rolle session remove <session>` | Remove a session |
-
-`sess` is an alias for `session`. A `<session>` argument accepts the name or the ID.
 
 ## Credentials
 

@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/nateships/rolle/internal/core"
 )
@@ -30,7 +31,7 @@ func normalizeTag(t core.Tag) (core.Tag, error) {
 	if t.Name == "" {
 		return t, errors.New("tag name is empty")
 	}
-	if len(t.Name) > maxTagLength {
+	if utf8.RuneCountInString(t.Name) > maxTagLength {
 		return t, fmt.Errorf("tag name is longer than %d characters", maxTagLength)
 	}
 	if t.Color != "" && !hexColor.MatchString(t.Color) {
@@ -46,22 +47,21 @@ func normalizeTag(t core.Tag) (core.Tag, error) {
 
 // findTag returns the index of name in tags, matching case-insensitively.
 func findTag(tags []core.Tag, name string) int {
-	for i, t := range tags {
-		if strings.EqualFold(t.Name, name) {
-			return i
-		}
-	}
-	return -1
+	return slices.IndexFunc(tags, func(t core.Tag) bool { return strings.EqualFold(t.Name, name) })
 }
 
 // findName returns the index of name in names, matching case-insensitively.
 func findName(names []string, name string) int {
-	for i, n := range names {
-		if strings.EqualFold(n, name) {
-			return i
-		}
+	return slices.IndexFunc(names, func(n string) bool { return strings.EqualFold(n, name) })
+}
+
+// FindTag returns the tag called name, matching case-insensitively.
+func FindTag(w *core.Workspace, name string) (*core.Tag, error) {
+	i := findTag(w.Tags, name)
+	if i < 0 {
+		return nil, fmt.Errorf("tag %s: %w", name, core.ErrNotFound)
 	}
-	return -1
+	return &w.Tags[i], nil
 }
 
 // AddTag creates a tag. Tags are user-defined groups in the sidebar; a
@@ -122,10 +122,10 @@ func (s *Service) RemoveTag(name string) error {
 	if i < 0 {
 		return fmt.Errorf("tag %s: %w", name, core.ErrNotFound)
 	}
-	w.Tags = append(w.Tags[:i], w.Tags[i+1:]...)
+	w.Tags = slices.Delete(w.Tags, i, i+1)
 	for k := range w.Sessions {
 		if n := findName(w.Sessions[k].Tags, name); n >= 0 {
-			w.Sessions[k].Tags = append(w.Sessions[k].Tags[:n], w.Sessions[k].Tags[n+1:]...)
+			w.Sessions[k].Tags = slices.Delete(w.Sessions[k].Tags, n, n+1)
 		}
 	}
 	return s.Save(w)
@@ -171,7 +171,7 @@ func (s *Service) SetSessionTag(ref, tag string, on bool) error {
 	case on && n < 0:
 		sess.Tags = append(sess.Tags, tag)
 	case !on && n >= 0:
-		sess.Tags = append(sess.Tags[:n], sess.Tags[n+1:]...)
+		sess.Tags = slices.Delete(sess.Tags, n, n+1)
 	default:
 		return nil
 	}

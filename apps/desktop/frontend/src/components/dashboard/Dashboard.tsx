@@ -167,6 +167,8 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   const favoriteCount = workspace.sessions.filter((s) => s.favorite).length;
   const hiddenCount = workspace.sessions.filter((s) => s.hidden).length;
   const tags = workspace.tags ?? [];
+  // A tag filter is "tag:<name>"; the other filters are keywords or integration ids.
+  const tagFilter = chosenFilter?.startsWith("tag:") ? chosenFilter.slice(4) : null;
   const tagCount = (tag: string) => workspace.sessions.filter((s) => !s.hidden && (s.tags ?? []).includes(tag)).length;
   // The tag a drag hovers over; the item lights up as a drop target.
   const [dropTag, setDropTag] = useState<string | null>(null);
@@ -177,7 +179,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     (chosenFilter === "manual" && manualCount > 0) ||
     (chosenFilter === "favorites" && favoriteCount > 0) ||
     (chosenFilter === "hidden" && hiddenCount > 0) ||
-    (chosenFilter.startsWith("tag:") && tags.some((t) => t.name === chosenFilter.slice(4))) ||
+    (tagFilter !== null && tags.some((t) => t.name === tagFilter)) ||
     (chosenFilter === "active" && active > 0) ||
     workspace.integrations.some((i) => i.id === chosenFilter);
   const filter = filterExists ? chosenFilter : null;
@@ -198,8 +200,8 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 ? s.favorite
                 : filter === "active"
                   ? s.status === Status.StatusActive
-                  : filter.startsWith("tag:")
-                    ? (s.tags ?? []).includes(filter.slice(4))
+                  : tagFilter !== null
+                    ? (s.tags ?? []).includes(tagFilter)
                     : s.integrationId === filter,
         )
         .filter(
@@ -210,7 +212,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
             ),
         )
     );
-  }, [workspace.sessions, query, filter]);
+  }, [workspace.sessions, query, filter, tagFilter]);
 
   async function run(label: string, fn: () => Promise<unknown>) {
     try {
@@ -737,7 +739,11 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
         }
         onClose={() => setDialog(null)}
       />
-      <TagDialog target={dialog?.kind === "tag" ? dialog.target : null} onClose={() => setDialog(null)} />
+      <TagDialog
+        target={dialog?.kind === "tag" ? dialog.target : null}
+        onClose={() => setDialog(null)}
+        onRenamed={(from, to) => setFilter((f) => (f === `tag:${from}` ? `tag:${to}` : f))}
+      />
     </div>
   );
 }
