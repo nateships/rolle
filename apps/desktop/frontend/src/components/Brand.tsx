@@ -1,3 +1,4 @@
+import { motion, useAnimation } from "motion/react";
 import { cn } from "@/lib/utils";
 import gopher from "@/assets/brand/gopher.png";
 import wordmarkCharcoal from "@/assets/brand/wordmark-charcoal.svg";
@@ -12,14 +13,32 @@ import gcpLogo from "@/assets/vendors/gcp.svg";
  * ivory body stays visible. The halo scales with the artwork and fades into the background.
  */
 export function GopherMark({ className }: { className?: string }) {
+  const controls = useAnimation();
+  // Click the gopher and it dances. Nothing else happens; that is the point.
+  const dance = () =>
+    void controls.start({
+      rotate: [0, -14, 12, -10, 10, -6, 6, 0],
+      y: [0, -14, 0, -10, 0, -6, 0, 0],
+      scaleX: [1, 1.06, 0.96, 1.05, 0.97, 1.03, 1, 1],
+      transition: { duration: 1.1, ease: "easeInOut" },
+    });
   return (
     <span
       className={cn(
-        "@container relative isolate inline-block aspect-[385/294] h-16 shrink-0 select-none before:absolute before:inset-[6%] before:-z-10 before:rounded-[20%] before:bg-[#8b9099] before:blur-[9cqw] dark:before:hidden",
+        "no-drag @container relative isolate inline-block aspect-[385/294] h-16 shrink-0 select-none before:absolute before:inset-[6%] before:-z-10 before:rounded-[20%] before:bg-[#8b9099] before:blur-[9cqw] dark:before:hidden",
         className,
       )}
+      onClick={dance}
     >
-      <img src={gopher} alt="" aria-hidden draggable={false} className="size-full object-contain" />
+      <motion.img
+        src={gopher}
+        alt=""
+        aria-hidden
+        draggable={false}
+        animate={controls}
+        style={{ originX: 0.5, originY: 1 }}
+        className="size-full object-contain"
+      />
     </span>
   );
 }
