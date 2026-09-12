@@ -44,6 +44,7 @@ func Root() *cobra.Command {
 		},
 	}
 	root.PersistentFlags().BoolVar(&debugFlag, "debug", false, "verbose diagnostics (same as ROLLE_DEBUG=1)")
+	root.PersistentFlags().BoolVar(&jsonFlag, "json", false, "machine-readable output for list, status, and start")
 	root.SetContext(context.Background())
 	root.AddCommand(integrationCmd(), sessionCmd(), startCmd(), stopCmd(), credsCmd(), envCmd(), consoleCmd(), statusCmd(), resetCmd(), shellCmd(), supportCmd())
 	return root

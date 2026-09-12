@@ -2,6 +2,7 @@ package cli
 
 import (
 	"archive/zip"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/nateships/rolle/internal/app"
 	"github.com/nateships/rolle/internal/aws"
+	"github.com/nateships/rolle/internal/azure"
 	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/debug"
 	"github.com/nateships/rolle/internal/gcp"
@@ -139,6 +141,37 @@ func TestIntegrationLoginDeviceFlowDiscoversRoles(t *testing.T) {
 	if !strings.Contains(out, "export AWS_SESSION_TOKEN='fake-token'\n") {
 		t.Fatalf("env output:\n%s", out)
 	}
+
+	// --json gives scripts the same facts as the table, without credentials.
+	var listed []map[string]any
+	if err := json.Unmarshal([]byte(mustRun(t, "session", "list", "--json")), &listed); err != nil {
+		t.Fatal(err)
+	}
+	if len(listed) != 2 || listed[0]["name"] != "Acme/Admin" || listed[0]["profile"] != "default" || listed[0]["integration"] != "acme" || listed[0]["status"] != "active" {
+		t.Fatalf("session list --json = %v", listed)
+	}
+	for _, s := range listed {
+		for k := range s {
+			if strings.Contains(strings.ToLower(k), "secret") || strings.Contains(strings.ToLower(k), "token") {
+				t.Fatalf("session list --json leaks %q", k)
+			}
+		}
+	}
+	var started map[string]any
+	if err := json.Unmarshal([]byte(mustRun(t, "start", "Acme/ReadOnly", "--json")), &started); err != nil {
+		t.Fatal(err)
+	}
+	if started["name"] != "Acme/ReadOnly" || started["status"] != "active" || started["expires"] == nil {
+		t.Fatalf("start --json = %v", started)
+	}
+	var integs []map[string]any
+	if err := json.Unmarshal([]byte(mustRun(t, "integration", "list", "--json")), &integs); err != nil {
+		t.Fatal(err)
+	}
+	if len(integs) != 1 || integs[0]["alias"] != "acme" || integs[0]["signedIn"] != true {
+		t.Fatalf("integration list --json = %v", integs)
+	}
+	mustRun(t, "stop", "Acme/ReadOnly")
 
 	// Hidden roles leave the list unless asked for; --account covers the account.
 	mustRun(t, "session", "hide", "Acme/ReadOnly")
@@ -490,5 +523,22 @@ func TestStatusListsOnlyActiveSessions(t *testing.T) {
 	out := mustRun(t, "env", "prod", "--powershell")
 	if !strings.Contains(out, "$env:AZURE_ACCESS_TOKEN = 'tok'\n") || !strings.Contains(out, "$env:ARM_TENANT_ID = 't'\n") {
 		t.Fatalf("env output:\n%s", out)
+	}
+}
+
+func TestExitCodes(t *testing.T) {
+	cases := map[error]int{
+		nil:                                   0,
+		errors.New("boom"):                    ExitError,
+		aws.ErrSSOLoginRequired:               ExitLoginRequired,
+		azure.ErrLoginRequired:                ExitLoginRequired,
+		gcp.ErrNoADC:                          ExitLoginRequired,
+		core.ErrNotFound:                      ExitNotFound,
+		fmt.Errorf("x: %w", core.ErrNotFound): ExitNotFound,
+	}
+	for err, want := range cases {
+		if got := ExitCode(err); got != want {
+			t.Errorf("ExitCode(%v) = %d, want %d", err, got, want)
+		}
 	}
 }

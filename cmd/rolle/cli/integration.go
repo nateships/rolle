@@ -84,6 +84,13 @@ func integrationListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if jsonFlag {
+				out := make([]integrationJSON, 0, len(w.Integrations))
+				for _, in := range w.Integrations {
+					out = append(out, integrationOut(in))
+				}
+				return writeJSON(out)
+			}
 			tw := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 			fmt.Fprintln(tw, "ALIAS\tCLOUD\tSTATE\tID")
 			for _, in := range w.Integrations {

@@ -34,6 +34,9 @@ func startCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if jsonFlag {
+				return writeJSON(sessionOut(w, *sess))
+			}
 			until := ""
 			if creds.Expiration != nil {
 				until = " until " + creds.Expiration.Local().Format(time.Kitchen)
@@ -148,6 +151,9 @@ func statusCmd() *cobra.Command {
 				if s.Status == core.StatusActive {
 					active = append(active, s)
 				}
+			}
+			if jsonFlag {
+				return writeJSON(sessionsOut(w, active))
 			}
 			if len(active) == 0 {
 				fmt.Println("no active sessions")

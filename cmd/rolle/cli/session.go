@@ -39,6 +39,9 @@ func sessionListCmd() *cobra.Command {
 					}
 				}
 			}
+			if jsonFlag {
+				return writeJSON(sessionsOut(w, sessions))
+			}
 			return printSessions(sessions)
 		},
 	}
