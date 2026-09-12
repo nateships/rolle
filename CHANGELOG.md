@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.5](https://github.com/nateships/rolle/compare/v0.1.4...v0.1.5) (2026-09-12)
+
+
+### Bug Fixes
+
+* report a cleanup failure when an integration is removed ([#30](https://github.com/nateships/rolle/issues/30)) ([4d08ff3](https://github.com/nateships/rolle/commit/4d08ff392a10f30e4ab8df3bc61510073ed1e6e5))
+* update from a standard macOS account ([#28](https://github.com/nateships/rolle/issues/28)) ([feafcf9](https://github.com/nateships/rolle/commit/feafcf964b6edd3ca27f24d1f0b255c5f7b1a6ce))
+
 ## [0.1.4](https://github.com/nateships/rolle/compare/v0.1.3...v0.1.4) (2026-09-12)
 
 
