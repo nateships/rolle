@@ -9,6 +9,7 @@
   <a href="https://github.com/nateships/rolle/actions/workflows/ci.yml"><img src="https://github.com/nateships/rolle/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
   <a href="https://github.com/nateships/rolle/releases/latest"><img src="https://img.shields.io/github/v/release/nateships/rolle?label=release" alt="Latest release"></a>
   <a href="https://scorecard.dev/viewer/?uri=github.com/nateships/rolle"><img src="https://api.scorecard.dev/projects/github.com/nateships/rolle/badge" alt="OpenSSF Scorecard"></a>
+  <a href="https://www.bestpractices.dev/projects/14603"><img src="https://www.bestpractices.dev/projects/14603/badge" alt="OpenSSF Best Practices"></a>
   <a href="https://docs.renovatebot.com/"><img src="https://img.shields.io/badge/renovate-enabled-brightgreen?logo=renovatebot" alt="Renovate enabled"></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/nateships/rolle" alt="License"></a>
 </p>
