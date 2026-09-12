@@ -125,6 +125,9 @@ describe("Dashboard", () => {
     await user.keyboard("{Control>}");
     expect(await screen.findByText("Ctrl+1")).toBeInTheDocument();
     expect(screen.getByText("Ctrl+F")).toBeInTheDocument();
+    // A shortcut while the badges show keeps them up until the modifier lifts.
+    await user.keyboard("3");
+    expect(screen.getByText("Ctrl+1")).toBeInTheDocument();
     await user.keyboard("{/Control}");
     await waitFor(() => expect(screen.queryByText("Ctrl+1")).not.toBeInTheDocument());
   });
