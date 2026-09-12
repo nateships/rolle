@@ -13,7 +13,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -196,15 +195,13 @@ func (r *RolleService) InstallUpdate() error {
 	if r.app == nil || isDevBuild() {
 		return nil
 	}
-	// The updater's helper copies the bundle aside and renames the new one
-	// into place, which needs write access to the bundle's folder. A standard
-	// macOS account has none in /Applications, so that path swaps the bundle
+	// The updater's helper replaces the app in place, which needs write access
+	// to its folder. A standard macOS account has none in /Applications, a
+	// standard Windows account none in Program Files. Those installs swap
 	// through the administrator prompt instead.
-	if runtime.GOOS == "darwin" {
-		exe, _ := os.Executable()
-		if bundle := appBundle(exe); bundle != "" && (!writable(filepath.Dir(bundle)) || !writable(bundle)) {
-			return r.installElevated(bundle)
-		}
+	exe, _ := os.Executable()
+	if target, elevate := updateTarget(runtime.GOOS, exe); elevate {
+		return r.installElevated(target)
 	}
 	// The updater window keeps this context for its Install and Retry
 	// buttons, so it must outlive the call.
@@ -212,8 +209,8 @@ func (r *RolleService) InstallUpdate() error {
 }
 
 // installElevated downloads and verifies the release like the updater does,
-// then replaces the bundle with administrator privileges and relaunches.
-func (r *RolleService) installElevated(bundle string) error {
+// then replaces target with administrator privileges and relaunches.
+func (r *RolleService) installElevated(target string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 	u := r.app.Updater
@@ -231,13 +228,16 @@ func (r *RolleService) installElevated(bundle string) error {
 	if staged == "" {
 		return errors.New("update: nothing staged")
 	}
-	debug.Logf("updater", "replacing %s from %s with administrator privileges", bundle, staged)
-	swap := fmt.Sprintf("rm -rf %s && ditto %s %s", shellQuote(bundle), shellQuote(staged), shellQuote(bundle))
-	if err := adminShell(swap); err != nil {
+	debug.Logf("updater", "replacing %s from %s with administrator privileges", target, staged)
+	if err := elevatedSwap(staged, target); err != nil {
 		return err
 	}
-	// Relaunch once this process is gone. The child outlives its parent.
-	if err := exec.Command("/bin/sh", "-c", "sleep 1; open "+shellQuote(bundle)).Start(); err != nil {
+	// The swap copied the staged file, so the staging directory is now
+	// garbage. The updater's helper removes it on the normal path.
+	if dir := filepath.Dir(staged); strings.HasPrefix(filepath.Base(dir), "wails-update-") {
+		_ = os.RemoveAll(dir)
+	}
+	if err := relaunchAfterExit(target); err != nil {
 		debug.Logf("updater", "relaunch: %v", err)
 	}
 	r.app.Quit()

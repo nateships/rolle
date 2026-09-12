@@ -7,11 +7,13 @@ import (
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/pem"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/wailsapp/wails/v3/pkg/updater"
@@ -98,5 +100,49 @@ func TestAppBundleAndWritable(t *testing.T) {
 		if writable(locked) {
 			t.Fatal("a read-only dir must not be writable")
 		}
+	}
+}
+
+func TestUpdateTargetAndWindowsScripts(t *testing.T) {
+	dir := t.TempDir()
+	if target, elevate := updateTarget("windows", filepath.Join(dir, "rolle.exe")); target != filepath.Join(dir, "rolle.exe") || elevate {
+		t.Fatalf("writable dir = %q %v", target, elevate)
+	}
+	if target, elevate := updateTarget("linux", "/usr/local/bin/rolle-desktop"); target != "/usr/local/bin/rolle-desktop" || elevate {
+		t.Fatalf("linux = %q %v", target, elevate)
+	}
+	if target, elevate := updateTarget("darwin", "/usr/local/bin/rolle-desktop"); target != "" || elevate {
+		t.Fatalf("darwin outside a bundle = %q %v", target, elevate)
+	}
+	const exe = `C:\Program Files\nateships\rolle\rolle.exe`
+	swap := windowsSwapCommand(`C:\Temp\wails-update-1\rolle.exe`, exe)
+	aside := swap[strings.Index(swap, `move /y "`+exe+`" "`)+len(`move /y "`+exe+`" "`):]
+	aside = aside[:strings.Index(aside, `"`)]
+	if !strings.HasPrefix(aside, exe+".old.") {
+		t.Fatalf("aside = %q in %s", aside, swap)
+	}
+	want := `/c del /q "` + exe + `.old.*" 2>nul & copy /y "C:\Temp\wails-update-1\rolle.exe" "` + exe + `.new" && move /y "` + exe + `" "` + aside + `" && move /y "` + exe + `.new" "` + exe + `" || (move /y "` + aside + `" "` + exe + `" & exit 1)`
+	if swap != want {
+		t.Fatalf("swap = %s\nwant   %s", swap, want)
+	}
+	script := windowsElevateScript(`/c echo it's`)
+	if !strings.Contains(script, `-ArgumentList 'cmd.exe', '/c echo it''s'; $i.Verb = 'RunAs'`) ||
+		!strings.Contains(script, `NativeErrorCode -eq 1223) { exit 1223 }`) {
+		t.Fatalf("elevate script = %s", script)
+	}
+	if got := windowsRelaunchScript(42, `C:\rolle.exe`); got != `Wait-Process -Id 42 -ErrorAction SilentlyContinue; Start-Process -FilePath 'C:\rolle.exe'` {
+		t.Fatalf("relaunch script = %s", got)
+	}
+}
+
+func TestInstallError(t *testing.T) {
+	if err := installError([]byte("anything"), errors.New("exit status 1223"), true); err == nil || err.Error() != "cancelled" {
+		t.Fatalf("cancelled = %v", err)
+	}
+	if err := installError([]byte(" Access is denied. \n"), errors.New("exit status 1"), false); err == nil || err.Error() != "install failed: Access is denied." {
+		t.Fatalf("with output = %v", err)
+	}
+	if err := installError(nil, errors.New("exit status 1"), false); err == nil || err.Error() != "install failed: exit status 1" {
+		t.Fatalf("without output = %v", err)
 	}
 }

@@ -371,14 +371,7 @@ func adminShell(script string) error {
 	as := fmt.Sprintf(`do shell script %s with administrator privileges`, appleScriptString(script))
 	out, err := exec.Command("osascript", "-e", as).CombinedOutput()
 	if err != nil {
-		msg := strings.TrimSpace(string(out))
-		if strings.Contains(msg, "User canceled") {
-			return errors.New("cancelled")
-		}
-		if msg == "" {
-			msg = err.Error()
-		}
-		return fmt.Errorf("install failed: %s", msg)
+		return installError(out, err, strings.Contains(string(out), "User canceled"))
 	}
 	return nil
 }
