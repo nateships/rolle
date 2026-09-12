@@ -27,6 +27,13 @@ description = "Typecheck, lint, format-check, and test the desktop frontend"
 run = ["aube run typecheck", "aube run lint", "aube run format:check", "aube run test"]
 dir = "apps/desktop/frontend"
 
+[tasks.coverage]
+description = "Test coverage for Go and the desktop frontend"
+run = [
+  "go test ./... -coverprofile=coverage.out > /dev/null && go tool cover -func=coverage.out | tail -1 && rm -f coverage.out",
+  "cd apps/desktop/frontend && aube run test:coverage",
+]
+
 [tasks.hooks]
 description = "Run every git hook on the whole tree"
 run = "prek run --all-files"

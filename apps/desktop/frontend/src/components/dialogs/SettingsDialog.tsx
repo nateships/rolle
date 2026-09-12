@@ -199,7 +199,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                   value={String(settings.assumeRoleMinutes)}
                   onValueChange={(v) => update({ assumeRoleMinutes: Number(v) })}
                 >
-                  <SelectTrigger className="w-64">
+                  <SelectTrigger className="w-64" aria-label="Assume role duration">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -213,7 +213,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
               </Row>
               <Row label="Terminal app" hint="Used by Open terminal on a session.">
                 <Select value={settings.terminal || "auto"} onValueChange={(v) => update({ terminal: v })}>
-                  <SelectTrigger className="w-64">
+                  <SelectTrigger className="w-64" aria-label="Terminal app">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -226,22 +226,38 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                 </Select>
               </Row>
               <Row label="Keep running in the tray" hint="Closing the window hides it instead of quitting.">
-                <Switch checked={settings.hideOnClose} onCheckedChange={(v) => update({ hideOnClose: v })} />
+                <Switch
+                  aria-label="Keep running in the tray"
+                  checked={settings.hideOnClose}
+                  onCheckedChange={(v) => update({ hideOnClose: v })}
+                />
               </Row>
               <Row
                 label="Expiry notifications"
                 hint="A system notification two minutes before a session expires, and when it does."
               >
-                <Switch checked={!settings.notifyOff} onCheckedChange={(v) => update({ notifyOff: !v })} />
+                <Switch
+                  aria-label="Expiry notifications"
+                  checked={!settings.notifyOff}
+                  onCheckedChange={(v) => update({ notifyOff: !v })}
+                />
               </Row>
               <Row label="Verbose logging" hint="Same as ROLLE_DEBUG=1. Prints diagnostics to the app log.">
-                <Switch checked={settings.verboseLogging} onCheckedChange={(v) => update({ verboseLogging: v })} />
+                <Switch
+                  aria-label="Verbose logging"
+                  checked={settings.verboseLogging}
+                  onCheckedChange={(v) => update({ verboseLogging: v })}
+                />
               </Row>
               <Row
                 label="Automatic updates"
                 hint="Check for new releases every few hours. Takes effect on next launch."
               >
-                <Switch checked={!settings.autoUpdateOff} onCheckedChange={(v) => update({ autoUpdateOff: !v })} />
+                <Switch
+                  aria-label="Automatic updates"
+                  checked={!settings.autoUpdateOff}
+                  onCheckedChange={(v) => update({ autoUpdateOff: !v })}
+                />
               </Row>
               <Row label="Command line" hint="The rolle command ships inside the app. Link it into /usr/local/bin.">
                 <CommandLineInstall compact />
@@ -307,7 +323,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                   value={settings.updateChannel || "stable"}
                   onValueChange={(v) => update({ updateChannel: v === "beta" ? "beta" : "" })}
                 >
-                  <SelectTrigger className="w-40">
+                  <SelectTrigger className="w-40" aria-label="Update channel">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

@@ -13,3 +13,6 @@ docs/.mise
 
 # goreleaser output from local snapshot runs.
 /dist/
+
+# go test -coverprofile output from mise run coverage
+coverage.out

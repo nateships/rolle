@@ -988,6 +988,7 @@ export function KeyForm({
           value={secretAccessKey}
           onChange={(e) => setSecret(e.target.value)}
           className="font-mono"
+          aria-label="Secret access key"
         />
       </Field>
       <Field label="MFA device (optional)">

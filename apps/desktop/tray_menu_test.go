@@ -1,0 +1,150 @@
+package main
+
+import (
+	"reflect"
+	"testing"
+	"time"
+
+	"github.com/wailsapp/wails/v3/pkg/application"
+
+	"github.com/nateships/rolle/internal/core"
+)
+
+// menuLabels lists a menu top to bottom. Separators show as "---" and a
+// disabled item ends in " (off)".
+func menuLabels(m *application.Menu) []string {
+	var out []string
+	for i := 0; ; i++ {
+		it := m.ItemAt(i)
+		if it == nil {
+			return out
+		}
+		switch {
+		case it.IsSeparator():
+			out = append(out, "---")
+		case !it.Enabled():
+			out = append(out, it.Label()+" (off)")
+		default:
+			out = append(out, it.Label())
+		}
+	}
+}
+
+func submenu(t *testing.T, m *application.Menu, label string) *application.Menu {
+	t.Helper()
+	it := m.FindByLabel(label)
+	if it == nil || !it.IsSubmenu() {
+		t.Fatalf("no submenu %q in %v", label, menuLabels(m))
+	}
+	return it.GetSubmenu()
+}
+
+func TestNeedsInputOnlyForInactiveMFASessions(t *testing.T) {
+	mfa := core.Session{Status: core.StatusInactive, AWS: &core.AWSSession{MFADevice: "arn:aws:iam::1:mfa/me"}}
+	if !needsInput(mfa) {
+		t.Fatal("inactive MFA session needs no input")
+	}
+	mfa.Status = core.StatusActive
+	if needsInput(mfa) {
+		t.Fatal("active MFA session needs input")
+	}
+	if needsInput(core.Session{AWS: &core.AWSSession{}}) || needsInput(core.Session{Azure: &core.AzureSession{}}) {
+		t.Fatal("session without an MFA device needs input")
+	}
+}
+
+func TestUntilFormatsRemainingTime(t *testing.T) {
+	now := time.Now()
+	cases := map[string]time.Duration{
+		"expired": -time.Second,
+		"2h 05m":  2*time.Hour + 5*time.Minute + 30*time.Second,
+		"12m":     12*time.Minute + 30*time.Second,
+		"<1m":     20 * time.Second,
+	}
+	for want, d := range cases {
+		if got := until(now.Add(d)); got != want {
+			t.Errorf("until(+%v) = %q, want %q", d, got, want)
+		}
+	}
+}
+
+func TestCountLabelAndTooltipWithoutExpiry(t *testing.T) {
+	if countLabel(0) != "no active sessions" || countLabel(3) != "3 active sessions" {
+		t.Fatal(countLabel(0), countLabel(3))
+	}
+	if got := tooltip([]core.Session{{Name: "a"}}); got != "Rolle · 1 active session" {
+		t.Fatal(got)
+	}
+}
+
+func TestAddStartItemDisablesMFASessions(t *testing.T) {
+	tr := &tray{}
+	m := application.NewMenu()
+	tr.addStartItem(m, core.Session{ID: "plain", Name: "plain", AWS: &core.AWSSession{}}, "plain")
+	tr.addStartItem(m, core.Session{ID: "mfa", Name: "mfa", AWS: &core.AWSSession{MFADevice: "arn"}}, "mfa")
+	want := []string{"plain", "mfa · needs MFA in the app (off)"}
+	if got := menuLabels(m); !reflect.DeepEqual(got, want) {
+		t.Fatalf("items = %v, want %v", got, want)
+	}
+}
+
+func TestProviderMenusGroupAWSRolesByAccount(t *testing.T) {
+	sessions := []core.Session{
+		{ID: "ro", Name: "Acme Prod/ReadOnlyAccess", Kind: core.KindAWSSSORole, AWS: &core.AWSSession{AccountID: "1", RoleName: "ReadOnlyAccess"}},
+		{ID: "admin", Name: "Acme Prod/AdministratorAccess", Kind: core.KindAWSSSORole, AWS: &core.AWSSession{AccountID: "1", RoleName: "AdministratorAccess"}},
+		{ID: "dev", Name: "Acme Dev/PowerUserAccess", Kind: core.KindAWSSSORole, AWS: &core.AWSSession{AccountID: "2", RoleName: "PowerUserAccess"}},
+		{ID: "iam", Name: "personal", Kind: core.KindAWSIAMUser, AWS: &core.AWSSession{}},
+		{ID: "chain", Name: "chained", Kind: core.KindAWSAssumeRole, AWS: &core.AWSSession{}},
+		{ID: "az", Name: "Contoso", Kind: core.KindAzure, Azure: &core.AzureSession{}},
+		{ID: "gcp2", Name: "zeta", Kind: core.KindGCP, GCP: &core.GCPSession{}},
+		{ID: "gcp1", Name: "alpha", Kind: core.KindGCP, GCP: &core.GCPSession{}},
+	}
+	w := &core.Workspace{Sessions: sessions}
+	m := application.NewMenu()
+	(&tray{}).addProviderMenus(m, w, sessions)
+
+	if got, want := menuLabels(m), []string{"AWS · 5", "Azure · 1", "Google Cloud · 2"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("top level = %v, want %v", got, want)
+	}
+	aws := submenu(t, m, "AWS · 5")
+	if got, want := menuLabels(aws), []string{"Acme Dev", "Acme Prod", "---", "chained", "personal"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("aws = %v, want %v", got, want)
+	}
+	prod := submenu(t, aws, "Acme Prod")
+	if got, want := menuLabels(prod), []string{"AdministratorAccess", "ReadOnlyAccess"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("account = %v, want %v", got, want)
+	}
+	if got, want := menuLabels(submenu(t, m, "Google Cloud · 2")), []string{"alpha", "zeta"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("gcp = %v, want %v", got, want)
+	}
+	// Only Identity Center roles group under accounts; no separator without them.
+	m = application.NewMenu()
+	(&tray{}).addProviderMenus(m, w, sessions[3:5])
+	if got, want := menuLabels(submenu(t, m, "AWS · 2")), []string{"chained", "personal"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("standalone only = %v, want %v", got, want)
+	}
+}
+
+func TestSessionMenuOffersProfileCommandForAWSOnly(t *testing.T) {
+	tr := &tray{}
+	m := application.NewMenu()
+	tr.addSessionMenu(m, core.Session{ID: "a", Name: "a", Kind: core.KindAWSSSORole, AWS: &core.AWSSession{}})
+	want := []string{"Stop", "---", "Open console", "Open terminal", "Copy credentials as env", "Copy profile command"}
+	if got := menuLabels(m); !reflect.DeepEqual(got, want) {
+		t.Fatalf("aws = %v, want %v", got, want)
+	}
+	m = application.NewMenu()
+	tr.addSessionMenu(m, core.Session{ID: "b", Name: "b", Kind: core.KindAzure, Azure: &core.AzureSession{}})
+	if got := menuLabels(m); !reflect.DeepEqual(got, want[:5]) {
+		t.Fatalf("azure = %v, want %v", got, want[:5])
+	}
+}
+
+func TestFooterKeepsOpenAndQuitReachable(t *testing.T) {
+	m := application.NewMenu()
+	(&tray{}).addFooter(m)
+	want := []string{"---", "Open Rolle", "Report a problem…", "Settings…", "Quit Rolle"}
+	if got := menuLabels(m); !reflect.DeepEqual(got, want) {
+		t.Fatalf("footer = %v, want %v", got, want)
+	}
+}

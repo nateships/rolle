@@ -6,6 +6,9 @@ import { afterEach, vi } from "vitest";
 // Finish every animation at once so presence checks do not wait on timers.
 MotionGlobalConfig.skipAnimations = true;
 
+// Confetti draws on a canvas, which jsdom lacks. Stub the library so tests can observe celebrate().
+vi.mock("canvas-confetti", () => ({ default: vi.fn(() => Promise.resolve()) }));
+
 // jsdom has no matchMedia. Default to a light OS theme; tests override as needed.
 function matchMedia(query: string): MediaQueryList {
   return {

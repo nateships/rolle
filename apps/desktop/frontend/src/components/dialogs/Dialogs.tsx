@@ -230,7 +230,7 @@ export function AddAssumeRoleDialog({
           </Field>
           <Field label="Source session" hint="Provides the credentials for the AssumeRole call">
             <Select value={sourceRef} onValueChange={setSource}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full" aria-label="Source session">
                 <SelectValue placeholder="Choose a session" />
               </SelectTrigger>
               <SelectContent>
@@ -472,7 +472,7 @@ export function AddGCPImpersonationDialog({
           {gcpIntegrations.length > 1 && (
             <Field label="Account">
               <Select value={integrationRef} onValueChange={setIntegrationRef}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full" aria-label="Account">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -488,7 +488,7 @@ export function AddGCPImpersonationDialog({
           <Field label="Project ID">
             {projects.length > 0 ? (
               <Select value={projectId} onValueChange={setProjectId}>
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full" aria-label="Project ID">
                   <SelectValue placeholder="Choose a project" />
                 </SelectTrigger>
                 <SelectContent>

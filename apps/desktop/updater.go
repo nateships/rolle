@@ -27,10 +27,10 @@ import (
 )
 
 // manifestURL is the signed update manifest of the latest stable release.
-const manifestURL = "https://github.com/nateships/rolle/releases/latest/download/manifest.json"
+var manifestURL = "https://github.com/nateships/rolle/releases/latest/download/manifest.json"
 
 // releasesAPI lists releases newest first, pre-releases included.
-const releasesAPI = "https://api.github.com/repos/nateships/rolle/releases?per_page=10"
+var releasesAPI = "https://api.github.com/repos/nateships/rolle/releases?per_page=10"
 
 // checkInterval is how often background update checks run.
 const checkInterval = 6 * time.Hour
