@@ -232,57 +232,35 @@ jobs:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
 
   # Runs after the release is public, so the cask URL resolves as soon as the
-  # tap updates. A missing tap token skips this job instead of failing the release.
+  # tap updates. brew bump-cask-pr rewrites version and sha256 in the cask that
+  # lives in the tap; goreleaser handles rolle-cli. A missing tap token skips
+  # this job instead of failing the release.
   tap:
     needs: publish
     # Pre-release tags (v1.2.0-rc.1) stay off Homebrew.
     if: ${{ !contains(github.ref_name, '-') }}
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
+    permissions: {}
     steps:
       - name: Strip the v prefix from the tag
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
-      - name: Write the desktop cask into the tap
+      - uses: Homebrew/actions/setup-homebrew@49d03f1bf5d455a413dfbdf99e6718054a4cd975 # 2026-09-11
+        with:
+          test-bot: false
+      - name: Bump the desktop cask in the tap
         env:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          HOMEBREW_NO_INSTALL_FROM_API: "1"
         run: |
           set -euo pipefail
           if [ -z "$HOMEBREW_TAP_TOKEN" ]; then
             echo "HOMEBREW_TAP_TOKEN is not set; the desktop cask is not updated."
             exit 0
           fi
-          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --dir artifacts --pattern Rolle.dmg
-          sha="$(sha256sum artifacts/Rolle.dmg | cut -d' ' -f1)"
-          git clone --depth 1 "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/nateships/homebrew-tap.git" tap
-          mkdir -p tap/Casks
-          cat > tap/Casks/rolle.rb <<RUBY
-          cask "rolle" do
-            version "$VERSION"
-            sha256 "$sha"
-
-            url "https://github.com/nateships/rolle/releases/download/v#{version}/Rolle.dmg"
-            name "Rolle"
-            desc "Assume any role, any cloud"
-            homepage "https://getrolle.com"
-
-            auto_updates true
-            depends_on macos: ">= :monterey"
-
-            app "Rolle.app"
-
-            # The app stores its files in the XDG directories, which on macOS
-            # resolve under ~/Library. The dot paths cover XDG_* overrides.
-            zap trash: [
-              "~/Library/Application Support/rolle",
-              "~/Library/Caches/rolle",
-              "~/.config/rolle",
-              "~/.cache/rolle",
-            ]
-          end
-          RUBY
-          cd tap
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Casks/rolle.rb
-          git commit -m "rolle $GITHUB_REF_NAME" || exit 0
-          git push
+          brew tap nateships/tap
+          tap="$(brew --repository nateships/tap)"
+          git -C "$tap" config user.name "github-actions[bot]"
+          git -C "$tap" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          brew bump-cask-pr nateships/tap/rolle --version "$VERSION" --write-only --commit --no-audit --no-browse
+          git -C "$tap" push "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/nateships/homebrew-tap.git" HEAD:main
