@@ -40,14 +40,14 @@ describe("Dashboard", () => {
     expect(workspace.sessions).toHaveLength(8);
     expect(screen.getByText("All sessions", { selector: "span" })).toBeInTheDocument();
     for (const alias of ["acme", "contoso", "gcp", "acme-eu"]) expect(screen.getByText(alias)).toBeInTheDocument();
-    // Account groups and standalone rows from the seed. Acme Prod also heads the favorites panel.
-    expect(screen.getAllByText("Acme Prod")).toHaveLength(2);
+    // Account groups and standalone rows from the seed, each once: favorites
+    // live in the sidebar filter, not in a panel of their own.
+    expect(screen.getByText("Acme Prod")).toBeInTheDocument();
     expect(screen.getByText("Acme Dev")).toBeInTheDocument();
     expect(screen.getByText("Contoso Production")).toBeInTheDocument();
     expect(screen.getByText("data-platform")).toBeInTheDocument();
-    // Favorites appear in their own panel above the full list.
-    expect(screen.getByRole("heading", { name: /favorites/i })).toBeInTheDocument();
-    expect(screen.getAllByText("deployer")).toHaveLength(2);
+    expect(screen.queryByRole("heading", { name: /favorites/i })).not.toBeInTheDocument();
+    expect(screen.getAllByText("deployer")).toHaveLength(1);
     expect(screen.getByText("2 active")).toBeInTheDocument();
   });
 
@@ -56,7 +56,6 @@ describe("Dashboard", () => {
     renderDashboard();
     await user.click(screen.getByRole("button", { name: /^Active/ }));
     expect(rowNames()).toEqual(["Acme Prod", "AdministratorAccess", "Contoso Production"]);
-    expect(screen.queryByRole("heading", { name: /favorites/i })).not.toBeInTheDocument();
   });
 
   it("keeps hidden sessions out of the lists until asked", async () => {
@@ -110,7 +109,7 @@ describe("Dashboard", () => {
     const user = userEvent.setup();
     renderDashboard();
     await user.type(screen.getByPlaceholderText("Search sessions"), "deployer");
-    expect(rowNames()).toEqual(["deployer", "deployer"]);
+    expect(rowNames()).toEqual(["deployer"]);
     await user.clear(screen.getByPlaceholderText("Search sessions"));
     await user.type(screen.getByPlaceholderText("Search sessions"), "readonly");
     // A search keeps the matching account group visible with only the matching role.
@@ -199,7 +198,6 @@ describe("Dashboard", () => {
     renderDashboard();
     expect(rowNames()).toContain("Acme Prod");
     expect(rowNames()).toContain("Contoso Production");
-    expect(screen.getByRole("heading", { name: /favorites/i })).toBeInTheDocument();
   });
 
   it("installs a found update from the footer", async () => {
