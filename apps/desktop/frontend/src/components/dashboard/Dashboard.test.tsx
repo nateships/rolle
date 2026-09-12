@@ -118,4 +118,14 @@ describe("Dashboard", () => {
     renderDashboard();
     expect(await screen.findByRole("button", { name: /update to 0\.2\.0/i }, { timeout: 3000 })).toBeInTheDocument();
   });
+
+  it("shows shortcut badges while the modifier is held", async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+    await user.keyboard("{Control>}");
+    expect(await screen.findByText("Ctrl+1")).toBeInTheDocument();
+    expect(screen.getByText("Ctrl+F")).toBeInTheDocument();
+    await user.keyboard("{/Control}");
+    await waitFor(() => expect(screen.queryByText("Ctrl+1")).not.toBeInTheDocument());
+  });
 });

@@ -1,9 +1,13 @@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 /** True on macOS, where the modifier is ⌘. Everywhere else it is Ctrl. */
 export const isMac = /Mac/.test(navigator.platform) || /Mac OS/.test(navigator.userAgent);
 
 const MOD = isMac ? "⌘" : "Ctrl";
+
+/** One shortcut as a badge reads: ⌘1 on macOS, Ctrl+1 elsewhere. */
+export const combo = (key: string) => (isMac ? `⌘${key}` : `Ctrl+${key}`);
 
 /** Every shortcut the dashboard handles, in the order the sheet lists them. */
 export const SHORTCUTS: { keys: string[]; label: string }[] = [
@@ -17,9 +21,14 @@ export const SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: [MOD, "/"], label: "Keyboard shortcuts" },
 ];
 
-function Key({ children }: { children: string }) {
+export function Key({ children, className }: { children: string; className?: string }) {
   return (
-    <kbd className="inline-flex h-6 min-w-6 items-center justify-center rounded-md border bg-muted px-1.5 font-sans text-[11px] font-medium text-foreground shadow-[inset_0_-1px_0_var(--color-border)]">
+    <kbd
+      className={cn(
+        "inline-flex h-6 min-w-6 items-center justify-center rounded-md border bg-muted px-1.5 font-sans text-[11px] font-medium text-foreground shadow-[inset_0_-1px_0_var(--color-border)]",
+        className,
+      )}
+    >
       {children}
     </kbd>
   );

@@ -39,7 +39,8 @@ import { DevTools } from "@/components/DevTools";
 import { SettingsDialog } from "@/components/dialogs/SettingsDialog";
 import { RenameDialog } from "@/components/dialogs/RenameDialog";
 import { ImportDialog } from "@/components/dialogs/ImportDialog";
-import { ShortcutsDialog } from "@/components/dialogs/ShortcutsDialog";
+import { Key, ShortcutsDialog, combo } from "@/components/dialogs/ShortcutsDialog";
+import { useModifierHeld } from "@/lib/modifier";
 import {
   AddSSODialog,
   AddAssumeRoleDialog,
@@ -115,6 +116,9 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   }, []);
 
   const searchRef = useRef<HTMLInputElement>(null);
+  // Holding the modifier shows each shortcut as a badge next to its control.
+  const held = useModifierHeld();
+  const hint = (key: string) => (held ? combo(key) : undefined);
   // Keyboard shortcuts. ShortcutsDialog lists them; keep the two in step.
   useEffect(() => {
     // The same key closes the dialog it opened.
@@ -213,6 +217,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
               active={filter === null}
               onClick={() => setFilter(null)}
               label="All sessions"
+              hint={hint("1")}
               count={workspace.sessions.length}
             />
             {active > 0 && (
@@ -220,6 +225,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 active={filter === "active"}
                 onClick={() => setFilter("active")}
                 label="Active"
+                hint={hint("2")}
                 count={active}
                 dot="ok"
               />
@@ -229,6 +235,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 active={filter === "favorites"}
                 onClick={() => setFilter("favorites")}
                 label="Favorites"
+                hint={hint("3")}
                 count={favoriteCount}
                 icon={<Star className="size-3.5 fill-current text-brand-orange" />}
               />
@@ -382,22 +389,28 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
               </Button>
             )}
             <DevTools />
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Keyboard shortcuts"
-              onClick={() => setDialog({ kind: "shortcuts" })}
-            >
-              <Keyboard className="size-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              aria-label="Settings"
-              onClick={() => setDialog({ kind: "settings" })}
-            >
-              <SettingsIcon className="size-4" />
-            </Button>
+            <span className="relative">
+              {held && <Key className="absolute -top-7 right-0 h-5 text-[10px]">{combo("/")}</Key>}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Keyboard shortcuts"
+                onClick={() => setDialog({ kind: "shortcuts" })}
+              >
+                <Keyboard className="size-4" />
+              </Button>
+            </span>
+            <span className="relative">
+              {held && <Key className="absolute -top-7 right-0 h-5 text-[10px]">{combo(",")}</Key>}
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Settings"
+                onClick={() => setDialog({ kind: "settings" })}
+              >
+                <SettingsIcon className="size-4" />
+              </Button>
+            </span>
           </div>
         </div>
       </aside>
@@ -414,6 +427,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
               placeholder="Search sessions"
               className="h-8 pl-8"
             />
+            {held && <Key className="absolute right-2 top-1/2 h-5 -translate-y-1/2 text-[10px]">{combo("F")}</Key>}
           </div>
           <div className="flex-1" />
           <DropdownMenu>
@@ -604,6 +618,7 @@ function SideItem({
   dot,
   icon,
   trailing,
+  hint,
   ...rest
 }: {
   active: boolean;
@@ -613,12 +628,14 @@ function SideItem({
   dot?: "ok" | "off";
   icon?: React.ReactNode;
   trailing?: React.ReactNode;
+  /** Shortcut badge shown while the modifier is held. */
+  hint?: string;
 } & React.ComponentProps<"div">) {
   return (
     <div
       {...rest}
       className={cn(
-        "group flex items-center rounded-md pr-1 transition-colors",
+        "group relative flex items-center rounded-md pr-1 transition-colors",
         active
           ? "bg-sidebar-accent text-sidebar-accent-foreground"
           : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
@@ -653,6 +670,7 @@ function SideItem({
       </button>
       {/* Fixed slot keeps counts aligned whether or not a row has a control. */}
       <span className="flex size-6 shrink-0 items-center justify-center">{trailing}</span>
+      {hint && <Key className="absolute right-1.5 top-1/2 h-5 -translate-y-1/2 text-[10px]">{hint}</Key>}
     </div>
   );
 }
