@@ -17,7 +17,7 @@ description: Install the rolle desktop app with Homebrew, a signed DMG, the Wind
     Or download `rolle.dmg` from the [releases page](https://github.com/nateships/rolle/releases). The app is signed and notarized. It runs on macOS 12 or newer on Apple silicon and Intel. The `rolle` command ships inside the app; the last onboarding step and **Settings → General** offer **Install command**, which links it into `/usr/local/bin`.
   </Tab>
   <Tab title="Windows">
-    Download `rolle-installer.exe` from the [releases page](https://github.com/nateships/rolle/releases). One installer covers x64 and Arm64. Portable builds ship as `rolle-windows-amd64.zip` and `rolle-windows-arm64.zip`.
+    Download `rolle-installer.exe` from the [releases page](https://github.com/nateships/rolle/releases). One installer covers x64 and Arm64. It installs for the current user under `%LOCALAPPDATA%\Programs\rolle`, so it needs no administrator, and neither do updates.
 
     The app carries the `rolle` command. The last onboarding step and **Settings → General** offer **Install command**, which writes it to `%LOCALAPPDATA%\rolle\bin` and adds that folder to your user `PATH`. Open a new terminal afterwards. The app keeps the command at its own version after each update.
 
@@ -26,13 +26,13 @@ description: Install the rolle desktop app with Homebrew, a signed DMG, the Wind
   <Tab title="Linux">
     Download `rolle-linux-amd64.AppImage` or the `.deb` package from the [releases page](https://github.com/nateships/rolle/releases). The app needs GTK 4 and WebKitGTK 6.0.
 
-    The deb installs the `rolle` command in `/usr/local/bin`. The AppImage carries it: **Install command** in the last onboarding step and in **Settings → General** writes it to `~/.local/bin`, and the app keeps it at its own version after each update. The CLI also ships on its own as `rolle_<version>_linux_<arch>.tar.gz` for machines without the app.
+    The deb installs the `rolle` command in `/usr/local/bin`. The AppImage carries it: **Install command** in the last onboarding step and in **Settings → General** writes it to `~/.local/bin`, and the app keeps it at its own version after each update. The CLI also ships on its own as `rolle-cli_<version>_linux_<arch>.tar.gz` for machines without the app.
   </Tab>
 </Tabs>
 
 ## CLI archives
 
-Every release ships `rolle_<version>_<os>_<arch>.tar.gz` (zip on Windows) for `darwin`, `linux`, and `windows` on `amd64` and `arm64`, with a `checksums.txt`. Put the `rolle` binary on your `PATH`.
+Every release ships `rolle-cli_<version>_<os>_<arch>.tar.gz` (zip on Windows) for `darwin`, `linux`, and `windows` on `amd64` and `arm64`, with a `checksums.txt`. The `rolle-update-*` zips next to them are what the desktop app installs when it updates itself; they are not meant for download. Put the `rolle` binary on your `PATH`.
 
 `checksums.txt` carries a keyless [Sigstore](https://www.sigstore.dev/) signature made by the release workflow. To verify an archive, download `checksums.txt` and `checksums.txt.sigstore.json` next to it and run:
 
