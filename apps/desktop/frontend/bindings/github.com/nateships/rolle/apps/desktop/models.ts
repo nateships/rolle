@@ -12,6 +12,32 @@ export interface AppInfo {
 }
 
 /**
+ * CLIStatus describes whether the rolle command is reachable from a shell.
+ */
+export interface CLIStatus {
+    /**
+     * Installed is true when a shell resolves rolle.
+     */
+    "installed": boolean;
+
+    /**
+     * Path is where the command resolves when Installed.
+     */
+    "path"?: string;
+
+    /**
+     * Target is the command inside the app bundle.
+     */
+    "target"?: string;
+
+    /**
+     * Reason is empty when Install can run: "move" when the app runs from a
+     * disk image or a temporary location, "unsupported" off macOS bundles.
+     */
+    "reason"?: string;
+}
+
+/**
  * DeviceLogin is what the user must do to approve a login. UserCode is empty
  * for the browser flow.
  */

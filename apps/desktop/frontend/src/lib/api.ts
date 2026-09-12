@@ -42,6 +42,7 @@ export type {
 } from "../../bindings/github.com/nateships/rolle/internal/core";
 export type {
   AppInfo,
+  CLIStatus,
   DeviceLogin,
   GCPStatus,
   UpdateInfo,

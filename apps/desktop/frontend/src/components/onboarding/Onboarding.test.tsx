@@ -47,4 +47,14 @@ describe("Onboarding", () => {
     );
     expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("Where do your roles live?");
   });
+
+  it("offers the rolle command on the final step", async () => {
+    window.history.replaceState({}, "", "/?step=done");
+    render(
+      <TooltipProvider>
+        <Onboarding workspace={empty} />
+      </TooltipProvider>,
+    );
+    expect(await screen.findByRole("button", { name: /install command/i })).toBeInTheDocument();
+  });
 });

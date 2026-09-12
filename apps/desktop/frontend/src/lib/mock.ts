@@ -129,6 +129,8 @@ const creds: Credentials = {
   expiration: new Date(Date.now() + 3.6e6).toISOString(),
 } as Credentials;
 
+let cliInstalled = new URLSearchParams(location.search).get("cli") === "installed";
+
 export const mockApi = {
   Workspace: async () => structuredClone(state),
   CompleteOnboarding: async () => {
@@ -445,6 +447,22 @@ export const mockApi = {
       notes: "",
       state: avail ? "available" : "up-to-date",
     };
+  },
+  // The rolle command inside the app. ?cli=installed previews the linked state.
+  CLIStatus: async () => ({
+    installed: cliInstalled,
+    path: cliInstalled ? "/usr/local/bin/rolle" : "",
+    target: "/Applications/Rolle.app/Contents/Helpers/rolle",
+    reason: "",
+  }),
+  InstallCLI: async () => {
+    await wait(600);
+    cliInstalled = true;
+    return mockApi.CLIStatus();
+  },
+  UninstallCLI: async () => {
+    await wait(300);
+    cliInstalled = false;
   },
   PendingUpdate: async () => {
     const avail = new URLSearchParams(location.search).get("update") === "1";

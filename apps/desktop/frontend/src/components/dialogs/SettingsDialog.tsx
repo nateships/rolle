@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { RegionSelect } from "@/components/RegionSelect";
+import { CommandLineInstall } from "@/components/CommandLine";
 import { api, errorMessage, type AppInfo, type Settings, type UpdateInfo } from "@/lib/api";
 import { copyText } from "@/lib/clipboard";
 import { applyTheme, type Theme } from "@/lib/theme";
@@ -147,7 +148,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
           </DialogTitle>
           <DialogDescription>Preferences are saved as you change them.</DialogDescription>
         </DialogHeader>
-        {!settings && <div className="h-[26.5rem]" aria-busy="true" />}
+        {!settings && <div className="h-[30.5rem]" aria-busy="true" />}
         {settings && (
           <Tabs defaultValue={new URLSearchParams(location.search).get("tab") ?? "general"} className="w-full">
             <TabsList className="grid w-full grid-cols-4">
@@ -157,7 +158,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
               <TabsTrigger value="advanced">Advanced</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="general" className="mt-4 min-h-[23rem] space-y-4">
+            <TabsContent value="general" className="mt-4 min-h-[27rem] space-y-4">
               <Row label="Default AWS region" hint="Pre-filled for new sessions.">
                 <RegionSelect
                   value={settings.defaultRegion}
@@ -217,9 +218,12 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
               >
                 <Switch checked={!settings.autoUpdateOff} onCheckedChange={(v) => update({ autoUpdateOff: !v })} />
               </Row>
+              <Row label="Command line" hint="The rolle command ships inside the app. Link it into /usr/local/bin.">
+                <CommandLineInstall compact />
+              </Row>
             </TabsContent>
 
-            <TabsContent value="appearance" className="mt-4 min-h-[23rem] space-y-4">
+            <TabsContent value="appearance" className="mt-4 min-h-[27rem] space-y-4">
               <Row label="Theme" hint="Follow the system or pick one.">
                 <div className="inline-flex rounded-md border bg-muted p-0.5">
                   {(
@@ -247,7 +251,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
               </Row>
             </TabsContent>
 
-            <TabsContent value="about" className="mt-4 min-h-[23rem] space-y-5 text-xs">
+            <TabsContent value="about" className="mt-4 min-h-[27rem] space-y-5 text-xs">
               <div className="flex items-center justify-between rounded-lg border bg-card px-3 py-2">
                 <div>
                   <p className="text-sm font-medium text-foreground">Rolle {info?.version ?? "…"}</p>
@@ -299,7 +303,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
               </div>
             </TabsContent>
 
-            <TabsContent value="advanced" className="mt-4 min-h-[23rem] space-y-3">
+            <TabsContent value="advanced" className="mt-4 min-h-[27rem] space-y-3">
               <p className="text-xs font-medium text-muted-foreground">Network</p>
               <Row label="HTTPS proxy" hint="Empty follows HTTPS_PROXY. Example: http://proxy.corp:3128">
                 <Input

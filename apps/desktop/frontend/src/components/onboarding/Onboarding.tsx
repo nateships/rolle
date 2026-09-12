@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CommandLineInstall } from "@/components/CommandLine";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { CloudGlyph, GopherLockup, GopherMark } from "@/components/Brand";
@@ -747,6 +748,7 @@ function Done({ count, onFinish }: { count: number; onFinish: () => void }) {
         one, then use it from any terminal with{" "}
         <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">rolle env &lt;name&gt;</code>.
       </p>
+      <CommandLineInstall className="mt-6" />
       <Button size="lg" className="mt-8 gap-2" onClick={onFinish}>
         Open dashboard <ArrowRight className="size-4" />
       </Button>

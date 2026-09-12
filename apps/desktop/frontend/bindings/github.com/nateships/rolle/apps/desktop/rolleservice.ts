@@ -81,6 +81,13 @@ export function AzureLogout(ref: string): $CancellablePromise<void> {
 }
 
 /**
+ * CLIStatus reports whether the bundled rolle command is on the PATH.
+ */
+export function CLIStatus(): $CancellablePromise<$models.CLIStatus> {
+    return $Call.ByID(3736051989);
+}
+
+/**
  * CancelSSOLogin abandons a login that WaitSSOLogin is waiting on.
  */
 export function CancelSSOLogin(ref: string): $CancellablePromise<void> {
@@ -163,6 +170,14 @@ export function ImportLeappSessions(): $CancellablePromise<app$0.LeappImportResu
  */
 export function Info(): $CancellablePromise<$models.AppInfo> {
     return $Call.ByID(135200251);
+}
+
+/**
+ * InstallCLI links the bundled command into /usr/local/bin. When that
+ * directory is not writable, macOS asks for an administrator password once.
+ */
+export function InstallCLI(): $CancellablePromise<$models.CLIStatus> {
+    return $Call.ByID(904278096);
 }
 
 /**
@@ -328,6 +343,13 @@ export function SyncGCP(ref: string): $CancellablePromise<core$0.Session[] | nul
  */
 export function SyncSSO(ref: string): $CancellablePromise<core$0.Session[] | null> {
     return $Call.ByID(3979444731, ref);
+}
+
+/**
+ * UninstallCLI removes the link. The app keeps its own copy of the command.
+ */
+export function UninstallCLI(): $CancellablePromise<void> {
+    return $Call.ByID(1017279095);
 }
 
 /**
