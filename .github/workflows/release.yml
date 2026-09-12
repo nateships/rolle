@@ -248,8 +248,6 @@ jobs:
       - name: Strip the v prefix from the tag
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
       - uses: Homebrew/actions/setup-homebrew@49d03f1bf5d455a413dfbdf99e6718054a4cd975 # 2026-09-11
-        with:
-          test-bot: false
       - name: Bump the cask in the tap
         env:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
