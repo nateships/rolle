@@ -10,7 +10,8 @@
   top: 5rem;
 }
 
-header a[href="/"] {
+/* The logo link only; the Docs tab shares its href. */
+header a[href="/"]:has(img) {
   padding: 1rem 0.5rem 1rem 0.25rem;
 }
 
