@@ -1,5 +1,8 @@
 <p align="center">
-  <img src="docs/brand/readme-gopher.png" alt="Go gopher with rolle credential cards and an r cutout" width="280">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/public/logo-dark.svg">
+    <img src="docs/public/logo-light.svg" alt="rolle: the Go gopher behind three credential cards, next to the rolle wordmark" width="420">
+  </picture>
 </p>
 
 <p align="center">
