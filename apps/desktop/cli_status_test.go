@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/nateships/rolle/internal/version"
@@ -61,6 +62,9 @@ func TestDevBuildSimulatesCLIInstall(t *testing.T) {
 }
 
 func TestDarwinStatus(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("bundle paths use forward slashes; the code runs on macOS only")
+	}
 	env := cliEnv{goos: "darwin", lookPath: notFound}
 	env.exe = "/usr/local/bin/rolle-desktop"
 	if st := cliStatusIn(env); st.Reason != "unsupported" {
@@ -187,8 +191,7 @@ func TestWriteCLIReplacesAtomically(t *testing.T) {
 	if _, err := os.Stat(target + ".tmp"); err == nil {
 		t.Fatal("temporary file left behind")
 	}
-	info, _ := os.Stat(target)
-	if info.Mode()&0o100 == 0 {
+	if info, _ := os.Stat(target); runtime.GOOS != "windows" && info.Mode()&0o100 == 0 {
 		t.Fatalf("not executable: %v", info.Mode())
 	}
 }
