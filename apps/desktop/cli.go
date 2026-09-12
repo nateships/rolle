@@ -12,6 +12,11 @@ import (
 // cliLink is where the rolle command is linked so every shell finds it.
 const cliLink = "/usr/local/bin/rolle"
 
+// devCLIInstalled stands in for the link in dev builds, whose bundle has no
+// helper. Install and Uninstall flip it so the interface can be exercised
+// without touching /usr/local/bin.
+var devCLIInstalled bool
+
 // CLIStatus describes whether the rolle command is reachable from a shell.
 type CLIStatus struct {
 	// Installed is true when a shell resolves rolle.
@@ -27,13 +32,42 @@ type CLIStatus struct {
 
 // CLIStatus reports whether the bundled rolle command is on the PATH.
 func (r *RolleService) CLIStatus() CLIStatus {
+	if devSimulated() {
+		return devCLIStatus()
+	}
 	exe, _ := os.Executable()
 	return cliStatus(exe)
+}
+
+// devSimulated is true in a dev build whose bundle carries no helper.
+func devSimulated() bool {
+	if !devMode {
+		return false
+	}
+	exe, _ := os.Executable()
+	target := cliTarget(exe)
+	if target == "" {
+		return true
+	}
+	_, err := os.Stat(target)
+	return err != nil
+}
+
+func devCLIStatus() CLIStatus {
+	st := CLIStatus{Target: "(dev build: install is simulated)"}
+	if devCLIInstalled {
+		st.Installed, st.Path = true, cliLink
+	}
+	return st
 }
 
 // InstallCLI links the bundled command into /usr/local/bin. When that
 // directory is not writable, macOS asks for an administrator password once.
 func (r *RolleService) InstallCLI() (CLIStatus, error) {
+	if devSimulated() {
+		devCLIInstalled = true
+		return devCLIStatus(), nil
+	}
 	exe, _ := os.Executable()
 	st := cliStatus(exe)
 	switch st.Reason {
@@ -53,6 +87,10 @@ func (r *RolleService) InstallCLI() (CLIStatus, error) {
 
 // UninstallCLI removes the link. The app keeps its own copy of the command.
 func (r *RolleService) UninstallCLI() error {
+	if devSimulated() {
+		devCLIInstalled = false
+		return nil
+	}
 	if _, err := os.Lstat(cliLink); err != nil {
 		return nil
 	}
