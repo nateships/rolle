@@ -29,9 +29,9 @@ rolle trusts the OS trust store. Install your organisation's root there (Keychai
 
 rolle stores refresh tokens and access keys in the login keychain under the service `rolle`. Choose **Always Allow** so every start does not prompt.
 
-## The update closes the app and nothing happens
+## The update asks for an administrator password
 
-The updater replaces the app in place, which needs write access to the folder that holds it. A standard account has none in `/Applications` on macOS or in `Program Files` on Windows, so the swap fails after the app has quit; the app itself is untouched and opens again from the Dock or the Start menu. From 0.1.8 the app notices this and asks for an administrator name and password, on macOS through the system prompt and on Windows through UAC, before it replaces itself. Privilege managers such as BeyondTrust or Jamf Connect answer that prompt by policy. If nobody can approve it, install into a folder you own: `~/Applications` on macOS, or the portable `rolle-windows-<arch>.zip` unpacked under your profile on Windows, and run **Install command** again. The updater writes a log to `$TMPDIR/wails-update-<pid>.log` on macOS and `%TEMP%\wails-update-<pid>.log` on Windows; attach it to an issue with the support bundle.
+The updater replaces the app in place. When the folder that holds the app belongs to an administrator, `/Applications` on macOS or `Program Files` on Windows, the app asks for an administrator name and password before it replaces itself. Privilege managers such as BeyondTrust or Jamf Connect can answer that prompt by policy. To avoid the prompt, install where your account has write access: `~/Applications` on macOS, or the Windows installer, which installs under your own profile. Run **Install command** again after a move. If an update still fails, the updater writes a log to `$TMPDIR/wails-update-<pid>.log` on macOS and `%TEMP%\wails-update-<pid>.log` on Windows; attach it to an issue with the support bundle.
 
 ## Windows SmartScreen warning
 

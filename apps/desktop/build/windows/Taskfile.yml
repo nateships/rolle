@@ -204,7 +204,7 @@ tasks:
       - powershell Move-Item -Force "{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}-amd64_arm64-installer.exe" "{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}-installer.exe"
 
   release:zip:
-    summary: Zips one executable as the single entry the updater installs
+    summary: Zips one executable as the single entry the updater installs; not a download for people
     internal: true
     cmds:
-      - powershell "New-Item -ItemType Directory -Force '{{.BIN_DIR}}/stage-{{.ARCH}}' | Out-Null; Copy-Item '{{.BIN_DIR}}/{{.APP_NAME}}-{{.ARCH}}.exe' '{{.BIN_DIR}}/stage-{{.ARCH}}/{{.APP_NAME}}.exe'; Compress-Archive -Force -Path '{{.BIN_DIR}}/stage-{{.ARCH}}/{{.APP_NAME}}.exe' -DestinationPath '{{.BIN_DIR}}/{{.APP_NAME}}-windows-{{.ARCH}}.zip'"
+      - powershell "New-Item -ItemType Directory -Force '{{.BIN_DIR}}/stage-{{.ARCH}}' | Out-Null; Copy-Item '{{.BIN_DIR}}/{{.APP_NAME}}-{{.ARCH}}.exe' '{{.BIN_DIR}}/stage-{{.ARCH}}/{{.APP_NAME}}.exe'; Compress-Archive -Force -Path '{{.BIN_DIR}}/stage-{{.ARCH}}/{{.APP_NAME}}.exe' -DestinationPath '{{.BIN_DIR}}/{{.APP_NAME}}-update-windows-{{.ARCH}}.zip'"

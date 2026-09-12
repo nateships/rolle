@@ -110,9 +110,9 @@ jobs:
           name: desktop-${{ runner.os }}
           if-no-files-found: error
           path: |
-            apps/desktop/bin/rolle-macos-universal.zip
+            apps/desktop/bin/rolle-update-macos-universal.zip
             apps/desktop/bin/*.dmg
-            apps/desktop/bin/rolle-windows-*.zip
+            apps/desktop/bin/rolle-update-windows-*.zip
             apps/desktop/bin/rolle-installer.exe
             apps/desktop/bin/*.AppImage
             apps/desktop/bin/*.deb
@@ -177,7 +177,7 @@ jobs:
       - name: Keep only the files the updater installs
         run: |
           mkdir artifacts
-          cp packages/rolle-macos-universal.zip packages/rolle-windows-amd64.zip packages/rolle-windows-arm64.zip packages/rolle-linux-amd64.AppImage artifacts/
+          cp packages/rolle-update-macos-universal.zip packages/rolle-update-windows-amd64.zip packages/rolle-update-windows-arm64.zip packages/rolle-linux-amd64.AppImage artifacts/
       - name: Write signing key
         run: printf '%s' "$ROLLE_UPDATER_KEY" > updater.key && chmod 600 updater.key
         env:
