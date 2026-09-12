@@ -731,6 +731,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                   widths={widths}
                   onWidths={setWidths}
                   onNeedsLogin={needsLogin}
+                  onTagClick={(tag) => setFilter(`tag:${tag}`)}
                 />
               </section>
             </div>

@@ -13,7 +13,12 @@ vi.mock("@/lib/celebrate", () => ({ celebrate: vi.fn() }));
 
 function renderRow(
   s: Session,
-  opts: { integrations?: Integration[]; tags?: Tag[]; onNeedsLogin?: (i: Integration, id?: string) => void } = {},
+  opts: {
+    integrations?: Integration[];
+    tags?: Tag[];
+    onNeedsLogin?: (i: Integration, id?: string) => void;
+    onTagClick?: (tag: string) => void;
+  } = {},
 ) {
   const ws = {
     version: 1,
@@ -26,7 +31,7 @@ function renderRow(
     <TooltipProvider>
       <table>
         <tbody>
-          <SessionRow session={s} workspace={ws} onNeedsLogin={opts.onNeedsLogin} />
+          <SessionRow session={s} workspace={ws} onNeedsLogin={opts.onNeedsLogin} onTagClick={opts.onTagClick} />
         </tbody>
       </table>
     </TooltipProvider>,
@@ -232,10 +237,14 @@ describe("SessionRow actions", () => {
     const user = userEvent.setup();
     const setTag = vi.spyOn(api, "SetSessionTag").mockResolvedValue();
     const plain = session({ name: "personal", kind: Kind.KindAWSIAMUser, tags: ["Production"] });
+    const onTagClick = vi.fn();
     renderRow(plain, {
       tags: [{ name: "Production", color: "#e5484d", icon: "shield" }, { name: "Sandbox" }] as Tag[],
+      onTagClick,
     });
-    expect(screen.getByText("Production")).toBeInTheDocument();
+    // The chip's name opens that tag's filter.
+    await user.click(screen.getByRole("button", { name: /^Production$/ }));
+    expect(onTagClick).toHaveBeenCalledWith("Production");
     // A submenu opens on hover, or with the right arrow from its trigger.
     // The chip's x takes the tag off.
     await user.click(screen.getByRole("button", { name: "Remove tag Production" }));

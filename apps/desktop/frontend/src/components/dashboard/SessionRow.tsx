@@ -49,11 +49,14 @@ export function SessionRow({
   workspace,
   nested,
   onNeedsLogin,
+  onTagClick,
 }: {
   session: Session;
   workspace: Workspace;
   nested?: boolean;
   onNeedsLogin?: (integration: Integration, startSessionId?: string) => void;
+  /** The name on a tag chip was clicked. */
+  onTagClick?: (tag: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
@@ -292,7 +295,13 @@ export function SessionRow({
                           variant="secondary"
                           className="group/chip h-5 shrink-0 gap-1 px-1.5 text-[10px] font-normal text-muted-foreground"
                         >
-                          <TagGlyph tag={t} className="size-2.5" /> {name}
+                          <button
+                            type="button"
+                            onClick={() => onTagClick?.(name)}
+                            className="inline-flex items-center gap-1 hover:text-foreground"
+                          >
+                            <TagGlyph tag={t} className="size-2.5" /> {name}
+                          </button>
                           <button
                             type="button"
                             aria-label={`Remove tag ${name}`}

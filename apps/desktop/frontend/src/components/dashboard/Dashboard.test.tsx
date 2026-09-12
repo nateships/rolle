@@ -87,10 +87,16 @@ describe("Dashboard", () => {
     // One hidden session, so the Hidden entry is there to drop on.
     Object.assign(workspace.sessions[0], { hidden: true });
     renderDashboard();
-    // Seeded: Production with one session, Sandbox with none.
-    expect(screen.getByRole("button", { name: /^Production/ })).toHaveTextContent("1");
-    expect(screen.getByRole("button", { name: /^Sandbox/ })).toHaveTextContent("0");
-    await user.click(screen.getByRole("button", { name: /^Production/ }));
+    // Seeded: Production with one session, Sandbox with none. Chips on rows
+    // carry the same names, so the sidebar is queried on its own.
+    const sidebar = within(screen.getByRole("complementary"));
+    expect(sidebar.getByRole("button", { name: /^Production/ })).toHaveTextContent("1");
+    expect(sidebar.getByRole("button", { name: /^Sandbox/ })).toHaveTextContent("0");
+    await user.click(sidebar.getByRole("button", { name: /^Production/ }));
+    expect(rowNames()).toEqual(["deployer"]);
+    // The chip on the row leads to the same filter.
+    await user.click(screen.getByRole("button", { name: /^All sessions/ }));
+    await user.click(screen.getByRole("button", { name: /^Production$/ }));
     expect(rowNames()).toEqual(["deployer"]);
 
     const setTag = vi.spyOn(api, "SetSessionTag").mockResolvedValue();
@@ -101,14 +107,14 @@ describe("Dashboard", () => {
       setData: (k: string, v: string) => void data.set(k, v),
       effectAllowed: "all",
     };
-    const sandbox = screen.getByRole("button", { name: /^Sandbox/ }).closest("div")!;
+    const sandbox = sidebar.getByRole("button", { name: /^Sandbox/ }).closest("div")!;
     fireEvent.dragOver(sandbox, { dataTransfer });
     fireEvent.drop(sandbox, { dataTransfer });
     expect(setTag).toHaveBeenCalledWith("s-personal", "Sandbox", true);
 
     // Hidden takes a drop too.
     const hide = vi.spyOn(api, "SetHidden").mockResolvedValue();
-    const hidden = screen.getByRole("button", { name: /^Hidden/ }).closest("div")!;
+    const hidden = sidebar.getByRole("button", { name: /^Hidden/ }).closest("div")!;
     fireEvent.dragOver(hidden, { dataTransfer });
     fireEvent.drop(hidden, { dataTransfer });
     expect(hide).toHaveBeenCalledWith("s-personal", true);
