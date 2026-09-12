@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/wailsapp/wails/v3/pkg/updater"
@@ -98,5 +99,41 @@ func TestAppBundleAndWritable(t *testing.T) {
 		if writable(locked) {
 			t.Fatal("a read-only dir must not be writable")
 		}
+	}
+}
+
+func TestUpdateTargetAndWindowsScripts(t *testing.T) {
+	dir := t.TempDir()
+	if target, elevate := updateTarget("windows", filepath.Join(dir, "rolle.exe")); target != filepath.Join(dir, "rolle.exe") || elevate {
+		t.Fatalf("writable dir = %q %v", target, elevate)
+	}
+	if target, elevate := updateTarget("linux", "/usr/local/bin/rolle-desktop"); target != "/usr/local/bin/rolle-desktop" || elevate {
+		t.Fatalf("linux = %q %v", target, elevate)
+	}
+	if target, elevate := updateTarget("darwin", "/usr/local/bin/rolle-desktop"); target != "" || elevate {
+		t.Fatalf("darwin outside a bundle = %q %v", target, elevate)
+	}
+	swap := windowsSwapCommand(`C:\Temp\wails-update-1\rolle.exe`, `C:\Program Files\nateships\rolle\rolle.exe`)
+	if !strings.HasPrefix(swap, `/c move /y "C:\Program Files\nateships\rolle\rolle.exe" "C:\Program Files\nateships\rolle\rolle.exe.old.`) ||
+		!strings.HasSuffix(swap, `" && copy /y "C:\Temp\wails-update-1\rolle.exe" "C:\Program Files\nateships\rolle\rolle.exe"`) {
+		t.Fatalf("swap = %s", swap)
+	}
+	script := windowsElevateScript(`/c echo it's`)
+	if !strings.Contains(script, `-ArgumentList '/c echo it''s' -Verb RunAs -Wait`) {
+		t.Fatalf("elevate script = %s", script)
+	}
+	if got := windowsRelaunchScript(42, `C:\rolle.exe`); got != `Wait-Process -Id 42 -ErrorAction SilentlyContinue; Start-Process -FilePath 'C:\rolle.exe'` {
+		t.Fatalf("relaunch script = %s", got)
+	}
+	exe := filepath.Join(dir, "rolle.exe")
+	for _, n := range []string{exe + ".old.1", exe + ".old.2", filepath.Join(dir, "other.old.1")} {
+		if err := os.WriteFile(n, nil, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	sweepAsides(exe)
+	left, _ := filepath.Glob(filepath.Join(dir, "*"))
+	if len(left) != 1 || filepath.Base(left[0]) != "other.old.1" {
+		t.Fatalf("after sweep = %v", left)
 	}
 }

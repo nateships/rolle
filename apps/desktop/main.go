@@ -149,8 +149,12 @@ func main() {
 		if err := svc.ReconcileProfiles(); err != nil {
 			debug.Logf("app", "reconcile profiles: %v", err)
 		}
-		// An update replaced the app; bring the app's copy of the command along.
+		// An update replaced the app; bring the app's copy of the command along
+		// and drop the executable an elevated Windows update moved aside.
 		refreshCLI()
+		if exe, err := os.Executable(); err == nil {
+			sweepAsides(exe)
+		}
 		alerts := newNotifier(notify)
 		w, _ := svc.Refresh()
 		alerts.tick(w, currentSettings(svc))
