@@ -103,10 +103,11 @@ describe("isLoggedIn", () => {
     expect(
       isLoggedIn(
         integration({
+          // Past expiry with the field still set: the refresh token keeps the login alive.
           awsSso: { startUrl: "u", region: "r", tokenExpires: new Date(Date.now() - 60e3).toISOString() },
         }),
       ),
-    ).toBe(false);
+    ).toBe(true);
     expect(isLoggedIn(integration({ awsSso: { startUrl: "u", region: "r", tokenExpires: null } }))).toBe(false);
   });
 

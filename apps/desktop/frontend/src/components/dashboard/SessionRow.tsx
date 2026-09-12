@@ -29,7 +29,7 @@ import { RenameDialog, type RenameTarget } from "@/components/dialogs/RenameDial
 import { api, errorMessage, Kind, Status, type Integration, type Session, type Workspace } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
 import { copyText } from "@/lib/clipboard";
-import { cloudOf, isLoggedIn, kindLabel, remaining, sessionSubtitle, useNow } from "@/lib/format";
+import { cloudOf, kindLabel, remaining, sessionSubtitle, useNow } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const isAWSKind = (k: string) => cloudOf(k) === "aws";
@@ -61,12 +61,9 @@ export function SessionRow({
   async function start(mfaCode = "") {
     if (busy) return;
     setBusy(true);
+    // Start first; the backend may renew the portal token silently. A "login
+    // required" error is the one signal that the browser is needed.
     const integration = workspace.integrations.find((i) => i.id === s.integrationId);
-    if (integration && !isLoggedIn(integration) && onNeedsLogin) {
-      setBusy(false);
-      onNeedsLogin(integration, s.id);
-      return;
-    }
     try {
       await api.Start(s.id, mfaCode);
       const first = !workspace.sessions.some((x) => x.status === Status.StatusActive);

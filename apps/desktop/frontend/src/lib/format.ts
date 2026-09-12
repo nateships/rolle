@@ -3,7 +3,9 @@ import { Kind, type Integration, type Session } from "./api";
 
 /** Whether an integration currently holds a usable sign-in. */
 export function isLoggedIn(integ: Integration): boolean {
-  if (integ.awsSso) return !!integ.awsSso.tokenExpires && new Date(integ.awsSso.tokenExpires).getTime() > Date.now();
+  // The backend clears tokenExpires when only a new login can help. A time in
+  // the past means the access token lapsed but a refresh token can renew it.
+  if (integ.awsSso) return !!integ.awsSso.tokenExpires;
   if (integ.azure) return !!integ.azure.account;
   if (integ.gcp) return !!integ.gcp.account;
   return false;

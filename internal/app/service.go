@@ -575,6 +575,9 @@ func (s *Service) Start(ctx context.Context, ref string, opts StartOptions) (cor
 	creds, err := s.fetch(ctx, w, sess, opts.MFACode)
 	if err != nil {
 		debug.Logf("session", "start %s failed: %v", sess.Name, err)
+		if sess.Kind == core.KindAWSSSORole && errors.Is(err, aws.ErrSSOLoginRequired) {
+			s.recordSSOToken(sess.IntegrationID)
+		}
 		return core.Credentials{}, err
 	}
 	// The fetch can take a while. Apply the result to a fresh copy of the
@@ -584,6 +587,13 @@ func (s *Service) Start(ctx context.Context, ref string, opts StartOptions) (cor
 	}
 	if sess, err = w.Session(sess.ID); err != nil {
 		return core.Credentials{}, err
+	}
+	// The fetch may have renewed the portal token silently. Keep the
+	// integration's login state in step with the keychain.
+	if sess.Kind == core.KindAWSSSORole {
+		if in, err := w.Integration(sess.IntegrationID); err == nil {
+			in.AWSSSO.TokenExpires = s.sso(*in).TokenExpiry()
+		}
 	}
 	// Write the profile before anything else changes on disk, so a refused
 	// profile leaves the other sessions untouched.
@@ -599,6 +609,21 @@ func (s *Service) Start(ctx context.Context, ref string, opts StartOptions) (cor
 	sess.Status = core.StatusActive
 	sess.Expires = creds.Expiration
 	return creds, s.Save(w)
+}
+
+// recordSSOToken writes the portal token state of an integration into the
+// workspace, so the interface shows a login that the portal has refused.
+func (s *Service) recordSSOToken(integrationID string) {
+	w, err := s.Load()
+	if err != nil {
+		return
+	}
+	in, err := w.Integration(integrationID)
+	if err != nil || in.AWSSSO == nil {
+		return
+	}
+	in.AWSSSO.TokenExpires = s.sso(*in).TokenExpiry()
+	_ = s.Save(w)
 }
 
 // takeOverProfile stops the other active AWS sessions that write the same

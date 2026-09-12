@@ -341,17 +341,27 @@ func (s *SSO) StoreImportedToken(accessToken, refreshToken, clientID, clientSecr
 // Logout removes the cached token.
 func (s *SSO) Logout() error { return s.Secrets.Delete(ssoTokenKey(s.Integration.ID)) }
 
-// TokenExpiry returns when the cached token expires, or nil when logged out.
+// TokenExpiry returns when the access token stops working, or nil when only a
+// new login can produce credentials. A token past its expiry still counts
+// while a refresh token can renew it; the time is then in the past.
 func (s *SSO) TokenExpiry() *time.Time {
 	t, err := s.storedToken()
-	if err != nil || !s.valid(t) {
+	if err != nil {
 		return nil
 	}
-	return &t.Expires
+	if s.valid(t) || refreshable(t) {
+		return &t.Expires
+	}
+	return nil
 }
 
 // valid reports whether the access token has more than one minute left.
 func (s *SSO) valid(t ssoToken) bool { return s.now().Add(time.Minute).Before(t.Expires) }
+
+// refreshable reports whether the portal issued what a refresh_token grant needs.
+func refreshable(t ssoToken) bool {
+	return t.RefreshToken != "" && t.ClientID != "" && t.ClientSecret != ""
+}
 
 func (s *SSO) storedToken() (ssoToken, error) {
 	raw, err := s.Secrets.Get(ssoTokenKey(s.Integration.ID))
@@ -378,7 +388,7 @@ func (s *SSO) token(ctx context.Context) (ssoToken, error) {
 	if s.valid(t) {
 		return t, nil
 	}
-	if t.RefreshToken == "" || t.ClientID == "" || t.ClientSecret == "" {
+	if !refreshable(t) {
 		return ssoToken{}, ErrSSOLoginRequired
 	}
 	return s.refresh(ctx, t)

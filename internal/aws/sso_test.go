@@ -79,12 +79,16 @@ func TestSSOTokenLifecycle(t *testing.T) {
 		t.Fatal("token 90s before expiry should still be valid")
 	}
 	now = expires.Add(-30 * time.Second)
-	if s.TokenExpiry() != nil {
-		t.Fatal("token 30s before expiry should count as expired")
+	// The refresh token keeps the login alive past the access token expiry.
+	if s.TokenExpiry() == nil {
+		t.Fatal("an expired token with a refresh token should still count as logged in")
 	}
 	// Without a refresh token an expired token needs a new login.
 	if err := s.StoreImportedToken("at", "", "cid", "cs", "", expires); err != nil {
 		t.Fatal(err)
+	}
+	if s.TokenExpiry() != nil {
+		t.Fatal("token 30s before expiry without a refresh token should count as expired")
 	}
 	if _, err := s.token(context.Background()); !errors.Is(err, ErrSSOLoginRequired) {
 		t.Fatalf("expired token = %v", err)
