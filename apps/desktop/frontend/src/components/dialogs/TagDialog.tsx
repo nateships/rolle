@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -38,7 +38,7 @@ export function TagDialog({ target, onClose }: { target: TagTarget | null; onClo
   );
 }
 
-const MAX_ICON_RESULTS = 48;
+const MAX_ICON_RESULTS = 160;
 
 function TagForm({ editing, onClose }: { editing: Tag | null; onClose: () => void }) {
   const [name, setName] = useState(editing?.name ?? "");
@@ -128,7 +128,7 @@ function IconPicker({
           aria-label="Search icons"
           autoFocus
         />
-        <div className="grid max-h-40 grid-cols-8 gap-1 overflow-y-auto" role="listbox" aria-label="Icons">
+        <div className="grid max-h-56 grid-cols-8 gap-1 overflow-y-auto pr-1" role="listbox" aria-label="Icons">
           {results.map((n) => (
             <button
               key={n}
@@ -150,6 +150,9 @@ function IconPicker({
             <p className="col-span-8 py-2 text-center text-xs text-muted-foreground">No icon matches</p>
           )}
         </div>
+        {results.length === MAX_ICON_RESULTS && (
+          <p className="text-[11px] text-muted-foreground">Showing the first {MAX_ICON_RESULTS}. Type to narrow.</p>
+        )}
         <div className="flex items-center gap-2">
           {TAG_PRESETS.map((p) => (
             <button
@@ -165,15 +168,40 @@ function IconPicker({
               )}
             />
           ))}
-          <input
-            type="color"
-            value={color}
-            onChange={(e) => onColor(e.target.value)}
-            aria-label="Custom color"
-            className="ml-auto size-6 cursor-pointer rounded-md border bg-transparent p-0"
-          />
+          <CustomColor color={color} custom={!TAG_PRESETS.some((p) => p.hex === color)} onColor={onColor} />
         </div>
       </PopoverContent>
     </Popover>
+  );
+}
+
+/** A rainbow ring, like the system swatch, that opens the native color picker. */
+function CustomColor({ color, custom, onColor }: { color: string; custom: boolean; onColor: (c: string) => void }) {
+  const input = useRef<HTMLInputElement>(null);
+  return (
+    <span className="relative ml-auto">
+      <button
+        type="button"
+        aria-label="Custom color"
+        aria-pressed={custom}
+        onClick={() => input.current?.click()}
+        style={{ background: "conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)" }}
+        className={cn(
+          "flex size-5 items-center justify-center rounded-full ring-offset-2 ring-offset-background transition-shadow",
+          custom && "ring-2 ring-ring",
+        )}
+      >
+        {custom && <span className="size-2.5 rounded-full border border-white/70" style={{ backgroundColor: color }} />}
+      </button>
+      <input
+        ref={input}
+        type="color"
+        value={color}
+        onChange={(e) => onColor(e.target.value)}
+        tabIndex={-1}
+        aria-hidden
+        className="absolute inset-0 size-0 opacity-0"
+      />
+    </span>
   );
 }
