@@ -147,7 +147,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
           </DialogTitle>
           <DialogDescription>Preferences are saved as you change them.</DialogDescription>
         </DialogHeader>
-        {!settings && <div className="min-h-[19rem]" aria-busy="true" />}
+        {!settings && <div className="h-[26.5rem]" aria-busy="true" />}
         {settings && (
           <Tabs defaultValue={new URLSearchParams(location.search).get("tab") ?? "general"} className="w-full">
             <TabsList className="grid w-full grid-cols-4">
@@ -157,7 +157,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
               <TabsTrigger value="advanced">Advanced</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="general" className="mt-4 min-h-64 space-y-4">
+            <TabsContent value="general" className="mt-4 min-h-[23rem] space-y-4">
               <Row label="Default AWS region" hint="Pre-filled for new sessions.">
                 <RegionSelect
                   value={settings.defaultRegion}
@@ -219,7 +219,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
               </Row>
             </TabsContent>
 
-            <TabsContent value="appearance" className="mt-4 min-h-64 space-y-4">
+            <TabsContent value="appearance" className="mt-4 min-h-[23rem] space-y-4">
               <Row label="Theme" hint="Follow the system or pick one.">
                 <div className="inline-flex rounded-md border bg-muted p-0.5">
                   {(
@@ -247,8 +247,8 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
               </Row>
             </TabsContent>
 
-            <TabsContent value="about" className="mt-4 min-h-64 space-y-2 text-xs">
-              <div className="mb-3 flex items-center justify-between rounded-lg border bg-card px-3 py-2">
+            <TabsContent value="about" className="mt-4 min-h-[23rem] space-y-5 text-xs">
+              <div className="flex items-center justify-between rounded-lg border bg-card px-3 py-2">
                 <div>
                   <p className="text-sm font-medium text-foreground">Rolle {info?.version ?? "…"}</p>
                   <p className="text-[11px] text-muted-foreground">
@@ -287,17 +287,19 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                   </SelectContent>
                 </Select>
               </Row>
-              <PathRow label="Version" value={info?.version ?? "…"} />
-              <PathRow label="Workspace" value={info?.workspacePath ?? "…"} copy />
-              <PathRow label="Credential cache" value={info?.cacheDir ?? "…"} copy />
-              <PathRow label="AWS config" value={info?.awsConfigPath ?? "…"} copy />
-              <p className="pt-3 text-[11px] text-muted-foreground">
-                Secrets live in the OS keychain. Short-lived credentials are cached with owner-only permissions and
-                expire on their own.
-              </p>
+              <div className="space-y-2">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Files</p>
+                <PathRow label="Workspace" value={info?.workspacePath ?? "…"} copy />
+                <PathRow label="Credential cache" value={info?.cacheDir ?? "…"} copy />
+                <PathRow label="AWS config" value={info?.awsConfigPath ?? "…"} copy />
+                <p className="pt-1 text-[11px] text-muted-foreground">
+                  Secrets live in the OS keychain. Short-lived credentials are cached with owner-only permissions and
+                  expire on their own.
+                </p>
+              </div>
             </TabsContent>
 
-            <TabsContent value="advanced" className="mt-4 min-h-64 space-y-3">
+            <TabsContent value="advanced" className="mt-4 min-h-[23rem] space-y-3">
               <p className="text-xs font-medium text-muted-foreground">Network</p>
               <Row label="HTTPS proxy" hint="Empty follows HTTPS_PROXY. Example: http://proxy.corp:3128">
                 <Input
