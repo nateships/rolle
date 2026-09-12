@@ -1,0 +1,86 @@
+{
+  "viewBox": [
+    0,
+    0,
+    385,
+    310
+  ],
+  "units": "SVG user units; left/right refer to viewer",
+  "source": "Vector reconstruction of apps/desktop/frontend/src/assets/brand/gopher.png; not lossless extraction",
+  "pivots": {
+    "gopher-root": [
+      246,
+      270
+    ],
+    "ear-left": [
+      153,
+      53
+    ],
+    "ear-right": [
+      339,
+      52
+    ],
+    "foot-left": [
+      195,
+      263
+    ],
+    "foot-right": [
+      301,
+      263
+    ],
+    "arm-left": [
+      158,
+      170
+    ],
+    "arm-right": [
+      334,
+      170
+    ],
+    "hand-left": [
+      168,
+      135
+    ],
+    "hand-right": [
+      333,
+      134
+    ],
+    "eye-left": [
+      207,
+      61
+    ],
+    "eye-right": [
+      287,
+      60
+    ]
+  },
+  "layers": [
+    "ear-left",
+    "ear-right",
+    "foot-left",
+    "foot-right",
+    "body",
+    "eye-left",
+    "pupil-left",
+    "eye-right",
+    "pupil-right",
+    "teeth",
+    "muzzle",
+    "nose",
+    "arm-left",
+    "arm-right",
+    "hand-left",
+    "hand-right",
+    "card-blue",
+    "card-orange",
+    "card-green"
+  ],
+  "defaultPaintOrder": [
+    "card-blue",
+    "card-orange",
+    "gopher-depth",
+    "card-green",
+    "hands-root"
+  ],
+  "holdout": "Front card silhouette deliberately masks gopher through the open r; canvas remains transparent. Remove holdout to reveal the character through the r.",
+  "originalIcon": "original-icon-layered.svg uses untouched source geometry on a separate 512x512 grid."
+}
