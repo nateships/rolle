@@ -234,10 +234,10 @@ jobs:
           GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # Runs after the release is public, so the cask URLs resolve as soon as the
-  # tap updates. brew bump-cask-pr rewrites version and sha256 in both casks,
-  # which live in the tap, and one commit carries the release. A missing tap
-  # token skips this job instead of failing the release.
+  # Runs after the release is public, so the cask URL resolves as soon as the
+  # tap updates. brew bump-cask-pr rewrites version and sha256 in the cask,
+  # which lives in the tap. The cask installs the app and the rolle command
+  # inside it. A missing tap token skips this job instead of failing.
   tap:
     needs: publish
     # Pre-release tags (v1.2.0-rc.1) stay off Homebrew.
@@ -250,7 +250,7 @@ jobs:
       - uses: Homebrew/actions/setup-homebrew@49d03f1bf5d455a413dfbdf99e6718054a4cd975 # 2026-09-11
         with:
           test-bot: false
-      - name: Bump the casks in the tap
+      - name: Bump the cask in the tap
         env:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
@@ -258,17 +258,14 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "$HOMEBREW_TAP_TOKEN" ]; then
-            echo "HOMEBREW_TAP_TOKEN is not set; the casks are not updated."
+            echo "HOMEBREW_TAP_TOKEN is not set; the cask is not updated."
             exit 0
           fi
           brew tap nateships/tap
           tap="$(brew --repository nateships/tap)"
           git -C "$tap" config user.name "github-actions[bot]"
           git -C "$tap" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # bump-cask-pr downloads this tag's files and rewrites version and
-          # sha256 in each cask; a missing cask fails the job.
-          for cask in rolle rolle-cli; do
-            brew bump-cask-pr "nateships/tap/$cask" --version "$VERSION" --write-only --no-audit --no-browse
-          done
-          git -C "$tap" commit -am "rolle $VERSION"
+          # bump-cask-pr downloads this tag's DMG and rewrites version and
+          # sha256; a missing cask fails the job.
+          brew bump-cask-pr nateships/tap/rolle --version "$VERSION" --write-only --commit --no-audit --no-browse
           git -C "$tap" push "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/nateships/homebrew-tap.git" HEAD:main

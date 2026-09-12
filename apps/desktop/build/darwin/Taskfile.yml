@@ -222,6 +222,7 @@ tasks:
     platforms: [darwin]
     cmds:
       - task: package:universal
+      - task: release:cli
       - task: release:sign:app
       - ditto -c -k --keepParent "{{.BIN_DIR}}/{{.APP_NAME}}.app" "{{.BIN_DIR}}/{{.APP_NAME}}-macos-universal.zip"
       - task: create:dmg
@@ -230,9 +231,24 @@ tasks:
       # blocks the next go build, which cannot overwrite a fat Mach-O.
       - rm -f "{{.BIN_DIR}}/{{.APP_NAME}}"
 
+  # The rolle command ships inside the bundle. The Homebrew cask links it into
+  # PATH, and the app updater carries it along with every update. Helpers/ is
+  # the nested-code location codesign and notarization expect. The name stays
+  # away from Contents/MacOS/Rolle on case-insensitive volumes.
+  release:cli:
+    internal: true
+    cmds:
+      - mkdir -p "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Helpers"
+      - CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -buildvcs=false -ldflags="-s -w -X github.com/nateships/rolle/internal/version.Version={{.VERSION | default "0.0.1-dev"}}" -o "{{.BIN_DIR}}/rolle-cli-arm64" ../../cmd/rolle
+      - CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath -buildvcs=false -ldflags="-s -w -X github.com/nateships/rolle/internal/version.Version={{.VERSION | default "0.0.1-dev"}}" -o "{{.BIN_DIR}}/rolle-cli-amd64" ../../cmd/rolle
+      - lipo -create -output "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Helpers/rolle" "{{.BIN_DIR}}/rolle-cli-arm64" "{{.BIN_DIR}}/rolle-cli-amd64"
+      - rm -f "{{.BIN_DIR}}/rolle-cli-arm64" "{{.BIN_DIR}}/rolle-cli-amd64"
+
   release:sign:app:
     internal: true
     cmds:
+      # Inside out: the helper first, then the bundle that contains it.
+      - cmd: '{{if .SIGN_IDENTITY}}codesign --force --options runtime --timestamp --sign "{{.SIGN_IDENTITY}}" "{{.BIN_DIR}}/{{.APP_NAME}}.app/Contents/Helpers/rolle"{{else}}true{{end}}'
       - cmd: '{{if .SIGN_IDENTITY}}wails3 tool sign --input "{{.BIN_DIR}}/{{.APP_NAME}}.app" --identity "{{.SIGN_IDENTITY}}" --hardened-runtime{{if .NOTARY_PROFILE}} --notarize --keychain-profile "{{.NOTARY_PROFILE}}"{{end}}{{else}}echo "SIGN_IDENTITY is not set; the app ships unsigned."{{end}}'
       - cmd: '{{if .SIGN_IDENTITY}}codesign --verify --deep --strict --verbose=2 "{{.BIN_DIR}}/{{.APP_NAME}}.app"{{else}}true{{end}}'
 

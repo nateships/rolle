@@ -39,9 +39,10 @@ sessions from a [Leapp](https://github.com/Noovolari/leapp) workspace.
 ## Install
 
 ```sh
-brew install --cask nateships/tap/rolle   # macOS desktop app
-brew install --cask nateships/tap/rolle-cli  # CLI
+brew install --cask nateships/tap/rolle
 ```
+
+The cask installs the desktop app and the `rolle` command.
 
 Windows and Linux desktop builds, and CLI archives for every platform, are on
 the [releases page](https://github.com/nateships/rolle/releases). Docs live at

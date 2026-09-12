@@ -9,9 +9,10 @@ description: Install the Rolle desktop app with Homebrew, a signed DMG, the Wind
 <Tabs>
   <Tab title="macOS">
     ```sh
-    brew install --cask nateships/tap/rolle   # desktop app
-    brew install --cask nateships/tap/rolle-cli  # command line
+    brew install --cask nateships/tap/rolle
     ```
+
+    The cask installs the desktop app and puts the `rolle` command on your `PATH`. The command ships inside the app bundle, so app updates carry it along.
 
     Or download `Rolle.dmg` from the [releases page](https://github.com/nateships/rolle/releases). The app is signed and notarized. It runs on macOS 12 or newer on Apple silicon and Intel.
   </Tab>
@@ -43,4 +44,4 @@ sha256sum --check --ignore-missing checksums.txt
 
 ## Updates
 
-The desktop app checks for a signed update shortly after launch and every six hours. When a newer version is available, an **Update** button appears at the bottom of the sidebar. It opens the release notes and installs when you confirm. Turn this off in **Settings → General → Automatic updates**. With Homebrew, run `brew upgrade rolle-cli` for the CLI and `brew upgrade --greedy rolle` for the app. A plain `brew upgrade` skips the app because the app updates itself.
+The desktop app checks for a signed update shortly after launch and every six hours. When a newer version is available, an **Update** button appears at the bottom of the sidebar. It opens the release notes and installs when you confirm. Turn this off in **Settings → General → Automatic updates**. With Homebrew, `brew upgrade --greedy rolle` updates the app and the command together. A plain `brew upgrade` skips the app because the app updates itself.
