@@ -219,10 +219,23 @@ func (s *Service) RemoveIntegration(ref string) error {
 	if err != nil {
 		return err
 	}
-	_ = s.forgetIntegration(*in)
+	// Secrets go before the workspace write: a failed save then leaves inert
+	// sessions that the next refresh marks inactive, never a live token behind
+	// an integration that is gone. A retry repeats every step; each delete is
+	// a no-op on a missing entry. Cleanup failures are reported after the
+	// save, so the caller learns that a token may remain.
+	alias := in.Alias
+	var cleanup []error
+	if err := s.forgetIntegration(*in); err != nil {
+		debug.Logf("integration", "remove %s: forget credentials: %v", alias, err)
+		cleanup = append(cleanup, fmt.Errorf("keychain: %w", err))
+	}
 	for i := range w.Sessions {
 		if w.Sessions[i].IntegrationID == in.ID {
-			_ = s.deactivate(&w.Sessions[i])
+			if err := s.deactivate(&w.Sessions[i]); err != nil {
+				debug.Logf("integration", "remove %s: stop %s: %v", alias, w.Sessions[i].Name, err)
+				cleanup = append(cleanup, err)
+			}
 		}
 	}
 	// dropDependents edits w.Sessions in place, so collect the IDs first.
@@ -238,7 +251,13 @@ func (s *Service) RemoveIntegration(ref string) error {
 	if err := w.RemoveIntegration(in.ID); err != nil {
 		return err
 	}
-	return s.Save(w)
+	if err := s.Save(w); err != nil {
+		return err
+	}
+	if len(cleanup) > 0 {
+		return fmt.Errorf("%s removed, but cleanup failed: %w", alias, errors.Join(cleanup...))
+	}
+	return nil
 }
 
 // dropDependents deactivates and removes every assume-role session whose
@@ -250,7 +269,9 @@ func (s *Service) dropDependents(w *core.Workspace, sourceID string) {
 			continue
 		}
 		debug.Logf("session", "remove %s: its source session is gone", sess.Name)
-		_ = s.deactivate(sess)
+		if err := s.deactivate(sess); err != nil {
+			debug.Logf("session", "remove %s: stop: %v", sess.Name, err)
+		}
 		id := sess.ID
 		w.Sessions = append(w.Sessions[:i], w.Sessions[i+1:]...)
 		i--

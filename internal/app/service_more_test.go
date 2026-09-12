@@ -650,3 +650,34 @@ func TestSetHiddenAndSetAccountHidden(t *testing.T) {
 		t.Fatalf("UnhideAll with nothing hidden: err=%v saves=%d", err, saves)
 	}
 }
+
+// noDeleteStore is a keychain that refuses to delete, like a locked one.
+type noDeleteStore struct{ secrets.Store }
+
+func (noDeleteStore) Delete(string) error { return errors.New("keychain locked") }
+
+func TestRemoveIntegrationReportsACleanupFailureAfterTheSave(t *testing.T) {
+	s := testService(t)
+	in, err := s.AddAWSSSO("acme", portalURL, "us-east-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.sso(in).StoreImportedToken(cliToken, "", "", "", "", time.Now().Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	s.Secrets = noDeleteStore{s.Secrets}
+
+	err = s.RemoveIntegration("acme")
+	if err == nil || !strings.Contains(err.Error(), "acme removed, but cleanup failed") || !strings.Contains(err.Error(), "keychain locked") {
+		t.Fatalf("remove = %v", err)
+	}
+	// The integration is gone from the workspace even so.
+	w, _ := s.Load()
+	if len(w.Integrations) != 0 {
+		t.Fatalf("integrations after remove = %+v", w.Integrations)
+	}
+	// A second removal has nothing to find.
+	if err := s.RemoveIntegration("acme"); !errors.Is(err, core.ErrNotFound) {
+		t.Fatalf("second remove = %v", err)
+	}
+}
