@@ -271,34 +271,6 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 icon={<Star className="size-3.5 fill-current text-brand-orange" />}
               />
             )}
-            {hiddenCount > 0 && (
-              <ContextMenu>
-                <ContextMenuTrigger asChild>
-                  <div>
-                    <SideItem
-                      active={filter === "hidden"}
-                      onClick={() => setFilter("hidden")}
-                      label="Hidden"
-                      hint={hint("4")}
-                      count={hiddenCount}
-                      icon={<EyeOff className="size-3.5" />}
-                    />
-                  </div>
-                </ContextMenuTrigger>
-                <ContextMenuContent className="min-w-40">
-                  <ActionItems
-                    menu="context"
-                    actions={[
-                      {
-                        label: "Unhide all",
-                        icon: <Eye />,
-                        onSelect: () => void run("Every session is visible again", () => api.UnhideAll()),
-                      },
-                    ]}
-                  />
-                </ContextMenuContent>
-              </ContextMenu>
-            )}
             {manualCount > 0 && (
               <SideItem
                 active={filter === "manual"}
@@ -504,6 +476,37 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
               </div>
             );
           })}
+          {/* Hidden sits last: out of the way, like its sessions. */}
+          {hiddenCount > 0 && (
+            <div>
+              <ContextMenu>
+                <ContextMenuTrigger asChild>
+                  <div>
+                    <SideItem
+                      active={filter === "hidden"}
+                      onClick={() => setFilter("hidden")}
+                      label="Hidden"
+                      hint={hint("4")}
+                      count={hiddenCount}
+                      icon={<EyeOff className="size-3.5" />}
+                    />
+                  </div>
+                </ContextMenuTrigger>
+                <ContextMenuContent className="min-w-40">
+                  <ActionItems
+                    menu="context"
+                    actions={[
+                      {
+                        label: "Unhide all",
+                        icon: <Eye />,
+                        onSelect: () => void run("Every session is visible again", () => api.UnhideAll()),
+                      },
+                    ]}
+                  />
+                </ContextMenuContent>
+              </ContextMenu>
+            </div>
+          )}
         </nav>
         <div className="flex items-center justify-between border-t p-3 text-xs text-muted-foreground">
           <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
