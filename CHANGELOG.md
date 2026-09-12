@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.8](https://github.com/nateships/rolle/compare/v0.1.7...v0.1.8) (2026-09-12)
+
+
+### Bug Fixes
+
+* update from a standard Windows account ([#40](https://github.com/nateships/rolle/issues/40)) ([14131fd](https://github.com/nateships/rolle/commit/14131fdefa5e50a6c3d23a9c9000ee0ed7e2982e))
+
 ## [0.1.7](https://github.com/nateships/rolle/compare/v0.1.6...v0.1.7) (2026-09-12)
 
 
