@@ -22,6 +22,16 @@ import (
 // EventOpenSettings asks the window to open the settings dialog.
 const EventOpenSettings = "settings:open"
 
+// EventStartNeedsLogin asks the window to sign in to an integration and then
+// start a session. The tray sends it when a start needs the browser.
+const EventStartNeedsLogin = "session:login"
+
+// StartRequest is the payload of EventStartNeedsLogin.
+type StartRequest struct {
+	SessionID     string `json:"sessionId"`
+	IntegrationID string `json:"integrationId"`
+}
+
 // macOS draws template icons in the menu bar tint; the label shows the count.
 //
 //go:embed build/trayicon.png
@@ -302,7 +312,10 @@ func (t *tray) start(sess core.Session) {
 	defer cancel()
 	if _, err := t.svc.Start(ctx, sess.ID, app.StartOptions{}); err != nil {
 		debug.Logf("tray", "start %s: %v", sess.Name, err)
-		// A sign-in or a code is needed: the window handles both.
+		// The window runs the sign-in and starts the session after it.
+		if app.LoginRequired(err) {
+			t.app.Event.Emit(EventStartNeedsLogin, StartRequest{SessionID: sess.ID, IntegrationID: sess.IntegrationID})
+		}
 		t.showWindow()
 	}
 }

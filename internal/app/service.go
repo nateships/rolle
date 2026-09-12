@@ -954,6 +954,12 @@ func (s *Service) stale(sess *core.Session) bool {
 	return sess.Expires == nil || !now.Before(*sess.Expires)
 }
 
+// LoginRequired reports whether err means the user has to sign in to the
+// provider again before the session can start or renew.
+func LoginRequired(err error) bool {
+	return errors.Is(err, aws.ErrSSOLoginRequired) || errors.Is(err, azure.ErrLoginRequired) || errors.Is(err, gcp.ErrNoADC)
+}
+
 // permanent reports whether a renewal error means the session cannot renew
 // without the user: a sign-in is needed, or a source session is gone.
 func permanent(err error) bool {

@@ -51,6 +51,7 @@ export { Kind, Status, Cloud } from "../../bindings/github.com/nateships/rolle/i
 
 export const WORKSPACE_CHANGED = "workspace:changed";
 export const OPEN_SETTINGS = "settings:open";
+export const START_NEEDS_LOGIN = "session:login";
 export const UPDATE_AVAILABLE = "update:available";
 
 /** Load the workspace and keep it fresh while the backend emits change events. */

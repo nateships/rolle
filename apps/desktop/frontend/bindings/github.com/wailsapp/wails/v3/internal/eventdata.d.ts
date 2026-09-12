@@ -14,6 +14,7 @@ declare module "@wailsio/runtime" {
         interface CustomEvents {
             "nav:back": {};
             "nav:forward": {};
+            "session:login": main$0.StartRequest;
             "settings:open": {};
             "update:available": main$0.UpdateInfo;
             "workspace:changed": {};

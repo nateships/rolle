@@ -38,6 +38,7 @@ var assets embed.FS
 func init() {
 	application.RegisterEvent[struct{}](EventWorkspaceChanged)
 	application.RegisterEvent[struct{}](EventOpenSettings)
+	application.RegisterEvent[StartRequest](EventStartNeedsLogin)
 	application.RegisterEvent[UpdateInfo](EventUpdateAvailable)
 }
 

@@ -61,6 +61,7 @@ import {
   OPEN_SETTINGS,
   UPDATE_AVAILABLE,
   type UpdateInfo,
+  START_NEEDS_LOGIN,
 } from "@/lib/api";
 import { isLoggedIn } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -104,6 +105,14 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     if (!inWails) return;
     return Events.On(OPEN_SETTINGS, () => setDialog({ kind: "settings" }));
   }, []);
+  // The tray asked to start a session that needs a sign-in first.
+  useEffect(() => {
+    if (!inWails) return;
+    return Events.On(START_NEEDS_LOGIN, (e: { data: { sessionId: string; integrationId: string } }) => {
+      const integ = workspace.integrations.find((i) => i.id === e.data.integrationId);
+      if (integ) needsLogin(integ, e.data.sessionId);
+    });
+  });
 
   // A background check found a newer release. The footer offers it; the
   // updater window opens on click. The first check runs at launch, so the

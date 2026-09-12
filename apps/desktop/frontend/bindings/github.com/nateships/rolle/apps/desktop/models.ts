@@ -71,6 +71,14 @@ export interface IAMUserInput {
 }
 
 /**
+ * StartRequest is the payload of EventStartNeedsLogin.
+ */
+export interface StartRequest {
+    "sessionId": string;
+    "integrationId": string;
+}
+
+/**
  * UpdateInfo is what the settings screen shows after a check.
  */
 export interface UpdateInfo {
