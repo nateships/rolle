@@ -117,16 +117,19 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   const searchRef = useRef<HTMLInputElement>(null);
   // Keyboard shortcuts. ShortcutsDialog lists them; keep the two in step.
   useEffect(() => {
+    // The same key closes the dialog it opened.
+    const toggle = (kind: "settings" | "import" | "shortcuts") =>
+      setDialog((d) => (d?.kind === kind ? null : { kind }));
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
       const actions: Record<string, () => void> = {
-        ",": () => setDialog({ kind: "settings" }),
+        ",": () => toggle("settings"),
         f: () => searchRef.current?.select(),
-        i: () => setDialog({ kind: "import" }),
+        i: () => toggle("import"),
         "1": () => setFilter(null),
         "2": () => setFilter("active"),
         "3": () => setFilter("favorites"),
-        "/": () => setDialog({ kind: "shortcuts" }),
+        "/": () => toggle("shortcuts"),
       };
       const action = actions[e.key.toLowerCase()];
       if (!action) return;

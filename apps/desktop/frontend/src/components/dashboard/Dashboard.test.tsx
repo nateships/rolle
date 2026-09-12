@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -106,7 +106,9 @@ describe("Dashboard", () => {
     renderDashboard();
     await user.keyboard("{Meta>},{/Meta}");
     expect(await screen.findByRole("dialog", { name: /settings/i })).toBeInTheDocument();
-    await user.keyboard("{Escape}");
+    // The same key closes it again.
+    await user.keyboard("{Meta>},{/Meta}");
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: /settings/i })).not.toBeInTheDocument());
     await user.keyboard("{Control>}/{/Control}");
     expect(await screen.findByRole("dialog", { name: /keyboard shortcuts/i })).toBeInTheDocument();
   });
