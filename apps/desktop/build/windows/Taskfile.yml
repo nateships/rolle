@@ -193,3 +193,36 @@ tasks:
       INSTALL_SCOPE: '{{.INSTALL_SCOPE | default "machine"}}'
     cmds:
       - wails3 tool sign --input "build/windows/nsis/{{.APP_NAME}}-installer.exe" {{if .SIGN_CERTIFICATE}}--certificate "{{.SIGN_CERTIFICATE}}"{{end}} {{if .SIGN_THUMBPRINT}}--thumbprint "{{.SIGN_THUMBPRINT}}"{{end}} {{if .TIMESTAMP_SERVER}}--timestamp "{{.TIMESTAMP_SERVER}}"{{end}}
+
+  # Rolle release packaging: both architectures, one installer that carries
+  # both, and one zip per architecture for the updater.
+  release:
+    summary: amd64 and arm64 builds, one installer, and updater zips in bin/
+    platforms: [windows]
+    cmds:
+      - task: build
+        vars: { ARCH: amd64 }
+      - powershell Move-Item -Force "{{.BIN_DIR}}/{{.APP_NAME}}.exe" "{{.BIN_DIR}}/{{.APP_NAME}}-amd64.exe"
+      - task: build
+        vars: { ARCH: arm64 }
+      - powershell Move-Item -Force "{{.BIN_DIR}}/{{.APP_NAME}}.exe" "{{.BIN_DIR}}/{{.APP_NAME}}-arm64.exe"
+      - task: create:nsis:installer:universal
+      - task: release:zip
+        vars: { ARCH: amd64 }
+      - task: release:zip
+        vars: { ARCH: arm64 }
+
+  create:nsis:installer:universal:
+    summary: One installer that installs the amd64 or arm64 binary
+    internal: true
+    dir: build/windows/nsis
+    cmds:
+      - wails3 generate webview2bootstrapper -dir "{{.ROOT_DIR}}/build/windows/nsis"
+      - makensis -DARG_WAILS_AMD64_BINARY="{{.ROOT_DIR}}\{{.BIN_DIR}}\{{.APP_NAME}}-amd64.exe" -DARG_WAILS_ARM64_BINARY="{{.ROOT_DIR}}\{{.BIN_DIR}}\{{.APP_NAME}}-arm64.exe" project.nsi
+      - powershell Move-Item -Force "{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}-amd64_arm64-installer.exe" "{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}-installer.exe"
+
+  release:zip:
+    summary: Zips one executable as the single entry the updater installs
+    internal: true
+    cmds:
+      - powershell "New-Item -ItemType Directory -Force '{{.BIN_DIR}}/stage-{{.ARCH}}' | Out-Null; Copy-Item '{{.BIN_DIR}}/{{.APP_NAME}}-{{.ARCH}}.exe' '{{.BIN_DIR}}/stage-{{.ARCH}}/{{.APP_NAME}}.exe'; Compress-Archive -Force -Path '{{.BIN_DIR}}/stage-{{.ARCH}}/{{.APP_NAME}}.exe' -DestinationPath '{{.BIN_DIR}}/{{.APP_NAME}}-windows-{{.ARCH}}.zip'"

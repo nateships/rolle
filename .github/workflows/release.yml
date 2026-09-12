@@ -20,17 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: macos-latest
-            task: darwin:package:universal
-            artifact: apps/desktop/bin/Rolle.app
-          - os: windows-latest
-            # Windows builds both architectures below; the installer carries both.
-            task: ""
-            artifact: apps/desktop/bin/Rolle-installer.exe
-          - os: ubuntu-latest
-            task: linux:create:appimage linux:create:deb
-            artifact: apps/desktop/bin/Rolle-*
+        os: [macos-latest, windows-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
@@ -96,71 +86,16 @@ jobs:
           echo "SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
           if [ -n "$APPLE_ID" ] && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
             xcrun notarytool store-credentials rolle-ci --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --keychain "$KEYCHAIN" > /dev/null
-            echo "NOTARIZE=1" >> "$GITHUB_ENV"
+            echo "NOTARY_PROFILE=rolle-ci" >> "$GITHUB_ENV"
           else
             echo "Notarization secrets are not set; the app is signed but not notarized."
           fi
-      - name: Package
-        if: matrix.task != ''
-        working-directory: apps/desktop
-        run: for t in ${{ matrix.task }}; do wails3 task "$t"; done
-        shell: bash
-        env:
-          VERSION: ${{ env.VERSION }}
-      - name: Build Windows for amd64 and arm64, then one installer for both
-        if: runner.os == 'Windows'
+      - name: Build and package
         working-directory: apps/desktop
         shell: bash
-        env:
-          VERSION: ${{ env.VERSION }}
-        run: |
-          wails3 task windows:build ARCH=amd64 && mv bin/Rolle.exe bin/Rolle-amd64.exe
-          wails3 task windows:build ARCH=arm64 && mv bin/Rolle.exe bin/Rolle-arm64.exe
-          wails3 generate webview2bootstrapper -dir build/windows/nsis
-          ROOT="$(cygpath -w "$PWD")"
-          (cd build/windows/nsis && makensis -DARG_WAILS_AMD64_BINARY="$ROOT\bin\Rolle-amd64.exe" -DARG_WAILS_ARM64_BINARY="$ROOT\bin\Rolle-arm64.exe" project.nsi)
-          mv bin/Rolle-amd64_arm64-installer.exe bin/Rolle-installer.exe
-      - name: Sign and notarize the macOS app
-        if: runner.os == 'macOS' && env.SIGN_IDENTITY != ''
-        working-directory: apps/desktop
-        run: |
-          ARGS=(--input bin/Rolle.app --identity "$SIGN_IDENTITY" --hardened-runtime)
-          [ -f build/darwin/entitlements.plist ] && ARGS+=(--entitlements build/darwin/entitlements.plist)
-          [ -n "$NOTARIZE" ] && ARGS+=(--notarize --keychain-profile rolle-ci)
-          wails3 tool sign "${ARGS[@]}"
-          codesign --verify --deep --strict --verbose=2 bin/Rolle.app
-      - name: Zip macOS app
-        if: runner.os == 'macOS'
-        working-directory: apps/desktop/bin
-        run: ditto -c -k --keepParent Rolle.app Rolle-macos-universal.zip
-      - name: Create the DMG from the signed app
-        if: runner.os == 'macOS'
-        working-directory: apps/desktop
-        run: wails3 task darwin:create:dmg
-      - name: Sign, notarize, and staple the DMG
-        if: runner.os == 'macOS' && env.SIGN_IDENTITY != ''
-        working-directory: apps/desktop/bin
-        run: |
-          codesign --sign "$SIGN_IDENTITY" --timestamp Rolle.dmg
-          if [ -n "$NOTARIZE" ]; then
-            xcrun notarytool submit Rolle.dmg --keychain-profile rolle-ci --wait
-            xcrun stapler staple Rolle.dmg
-          fi
-      - name: Zip the Windows executables for the updater
-        if: runner.os == 'Windows'
-        working-directory: apps/desktop/bin
-        shell: pwsh
-        # The updater replaces Rolle.exe with the single entry in the archive.
-        run: |
-          foreach ($arch in "amd64", "arm64") {
-            New-Item -ItemType Directory -Force "stage-$arch" | Out-Null
-            Copy-Item "Rolle-$arch.exe" "stage-$arch/Rolle.exe"
-            Compress-Archive -Path "stage-$arch/Rolle.exe" -DestinationPath "Rolle-windows-$arch.zip" -Force
-          }
-      - name: Name Linux AppImage for the updater
-        if: runner.os == 'Linux'
-        working-directory: apps/desktop/bin
-        run: for f in *.AppImage; do mv "$f" Rolle-linux-amd64.AppImage; break; done
+        # Each platform Taskfile has a release task: build, sign, and name the
+        # files the updater and the release expect.
+        run: wails3 task release VERSION="$VERSION"
       - name: Store the package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

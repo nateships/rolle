@@ -27,6 +27,11 @@ tasks:
     cmds:
       - task: "{{.GOOS}}:package"
 
+  release:
+    summary: Builds the release packages for this OS into bin/ (see <os>:release)
+    cmds:
+      - task: "{{.GOOS}}:release"
+
   run:
     summary: Runs the application
     cmds:

@@ -218,3 +218,12 @@ tasks:
     cmds:
       - task: sign:deb
       - task: sign:rpm
+
+  # Rolle release packaging.
+  release:
+    summary: AppImage and deb in bin/, the AppImage named for the updater
+    platforms: [linux]
+    cmds:
+      - task: create:appimage
+      - task: create:deb
+      - mv "{{.BIN_DIR}}/rolle-x86_64.AppImage" "{{.BIN_DIR}}/{{.APP_NAME}}-linux-amd64.AppImage"
