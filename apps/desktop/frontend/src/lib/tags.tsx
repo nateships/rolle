@@ -9,6 +9,7 @@ export const TAG_PRESETS: { name: string; hex: string }[] = [
   { name: "gray", hex: "#8b9099" },
   { name: "blue", hex: "#244cff" },
   { name: "green", hex: "#00ce78" },
+  { name: "teal", hex: "#12a5b8" },
   { name: "orange", hex: "#ff7900" },
   { name: "red", hex: "#e5484d" },
   { name: "purple", hex: "#8e4ec6" },
