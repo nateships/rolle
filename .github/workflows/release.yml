@@ -238,7 +238,12 @@ jobs:
           path: release-notes
       - run: ls -la release-assets release-notes
       - name: Publish the release
-        run: goreleaser release --clean --release-notes release-notes/notes.md
+        # The version matches the goreleaser pin in mise.toml; Renovate bumps
+        # both in one pull request.
+        uses: goreleaser/goreleaser-action@f06c13b6b1a9625abc9e6e439d9c05a8f2190e94 # v7.2.3
+        with:
+          version: v2.18.1
+          args: release --clean --release-notes release-notes/notes.md
         env:
           # A final tag often sits on the same commit as its last release
           # candidate. Name the tag that triggered this run so goreleaser does

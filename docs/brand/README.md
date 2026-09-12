@@ -6,7 +6,8 @@ rolle uses the Original Circuit palette, a three-card stack with an open lowerca
 | --- | --- | --- |
 | Desktop launcher, Dock and taskbar | Three-color stack with r cutout | [icons/](icons/) |
 | System tray | Monochrome template stack | [icons/trayicon.svg](icons/trayicon.svg) |
-| Mascot lockup: README, docs site, app screens, social card | Go gopher peeking over the stack | [readme-gopher.png](readme-gopher.png) |
+| Gopher lockup: README, docs site, app | Go gopher peeking over the stack, next to the wordmark | [docs/public/logo-dark.svg](../public/logo-dark.svg), [logo-light.svg](../public/logo-light.svg) |
+| Social card | Flattened gopher and stack on charcoal | [readme-gopher.png](readme-gopher.png) via [og-card.html](og-card.html) |
 | Logo lockup | Stack with ivory or charcoal wordmark | [wordmark/](wordmark/) |
 
 ## Palette
@@ -27,8 +28,14 @@ The app icon and the menu bar icon use the stack alone. Everywhere else the goph
 
 - [ICONS.md](ICONS.md): icon files, platform formats and regeneration.
 - [TYPOGRAPHY.md](TYPOGRAPHY.md): wordmark masters, font usage and regeneration.
-- [IMPLEMENTATION.md](IMPLEMENTATION.md): application integration and source locations.
 - [ATTRIBUTION.md](ATTRIBUTION.md): Go gopher and font credits.
+
+## Where the code uses it
+
+- `tools/icons/main.go` is the source of the stack geometry and colors. It writes the SVGs and PNGs in `apps/desktop/build/`; see [ICONS.md](ICONS.md).
+- `apps/desktop/frontend/src/index.css` maps [tokens.json](tokens.json) to the Tailwind theme. Change both together.
+- `apps/desktop/frontend/src/components/Brand.tsx` draws the lockup: the vector rig from [animation-kit/](animation-kit/) as `GopherRig.tsx`, plus the wordmark SVGs copied from [wordmark/](wordmark/).
+- The root README and the docs header use `docs/public/logo-dark.svg` and `logo-light.svg`. Keep the Renee French credit and the CC BY 4.0 notice in the README and in [ATTRIBUTION.md](ATTRIBUTION.md).
 
 ## Social card
 

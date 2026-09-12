@@ -1,15 +1,6 @@
 # rolle gopher animation kit
 
-This is a vector reconstruction for animation, following your existing ivory gopher, dark outlines and Original Circuit colors. It is a reviewable starting rig, not a lossless separation of the PNG. The hidden body, legs, arms and completed rear card surfaces are newly drawn. Your repository and production assets have not been modified.
-
-## What the asset review found
-
-- `docs/brand/icons/mark.svg` and `tools/icons/main.go` already contain three separate vector paths. The blue and orange shapes are visible strips, not full squares.
-- `docs/brand/readme-gopher.png` is a flattened mascot and stack on a dark background. `apps/desktop/frontend/src/assets/brand/gopher.png` is a small transparent version of the entire lockup, not the gopher alone.
-- `docs/public/logo-dark.svg` and `logo-light.svg` embed raster mascot artwork. An SVG filename alone does not make the gopher editable.
-- The mascot stack and launcher stack have different proportions. This kit keeps the original launcher geometry in a separate file. Do not substitute its 512-unit paths directly into the 385-unit mascot canvas.
-- The existing face is recognizable through its oversized eyes, leftward pupils, small nose, two teeth, ivory fill, and dark outlines. The reconstruction preserves those features, with flat fills replacing the source texture and slightly regularized curves.
-- Brand documentation disagrees about mascot placement: `ICONS.md` says README-only, while the current brand README and React component use it on the website and app screens. This kit follows the existing artwork; that documentation could be reconciled separately.
+A vector rig of the gopher lockup for animation: the ivory gopher, dark outlines, and the three cards as named groups. The hidden body, legs, arms, and the rear card surfaces are drawn in; the visible parts follow the original artwork. The launcher icon keeps its own geometry in `docs/brand/icons/`; its 512-unit paths do not fit the 385-unit mascot canvas.
 
 ## Files
 
