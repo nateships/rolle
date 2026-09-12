@@ -745,8 +745,10 @@ function Done({ count, onFinish }: { count: number; onFinish: () => void }) {
         You're <span className="text-brand-green">all set</span>.
       </h2>
       <p className="mt-3 text-muted-foreground">
-        {count > 0 ? `${count} session${count === 1 ? "" : "s"} ready to start.` : "Your workspace is ready."} Start
-        one, then use it from any terminal with{" "}
+        {count > 0
+          ? `${count} session${count === 1 ? "" : "s"} ready to start from the dashboard.`
+          : "Your workspace is ready. Add clouds and sessions from the dashboard."}{" "}
+        Active sessions are available in any terminal through{" "}
         <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">rolle env &lt;name&gt;</code>.
       </p>
       <CommandLineInstall className="mt-6" />
