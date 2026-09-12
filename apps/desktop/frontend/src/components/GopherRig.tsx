@@ -21,18 +21,7 @@ export function GopherRig({ className }: { className?: string }) {
   const tr = (name: string, value: string) => part(name)?.setAttribute("transform", value);
 
   function reset() {
-    for (const name of [
-      "gopher-root",
-      "hands-root",
-      "arm-left",
-      "arm-right",
-      "hand-left",
-      "hand-right",
-      "foot-left",
-      "foot-right",
-      "pupil-left",
-      "pupil-right",
-    ]) {
+    for (const name of ["gopher-root", "hands-root", "pupil-left", "pupil-right"]) {
       part(name)?.removeAttribute("transform");
     }
     part("hands-root")?.removeAttribute("opacity");

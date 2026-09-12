@@ -37,3 +37,7 @@ The app icon and the menu bar icon use the stack alone. Everywhere else the goph
 ## Gopher lockup
 
 `docs/public/logo-dark.svg` and `logo-light.svg` combine the gopher artwork (background keyed out) with the wordmark. The getrolle.com header uses them (`docs/theme.css` sets the height), and the desktop app carries copies in `apps/desktop/frontend/src/assets/brand/` for its sidebar and onboarding headers.
+
+## Animation
+
+[animation-kit/](animation-kit/) holds the vector rig: the gopher and cards as named groups with pivots and holdout masks, plus an offline demo. The desktop app inlines the assembled master as `GopherRig.tsx`; a click on the mark plays a short dance or a hide-and-peek behind the green card.
