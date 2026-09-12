@@ -178,6 +178,13 @@
     {
       "capability": "CAPABILITY_NETWORK",
       "capabilityName": "NETWORK",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/secrets",
+      "packageName": "secrets"
+    },
+    {
+      "capability": "CAPABILITY_NETWORK",
+      "capabilityName": "NETWORK",
       "capabilityType": "CAPABILITY_TYPE_DIRECT",
       "packageDir": "github.com/nateships/rolle/internal/support",
       "packageName": "support"
@@ -214,6 +221,13 @@
       "capability": "CAPABILITY_RUNTIME",
       "capabilityName": "RUNTIME",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/aws",
+      "packageName": "aws"
+    },
+    {
+      "capability": "CAPABILITY_RUNTIME",
+      "capabilityName": "RUNTIME",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/awsconfig",
       "packageName": "awsconfig"
     },
@@ -230,6 +244,13 @@
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/discover",
       "packageName": "discover"
+    },
+    {
+      "capability": "CAPABILITY_RUNTIME",
+      "capabilityName": "RUNTIME",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/secrets",
+      "packageName": "secrets"
     },
     {
       "capability": "CAPABILITY_READ_SYSTEM_STATE",
@@ -318,6 +339,13 @@
     {
       "capability": "CAPABILITY_READ_SYSTEM_STATE",
       "capabilityName": "READ_SYSTEM_STATE",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/secrets",
+      "packageName": "secrets"
+    },
+    {
+      "capability": "CAPABILITY_READ_SYSTEM_STATE",
+      "capabilityName": "READ_SYSTEM_STATE",
       "capabilityType": "CAPABILITY_TYPE_DIRECT",
       "packageDir": "github.com/nateships/rolle/internal/support",
       "packageName": "support"
@@ -338,6 +366,13 @@
     },
     {
       "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/ENV",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle",
+      "packageName": "main"
+    },
+    {
+      "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
       "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/cmd/rolle",
@@ -352,10 +387,31 @@
     },
     {
       "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/ENV",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle/cli",
+      "packageName": "cli"
+    },
+    {
+      "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
       "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/app",
       "packageName": "app"
+    },
+    {
+      "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/ENV",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/app",
+      "packageName": "app"
+    },
+    {
+      "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/ENV",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/aws",
+      "packageName": "aws"
     },
     {
       "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
@@ -375,6 +431,13 @@
       "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
       "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
       "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/azure",
+      "packageName": "azure"
+    },
+    {
+      "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/ENV",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/azure",
       "packageName": "azure"
     },
@@ -402,6 +465,20 @@
     {
       "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
       "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/secrets",
+      "packageName": "secrets"
+    },
+    {
+      "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/ENV",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/secrets",
+      "packageName": "secrets"
+    },
+    {
+      "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
       "capabilityType": "CAPABILITY_TYPE_DIRECT",
       "packageDir": "github.com/nateships/rolle/internal/support",
       "packageName": "support"
@@ -426,6 +503,34 @@
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/cmd/rolle/cli",
       "packageName": "cli"
+    },
+    {
+      "capability": "CAPABILITY_SYSTEM_CALLS",
+      "capabilityName": "SYSTEM_CALLS",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/app",
+      "packageName": "app"
+    },
+    {
+      "capability": "CAPABILITY_SYSTEM_CALLS",
+      "capabilityName": "SYSTEM_CALLS",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/aws",
+      "packageName": "aws"
+    },
+    {
+      "capability": "CAPABILITY_SYSTEM_CALLS",
+      "capabilityName": "SYSTEM_CALLS",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/azure",
+      "packageName": "azure"
+    },
+    {
+      "capability": "CAPABILITY_SYSTEM_CALLS",
+      "capabilityName": "SYSTEM_CALLS",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/secrets",
+      "packageName": "secrets"
     },
     {
       "capability": "CAPABILITY_ARBITRARY_EXECUTION",
@@ -482,6 +587,13 @@
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/gcp",
       "packageName": "gcp"
+    },
+    {
+      "capability": "CAPABILITY_ARBITRARY_EXECUTION",
+      "capabilityName": "ARBITRARY_EXECUTION",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/secrets",
+      "packageName": "secrets"
     },
     {
       "capability": "CAPABILITY_UNANALYZED",
@@ -598,13 +710,6 @@
     {
       "capability": "CAPABILITY_UNSAFE_POINTER",
       "capabilityName": "UNSAFE_POINTER",
-      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
-      "packageDir": "github.com/nateships/rolle/internal/awsconfig",
-      "packageName": "awsconfig"
-    },
-    {
-      "capability": "CAPABILITY_UNSAFE_POINTER",
-      "capabilityName": "UNSAFE_POINTER",
       "capabilityType": "CAPABILITY_TYPE_DIRECT",
       "packageDir": "github.com/nateships/rolle/internal/azure",
       "packageName": "azure"
@@ -629,6 +734,13 @@
       "capabilityType": "CAPABILITY_TYPE_DIRECT",
       "packageDir": "github.com/nateships/rolle/internal/gcp",
       "packageName": "gcp"
+    },
+    {
+      "capability": "CAPABILITY_UNSAFE_POINTER",
+      "capabilityName": "UNSAFE_POINTER",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/secrets",
+      "packageName": "secrets"
     },
     {
       "capability": "CAPABILITY_UNSAFE_POINTER",
@@ -706,6 +818,13 @@
       "capabilityType": "CAPABILITY_TYPE_DIRECT",
       "packageDir": "github.com/nateships/rolle/internal/gcp",
       "packageName": "gcp"
+    },
+    {
+      "capability": "CAPABILITY_REFLECT",
+      "capabilityName": "REFLECT",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/secrets",
+      "packageName": "secrets"
     },
     {
       "capability": "CAPABILITY_REFLECT",
@@ -858,6 +977,10 @@
       "version": "v1.28.1"
     },
     {
+      "path": "github.com/godbus/dbus/v5",
+      "version": "v5.2.2"
+    },
+    {
       "path": "github.com/golang-jwt/jwt/v5",
       "version": "v5.2.2"
     },
@@ -908,10 +1031,6 @@
   ],
   "packageInfo": [
     {
-      "ignoredFiles": [
-        "retry_linux.go",
-        "retry_linux_test.go"
-      ],
       "path": "cloud.google.com/go/compute/metadata"
     },
     {
@@ -1271,6 +1390,21 @@
     },
     {
       "ignoredFiles": [
+        "auth_default_windows.go",
+        "auth_sha1_windows.go",
+        "conn_darwin.go",
+        "conn_windows.go",
+        "transport_darwin.go",
+        "transport_unixcred_dragonfly.go",
+        "transport_unixcred_freebsd.go",
+        "transport_unixcred_netbsd.go",
+        "transport_unixcred_openbsd.go",
+        "transport_zos.go"
+      ],
+      "path": "github.com/godbus/dbus/v5"
+    },
+    {
+      "ignoredFiles": [
         "errors_go_other.go"
       ],
       "path": "github.com/golang-jwt/jwt/v5"
@@ -1346,8 +1480,8 @@
     },
     {
       "ignoredFiles": [
+        "browser_darwin.go",
         "browser_freebsd.go",
-        "browser_linux.go",
         "browser_netbsd.go",
         "browser_openbsd.go",
         "browser_unsupported.go",
@@ -1366,13 +1500,13 @@
     },
     {
       "ignoredFiles": [
-        "keyring_unix.go",
+        "keyring_darwin.go",
         "keyring_windows.go"
       ],
       "path": "github.com/zalando/go-keyring"
     },
     {
-      "path": "github.com/zalando/go-keyring/internal/shellescape"
+      "path": "github.com/zalando/go-keyring/secret_service"
     },
     {
       "path": "golang.org/x/oauth2"
@@ -1409,35 +1543,29 @@
     },
     {
       "ignoredFiles": [
-        "affinity_linux.go",
-        "auxv_linux_test.go",
         "auxv_unsupported.go",
-        "bluetooth_linux.go",
         "bpxsvc_zos.go",
         "cap_freebsd.go",
-        "creds_test.go",
         "darwin_amd64_test.go",
+        "darwin_arm64_test.go",
+        "darwin_test.go",
         "dev_aix_ppc.go",
         "dev_aix_ppc64.go",
+        "dev_darwin.go",
         "dev_dragonfly.go",
         "dev_freebsd.go",
-        "dev_linux.go",
-        "dev_linux_test.go",
         "dev_netbsd.go",
         "dev_openbsd.go",
         "dev_zos.go",
         "dev_zos_test.go",
-        "dup3_test.go",
         "endian_big.go",
-        "export_mremap_test.go",
-        "fcntl.go",
+        "fcntl_darwin.go",
         "fcntl_linux_32bit.go",
         "gccgo.go",
         "gccgo_linux_amd64.go",
+        "getdirentries_test.go",
+        "getfsstat_test.go",
         "getvfsstat_test.go",
-        "ifreq_linux.go",
-        "ifreq_linux_test.go",
-        "ioctl_linux.go",
         "ioctl_signed.go",
         "ioctl_zos.go",
         "mkasm.go",
@@ -1449,24 +1577,27 @@
         "mksyscall_zos_s390x.go",
         "mksysctl_openbsd.go",
         "mksysnum.go",
+        "mmap_nomremap.go",
         "mmap_zos_test.go",
-        "mremap.go",
-        "mremap_test.go",
         "openbsd_test.go",
-        "pipe2_test.go",
         "pledge_openbsd.go",
+        "ptrace_darwin.go",
         "ptrace_ios.go",
         "race.go",
-        "readdirent_getdents.go",
-        "sendfile_test.go",
+        "readdirent_getdirentries.go",
         "sockcmsg_dragonfly.go",
-        "sockcmsg_linux.go",
         "sockcmsg_zos.go",
         "syscall_aix.go",
         "syscall_aix_ppc.go",
         "syscall_aix_ppc64.go",
         "syscall_aix_test.go",
+        "syscall_bsd.go",
+        "syscall_bsd_test.go",
+        "syscall_darwin.go",
         "syscall_darwin_amd64.go",
+        "syscall_darwin_arm64.go",
+        "syscall_darwin_libSystem.go",
+        "syscall_darwin_test.go",
         "syscall_dragonfly.go",
         "syscall_dragonfly_amd64.go",
         "syscall_freebsd.go",
@@ -1479,16 +1610,14 @@
         "syscall_hurd.go",
         "syscall_hurd_386.go",
         "syscall_illumos.go",
-        "syscall_internal_linux_test.go",
+        "syscall_internal_bsd_test.go",
+        "syscall_internal_darwin_test.go",
         "syscall_internal_solaris_test.go",
-        "syscall_linux.go",
         "syscall_linux_386.go",
         "syscall_linux_alarm.go",
         "syscall_linux_amd64.go",
         "syscall_linux_amd64_gc.go",
         "syscall_linux_arm.go",
-        "syscall_linux_arm64.go",
-        "syscall_linux_gc.go",
         "syscall_linux_gc_386.go",
         "syscall_linux_gc_arm.go",
         "syscall_linux_gccgo_386.go",
@@ -1501,7 +1630,6 @@
         "syscall_linux_riscv64.go",
         "syscall_linux_s390x.go",
         "syscall_linux_sparc64.go",
-        "syscall_linux_test.go",
         "syscall_netbsd.go",
         "syscall_netbsd_386.go",
         "syscall_netbsd_amd64.go",
@@ -1525,8 +1653,7 @@
         "syscall_zos_s390x.go",
         "syscall_zos_test.go",
         "sysctl_netbsd_test.go",
-        "sysvshm_linux.go",
-        "sysvshm_unix_test.go",
+        "sysvshm_unix_other.go",
         "types_aix.go",
         "types_darwin.go",
         "types_dragonfly.go",
@@ -1535,23 +1662,22 @@
         "types_openbsd.go",
         "types_solaris.go",
         "unveil_openbsd.go",
-        "vgetrandom_linux.go",
+        "vgetrandom_unsupported.go",
         "xattr_bsd.go",
         "xattr_zos_test.go",
         "zerrors_aix_ppc.go",
         "zerrors_aix_ppc64.go",
         "zerrors_darwin_amd64.go",
+        "zerrors_darwin_arm64.go",
         "zerrors_dragonfly_amd64.go",
         "zerrors_freebsd_386.go",
         "zerrors_freebsd_amd64.go",
         "zerrors_freebsd_arm.go",
         "zerrors_freebsd_arm64.go",
         "zerrors_freebsd_riscv64.go",
-        "zerrors_linux.go",
         "zerrors_linux_386.go",
         "zerrors_linux_amd64.go",
         "zerrors_linux_arm.go",
-        "zerrors_linux_arm64.go",
         "zerrors_linux_loong64.go",
         "zerrors_linux_mips.go",
         "zerrors_linux_mips64.go",
@@ -1576,8 +1702,6 @@
         "zerrors_openbsd_riscv64.go",
         "zerrors_solaris_amd64.go",
         "zerrors_zos_s390x.go",
-        "zptrace_armnn_linux.go",
-        "zptrace_linux_arm64.go",
         "zptrace_mipsnn_linux.go",
         "zptrace_mipsnnle_linux.go",
         "zptrace_x86_linux.go",
@@ -1586,6 +1710,7 @@
         "zsyscall_aix_ppc64_gc.go",
         "zsyscall_aix_ppc64_gccgo.go",
         "zsyscall_darwin_amd64.go",
+        "zsyscall_darwin_arm64.go",
         "zsyscall_dragonfly_amd64.go",
         "zsyscall_freebsd_386.go",
         "zsyscall_freebsd_amd64.go",
@@ -1593,11 +1718,9 @@
         "zsyscall_freebsd_arm64.go",
         "zsyscall_freebsd_riscv64.go",
         "zsyscall_illumos_amd64.go",
-        "zsyscall_linux.go",
         "zsyscall_linux_386.go",
         "zsyscall_linux_amd64.go",
         "zsyscall_linux_arm.go",
-        "zsyscall_linux_arm64.go",
         "zsyscall_linux_loong64.go",
         "zsyscall_linux_mips.go",
         "zsyscall_linux_mips64.go",
@@ -1630,6 +1753,7 @@
         "zsysctl_openbsd_ppc64.go",
         "zsysctl_openbsd_riscv64.go",
         "zsysnum_darwin_amd64.go",
+        "zsysnum_darwin_arm64.go",
         "zsysnum_dragonfly_amd64.go",
         "zsysnum_freebsd_386.go",
         "zsysnum_freebsd_amd64.go",
@@ -1639,7 +1763,6 @@
         "zsysnum_linux_386.go",
         "zsysnum_linux_amd64.go",
         "zsysnum_linux_arm.go",
-        "zsysnum_linux_arm64.go",
         "zsysnum_linux_loong64.go",
         "zsysnum_linux_mips.go",
         "zsysnum_linux_mips64.go",
@@ -1666,17 +1789,16 @@
         "ztypes_aix_ppc.go",
         "ztypes_aix_ppc64.go",
         "ztypes_darwin_amd64.go",
+        "ztypes_darwin_arm64.go",
         "ztypes_dragonfly_amd64.go",
         "ztypes_freebsd_386.go",
         "ztypes_freebsd_amd64.go",
         "ztypes_freebsd_arm.go",
         "ztypes_freebsd_arm64.go",
         "ztypes_freebsd_riscv64.go",
-        "ztypes_linux.go",
         "ztypes_linux_386.go",
         "ztypes_linux_amd64.go",
         "ztypes_linux_arm.go",
-        "ztypes_linux_arm64.go",
         "ztypes_linux_loong64.go",
         "ztypes_linux_mips.go",
         "ztypes_linux_mips64.go",
@@ -1705,12 +1827,12 @@
         "asm_bsd_386.s",
         "asm_bsd_amd64.s",
         "asm_bsd_arm.s",
+        "asm_bsd_arm64.s",
         "asm_bsd_ppc64.s",
         "asm_bsd_riscv64.s",
         "asm_linux_386.s",
         "asm_linux_amd64.s",
         "asm_linux_arm.s",
-        "asm_linux_arm64.s",
         "asm_linux_loong64.s",
         "asm_linux_mips64x.s",
         "asm_linux_mipsx.s",
@@ -1725,6 +1847,7 @@
         "symaddr_zos_s390x.s",
         "zsymaddr_zos_s390x.s",
         "zsyscall_darwin_amd64.s",
+        "zsyscall_darwin_arm64.s",
         "zsyscall_openbsd_386.s",
         "zsyscall_openbsd_amd64.s",
         "zsyscall_openbsd_arm.s",
@@ -1738,7 +1861,7 @@
     {
       "ignoredFiles": [
         "term_plan9.go",
-        "term_unix_other.go",
+        "term_unix_bsd.go",
         "term_unsupported.go",
         "term_windows.go"
       ],
