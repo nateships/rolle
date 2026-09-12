@@ -15,10 +15,12 @@ export default defineConfig({
   },
   github: { owner: "nateships", repo: "rolle", branch: "main", dir: "docs" },
   navigation: {
-    actions: [
-      { href: "/changelog", label: "Changelog" },
-      { href: "https://github.com/nateships/rolle/releases", label: "Download" },
+    // Tabs scope the sidebar: the release entries stay off the docs pages.
+    tabs: [
+      { label: "Docs", path: "/" },
+      { label: "Changelog", path: "/changelog", href: "/changelog" },
     ],
+    actions: [{ href: "https://github.com/nateships/rolle/releases", label: "Download" }],
   },
   theme: { accent: "#00CE78", radius: "md", mode: "system" },
   ai: { llmsTxt: true },
