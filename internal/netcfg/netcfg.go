@@ -14,12 +14,29 @@ import (
 	"sync"
 
 	"github.com/nateships/rolle/internal/core"
+	"github.com/nateships/rolle/internal/debug"
 )
 
 var (
 	mu   sync.Mutex
 	base = http.DefaultTransport.(*http.Transport).Clone()
 )
+
+func init() {
+	// Every client in the process, the SDKs included, rides on the default
+	// transport. Wrap it from the start so the host log misses nothing.
+	http.DefaultTransport = logged{base.Clone()}
+}
+
+// logged records the host of every request in the diagnostic log, so a user
+// who runs with --debug sees each place the process talks to. Only the method
+// and the host are logged: no path, no query, no header.
+type logged struct{ rt http.RoundTripper }
+
+func (l logged) RoundTrip(req *http.Request) (*http.Response, error) {
+	debug.Logf("net", "%s %s", req.Method, req.URL.Host)
+	return l.rt.RoundTrip(req)
+}
 
 // Apply rebuilds the default transport from the settings. An unreadable
 // bundle or a malformed proxy URL is an error and leaves the transport as is.
@@ -41,7 +58,7 @@ func Apply(s core.Settings) error {
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	http.DefaultTransport = t
+	http.DefaultTransport = logged{t}
 	return nil
 }
 

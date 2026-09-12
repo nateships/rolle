@@ -6,6 +6,8 @@
 
 Assume any role, any cloud.
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/nateships/rolle/badge)](https://scorecard.dev/viewer/?uri=github.com/nateships/rolle)
+
 <p align="center">
   <img src="docs/public/screenshots/dashboard-dark.png" alt="rolle dashboard: AWS accounts with their roles, an Azure subscription, and Google Cloud projects, two sessions active" width="900">
 </p>
@@ -78,6 +80,7 @@ mise run hooks          # every pre-commit hook on the whole tree
 mise run desktop        # run the desktop app in dev mode
 mise run desktop:demo   # same, on fictional data; nothing real is touched
 mise run cli -- <args>  # run the CLI from source, for example: mise run cli -- integration list
+mise run capabilities:check # compare the Go capability graph with capslock.json; mise run capabilities rewrites it
 mise run docs           # serve the docs site
 ```
 

@@ -6,6 +6,10 @@ builds:
     main: ./cmd/rolle
     binary: rolle
     env: [CGO_ENABLED=0]
+    # -trimpath keeps the builder's paths out of the binary, so a build of the
+    # same tag with the same toolchain is byte for byte identical. The docs
+    # security page gives the recipe.
+    flags: [-trimpath]
     goos: [darwin, linux, windows]
     goarch: [amd64, arm64]
     ldflags:

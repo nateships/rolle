@@ -26,7 +26,12 @@ The app and the CLI collect nothing: no analytics, no crash reports, no usage da
 
 Nothing is sent that you did not ask for. The support bundle is a file in your Downloads folder; you decide whether to attach it to an issue.
 
-This is checkable. A test in the repository, `tools/policy`, scans the shipped source for every URL and fails when a host outside that list appears, and fails when a Go module or npm package is added without a matching entry in its allow list. A new destination or dependency cannot arrive without a visible change to that test. The source is public, and the build provenance below ties each release file to the exact commit it was built from.
+You do not have to take that on trust:
+
+- **Watch it yourself.** Run `rolle --debug` or set `ROLLE_DEBUG=1`. Every HTTP client in the process, the cloud SDKs included, goes through one transport that logs the method and host of each request, and nothing else. The desktop app's **Verbose logging** setting does the same, and the support bundle carries the last lines of that log.
+- **Capability analysis in CI.** [Capslock](https://github.com/google/capslock) reads the Go call graph and reports which capabilities each package reaches through its whole dependency tree: network, process execution, file access, and so on. `capslock.json` in the repository is the recorded set, and the `capabilities` job fails a pull request that changes it. A dependency that starts talking to the network shows up as a diff in that file.
+- **[OpenSSF Scorecard](https://scorecard.dev/viewer/?uri=github.com/nateships/rolle).** An independent weekly rating of the repository's practices: pinned actions, branch protection, signed releases, token permissions, static analysis, and dependency updates.
+- **Build provenance and reproducible builds** below tie each release file to the public source at a named commit.
 
 ## Enterprise networks
 
@@ -45,6 +50,20 @@ gh attestation verify rolle.dmg --repo nateships/rolle
 ```
 
 A passing check means the file came out of `.github/workflows/release.yml` in this repository at the commit it names, not from a laptop or a fork.
+
+## Reproducible builds
+
+From 0.1.4 on, the CLI archives are built with `-trimpath` and no cgo, so the same source, toolchain, and flags give a byte-identical binary. To check a release, clone the tag with a clean tree, use the Go version that `go version -m rolle` prints for the released binary, and build:
+
+```sh
+git clone --branch v<version> https://github.com/nateships/rolle && cd rolle
+CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath \
+  -ldflags "-s -w -X github.com/nateships/rolle/internal/version.Version=<version>" \
+  -o rolle-rebuilt ./cmd/rolle
+sha256sum rolle-rebuilt rolle   # rolle from the release archive
+```
+
+The two hashes match. The desktop packages are signed and, on macOS, notarized, so they cannot be compared byte for byte; for those, the build provenance above is the link to the source.
 
 ## Reset
 

@@ -1,0 +1,1751 @@
+{
+  "capabilityInfo": [
+    {
+      "capability": "CAPABILITY_FILES",
+      "capabilityName": "FILES",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle",
+      "packageName": "main"
+    },
+    {
+      "capability": "CAPABILITY_FILES",
+      "capabilityName": "FILES",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle/cli",
+      "packageName": "cli"
+    },
+    {
+      "capability": "CAPABILITY_FILES",
+      "capabilityName": "FILES",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/app",
+      "packageName": "app"
+    },
+    {
+      "capability": "CAPABILITY_FILES",
+      "capabilityName": "FILES",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/aws",
+      "packageName": "aws"
+    },
+    {
+      "capability": "CAPABILITY_FILES",
+      "capabilityName": "FILES",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/awsconfig",
+      "packageName": "awsconfig"
+    },
+    {
+      "capability": "CAPABILITY_FILES",
+      "capabilityName": "FILES",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/azure",
+      "packageName": "azure"
+    },
+    {
+      "capability": "CAPABILITY_FILES",
+      "capabilityName": "FILES",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/credcache",
+      "packageName": "credcache"
+    },
+    {
+      "capability": "CAPABILITY_FILES",
+      "capabilityName": "FILES",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/discover",
+      "packageName": "discover"
+    },
+    {
+      "capability": "CAPABILITY_FILES",
+      "capabilityName": "FILES",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/gcp",
+      "packageName": "gcp"
+    },
+    {
+      "capability": "CAPABILITY_FILES",
+      "capabilityName": "FILES",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/netcfg",
+      "packageName": "netcfg"
+    },
+    {
+      "capability": "CAPABILITY_FILES",
+      "capabilityName": "FILES",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/paths",
+      "packageName": "paths"
+    },
+    {
+      "capability": "CAPABILITY_FILES",
+      "capabilityName": "FILES",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/secrets",
+      "packageName": "secrets"
+    },
+    {
+      "capability": "CAPABILITY_FILES",
+      "capabilityName": "FILES",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/support",
+      "packageName": "support"
+    },
+    {
+      "capability": "CAPABILITY_FILES",
+      "capabilityName": "FILES",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/terminal",
+      "packageName": "terminal"
+    },
+    {
+      "capability": "CAPABILITY_FILES",
+      "capabilityName": "FILES",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/workspace",
+      "packageName": "workspace"
+    },
+    {
+      "capability": "CAPABILITY_NETWORK",
+      "capabilityName": "NETWORK",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle",
+      "packageName": "main"
+    },
+    {
+      "capability": "CAPABILITY_NETWORK",
+      "capabilityName": "NETWORK",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle/cli",
+      "packageName": "cli"
+    },
+    {
+      "capability": "CAPABILITY_NETWORK",
+      "capabilityName": "NETWORK",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/app",
+      "packageName": "app"
+    },
+    {
+      "capability": "CAPABILITY_NETWORK",
+      "capabilityName": "NETWORK",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/aws",
+      "packageName": "aws"
+    },
+    {
+      "capability": "CAPABILITY_NETWORK",
+      "capabilityName": "NETWORK",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/awsconfig",
+      "packageName": "awsconfig"
+    },
+    {
+      "capability": "CAPABILITY_NETWORK",
+      "capabilityName": "NETWORK",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/azure",
+      "packageName": "azure"
+    },
+    {
+      "capability": "CAPABILITY_NETWORK",
+      "capabilityName": "NETWORK",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/credcache",
+      "packageName": "credcache"
+    },
+    {
+      "capability": "CAPABILITY_NETWORK",
+      "capabilityName": "NETWORK",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/discover",
+      "packageName": "discover"
+    },
+    {
+      "capability": "CAPABILITY_NETWORK",
+      "capabilityName": "NETWORK",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/gcp",
+      "packageName": "gcp"
+    },
+    {
+      "capability": "CAPABILITY_NETWORK",
+      "capabilityName": "NETWORK",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/netcfg",
+      "packageName": "netcfg"
+    },
+    {
+      "capability": "CAPABILITY_NETWORK",
+      "capabilityName": "NETWORK",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/support",
+      "packageName": "support"
+    },
+    {
+      "capability": "CAPABILITY_NETWORK",
+      "capabilityName": "NETWORK",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/workspace",
+      "packageName": "workspace"
+    },
+    {
+      "capability": "CAPABILITY_RUNTIME",
+      "capabilityName": "RUNTIME",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle",
+      "packageName": "main"
+    },
+    {
+      "capability": "CAPABILITY_RUNTIME",
+      "capabilityName": "RUNTIME",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle/cli",
+      "packageName": "cli"
+    },
+    {
+      "capability": "CAPABILITY_RUNTIME",
+      "capabilityName": "RUNTIME",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/app",
+      "packageName": "app"
+    },
+    {
+      "capability": "CAPABILITY_RUNTIME",
+      "capabilityName": "RUNTIME",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/awsconfig",
+      "packageName": "awsconfig"
+    },
+    {
+      "capability": "CAPABILITY_RUNTIME",
+      "capabilityName": "RUNTIME",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/azure",
+      "packageName": "azure"
+    },
+    {
+      "capability": "CAPABILITY_RUNTIME",
+      "capabilityName": "RUNTIME",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/discover",
+      "packageName": "discover"
+    },
+    {
+      "capability": "CAPABILITY_READ_SYSTEM_STATE",
+      "capabilityName": "READ_SYSTEM_STATE",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle",
+      "packageName": "main"
+    },
+    {
+      "capability": "CAPABILITY_READ_SYSTEM_STATE",
+      "capabilityName": "READ_SYSTEM_STATE",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle/cli",
+      "packageName": "cli"
+    },
+    {
+      "capability": "CAPABILITY_READ_SYSTEM_STATE",
+      "capabilityName": "READ_SYSTEM_STATE",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/app",
+      "packageName": "app"
+    },
+    {
+      "capability": "CAPABILITY_READ_SYSTEM_STATE",
+      "capabilityName": "READ_SYSTEM_STATE",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/aws",
+      "packageName": "aws"
+    },
+    {
+      "capability": "CAPABILITY_READ_SYSTEM_STATE",
+      "capabilityName": "READ_SYSTEM_STATE",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/awsconfig",
+      "packageName": "awsconfig"
+    },
+    {
+      "capability": "CAPABILITY_READ_SYSTEM_STATE",
+      "capabilityName": "READ_SYSTEM_STATE",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/azure",
+      "packageName": "azure"
+    },
+    {
+      "capability": "CAPABILITY_READ_SYSTEM_STATE",
+      "capabilityName": "READ_SYSTEM_STATE",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/credcache",
+      "packageName": "credcache"
+    },
+    {
+      "capability": "CAPABILITY_READ_SYSTEM_STATE",
+      "capabilityName": "READ_SYSTEM_STATE",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/debug",
+      "packageName": "debug"
+    },
+    {
+      "capability": "CAPABILITY_READ_SYSTEM_STATE",
+      "capabilityName": "READ_SYSTEM_STATE",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/discover",
+      "packageName": "discover"
+    },
+    {
+      "capability": "CAPABILITY_READ_SYSTEM_STATE",
+      "capabilityName": "READ_SYSTEM_STATE",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/gcp",
+      "packageName": "gcp"
+    },
+    {
+      "capability": "CAPABILITY_READ_SYSTEM_STATE",
+      "capabilityName": "READ_SYSTEM_STATE",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/netcfg",
+      "packageName": "netcfg"
+    },
+    {
+      "capability": "CAPABILITY_READ_SYSTEM_STATE",
+      "capabilityName": "READ_SYSTEM_STATE",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/paths",
+      "packageName": "paths"
+    },
+    {
+      "capability": "CAPABILITY_READ_SYSTEM_STATE",
+      "capabilityName": "READ_SYSTEM_STATE",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/support",
+      "packageName": "support"
+    },
+    {
+      "capability": "CAPABILITY_READ_SYSTEM_STATE",
+      "capabilityName": "READ_SYSTEM_STATE",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/terminal",
+      "packageName": "terminal"
+    },
+    {
+      "capability": "CAPABILITY_READ_SYSTEM_STATE",
+      "capabilityName": "READ_SYSTEM_STATE",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/workspace",
+      "packageName": "workspace"
+    },
+    {
+      "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle",
+      "packageName": "main"
+    },
+    {
+      "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle/cli",
+      "packageName": "cli"
+    },
+    {
+      "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/app",
+      "packageName": "app"
+    },
+    {
+      "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/aws",
+      "packageName": "aws"
+    },
+    {
+      "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/awsconfig",
+      "packageName": "awsconfig"
+    },
+    {
+      "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/azure",
+      "packageName": "azure"
+    },
+    {
+      "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/credcache",
+      "packageName": "credcache"
+    },
+    {
+      "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/discover",
+      "packageName": "discover"
+    },
+    {
+      "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/gcp",
+      "packageName": "gcp"
+    },
+    {
+      "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/support",
+      "packageName": "support"
+    },
+    {
+      "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/workspace",
+      "packageName": "workspace"
+    },
+    {
+      "capability": "CAPABILITY_SYSTEM_CALLS",
+      "capabilityName": "SYSTEM_CALLS",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle",
+      "packageName": "main"
+    },
+    {
+      "capability": "CAPABILITY_SYSTEM_CALLS",
+      "capabilityName": "SYSTEM_CALLS",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle/cli",
+      "packageName": "cli"
+    },
+    {
+      "capability": "CAPABILITY_ARBITRARY_EXECUTION",
+      "capabilityName": "ARBITRARY_EXECUTION",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle",
+      "packageName": "main"
+    },
+    {
+      "capability": "CAPABILITY_ARBITRARY_EXECUTION",
+      "capabilityName": "ARBITRARY_EXECUTION",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle/cli",
+      "packageName": "cli"
+    },
+    {
+      "capability": "CAPABILITY_ARBITRARY_EXECUTION",
+      "capabilityName": "ARBITRARY_EXECUTION",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/app",
+      "packageName": "app"
+    },
+    {
+      "capability": "CAPABILITY_ARBITRARY_EXECUTION",
+      "capabilityName": "ARBITRARY_EXECUTION",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/aws",
+      "packageName": "aws"
+    },
+    {
+      "capability": "CAPABILITY_ARBITRARY_EXECUTION",
+      "capabilityName": "ARBITRARY_EXECUTION",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/awsconfig",
+      "packageName": "awsconfig"
+    },
+    {
+      "capability": "CAPABILITY_ARBITRARY_EXECUTION",
+      "capabilityName": "ARBITRARY_EXECUTION",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/azure",
+      "packageName": "azure"
+    },
+    {
+      "capability": "CAPABILITY_ARBITRARY_EXECUTION",
+      "capabilityName": "ARBITRARY_EXECUTION",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/discover",
+      "packageName": "discover"
+    },
+    {
+      "capability": "CAPABILITY_ARBITRARY_EXECUTION",
+      "capabilityName": "ARBITRARY_EXECUTION",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/gcp",
+      "packageName": "gcp"
+    },
+    {
+      "capability": "CAPABILITY_UNANALYZED",
+      "capabilityName": "UNANALYZED",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle",
+      "packageName": "main"
+    },
+    {
+      "capability": "CAPABILITY_UNANALYZED",
+      "capabilityName": "UNANALYZED",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle/cli",
+      "packageName": "cli"
+    },
+    {
+      "capability": "CAPABILITY_UNANALYZED",
+      "capabilityName": "UNANALYZED",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/app",
+      "packageName": "app"
+    },
+    {
+      "capability": "CAPABILITY_UNANALYZED",
+      "capabilityName": "UNANALYZED",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/aws",
+      "packageName": "aws"
+    },
+    {
+      "capability": "CAPABILITY_UNANALYZED",
+      "capabilityName": "UNANALYZED",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/awsconfig",
+      "packageName": "awsconfig"
+    },
+    {
+      "capability": "CAPABILITY_UNANALYZED",
+      "capabilityName": "UNANALYZED",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/azure",
+      "packageName": "azure"
+    },
+    {
+      "capability": "CAPABILITY_UNANALYZED",
+      "capabilityName": "UNANALYZED",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/credcache",
+      "packageName": "credcache"
+    },
+    {
+      "capability": "CAPABILITY_UNANALYZED",
+      "capabilityName": "UNANALYZED",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/discover",
+      "packageName": "discover"
+    },
+    {
+      "capability": "CAPABILITY_UNANALYZED",
+      "capabilityName": "UNANALYZED",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/gcp",
+      "packageName": "gcp"
+    },
+    {
+      "capability": "CAPABILITY_UNANALYZED",
+      "capabilityName": "UNANALYZED",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/secrets",
+      "packageName": "secrets"
+    },
+    {
+      "capability": "CAPABILITY_UNANALYZED",
+      "capabilityName": "UNANALYZED",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/support",
+      "packageName": "support"
+    },
+    {
+      "capability": "CAPABILITY_UNANALYZED",
+      "capabilityName": "UNANALYZED",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/workspace",
+      "packageName": "workspace"
+    },
+    {
+      "capability": "CAPABILITY_UNSAFE_POINTER",
+      "capabilityName": "UNSAFE_POINTER",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle",
+      "packageName": "main"
+    },
+    {
+      "capability": "CAPABILITY_UNSAFE_POINTER",
+      "capabilityName": "UNSAFE_POINTER",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle/cli",
+      "packageName": "cli"
+    },
+    {
+      "capability": "CAPABILITY_UNSAFE_POINTER",
+      "capabilityName": "UNSAFE_POINTER",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/app",
+      "packageName": "app"
+    },
+    {
+      "capability": "CAPABILITY_UNSAFE_POINTER",
+      "capabilityName": "UNSAFE_POINTER",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/aws",
+      "packageName": "aws"
+    },
+    {
+      "capability": "CAPABILITY_UNSAFE_POINTER",
+      "capabilityName": "UNSAFE_POINTER",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/awsconfig",
+      "packageName": "awsconfig"
+    },
+    {
+      "capability": "CAPABILITY_UNSAFE_POINTER",
+      "capabilityName": "UNSAFE_POINTER",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/azure",
+      "packageName": "azure"
+    },
+    {
+      "capability": "CAPABILITY_UNSAFE_POINTER",
+      "capabilityName": "UNSAFE_POINTER",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/credcache",
+      "packageName": "credcache"
+    },
+    {
+      "capability": "CAPABILITY_UNSAFE_POINTER",
+      "capabilityName": "UNSAFE_POINTER",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/discover",
+      "packageName": "discover"
+    },
+    {
+      "capability": "CAPABILITY_UNSAFE_POINTER",
+      "capabilityName": "UNSAFE_POINTER",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/gcp",
+      "packageName": "gcp"
+    },
+    {
+      "capability": "CAPABILITY_UNSAFE_POINTER",
+      "capabilityName": "UNSAFE_POINTER",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/support",
+      "packageName": "support"
+    },
+    {
+      "capability": "CAPABILITY_UNSAFE_POINTER",
+      "capabilityName": "UNSAFE_POINTER",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/workspace",
+      "packageName": "workspace"
+    },
+    {
+      "capability": "CAPABILITY_REFLECT",
+      "capabilityName": "REFLECT",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle",
+      "packageName": "main"
+    },
+    {
+      "capability": "CAPABILITY_REFLECT",
+      "capabilityName": "REFLECT",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle/cli",
+      "packageName": "cli"
+    },
+    {
+      "capability": "CAPABILITY_REFLECT",
+      "capabilityName": "REFLECT",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/app",
+      "packageName": "app"
+    },
+    {
+      "capability": "CAPABILITY_REFLECT",
+      "capabilityName": "REFLECT",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/aws",
+      "packageName": "aws"
+    },
+    {
+      "capability": "CAPABILITY_REFLECT",
+      "capabilityName": "REFLECT",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/awsconfig",
+      "packageName": "awsconfig"
+    },
+    {
+      "capability": "CAPABILITY_REFLECT",
+      "capabilityName": "REFLECT",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/azure",
+      "packageName": "azure"
+    },
+    {
+      "capability": "CAPABILITY_REFLECT",
+      "capabilityName": "REFLECT",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/credcache",
+      "packageName": "credcache"
+    },
+    {
+      "capability": "CAPABILITY_REFLECT",
+      "capabilityName": "REFLECT",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/discover",
+      "packageName": "discover"
+    },
+    {
+      "capability": "CAPABILITY_REFLECT",
+      "capabilityName": "REFLECT",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/gcp",
+      "packageName": "gcp"
+    },
+    {
+      "capability": "CAPABILITY_REFLECT",
+      "capabilityName": "REFLECT",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/support",
+      "packageName": "support"
+    },
+    {
+      "capability": "CAPABILITY_REFLECT",
+      "capabilityName": "REFLECT",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/workspace",
+      "packageName": "workspace"
+    },
+    {
+      "capability": "CAPABILITY_EXEC",
+      "capabilityName": "EXEC",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle",
+      "packageName": "main"
+    },
+    {
+      "capability": "CAPABILITY_EXEC",
+      "capabilityName": "EXEC",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/cmd/rolle/cli",
+      "packageName": "cli"
+    },
+    {
+      "capability": "CAPABILITY_EXEC",
+      "capabilityName": "EXEC",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/app",
+      "packageName": "app"
+    },
+    {
+      "capability": "CAPABILITY_EXEC",
+      "capabilityName": "EXEC",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/aws",
+      "packageName": "aws"
+    },
+    {
+      "capability": "CAPABILITY_EXEC",
+      "capabilityName": "EXEC",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/azure",
+      "packageName": "azure"
+    },
+    {
+      "capability": "CAPABILITY_EXEC",
+      "capabilityName": "EXEC",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/browser",
+      "packageName": "browser"
+    },
+    {
+      "capability": "CAPABILITY_EXEC",
+      "capabilityName": "EXEC",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/discover",
+      "packageName": "discover"
+    },
+    {
+      "capability": "CAPABILITY_EXEC",
+      "capabilityName": "EXEC",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/gcp",
+      "packageName": "gcp"
+    },
+    {
+      "capability": "CAPABILITY_EXEC",
+      "capabilityName": "EXEC",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/secrets",
+      "packageName": "secrets"
+    },
+    {
+      "capability": "CAPABILITY_EXEC",
+      "capabilityName": "EXEC",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/terminal",
+      "packageName": "terminal"
+    }
+  ],
+  "moduleInfo": [
+    {
+      "path": "cloud.google.com/go/compute/metadata",
+      "version": "v0.3.0"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go",
+      "version": "v1.9.0"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2",
+      "version": "v1.47.0"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/config",
+      "version": "v1.33.4"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/credentials",
+      "version": "v1.20.4"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/feature/ec2/imds",
+      "version": "v1.20.0"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/internal/configsources",
+      "version": "v1.5.3"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/internal/endpoints/v2",
+      "version": "v2.8.3"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/internal/v4a",
+      "version": "v1.5.3"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding",
+      "version": "v1.13.19"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/service/internal/presigned-url",
+      "version": "v1.14.3"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/service/signin",
+      "version": "v1.10.0"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/service/sso",
+      "version": "v1.38.0"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/service/ssooidc",
+      "version": "v1.43.0"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/service/sts",
+      "version": "v1.50.0"
+    },
+    {
+      "path": "github.com/aws/smithy-go",
+      "version": "v1.28.1"
+    },
+    {
+      "path": "github.com/golang-jwt/jwt/v5",
+      "version": "v5.2.2"
+    },
+    {
+      "path": "github.com/google/uuid",
+      "version": "v1.6.0"
+    },
+    {
+      "path": "github.com/kylelemons/godebug",
+      "version": "v1.1.0"
+    },
+    {
+      "path": "github.com/pkg/browser",
+      "version": "v0.0.0-20210911075715-681adbf594b8"
+    },
+    {
+      "path": "github.com/spf13/cobra",
+      "version": "v1.10.2"
+    },
+    {
+      "path": "github.com/spf13/pflag",
+      "version": "v1.0.10"
+    },
+    {
+      "path": "github.com/zalando/go-keyring",
+      "version": "v0.2.8"
+    },
+    {
+      "path": "golang.org/x/oauth2",
+      "version": "v0.37.0"
+    },
+    {
+      "path": "golang.org/x/sync",
+      "version": "v0.21.0"
+    },
+    {
+      "path": "golang.org/x/sys",
+      "version": "v0.48.0"
+    },
+    {
+      "path": "golang.org/x/term",
+      "version": "v0.46.0"
+    },
+    {
+      "path": "gopkg.in/ini.v1",
+      "version": "v1.67.3"
+    }
+  ],
+  "packageInfo": [
+    {
+      "ignoredFiles": [
+        "retry_linux.go",
+        "retry_linux_test.go"
+      ],
+      "path": "cloud.google.com/go/compute/metadata"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go/apps/cache"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go/apps/errors"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/base"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/base/storage"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/exported"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/json"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/json/types/time"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/local"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/oauth"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/oauth/ops"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/oauth/ops/accesstokens"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/oauth/ops/authority"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/oauth/ops/internal/comm"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/oauth/ops/internal/grant"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/oauth/ops/wstrust"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/oauth/ops/wstrust/defs"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/options"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/shared"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go/apps/internal/version"
+    },
+    {
+      "path": "github.com/AzureAD/microsoft-authentication-library-for-go/apps/public"
+    },
+    {
+      "ignoredFiles": [
+        "generate.go",
+        "logging_generate.go"
+      ],
+      "path": "github.com/aws/aws-sdk-go-v2/aws"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/aws/defaults"
+    },
+    {
+      "ignoredFiles": [
+        "osname_go115.go"
+      ],
+      "path": "github.com/aws/aws-sdk-go-v2/aws/middleware"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/aws/protocol/query"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/aws/protocol/restjson"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/aws/protocol/xml"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/aws/ratelimit"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/aws/retry"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/aws/signer/internal/v4"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/aws/transport/http"
+    },
+    {
+      "ignoredFiles": [
+        "shared_config_windows_test.go"
+      ],
+      "path": "github.com/aws/aws-sdk-go-v2/config"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/config/internal/ini"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/credentials"
+    },
+    {
+      "ignoredFiles": [
+        "integration_test.go"
+      ],
+      "path": "github.com/aws/aws-sdk-go-v2/credentials/ec2rolecreds"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/credentials/endpointcreds"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/credentials/endpointcreds/internal/client"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/credentials/logincreds"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/credentials/processcreds"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/credentials/ssocreds"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+    },
+    {
+      "ignoredFiles": [
+        "integration_test.go"
+      ],
+      "path": "github.com/aws/aws-sdk-go-v2/feature/ec2/imds"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/feature/ec2/imds/internal/config"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/internal/auth"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/internal/auth/smithy"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/internal/configsources"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/internal/context"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/internal/endpoints"
+    },
+    {
+      "ignoredFiles": [
+        "generate.go"
+      ],
+      "path": "github.com/aws/aws-sdk-go-v2/internal/endpoints/awsrulesfn"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/internal/endpoints/v2"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/internal/rand"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/internal/sdk"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/internal/sdkio"
+    },
+    {
+      "ignoredFiles": [
+        "shared_config_windows_test.go"
+      ],
+      "path": "github.com/aws/aws-sdk-go-v2/internal/shareddefaults"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/internal/strings"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/internal/sync/singleflight"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/internal/timeconv"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/internal/timeouts"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/internal/v4a"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/internal/v4a/internal/crypto"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/internal/v4a/internal/v4"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/service/internal/presigned-url"
+    },
+    {
+      "ignoredFiles": [
+        "request_snapshot_test.go",
+        "response_snapshot_test.go",
+        "snapshot_test.go"
+      ],
+      "path": "github.com/aws/aws-sdk-go-v2/service/signin"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/service/signin/internal/endpoints"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/service/signin/types"
+    },
+    {
+      "ignoredFiles": [
+        "request_snapshot_test.go",
+        "response_snapshot_test.go",
+        "snapshot_test.go"
+      ],
+      "path": "github.com/aws/aws-sdk-go-v2/service/sso"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/service/sso/internal/endpoints"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/service/sso/types"
+    },
+    {
+      "ignoredFiles": [
+        "request_snapshot_test.go",
+        "response_snapshot_test.go",
+        "snapshot_test.go"
+      ],
+      "path": "github.com/aws/aws-sdk-go-v2/service/ssooidc"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/service/ssooidc/internal/endpoints"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
+    },
+    {
+      "ignoredFiles": [
+        "request_snapshot_test.go",
+        "response_snapshot_test.go",
+        "snapshot_test.go"
+      ],
+      "path": "github.com/aws/aws-sdk-go-v2/service/sts"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/service/sts/internal/endpoints"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/service/sts/types"
+    },
+    {
+      "path": "github.com/aws/smithy-go"
+    },
+    {
+      "path": "github.com/aws/smithy-go/auth"
+    },
+    {
+      "path": "github.com/aws/smithy-go/auth/bearer"
+    },
+    {
+      "path": "github.com/aws/smithy-go/context"
+    },
+    {
+      "path": "github.com/aws/smithy-go/document"
+    },
+    {
+      "path": "github.com/aws/smithy-go/encoding"
+    },
+    {
+      "path": "github.com/aws/smithy-go/encoding/httpbinding"
+    },
+    {
+      "path": "github.com/aws/smithy-go/encoding/json"
+    },
+    {
+      "path": "github.com/aws/smithy-go/encoding/xml"
+    },
+    {
+      "path": "github.com/aws/smithy-go/endpoints"
+    },
+    {
+      "path": "github.com/aws/smithy-go/endpoints/private/bdd"
+    },
+    {
+      "path": "github.com/aws/smithy-go/endpoints/private/rulesfn"
+    },
+    {
+      "path": "github.com/aws/smithy-go/eventstream"
+    },
+    {
+      "path": "github.com/aws/smithy-go/internal/sync/singleflight"
+    },
+    {
+      "path": "github.com/aws/smithy-go/io"
+    },
+    {
+      "path": "github.com/aws/smithy-go/logging"
+    },
+    {
+      "path": "github.com/aws/smithy-go/metrics"
+    },
+    {
+      "ignoredFiles": [
+        "generate.go"
+      ],
+      "path": "github.com/aws/smithy-go/middleware"
+    },
+    {
+      "path": "github.com/aws/smithy-go/private/requestcompression"
+    },
+    {
+      "ignoredFiles": [
+        "gen_scalars.go",
+        "generate.go"
+      ],
+      "path": "github.com/aws/smithy-go/ptr"
+    },
+    {
+      "path": "github.com/aws/smithy-go/rand"
+    },
+    {
+      "path": "github.com/aws/smithy-go/sync"
+    },
+    {
+      "path": "github.com/aws/smithy-go/time"
+    },
+    {
+      "path": "github.com/aws/smithy-go/tracing"
+    },
+    {
+      "path": "github.com/aws/smithy-go/traits"
+    },
+    {
+      "path": "github.com/aws/smithy-go/transport/http"
+    },
+    {
+      "path": "github.com/aws/smithy-go/transport/http/internal/io"
+    },
+    {
+      "ignoredFiles": [
+        "errors_go_other.go"
+      ],
+      "path": "github.com/golang-jwt/jwt/v5"
+    },
+    {
+      "ignoredFiles": [
+        "node_js.go"
+      ],
+      "path": "github.com/google/uuid"
+    },
+    {
+      "path": "github.com/kylelemons/godebug/diff"
+    },
+    {
+      "path": "github.com/kylelemons/godebug/pretty"
+    },
+    {
+      "path": "github.com/nateships/rolle/cmd/rolle"
+    },
+    {
+      "path": "github.com/nateships/rolle/cmd/rolle/cli"
+    },
+    {
+      "path": "github.com/nateships/rolle/internal/app"
+    },
+    {
+      "path": "github.com/nateships/rolle/internal/aws"
+    },
+    {
+      "path": "github.com/nateships/rolle/internal/awsconfig"
+    },
+    {
+      "path": "github.com/nateships/rolle/internal/azure"
+    },
+    {
+      "path": "github.com/nateships/rolle/internal/browser"
+    },
+    {
+      "path": "github.com/nateships/rolle/internal/core"
+    },
+    {
+      "path": "github.com/nateships/rolle/internal/credcache"
+    },
+    {
+      "path": "github.com/nateships/rolle/internal/debug"
+    },
+    {
+      "path": "github.com/nateships/rolle/internal/discover"
+    },
+    {
+      "path": "github.com/nateships/rolle/internal/gcp"
+    },
+    {
+      "path": "github.com/nateships/rolle/internal/netcfg"
+    },
+    {
+      "path": "github.com/nateships/rolle/internal/paths"
+    },
+    {
+      "path": "github.com/nateships/rolle/internal/secrets"
+    },
+    {
+      "path": "github.com/nateships/rolle/internal/support"
+    },
+    {
+      "path": "github.com/nateships/rolle/internal/terminal"
+    },
+    {
+      "path": "github.com/nateships/rolle/internal/version"
+    },
+    {
+      "path": "github.com/nateships/rolle/internal/workspace"
+    },
+    {
+      "ignoredFiles": [
+        "browser_freebsd.go",
+        "browser_linux.go",
+        "browser_netbsd.go",
+        "browser_openbsd.go",
+        "browser_unsupported.go",
+        "browser_windows.go"
+      ],
+      "path": "github.com/pkg/browser"
+    },
+    {
+      "ignoredFiles": [
+        "command_win.go"
+      ],
+      "path": "github.com/spf13/cobra"
+    },
+    {
+      "path": "github.com/spf13/pflag"
+    },
+    {
+      "ignoredFiles": [
+        "keyring_unix.go",
+        "keyring_windows.go"
+      ],
+      "path": "github.com/zalando/go-keyring"
+    },
+    {
+      "path": "github.com/zalando/go-keyring/internal/shellescape"
+    },
+    {
+      "path": "golang.org/x/oauth2"
+    },
+    {
+      "path": "golang.org/x/oauth2/authhandler"
+    },
+    {
+      "path": "golang.org/x/oauth2/google"
+    },
+    {
+      "path": "golang.org/x/oauth2/google/externalaccount"
+    },
+    {
+      "path": "golang.org/x/oauth2/google/internal/externalaccountauthorizeduser"
+    },
+    {
+      "path": "golang.org/x/oauth2/google/internal/impersonate"
+    },
+    {
+      "path": "golang.org/x/oauth2/google/internal/stsexchange"
+    },
+    {
+      "path": "golang.org/x/oauth2/internal"
+    },
+    {
+      "path": "golang.org/x/oauth2/jws"
+    },
+    {
+      "path": "golang.org/x/oauth2/jwt"
+    },
+    {
+      "path": "golang.org/x/sync/singleflight"
+    },
+    {
+      "ignoredFiles": [
+        "affinity_linux.go",
+        "auxv_linux_test.go",
+        "auxv_unsupported.go",
+        "bluetooth_linux.go",
+        "bpxsvc_zos.go",
+        "cap_freebsd.go",
+        "creds_test.go",
+        "darwin_amd64_test.go",
+        "dev_aix_ppc.go",
+        "dev_aix_ppc64.go",
+        "dev_dragonfly.go",
+        "dev_freebsd.go",
+        "dev_linux.go",
+        "dev_linux_test.go",
+        "dev_netbsd.go",
+        "dev_openbsd.go",
+        "dev_zos.go",
+        "dev_zos_test.go",
+        "dup3_test.go",
+        "endian_big.go",
+        "export_mremap_test.go",
+        "fcntl.go",
+        "fcntl_linux_32bit.go",
+        "gccgo.go",
+        "gccgo_linux_amd64.go",
+        "getvfsstat_test.go",
+        "ifreq_linux.go",
+        "ifreq_linux_test.go",
+        "ioctl_linux.go",
+        "ioctl_signed.go",
+        "ioctl_zos.go",
+        "mkasm.go",
+        "mkpost.go",
+        "mksyscall.go",
+        "mksyscall_aix_ppc.go",
+        "mksyscall_aix_ppc64.go",
+        "mksyscall_solaris.go",
+        "mksyscall_zos_s390x.go",
+        "mksysctl_openbsd.go",
+        "mksysnum.go",
+        "mmap_zos_test.go",
+        "mremap.go",
+        "mremap_test.go",
+        "openbsd_test.go",
+        "pipe2_test.go",
+        "pledge_openbsd.go",
+        "ptrace_ios.go",
+        "race.go",
+        "readdirent_getdents.go",
+        "sendfile_test.go",
+        "sockcmsg_dragonfly.go",
+        "sockcmsg_linux.go",
+        "sockcmsg_zos.go",
+        "syscall_aix.go",
+        "syscall_aix_ppc.go",
+        "syscall_aix_ppc64.go",
+        "syscall_aix_test.go",
+        "syscall_darwin_amd64.go",
+        "syscall_dragonfly.go",
+        "syscall_dragonfly_amd64.go",
+        "syscall_freebsd.go",
+        "syscall_freebsd_386.go",
+        "syscall_freebsd_amd64.go",
+        "syscall_freebsd_arm.go",
+        "syscall_freebsd_arm64.go",
+        "syscall_freebsd_riscv64.go",
+        "syscall_freebsd_test.go",
+        "syscall_hurd.go",
+        "syscall_hurd_386.go",
+        "syscall_illumos.go",
+        "syscall_internal_linux_test.go",
+        "syscall_internal_solaris_test.go",
+        "syscall_linux.go",
+        "syscall_linux_386.go",
+        "syscall_linux_alarm.go",
+        "syscall_linux_amd64.go",
+        "syscall_linux_amd64_gc.go",
+        "syscall_linux_arm.go",
+        "syscall_linux_arm64.go",
+        "syscall_linux_gc.go",
+        "syscall_linux_gc_386.go",
+        "syscall_linux_gc_arm.go",
+        "syscall_linux_gccgo_386.go",
+        "syscall_linux_gccgo_arm.go",
+        "syscall_linux_loong64.go",
+        "syscall_linux_mips64x.go",
+        "syscall_linux_mipsx.go",
+        "syscall_linux_ppc.go",
+        "syscall_linux_ppc64x.go",
+        "syscall_linux_riscv64.go",
+        "syscall_linux_s390x.go",
+        "syscall_linux_sparc64.go",
+        "syscall_linux_test.go",
+        "syscall_netbsd.go",
+        "syscall_netbsd_386.go",
+        "syscall_netbsd_amd64.go",
+        "syscall_netbsd_arm.go",
+        "syscall_netbsd_arm64.go",
+        "syscall_netbsd_test.go",
+        "syscall_openbsd.go",
+        "syscall_openbsd_386.go",
+        "syscall_openbsd_amd64.go",
+        "syscall_openbsd_arm.go",
+        "syscall_openbsd_arm64.go",
+        "syscall_openbsd_libc.go",
+        "syscall_openbsd_mips64.go",
+        "syscall_openbsd_ppc64.go",
+        "syscall_openbsd_riscv64.go",
+        "syscall_openbsd_test.go",
+        "syscall_solaris.go",
+        "syscall_solaris_amd64.go",
+        "syscall_solaris_test.go",
+        "syscall_unix_gc_ppc64x.go",
+        "syscall_zos_s390x.go",
+        "syscall_zos_test.go",
+        "sysctl_netbsd_test.go",
+        "sysvshm_linux.go",
+        "sysvshm_unix_test.go",
+        "types_aix.go",
+        "types_darwin.go",
+        "types_dragonfly.go",
+        "types_freebsd.go",
+        "types_netbsd.go",
+        "types_openbsd.go",
+        "types_solaris.go",
+        "unveil_openbsd.go",
+        "vgetrandom_linux.go",
+        "xattr_bsd.go",
+        "xattr_zos_test.go",
+        "zerrors_aix_ppc.go",
+        "zerrors_aix_ppc64.go",
+        "zerrors_darwin_amd64.go",
+        "zerrors_dragonfly_amd64.go",
+        "zerrors_freebsd_386.go",
+        "zerrors_freebsd_amd64.go",
+        "zerrors_freebsd_arm.go",
+        "zerrors_freebsd_arm64.go",
+        "zerrors_freebsd_riscv64.go",
+        "zerrors_linux.go",
+        "zerrors_linux_386.go",
+        "zerrors_linux_amd64.go",
+        "zerrors_linux_arm.go",
+        "zerrors_linux_arm64.go",
+        "zerrors_linux_loong64.go",
+        "zerrors_linux_mips.go",
+        "zerrors_linux_mips64.go",
+        "zerrors_linux_mips64le.go",
+        "zerrors_linux_mipsle.go",
+        "zerrors_linux_ppc.go",
+        "zerrors_linux_ppc64.go",
+        "zerrors_linux_ppc64le.go",
+        "zerrors_linux_riscv64.go",
+        "zerrors_linux_s390x.go",
+        "zerrors_linux_sparc64.go",
+        "zerrors_netbsd_386.go",
+        "zerrors_netbsd_amd64.go",
+        "zerrors_netbsd_arm.go",
+        "zerrors_netbsd_arm64.go",
+        "zerrors_openbsd_386.go",
+        "zerrors_openbsd_amd64.go",
+        "zerrors_openbsd_arm.go",
+        "zerrors_openbsd_arm64.go",
+        "zerrors_openbsd_mips64.go",
+        "zerrors_openbsd_ppc64.go",
+        "zerrors_openbsd_riscv64.go",
+        "zerrors_solaris_amd64.go",
+        "zerrors_zos_s390x.go",
+        "zptrace_armnn_linux.go",
+        "zptrace_linux_arm64.go",
+        "zptrace_mipsnn_linux.go",
+        "zptrace_mipsnnle_linux.go",
+        "zptrace_x86_linux.go",
+        "zsyscall_aix_ppc.go",
+        "zsyscall_aix_ppc64.go",
+        "zsyscall_aix_ppc64_gc.go",
+        "zsyscall_aix_ppc64_gccgo.go",
+        "zsyscall_darwin_amd64.go",
+        "zsyscall_dragonfly_amd64.go",
+        "zsyscall_freebsd_386.go",
+        "zsyscall_freebsd_amd64.go",
+        "zsyscall_freebsd_arm.go",
+        "zsyscall_freebsd_arm64.go",
+        "zsyscall_freebsd_riscv64.go",
+        "zsyscall_illumos_amd64.go",
+        "zsyscall_linux.go",
+        "zsyscall_linux_386.go",
+        "zsyscall_linux_amd64.go",
+        "zsyscall_linux_arm.go",
+        "zsyscall_linux_arm64.go",
+        "zsyscall_linux_loong64.go",
+        "zsyscall_linux_mips.go",
+        "zsyscall_linux_mips64.go",
+        "zsyscall_linux_mips64le.go",
+        "zsyscall_linux_mipsle.go",
+        "zsyscall_linux_ppc.go",
+        "zsyscall_linux_ppc64.go",
+        "zsyscall_linux_ppc64le.go",
+        "zsyscall_linux_riscv64.go",
+        "zsyscall_linux_s390x.go",
+        "zsyscall_linux_sparc64.go",
+        "zsyscall_netbsd_386.go",
+        "zsyscall_netbsd_amd64.go",
+        "zsyscall_netbsd_arm.go",
+        "zsyscall_netbsd_arm64.go",
+        "zsyscall_openbsd_386.go",
+        "zsyscall_openbsd_amd64.go",
+        "zsyscall_openbsd_arm.go",
+        "zsyscall_openbsd_arm64.go",
+        "zsyscall_openbsd_mips64.go",
+        "zsyscall_openbsd_ppc64.go",
+        "zsyscall_openbsd_riscv64.go",
+        "zsyscall_solaris_amd64.go",
+        "zsyscall_zos_s390x.go",
+        "zsysctl_openbsd_386.go",
+        "zsysctl_openbsd_amd64.go",
+        "zsysctl_openbsd_arm.go",
+        "zsysctl_openbsd_arm64.go",
+        "zsysctl_openbsd_mips64.go",
+        "zsysctl_openbsd_ppc64.go",
+        "zsysctl_openbsd_riscv64.go",
+        "zsysnum_darwin_amd64.go",
+        "zsysnum_dragonfly_amd64.go",
+        "zsysnum_freebsd_386.go",
+        "zsysnum_freebsd_amd64.go",
+        "zsysnum_freebsd_arm.go",
+        "zsysnum_freebsd_arm64.go",
+        "zsysnum_freebsd_riscv64.go",
+        "zsysnum_linux_386.go",
+        "zsysnum_linux_amd64.go",
+        "zsysnum_linux_arm.go",
+        "zsysnum_linux_arm64.go",
+        "zsysnum_linux_loong64.go",
+        "zsysnum_linux_mips.go",
+        "zsysnum_linux_mips64.go",
+        "zsysnum_linux_mips64le.go",
+        "zsysnum_linux_mipsle.go",
+        "zsysnum_linux_ppc.go",
+        "zsysnum_linux_ppc64.go",
+        "zsysnum_linux_ppc64le.go",
+        "zsysnum_linux_riscv64.go",
+        "zsysnum_linux_s390x.go",
+        "zsysnum_linux_sparc64.go",
+        "zsysnum_netbsd_386.go",
+        "zsysnum_netbsd_amd64.go",
+        "zsysnum_netbsd_arm.go",
+        "zsysnum_netbsd_arm64.go",
+        "zsysnum_openbsd_386.go",
+        "zsysnum_openbsd_amd64.go",
+        "zsysnum_openbsd_arm.go",
+        "zsysnum_openbsd_arm64.go",
+        "zsysnum_openbsd_mips64.go",
+        "zsysnum_openbsd_ppc64.go",
+        "zsysnum_openbsd_riscv64.go",
+        "zsysnum_zos_s390x.go",
+        "ztypes_aix_ppc.go",
+        "ztypes_aix_ppc64.go",
+        "ztypes_darwin_amd64.go",
+        "ztypes_dragonfly_amd64.go",
+        "ztypes_freebsd_386.go",
+        "ztypes_freebsd_amd64.go",
+        "ztypes_freebsd_arm.go",
+        "ztypes_freebsd_arm64.go",
+        "ztypes_freebsd_riscv64.go",
+        "ztypes_linux.go",
+        "ztypes_linux_386.go",
+        "ztypes_linux_amd64.go",
+        "ztypes_linux_arm.go",
+        "ztypes_linux_arm64.go",
+        "ztypes_linux_loong64.go",
+        "ztypes_linux_mips.go",
+        "ztypes_linux_mips64.go",
+        "ztypes_linux_mips64le.go",
+        "ztypes_linux_mipsle.go",
+        "ztypes_linux_ppc.go",
+        "ztypes_linux_ppc64.go",
+        "ztypes_linux_ppc64le.go",
+        "ztypes_linux_riscv64.go",
+        "ztypes_linux_s390x.go",
+        "ztypes_linux_sparc64.go",
+        "ztypes_netbsd_386.go",
+        "ztypes_netbsd_amd64.go",
+        "ztypes_netbsd_arm.go",
+        "ztypes_netbsd_arm64.go",
+        "ztypes_openbsd_386.go",
+        "ztypes_openbsd_amd64.go",
+        "ztypes_openbsd_arm.go",
+        "ztypes_openbsd_arm64.go",
+        "ztypes_openbsd_mips64.go",
+        "ztypes_openbsd_ppc64.go",
+        "ztypes_openbsd_riscv64.go",
+        "ztypes_solaris_amd64.go",
+        "ztypes_zos_s390x.go",
+        "asm_aix_ppc64.s",
+        "asm_bsd_386.s",
+        "asm_bsd_amd64.s",
+        "asm_bsd_arm.s",
+        "asm_bsd_ppc64.s",
+        "asm_bsd_riscv64.s",
+        "asm_linux_386.s",
+        "asm_linux_amd64.s",
+        "asm_linux_arm.s",
+        "asm_linux_arm64.s",
+        "asm_linux_loong64.s",
+        "asm_linux_mips64x.s",
+        "asm_linux_mipsx.s",
+        "asm_linux_ppc64x.s",
+        "asm_linux_riscv64.s",
+        "asm_linux_s390x.s",
+        "asm_openbsd_mips64.s",
+        "asm_solaris_amd64.s",
+        "asm_zos_s390x.s",
+        "bpxsvc_zos.s",
+        "gccgo_c.c",
+        "symaddr_zos_s390x.s",
+        "zsymaddr_zos_s390x.s",
+        "zsyscall_darwin_amd64.s",
+        "zsyscall_openbsd_386.s",
+        "zsyscall_openbsd_amd64.s",
+        "zsyscall_openbsd_arm.s",
+        "zsyscall_openbsd_arm64.s",
+        "zsyscall_openbsd_mips64.s",
+        "zsyscall_openbsd_ppc64.s",
+        "zsyscall_openbsd_riscv64.s"
+      ],
+      "path": "golang.org/x/sys/unix"
+    },
+    {
+      "ignoredFiles": [
+        "term_plan9.go",
+        "term_unix_other.go",
+        "term_unsupported.go",
+        "term_windows.go"
+      ],
+      "path": "golang.org/x/term"
+    },
+    {
+      "path": "gopkg.in/ini.v1"
+    }
+  ]
+}
