@@ -187,7 +187,7 @@ function IconPanel({
           <p className="col-span-8 py-2 text-center text-xs text-muted-foreground">No icon matches</p>
         )}
       </div>
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
+      <div className="flex min-w-0 items-center justify-between gap-1">
         {TAG_PRESETS.map((p) => (
           <button
             key={p.hex}
@@ -212,7 +212,7 @@ function IconPanel({
           title="Custom color"
           style={{ background: "conic-gradient(#f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)" }}
           className={cn(
-            "ml-auto size-5 cursor-pointer appearance-none rounded-full border-0 p-0 ring-offset-2 ring-offset-background",
+            "size-5 cursor-pointer appearance-none rounded-full border-0 p-0 ring-offset-2 ring-offset-background",
             "[&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-0 [&::-webkit-color-swatch]:opacity-0",
             custom && "ring-2 ring-ring",
           )}
@@ -221,7 +221,7 @@ function IconPanel({
           value={color}
           onChange={(e) => onColor(e.target.value)}
           aria-label="Color value"
-          className="h-7 w-24 font-mono text-xs"
+          className="h-7 w-[5.5rem] font-mono text-xs"
           spellCheck={false}
         />
       </div>
