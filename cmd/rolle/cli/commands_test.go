@@ -140,6 +140,26 @@ func TestIntegrationLoginDeviceFlowDiscoversRoles(t *testing.T) {
 		t.Fatalf("env output:\n%s", out)
 	}
 
+	// Hidden roles leave the list unless asked for; --account covers the account.
+	mustRun(t, "session", "hide", "Acme/ReadOnly")
+	if out := mustRun(t, "session", "list"); strings.Contains(out, "ReadOnly") || !strings.Contains(out, "Acme/Admin") {
+		t.Fatalf("list after hide:\n%s", out)
+	}
+	if out := mustRun(t, "session", "list", "--all"); !strings.Contains(out, "ReadOnly") {
+		t.Fatalf("list --all after hide:\n%s", out)
+	}
+	mustRun(t, "session", "hide", "--account", "111111111111")
+	if out := mustRun(t, "session", "list"); strings.Contains(out, "Acme/") && !strings.Contains(out, "active") {
+		t.Fatalf("list after hiding the account:\n%s", out)
+	}
+	mustRun(t, "session", "unhide", "--account", "111111111111")
+	if out := mustRun(t, "session", "list"); !strings.Contains(out, "ReadOnly") {
+		t.Fatalf("list after unhide:\n%s", out)
+	}
+	if _, err := run(t, "session", "hide", "--account", "000000000000"); err == nil {
+		t.Fatal("hiding an unknown account must fail")
+	}
+
 	mustRun(t, "integration", "logout", "acme")
 	if got := reload(t, s, "Acme/Admin"); got.Status != core.StatusInactive {
 		t.Fatalf("logout must stop the session: %+v", got)

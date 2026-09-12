@@ -102,14 +102,7 @@ func (t *tray) rebuild() {
 		return
 	}
 
-	var active, inactive []core.Session
-	for _, s := range w.Sessions {
-		if s.Status == core.StatusActive {
-			active = append(active, s)
-		} else {
-			inactive = append(inactive, s)
-		}
-	}
+	active, inactive := splitForMenu(w.Sessions)
 	sort.Slice(active, func(i, j int) bool { return active[i].Name < active[j].Name })
 
 	menu.Add(fmt.Sprintf("rolle · %s", countLabel(len(active)))).SetEnabled(false)
@@ -172,6 +165,22 @@ func (t *tray) rebuild() {
 			t.item.SetLabel("")
 		}
 	}
+}
+
+// splitForMenu separates the sessions the menu shows: active ones first,
+// then the inactive ones that are not hidden. A hidden session appears only
+// while it runs.
+func splitForMenu(sessions []core.Session) (active, inactive []core.Session) {
+	for _, s := range sessions {
+		switch {
+		case s.Status == core.StatusActive:
+			active = append(active, s)
+		case s.Hidden:
+		default:
+			inactive = append(inactive, s)
+		}
+	}
+	return active, inactive
 }
 
 // addProviderMenus adds AWS, Azure, and Google Cloud submenus with the inactive sessions.

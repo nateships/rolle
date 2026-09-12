@@ -99,6 +99,8 @@ type Session struct {
 	Status        Status `json:"status"`
 	// Favorite pins the session to the favorites panel.
 	Favorite bool `json:"favorite,omitempty"`
+	// Hidden keeps the session out of the lists and the tray menu.
+	Hidden bool `json:"hidden,omitempty"`
 	// Expires is when the current credentials stop working. Nil when inactive.
 	Expires *time.Time `json:"expires,omitempty"`
 

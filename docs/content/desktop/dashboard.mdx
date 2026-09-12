@@ -3,7 +3,7 @@ title: Dashboard
 description: The session table, favorites, filters, and row actions.
 ---
 
-The sidebar filters the table: **All sessions**, **Active**, **Favorites**, **Manual** (sessions without an integration), and one entry per integration. A dot next to an integration shows whether it is signed in; hover it for the label.
+The sidebar filters the table: **All sessions**, **Active**, **Favorites**, **Hidden**, **Manual** (sessions without an integration), and one entry per integration. A dot next to an integration shows whether it is signed in; hover it for the label.
 
 ![The session table with account groups, favorites, and two active sessions](/screenshots/dashboard-dark.png)
 
@@ -21,8 +21,9 @@ Each row shows the profile name and region (click either to change it), the stat
 | Copy profile command | Copies `aws --profile <name>` |
 | Copy env | Copies the credentials as shell exports |
 | Star | Adds the session to the **Favorites** panel |
+| Hide | Keeps the session out of the lists and the tray menu. It shows again under **Hidden**, while it runs, or when a search names it |
 
-The row menu also renames a session, sets the AWS profile name, changes the region, and removes the session.
+The row menu also renames a session, sets the AWS profile name, changes the region, and removes the session. The account row's menu hides or unhides every role of the account at once; a role that a later sync discovers shows as usual. Hiding a session drops it from the favorites.
 
 ## Search
 
@@ -41,6 +42,6 @@ Hold ⌘ (Ctrl on Windows and Linux) for a moment and each shortcut appears as a
 | Settings | ⌘, | Ctrl+, |
 | Search sessions | ⌘F | Ctrl+F |
 | Import from this machine | ⌘I | Ctrl+I |
-| All sessions, Active, Favorites | ⌘1, ⌘2, ⌘3 | Ctrl+1, Ctrl+2, Ctrl+3 |
+| All sessions, Active, Favorites, Hidden | ⌘1, ⌘2, ⌘3, ⌘4 | Ctrl+1, Ctrl+2, Ctrl+3, Ctrl+4 |
 | Clear the search, close a dialog | Esc | Esc |
 | Keyboard shortcuts | ⌘/ | Ctrl+/ |

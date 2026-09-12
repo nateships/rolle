@@ -32,7 +32,9 @@ rolle [command] [flags]
 
 | Command | Purpose |
 | --- | --- |
-| `rolle session list` | List sessions |
+| `rolle session list [--all]` | List sessions; `--all` includes hidden ones |
+| `rolle session hide <session>` / `unhide <session>` | Keep a session out of the lists and the tray, or bring it back |
+| `rolle session hide --account <id>` / `unhide --account <id>` | Same for every role of an Identity Center account |
 | `rolle session add assume-role --name N --role-arn ARN --source S --region R [--external-id ID] [--profile P]` | Assume a role from another session |
 | `rolle session add iam-user --name N --access-key-id ID --region R [--secret-access-key K] [--mfa-device M] [--profile P]` | Add an IAM user |
 | `rolle session add gcp-impersonate --name N --project P --service-account SA [--integration I]` | Impersonate a service account |

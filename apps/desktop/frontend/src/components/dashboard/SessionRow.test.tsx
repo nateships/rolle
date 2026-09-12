@@ -210,6 +210,23 @@ describe("SessionRow actions", () => {
     await waitFor(() => expect(error).toHaveBeenCalledWith("stop failed"));
   });
 
+  it("hides and unhides from the context menu", async () => {
+    const user = userEvent.setup();
+    const hide = vi.spyOn(api, "SetHidden").mockResolvedValue();
+    const plain = session({ name: "personal", kind: Kind.KindAWSIAMUser });
+    const view = renderRow(plain);
+    fireEvent.contextMenu(screen.getByText("personal"));
+    await user.click(await screen.findByRole("menuitem", { name: /^hide$/i }));
+    expect(hide).toHaveBeenCalledWith(plain.id, true);
+    view.unmount();
+
+    renderRow({ ...plain, hidden: true });
+    expect(screen.getByLabelText("Hidden")).toBeInTheDocument();
+    fireEvent.contextMenu(screen.getByText("personal"));
+    await user.click(await screen.findByRole("menuitem", { name: /^unhide$/i }));
+    expect(hide).toHaveBeenCalledWith(plain.id, false);
+  });
+
   it("toggles the favorite star", async () => {
     const user = userEvent.setup();
     const fav = vi.spyOn(api, "SetFavorite").mockResolvedValue();

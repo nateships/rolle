@@ -148,3 +148,18 @@ func TestFooterKeepsOpenAndQuitReachable(t *testing.T) {
 		t.Fatalf("footer = %v, want %v", got, want)
 	}
 }
+
+func TestSplitForMenuKeepsHiddenSessionsOutUnlessActive(t *testing.T) {
+	sessions := []core.Session{
+		{ID: "a", Name: "shown", Status: core.StatusInactive},
+		{ID: "b", Name: "hidden", Status: core.StatusInactive, Hidden: true},
+		{ID: "c", Name: "hidden but running", Status: core.StatusActive, Hidden: true},
+	}
+	active, inactive := splitForMenu(sessions)
+	if len(active) != 1 || active[0].ID != "c" {
+		t.Fatalf("active = %+v", active)
+	}
+	if len(inactive) != 1 || inactive[0].ID != "a" {
+		t.Fatalf("inactive = %+v", inactive)
+	}
+}

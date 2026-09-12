@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { ChevronRight, ChevronsDownUp, ChevronsUpDown, Copy } from "lucide-react";
+import { ChevronRight, ChevronsDownUp, ChevronsUpDown, Copy, Eye, EyeOff } from "lucide-react";
+import { toast } from "sonner";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { ActionItems, type Action } from "@/components/ActionMenu";
 import { copyText } from "@/lib/clipboard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CloudGlyph } from "@/components/Brand";
 import { SessionRow } from "./SessionRow";
-import { Kind, Status, type Integration, type Session, type Workspace } from "@/lib/api";
+import { api, errorMessage, Kind, Status, type Integration, type Session, type Workspace } from "@/lib/api";
 import { cloudOf } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +16,7 @@ const cloudOrder = { aws: 0, azure: 1, gcp: 2 } as const;
 
 /** An account with its SSO roles, or a session that stands alone. */
 type Row =
-  | { key: string; label: string; group: true; accountId: string; sessions: Session[] }
+  | { key: string; label: string; group: true; integrationId: string; accountId: string; sessions: Session[] }
   | { key: string; label: string; group: false; session: Session };
 
 /** SSO roles group under their account; other sessions stand alone. */
@@ -34,6 +35,7 @@ export function groupSessions(sessions: Session[]): Row[] {
         key,
         label: s.aws.accountId,
         group: true,
+        integrationId: s.integrationId ?? "",
         accountId: s.aws.accountId,
         sessions: [],
       };
@@ -178,9 +180,18 @@ export function SessionTable({ sessions, workspace, searching, widths, onWidths,
 
 function AccountRow({ row, open, onToggle }: { row: Row & { group: true }; open: boolean; onToggle: () => void }) {
   const active = row.sessions.filter((s) => s.status === Status.StatusActive).length;
+  const allHidden = row.sessions.every((s) => s.hidden);
   const actions: Action[] = [
     { label: open ? "Collapse" : "Expand", icon: open ? <ChevronsDownUp /> : <ChevronsUpDown />, onSelect: onToggle },
     { label: "Copy account ID", icon: <Copy />, onSelect: () => void copyText(row.accountId) },
+    {
+      label: allHidden ? "Unhide account" : "Hide account",
+      icon: allHidden ? <Eye /> : <EyeOff />,
+      onSelect: () =>
+        void api
+          .SetAccountHidden(row.integrationId, row.accountId, !allHidden)
+          .catch((e) => toast.error(errorMessage(e))),
+    },
   ];
   return (
     <ContextMenu>

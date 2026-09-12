@@ -361,6 +361,14 @@ func (r *RolleService) SetFavorite(ref string, favorite bool) error {
 	return r.svc.SetFavorite(ref, favorite)
 }
 
+// SetHidden hides or shows a session.
+func (r *RolleService) SetHidden(ref string, hidden bool) error { return r.svc.SetHidden(ref, hidden) }
+
+// SetAccountHidden hides or shows every role of an Identity Center account.
+func (r *RolleService) SetAccountHidden(integrationID, accountID string, hidden bool) error {
+	return r.svc.SetAccountHidden(integrationID, accountID, hidden)
+}
+
 // SetRegion changes an AWS session's region.
 func (r *RolleService) SetRegion(ref, region string) error { return r.svc.SetRegion(ref, region) }
 

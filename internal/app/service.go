@@ -1147,6 +1147,47 @@ func (s *Service) SetFavorite(ref string, favorite bool) error {
 	return s.Save(w)
 }
 
+// SetHidden hides or shows a session. A hidden session leaves the favorites.
+func (s *Service) SetHidden(ref string, hidden bool) error {
+	w, err := s.Load()
+	if err != nil {
+		return err
+	}
+	sess, err := FindSession(w, ref)
+	if err != nil {
+		return err
+	}
+	sess.Hidden = hidden
+	if hidden {
+		sess.Favorite = false
+	}
+	return s.Save(w)
+}
+
+// SetAccountHidden hides or shows every Identity Center role of one account.
+func (s *Service) SetAccountHidden(integrationID, accountID string, hidden bool) error {
+	w, err := s.Load()
+	if err != nil {
+		return err
+	}
+	n := 0
+	for i := range w.Sessions {
+		sess := &w.Sessions[i]
+		if sess.IntegrationID != integrationID || sess.Kind != core.KindAWSSSORole || sess.AWS == nil || sess.AWS.AccountID != accountID {
+			continue
+		}
+		sess.Hidden = hidden
+		if hidden {
+			sess.Favorite = false
+		}
+		n++
+	}
+	if n == 0 {
+		return fmt.Errorf("account %s: %w", accountID, core.ErrNotFound)
+	}
+	return s.Save(w)
+}
+
 // SetProfile sets the AWS profile name a session writes. An empty name
 // returns to "default". An active session moves its profile section to the
 // new name and takes it over from any other active session.

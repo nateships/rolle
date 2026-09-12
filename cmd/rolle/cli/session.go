@@ -15,12 +15,13 @@ import (
 
 func sessionCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "session", Aliases: []string{"sess"}, Short: "Manage sessions"}
-	cmd.AddCommand(sessionListCmd(), sessionAddCmd(), sessionRemoveCmd(), sessionProfileCmd(), sessionRegionCmd())
+	cmd.AddCommand(sessionListCmd(), sessionAddCmd(), sessionRemoveCmd(), sessionProfileCmd(), sessionRegionCmd(), sessionHideCmd(true), sessionHideCmd(false))
 	return cmd
 }
 
 func sessionListCmd() *cobra.Command {
-	return &cobra.Command{
+	var all bool
+	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List sessions",
 		RunE: func(_ *cobra.Command, _ []string) error {
@@ -28,9 +29,56 @@ func sessionListCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return printSessions(w.Sessions)
+			sessions := w.Sessions
+			if !all {
+				sessions = nil
+				for _, s := range w.Sessions {
+					if !s.Hidden || s.Status == core.StatusActive {
+						sessions = append(sessions, s)
+					}
+				}
+			}
+			return printSessions(sessions)
 		},
 	}
+	cmd.Flags().BoolVar(&all, "all", false, "include hidden sessions")
+	return cmd
+}
+
+// sessionHideCmd builds hide and unhide: one session by name or ID, or every
+// role of an Identity Center account with --account.
+func sessionHideCmd(hide bool) *cobra.Command {
+	var account bool
+	verb, short := "hide", "Keep a session out of the lists and the tray"
+	if !hide {
+		verb, short = "unhide", "Show a hidden session again"
+	}
+	cmd := &cobra.Command{
+		Use:   verb + " <session|account-id>",
+		Short: short + "; --account applies to every role of an AWS account",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(_ *cobra.Command, args []string) error {
+			if !account {
+				return svc.SetHidden(args[0], hide)
+			}
+			w, err := svc.Load()
+			if err != nil {
+				return err
+			}
+			n := 0
+			for _, in := range w.Integrations {
+				if err := svc.SetAccountHidden(in.ID, args[0], hide); err == nil {
+					n++
+				}
+			}
+			if n == 0 {
+				return fmt.Errorf("no Identity Center roles in account %s", args[0])
+			}
+			return nil
+		},
+	}
+	cmd.Flags().BoolVar(&account, "account", false, "treat the argument as an AWS account ID")
+	return cmd
 }
 
 func printSessions(sessions []core.Session) error {
