@@ -1,6 +1,7 @@
 import { motion, useAnimation } from "motion/react";
 import { cn } from "@/lib/utils";
-import gopher from "@/assets/brand/gopher.png";
+import gopherCards from "@/assets/brand/gopher-cards.png";
+import gopherPeek from "@/assets/brand/gopher-peek.png";
 import wordmarkCharcoal from "@/assets/brand/wordmark-charcoal.svg";
 import wordmarkIvory from "@/assets/brand/wordmark-ivory.svg";
 import awsLogoDark from "@/assets/vendors/aws-dark.svg";
@@ -14,13 +15,13 @@ import gcpLogo from "@/assets/vendors/gcp.svg";
  */
 export function GopherMark({ className }: { className?: string }) {
   const controls = useAnimation();
-  // Click the gopher and it dances. Nothing else happens; that is the point.
+  // Click the gopher and it dances on the cards. Nothing else happens; that is the point.
   const dance = () =>
     void controls.start({
-      rotate: [0, -14, 12, -10, 10, -6, 6, 0],
-      y: [0, -14, 0, -10, 0, -6, 0, 0],
-      scaleX: [1, 1.06, 0.96, 1.05, 0.97, 1.03, 1, 1],
-      transition: { duration: 1.1, ease: "easeInOut" },
+      y: [0, -12, 0, -12, 0, -7, 0],
+      x: [0, -4, 0, 4, 0, -2, 0],
+      rotate: [0, -9, 0, 9, 0, -5, 0],
+      transition: { duration: 1.3, ease: "easeInOut" },
     });
   return (
     <span
@@ -30,14 +31,22 @@ export function GopherMark({ className }: { className?: string }) {
       )}
       onClick={dance}
     >
+      {/* Two layers from tools/gopherlayers: the cards, and the gopher on top of them. */}
+      <img
+        src={gopherCards}
+        alt=""
+        aria-hidden
+        draggable={false}
+        className="absolute inset-0 size-full object-contain"
+      />
       <motion.img
-        src={gopher}
+        src={gopherPeek}
         alt=""
         aria-hidden
         draggable={false}
         animate={controls}
-        style={{ originX: 0.5, originY: 1 }}
-        className="size-full object-contain"
+        style={{ originX: 0.5, originY: 0.85 }}
+        className="absolute inset-0 size-full object-contain"
       />
     </span>
   );

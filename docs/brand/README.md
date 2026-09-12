@@ -37,3 +37,11 @@ The app icon and the menu bar icon use the stack alone. Everywhere else the goph
 ## Gopher lockup
 
 `docs/public/logo-dark.svg` and `logo-light.svg` combine the gopher artwork (background keyed out) with the wordmark. The getrolle.com header uses them (`docs/theme.css` sets the height), and the desktop app carries copies in `apps/desktop/frontend/src/assets/brand/` for its sidebar and onboarding headers.
+
+## Gopher layers
+
+`gopher.png` is the mascot with its background keyed out; `docs/public/logo-*.svg` embed it. The desktop app stacks two layers cut from it so the gopher can move on its own: `apps/desktop/frontend/src/assets/brand/gopher-cards.png` and `gopher-peek.png`. Regenerate them after a change to the artwork:
+
+```sh
+go run ./tools/gopherlayers docs/brand/gopher.png apps/desktop/frontend/src/assets/brand
+```
