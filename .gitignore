@@ -16,3 +16,7 @@ docs/.mise
 
 # go test -coverprofile output from mise run coverage
 coverage.out
+
+# go build ./cmd/rolle output
+/rolle
+/rolle.exe

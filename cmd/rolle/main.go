@@ -11,6 +11,6 @@ import (
 func main() {
 	if err := cli.Root().Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, "rolle:", err)
-		os.Exit(1)
+		os.Exit(cli.ExitCode(err))
 	}
 }
