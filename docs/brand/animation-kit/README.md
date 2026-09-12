@@ -16,15 +16,11 @@ This is a vector reconstruction for animation, following your existing ivory gop
 | File | Use |
 | --- | --- |
 | `rolle-gopher-layered.svg` | Assembled, transparent mascot lockup with named editable groups. |
-| `gopher-full-body.svg` | Gopher without cards, with reconstructed body and limbs. |
-| `original-icon-layered.svg` | Exact original launcher mark paths, separated and named. |
-| `layers/*.svg` | Individual transparent vector layers on shared canvases. |
-| `layers/card-*-completed.svg` | Optional reconstructed blue/orange card surfaces for fanning or rotating the cards. |
 | `rig.json` | Layer names, coordinate systems, pivots and default stacking order. |
 | `preview.html` | Offline interactive demo: dance, hide, peek behind each card, separate layers. |
 | `ATTRIBUTION.md` | Original project artwork and font attribution. |
 
-The assembled master uses named groups for ears, feet, arms, body, eye whites, pupils, teeth, muzzle, nose, paws and each card. Each part is editable vector geometry. Individual exports retain the same canvas rather than tightly cropping, so placing them at identical coordinates preserves alignment.
+The assembled master uses named groups for ears, feet, arms, body, eye whites, pupils, teeth, muzzle, nose, paws and each card. Each part is editable vector geometry. The desktop app inlines this master as `apps/desktop/frontend/src/components/GopherRig.tsx`; regenerate that component from the master after a change.
 
 ## Layer order and occlusion
 

@@ -36,7 +36,7 @@ The app icon and the menu bar icon use the stack alone. Everywhere else the goph
 
 ## Gopher lockup
 
-`docs/public/logo-dark.svg` and `logo-light.svg` combine the gopher artwork (background keyed out) with the wordmark. The getrolle.com header uses them (`docs/theme.css` sets the height), and the desktop app carries copies in `apps/desktop/frontend/src/assets/brand/` for its sidebar and onboarding headers.
+`docs/public/logo-dark.svg` and `logo-light.svg` combine the gopher artwork (background keyed out) with the wordmark. The getrolle.com header uses them (`docs/theme.css` sets the height). The desktop app draws the mark from the vector rig instead; see Animation below.
 
 ## Animation
 
