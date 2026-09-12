@@ -20,6 +20,7 @@ import {
   Waypoints,
   Eye,
   EyeOff,
+  Loader2,
 } from "lucide-react";
 import { motion } from "motion/react";
 import { Events } from "@wailsio/runtime";
@@ -121,6 +122,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   // mount asks for a result the event may have delivered before this listened.
   // ?update=1 previews it in the browser.
   const [update, setUpdate] = useState<UpdateInfo | null>(null);
+  const [installing, setInstalling] = useState(false);
   useEffect(() => {
     void api.PendingUpdate().then((u) => u?.available && setUpdate(u));
     if (inWails) return Events.On(UPDATE_AVAILABLE, (e: { data: UpdateInfo }) => setUpdate(e.data));
@@ -431,9 +433,22 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 size="sm"
                 className="h-6 gap-1 px-2 text-xs text-brand-blue hover:text-brand-blue"
                 aria-label={`Update to ${update.version}`}
-                onClick={() => void api.InstallUpdate()}
+                disabled={installing}
+                onClick={() => {
+                  // On a standard macOS account the download runs here and an
+                  // administrator prompt follows; the button waits meanwhile.
+                  setInstalling(true);
+                  api
+                    .InstallUpdate()
+                    .catch((e) => {
+                      const msg = errorMessage(e);
+                      if (msg !== "cancelled") toast.error(msg);
+                    })
+                    .finally(() => setInstalling(false));
+                }}
               >
-                <ArrowUpCircle className="size-3.5" /> Update
+                {installing ? <Loader2 className="size-3.5 animate-spin" /> : <ArrowUpCircle className="size-3.5" />}{" "}
+                Update
               </Button>
             )}
             <DevTools />

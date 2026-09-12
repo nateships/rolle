@@ -12,6 +12,10 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -192,9 +196,63 @@ func (r *RolleService) InstallUpdate() error {
 	if r.app == nil || isDevBuild() {
 		return nil
 	}
+	// The updater's helper copies the bundle aside and renames the new one
+	// into place, which needs write access to the bundle's folder. A standard
+	// macOS account has none in /Applications, so that path swaps the bundle
+	// through the administrator prompt instead.
+	if runtime.GOOS == "darwin" {
+		exe, _ := os.Executable()
+		if bundle := appBundle(exe); bundle != "" && (!writable(filepath.Dir(bundle)) || !writable(bundle)) {
+			return r.installElevated(bundle)
+		}
+	}
 	// The updater window keeps this context for its Install and Retry
 	// buttons, so it must outlive the call.
 	return r.app.Updater.CheckAndInstall(context.Background())
+}
+
+// installElevated downloads and verifies the release like the updater does,
+// then replaces the bundle with administrator privileges and relaunches.
+func (r *RolleService) installElevated(bundle string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+	u := r.app.Updater
+	rel, err := u.Check(ctx)
+	if err != nil {
+		return err
+	}
+	if rel == nil {
+		return errors.New("no update available")
+	}
+	if err := u.DownloadAndInstall(ctx); err != nil {
+		return err
+	}
+	staged := u.DownloadedPath()
+	if staged == "" {
+		return errors.New("update: nothing staged")
+	}
+	debug.Logf("updater", "replacing %s from %s with administrator privileges", bundle, staged)
+	swap := fmt.Sprintf("rm -rf %s && ditto %s %s", shellQuote(bundle), shellQuote(staged), shellQuote(bundle))
+	if err := adminShell(swap); err != nil {
+		return err
+	}
+	// Relaunch once this process is gone. The child outlives its parent.
+	if err := exec.Command("/bin/sh", "-c", "sleep 1; open "+shellQuote(bundle)).Start(); err != nil {
+		debug.Logf("updater", "relaunch: %v", err)
+	}
+	r.app.Quit()
+	return nil
+}
+
+// appBundle maps the executable inside a macOS bundle to the bundle path.
+// Empty when exe is not inside a .app bundle.
+func appBundle(exe string) string {
+	const marker = ".app/Contents/MacOS/"
+	i := strings.Index(exe, marker)
+	if i < 0 {
+		return ""
+	}
+	return exe[:i] + ".app"
 }
 
 // channelProvider reads the update channel from settings on every check, so

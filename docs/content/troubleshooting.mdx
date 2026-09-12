@@ -29,6 +29,10 @@ rolle trusts the OS trust store. Install your organisation's root there (Keychai
 
 rolle stores refresh tokens and access keys in the login keychain under the service `rolle`. Choose **Always Allow** so every start does not prompt.
 
+## The update closes the app and nothing happens
+
+The updater replaces the app bundle in place, which needs write access to the folder that holds it. A standard macOS account has none in `/Applications`, so the swap fails after the app has quit; the app itself is untouched and opens again from the Dock. From 0.1.5 the app notices this and asks for an administrator name and password before it replaces the bundle. Privilege managers such as BeyondTrust or Jamf Connect answer that prompt by policy. If nobody can approve it, move the app to `~/Applications`, where updates need no administrator, and run **Install command** again. The updater writes a log to `$TMPDIR/wails-update-<pid>.log`; attach it to an issue with the support bundle.
+
 ## The Dock or Finder says "Rolle"
 
 The updater replaces the app inside the installed folder and keeps the folder's name, and macOS shows that name. The app works. To get the lowercase name, move the app to the Trash and install it again from the DMG or with `brew reinstall --cask rolle`.
