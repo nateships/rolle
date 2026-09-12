@@ -10,3 +10,6 @@ docs/.mise
 # attaches them. goreleaser refuses a dirty tree, so the directory is ignored.
 /release-assets/
 /release-notes/
+
+# goreleaser output from local snapshot runs.
+/dist/

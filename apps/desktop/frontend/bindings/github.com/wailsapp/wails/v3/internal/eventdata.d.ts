@@ -5,12 +5,17 @@
 // @ts-ignore: Unused imports
 import type { Events } from "@wailsio/runtime";
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
+import type * as main$0 from "../../../../nateships/rolle/apps/desktop/models.js";
+
 declare module "@wailsio/runtime" {
     namespace Events {
         interface CustomEvents {
             "nav:back": {};
             "nav:forward": {};
             "settings:open": {};
+            "update:available": main$0.UpdateInfo;
             "workspace:changed": {};
         }
     }
