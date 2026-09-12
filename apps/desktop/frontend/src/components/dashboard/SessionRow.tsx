@@ -15,6 +15,7 @@ import {
   Eye,
   EyeOff,
   Check,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -34,7 +35,7 @@ import { celebrate } from "@/lib/celebrate";
 import { copyText } from "@/lib/clipboard";
 import { cloudOf, kindLabel, remaining, sessionSubtitle, useNow } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { SESSION_DRAG } from "@/lib/drag";
+import { SESSION_DRAG, setSessionDragImage } from "@/lib/drag";
 import { TagGlyph } from "@/lib/tags";
 
 const isAWSKind = (k: string) => cloudOf(k) === "aws";
@@ -48,11 +49,14 @@ export function SessionRow({
   workspace,
   nested,
   onNeedsLogin,
+  onTagClick,
 }: {
   session: Session;
   workspace: Workspace;
   nested?: boolean;
   onNeedsLogin?: (integration: Integration, startSessionId?: string) => void;
+  /** The name on a tag chip was clicked. */
+  onTagClick?: (tag: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
@@ -205,8 +209,8 @@ export function SessionRow({
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <motion.tr
-          initial={{ opacity: 0, y: -4 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.15, ease: "easeOut" }}
           draggable
           // motion.tr owns onDragStart for its own gesture; the capture
@@ -214,6 +218,7 @@ export function SessionRow({
           onDragStartCapture={(e) => {
             e.dataTransfer.setData(SESSION_DRAG, s.id);
             e.dataTransfer.effectAllowed = "link";
+            setSessionDragImage(e, s.name);
           }}
           className={cn(
             "group border-b transition-colors hover:bg-muted/50",
@@ -279,13 +284,36 @@ export function SessionRow({
                   {(s.tags ?? []).map((name) => {
                     const t = tags.find((x) => x.name === name) ?? { name, color: "", icon: "" };
                     return (
-                      <Badge
+                      <motion.span
                         key={name}
-                        variant="secondary"
-                        className="h-5 shrink-0 gap-1 px-1.5 text-[10px] font-normal text-muted-foreground"
+                        initial={{ scale: 0.6, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 28 }}
+                        className="inline-flex"
                       >
-                        <TagGlyph tag={t} className="size-2.5" /> {name}
-                      </Badge>
+                        <Badge
+                          variant="secondary"
+                          className="group/chip h-5 shrink-0 gap-1 px-1.5 text-[10px] font-normal text-muted-foreground"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => onTagClick?.(name)}
+                            className="inline-flex items-center gap-1 hover:text-foreground"
+                          >
+                            <TagGlyph tag={t} className="size-2.5" /> {name}
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Remove tag ${name}`}
+                            onClick={() =>
+                              void api.SetSessionTag(s.id, name, false).catch((e) => toast.error(errorMessage(e)))
+                            }
+                            className="-mr-0.5 hidden rounded-full hover:text-foreground group-hover/chip:inline-flex"
+                          >
+                            <X className="size-2.5" />
+                          </button>
+                        </Badge>
+                      </motion.span>
                     );
                   })}
                 </div>

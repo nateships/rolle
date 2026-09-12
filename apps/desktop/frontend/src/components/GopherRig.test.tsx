@@ -4,16 +4,31 @@ import { GopherRig } from "@/components/GopherRig";
 
 describe("GopherRig", () => {
   beforeEach(() => vi.useFakeTimers());
-  afterEach(() => vi.useRealTimers());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.restoreAllMocks();
+  });
 
   function part(container: HTMLElement, name: string) {
     return container.querySelector(`[data-part="${name}"]`)!;
   }
 
+  it("plays the first move on its own with autoplay", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const { container } = render(<GopherRig autoplay />);
+    // Nothing moves before the section has settled.
+    act(() => void vi.advanceTimersByTime(200));
+    expect(part(container, "hands-root").getAttribute("transform")).toBeNull();
+    act(() => void vi.advanceTimersByTime(500));
+    expect(part(container, "hands-root").getAttribute("transform")).not.toBeNull();
+  });
+
   it("returns every part to rest after the dance and after the peek", () => {
     const { container } = render(<GopherRig />);
     const svg = container.querySelector("svg")!;
+    const random = vi.spyOn(Math, "random");
     // Dance.
+    random.mockReturnValue(0);
     fireEvent.click(svg);
     act(() => void vi.advanceTimersByTime(300));
     expect(part(container, "hands-root").getAttribute("transform")).not.toBeNull();
@@ -22,6 +37,7 @@ describe("GopherRig", () => {
       expect(part(container, name).getAttribute("transform"), name).toBeNull();
     }
     // Hide and peek.
+    random.mockReturnValue(0.9);
     fireEvent.click(svg);
     act(() => void vi.advanceTimersByTime(300));
     expect(part(container, "gopher-root").getAttribute("transform")).toMatch(/translate/);

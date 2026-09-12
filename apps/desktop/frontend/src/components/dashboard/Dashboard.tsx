@@ -22,7 +22,7 @@ import {
   EyeOff,
   Loader2,
 } from "lucide-react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { Events } from "@wailsio/runtime";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -108,6 +108,28 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     return q.get("settings") ? { kind: "settings" } : q.get("import") ? { kind: "import" } : null;
   });
   // The tray's Settings entry opens the dialog.
+  async function run(label: string, fn: () => Promise<unknown>) {
+    try {
+      await fn();
+      toast.success(label);
+    } catch (e) {
+      toast.error(errorMessage(e));
+    }
+  }
+
+  // A Google Cloud integration has no sign-in dialog: a sync re-reads the gcloud credentials.
+  function needsLogin(integ: Integration, startId?: string) {
+    if (integ.cloud !== CloudKind.CloudGCP) {
+      setPendingStart(startId ?? null);
+      setDialog({ kind: "login", integration: integ });
+      return;
+    }
+    void run(startId ? "Session started" : "Synced", async () => {
+      await api.SyncGCP(integ.id);
+      if (startId) await api.Start(startId, "");
+    });
+  }
+
   useEffect(() => {
     if (!inWails) return;
     return Events.On(OPEN_SETTINGS, () => setDialog({ kind: "settings" }));
@@ -136,6 +158,62 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   // Holding the modifier shows each shortcut as a badge next to its control.
   const held = useModifierHeld();
   const hint = (key: string) => (held ? combo(key) : undefined);
+
+  const active = workspace.sessions.filter((s) => s.status === Status.StatusActive).length;
+  const manualCount = workspace.sessions.filter((s) => !s.integrationId).length;
+  const favoriteCount = workspace.sessions.filter((s) => s.favorite).length;
+  const hiddenCount = workspace.sessions.filter((s) => s.hidden).length;
+  const tags = useMemo(() => workspace.tags ?? [], [workspace.tags]);
+  // A tag filter is "tag:<name>"; the other filters are keywords or integration ids.
+  const tagFilter = chosenFilter?.startsWith("tag:") ? chosenFilter.slice(4) : null;
+  const tagCount = (tag: string) => workspace.sessions.filter((s) => !s.hidden && (s.tags ?? []).includes(tag)).length;
+  // The tag a drag hovers over; the item lights up as a drop target.
+  const [dropTag, setDropTag] = useState<string | null>(null);
+  // The tag that just took a drop; it pops for a moment.
+  const [poppedTag, setPoppedTag] = useState<string | null>(null);
+  // Where a dragged tag would land: a line above or below the hovered tag.
+  const [dropLine, setDropLine] = useState<{ tag: string; side: "before" | "after" } | null>(null);
+  const pop = (key: string) => {
+    setPoppedTag(key);
+    window.setTimeout(() => setPoppedTag((cur) => (cur === key ? null : cur)), 600);
+  };
+  // Favorites and Hidden take a dropped session like a tag does.
+  const sessionDrop = (key: string, done: string, act: (id: string) => Promise<unknown>) => ({
+    dropping: dropTag === key,
+    popped: poppedTag === key,
+    onDragOver: (e: React.DragEvent) => {
+      if (!Array.from(e.dataTransfer.types).includes(SESSION_DRAG)) return;
+      e.preventDefault();
+      setDropTag(key);
+    },
+    onDragLeave: () => setDropTag((cur) => (cur === key ? null : cur)),
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault();
+      setDropTag(null);
+      const id = e.dataTransfer.getData(SESSION_DRAG);
+      if (!id) return;
+      pop(key);
+      void run(done, () => act(id));
+    },
+  });
+  // Sidebar filters in display order. Cmd+1 through Cmd+9 pick them, and the
+  // hold-modifier badges show each item's number.
+  const filterKeys = useMemo<(string | null)[]>(
+    () => [
+      null,
+      ...(active > 0 ? ["active"] : []),
+      ...(favoriteCount > 0 ? ["favorites"] : []),
+      ...(manualCount > 0 ? ["manual"] : []),
+      ...tags.map((t) => `tag:${t.name}`),
+      ...CLOUD_SECTIONS.flatMap((sec) => workspace.integrations.filter((i) => i.cloud === sec.cloud).map((i) => i.id)),
+      ...(hiddenCount > 0 ? ["hidden"] : []),
+    ],
+    [active, favoriteCount, manualCount, tags, workspace.integrations, hiddenCount],
+  );
+  const hintFor = (key: string | null) => {
+    const i = filterKeys.indexOf(key);
+    return i >= 0 && i < 9 ? hint(String(i + 1)) : undefined;
+  };
   // Keyboard shortcuts. ShortcutsDialog lists them; keep the two in step.
   useEffect(() => {
     // The same key closes the dialog it opened.
@@ -145,7 +223,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
       if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
       // Digits pick the sidebar filters in the order they show, top to bottom.
       if (/^[1-9]$/.test(e.key)) {
-        const key = filterKeysRef.current[Number(e.key) - 1];
+        const key = filterKeys[Number(e.key) - 1];
         if (key !== undefined) {
           e.preventDefault();
           setFilter(key);
@@ -165,35 +243,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  const active = workspace.sessions.filter((s) => s.status === Status.StatusActive).length;
-  const manualCount = workspace.sessions.filter((s) => !s.integrationId).length;
-  const favoriteCount = workspace.sessions.filter((s) => s.favorite).length;
-  const hiddenCount = workspace.sessions.filter((s) => s.hidden).length;
-  const tags = workspace.tags ?? [];
-  // A tag filter is "tag:<name>"; the other filters are keywords or integration ids.
-  const tagFilter = chosenFilter?.startsWith("tag:") ? chosenFilter.slice(4) : null;
-  const tagCount = (tag: string) => workspace.sessions.filter((s) => !s.hidden && (s.tags ?? []).includes(tag)).length;
-  // The tag a drag hovers over; the item lights up as a drop target.
-  const [dropTag, setDropTag] = useState<string | null>(null);
-  // Sidebar filters in display order. Cmd+1 through Cmd+9 pick them, and the
-  // hold-modifier badges show each item's number.
-  const filterKeys: (string | null)[] = [
-    null,
-    ...(active > 0 ? ["active"] : []),
-    ...(favoriteCount > 0 ? ["favorites"] : []),
-    ...(manualCount > 0 ? ["manual"] : []),
-    ...tags.map((t) => `tag:${t.name}`),
-    ...CLOUD_SECTIONS.flatMap((sec) => workspace.integrations.filter((i) => i.cloud === sec.cloud).map((i) => i.id)),
-    ...(hiddenCount > 0 ? ["hidden"] : []),
-  ];
-  const filterKeysRef = useRef(filterKeys);
-  filterKeysRef.current = filterKeys;
-  const hintFor = (key: string | null) => {
-    const i = filterKeys.indexOf(key);
-    return i >= 0 && i < 9 ? hint(String(i + 1)) : undefined;
-  };
+  }, [filterKeys]);
   const visibleCount = workspace.sessions.length - hiddenCount;
   // A filter whose sidebar item is gone falls back to "All sessions".
   const filterExists =
@@ -236,28 +286,6 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     );
   }, [workspace.sessions, query, filter, tagFilter]);
 
-  async function run(label: string, fn: () => Promise<unknown>) {
-    try {
-      await fn();
-      toast.success(label);
-    } catch (e) {
-      toast.error(errorMessage(e));
-    }
-  }
-
-  // A Google Cloud integration has no sign-in dialog: a sync re-reads the gcloud credentials.
-  function needsLogin(integ: Integration, startId?: string) {
-    if (integ.cloud !== CloudKind.CloudGCP) {
-      setPendingStart(startId ?? null);
-      setDialog({ kind: "login", integration: integ });
-      return;
-    }
-    void run(startId ? "Session started" : "Synced", async () => {
-      await api.SyncGCP(integ.id);
-      if (startId) await api.Start(startId, "");
-    });
-  }
-
   return (
     <div className="flex h-full">
       <aside className="flex w-64 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
@@ -291,6 +319,8 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 hint={hintFor("favorites")}
                 count={favoriteCount}
                 icon={<Star className="size-3.5 fill-current text-brand-orange" />}
+                accent="var(--color-brand-orange)"
+                {...sessionDrop("favorites", "Added to favorites", (id) => api.SetFavorite(id, true))}
               />
             )}
             {manualCount > 0 && (
@@ -350,30 +380,51 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                       count={tagCount(tag)}
                       icon={<TagGlyph tag={t} className="size-3.5" />}
                       dropping={dropTag === tag}
+                      popped={poppedTag === tag}
+                      accent={t.color || undefined}
                       draggable
                       onDragStart={(e) => {
                         e.dataTransfer.setData(TAG_DRAG, tag);
                         e.dataTransfer.effectAllowed = "move";
                       }}
+                      dropLine={dropLine?.tag === tag ? dropLine.side : undefined}
                       onDragOver={(e) => {
                         const types = Array.from(e.dataTransfer.types);
-                        if (!types.includes(SESSION_DRAG) && !types.includes(TAG_DRAG)) return;
+                        if (types.includes(TAG_DRAG)) {
+                          e.preventDefault();
+                          // The pointer's half of the row picks the side of the line.
+                          const box = e.currentTarget.getBoundingClientRect();
+                          setDropLine({ tag, side: e.clientY < box.top + box.height / 2 ? "before" : "after" });
+                          return;
+                        }
+                        if (!types.includes(SESSION_DRAG)) return;
                         e.preventDefault();
                         setDropTag(tag);
                       }}
-                      onDragLeave={() => setDropTag((cur) => (cur === tag ? null : cur))}
+                      onDragLeave={() => {
+                        setDropTag((cur) => (cur === tag ? null : cur));
+                        setDropLine((cur) => (cur?.tag === tag ? null : cur));
+                      }}
                       onDrop={(e) => {
                         e.preventDefault();
                         setDropTag(null);
+                        setDropLine(null);
                         const sessionId = e.dataTransfer.getData(SESSION_DRAG);
                         if (sessionId) {
+                          pop(tag);
                           void run(`Tagged ${tag}`, () => api.SetSessionTag(sessionId, tag, true));
                           return;
                         }
                         const moved = e.dataTransfer.getData(TAG_DRAG);
-                        if (moved && moved !== tag) {
-                          void api.MoveTag(moved, index).catch((err) => toast.error(errorMessage(err)));
-                        }
+                        if (!moved || moved === tag) return;
+                        // The tag lands where the line was drawn.
+                        const after = dropLine?.tag === tag && dropLine.side === "after";
+                        // The list shifts once the moved tag leaves its old slot.
+                        const from = tags.findIndex((x) => x.name === moved);
+                        let to = after ? index + 1 : index;
+                        if (from >= 0 && from < to) to -= 1;
+                        if (to === from) return;
+                        void api.MoveTag(moved, to).catch((err) => toast.error(errorMessage(err)));
                       }}
                     />
                   </ContextMenuTrigger>
@@ -514,6 +565,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                       hint={hintFor("hidden")}
                       count={hiddenCount}
                       icon={<EyeOff className="size-3.5" />}
+                      {...sessionDrop("hidden", "Hidden", (id) => api.SetHidden(id, true))}
                     />
                   </div>
                 </ContextMenuTrigger>
@@ -651,59 +703,69 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
           </DropdownMenu>
         </header>
 
-        <motion.div
-          key={filter ?? "all"}
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.16, ease: "easeOut" }}
-          className="flex-1 overflow-y-auto p-4"
-        >
-          {(() => {
-            const integ = workspace.integrations.find((i) => i.id === filter);
-            if (!integ || isLoggedIn(integ) || sessions.length === 0) return null;
-            return (
-              <p className="mb-3 px-1 text-xs text-muted-foreground">
-                <span className="font-medium text-foreground">{integ.alias}</span> is signed out. Start a role to sign
-                in.
-              </p>
-            );
-          })()}
-          {sessions.length === 0 ? (
-            <Empty
-              hasAny={workspace.sessions.length > 0}
-              integration={workspace.integrations.find((i) => i.id === filter) ?? null}
-              onImport={() => setDialog({ kind: "import" })}
-              onConnect={() => setDialog({ kind: "sso" })}
-              onSignIn={(integ) =>
-                integ.cloud === CloudKind.CloudGCP
-                  ? run("Synced", () => api.SyncGCP(integ.id))
-                  : setDialog({ kind: "login", integration: integ })
-              }
-              onSync={(integ) =>
-                run("Synced", () =>
-                  integ.cloud === CloudKind.CloudAzure
-                    ? api.SyncAzure(integ.id)
-                    : integ.cloud === CloudKind.CloudGCP
-                      ? api.SyncGCP(integ.id)
-                      : api.SyncSSO(integ.id),
-                )
-              }
-            />
-          ) : (
-            <div className="space-y-6">
-              <section>
-                <SessionTable
-                  sessions={sessions}
-                  workspace={workspace}
-                  searching={query.trim() !== ""}
-                  widths={widths}
-                  onWidths={setWidths}
-                  onNeedsLogin={needsLogin}
+        {/* The scroll box stays put. Between two lists the table stays mounted
+            and only rows that change fade, so the header holds still. An empty
+            state crossfades in and out; popLayout lifts the old content out of
+            the flow so the new content never jumps. */}
+        <div className="relative flex-1 overflow-y-auto">
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.div
+              key={sessions.length === 0 ? `empty:${filter ?? "all"}` : "list"}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
+              className="flex min-h-full flex-col p-4"
+            >
+              {(() => {
+                const integ = workspace.integrations.find((i) => i.id === filter);
+                if (!integ || isLoggedIn(integ) || sessions.length === 0) return null;
+                return (
+                  <p className="mb-3 px-1 text-xs text-muted-foreground">
+                    <span className="font-medium text-foreground">{integ.alias}</span> is signed out. Start a role to
+                    sign in.
+                  </p>
+                );
+              })()}
+              {sessions.length === 0 ? (
+                <Empty
+                  hasAny={workspace.sessions.length > 0}
+                  integration={workspace.integrations.find((i) => i.id === filter) ?? null}
+                  onImport={() => setDialog({ kind: "import" })}
+                  onConnect={() => setDialog({ kind: "sso" })}
+                  onSignIn={(integ) =>
+                    integ.cloud === CloudKind.CloudGCP
+                      ? run("Synced", () => api.SyncGCP(integ.id))
+                      : setDialog({ kind: "login", integration: integ })
+                  }
+                  onSync={(integ) =>
+                    run("Synced", () =>
+                      integ.cloud === CloudKind.CloudAzure
+                        ? api.SyncAzure(integ.id)
+                        : integ.cloud === CloudKind.CloudGCP
+                          ? api.SyncGCP(integ.id)
+                          : api.SyncSSO(integ.id),
+                    )
+                  }
                 />
-              </section>
-            </div>
-          )}
-        </motion.div>
+              ) : (
+                <div className="space-y-6">
+                  <section>
+                    <SessionTable
+                      sessions={sessions}
+                      workspace={workspace}
+                      searching={query.trim() !== ""}
+                      widths={widths}
+                      onWidths={setWidths}
+                      onNeedsLogin={needsLogin}
+                      onTagClick={(tag) => setFilter(`tag:${tag}`)}
+                    />
+                  </section>
+                </div>
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </section>
 
       <AddSSODialog
@@ -786,6 +848,9 @@ function SideItem({
   trailing,
   hint,
   dropping,
+  popped,
+  accent,
+  dropLine,
   ...rest
 }: {
   active: boolean;
@@ -799,16 +864,24 @@ function SideItem({
   hint?: string;
   /** A drag hovers over this item. */
   dropping?: boolean;
+  /** A drop just landed here; plays the pop. */
+  popped?: boolean;
+  /** Color of the pop's ring. Defaults to the focus ring. */
+  accent?: string;
+  /** A dragged item would land above or below this one; draws the line. */
+  dropLine?: "before" | "after";
 } & React.ComponentProps<"div">) {
   return (
     <div
       {...rest}
+      style={accent ? ({ "--pop-color": accent } as React.CSSProperties) : undefined}
       className={cn(
         "group relative flex items-center rounded-md pr-1 transition-colors",
         active
           ? "bg-sidebar-accent text-sidebar-accent-foreground"
           : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
         dropping && "bg-sidebar-accent/60 text-foreground ring-1 ring-ring",
+        popped && "drop-pop",
       )}
     >
       <button
@@ -828,9 +901,13 @@ function SideItem({
         <span className="truncate">{label}</span>
         {count !== undefined && (
           <span
+            // The key remounts the badge when the count changes, so the bump
+            // plays on the new number.
+            key={count}
             className={cn(
               "rounded-full px-1.5 py-px text-[10px] tabular-nums",
               active ? "bg-background/70 text-foreground/70" : "bg-muted text-muted-foreground",
+              popped && "count-bump",
             )}
           >
             {count}
@@ -841,6 +918,16 @@ function SideItem({
       {/* Fixed slot keeps counts aligned whether or not a row has a control. */}
       <span className="flex size-6 shrink-0 items-center justify-center">{trailing}</span>
       {hint && <Key className="absolute right-1.5 top-1/2 h-5 -translate-y-1/2 text-[10px]">{hint}</Key>}
+      {dropLine && (
+        <span
+          aria-hidden
+          data-drop-line={dropLine}
+          className={cn(
+            "pointer-events-none absolute inset-x-1 h-0.5 rounded-full bg-ring",
+            dropLine === "before" ? "-top-px" : "-bottom-px",
+          )}
+        />
+      )}
     </div>
   );
 }
@@ -864,8 +951,8 @@ function Empty({
   if (integration) {
     const signedIn = isLoggedIn(integration);
     return (
-      <div className="flex h-full flex-col items-center justify-center text-center">
-        <GopherMark className="size-24" />
+      <div className="flex flex-1 flex-col items-center justify-center text-center">
+        <GopherMark className="size-24" autoplay />
         <h3 className="mt-5 text-lg font-medium">
           {signedIn ? `No sessions in ${integration.alias}` : `${integration.alias} is signed out`}
         </h3>
@@ -887,8 +974,8 @@ function Empty({
     );
   }
   return (
-    <div className="flex h-full flex-col items-center justify-center text-center">
-      <GopherMark className="size-24" />
+    <div className="flex flex-1 flex-col items-center justify-center text-center">
+      <GopherMark className="size-24" autoplay />
       <h3 className="mt-5 text-lg font-medium">{hasAny ? "Nothing matches" : "No sessions yet"}</h3>
       <p className="mt-1 max-w-sm text-sm text-muted-foreground">
         {hasAny

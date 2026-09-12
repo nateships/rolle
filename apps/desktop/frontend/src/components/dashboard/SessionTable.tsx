@@ -108,9 +108,19 @@ type TableProps = {
   widths: ColumnWidths;
   onWidths: (w: ColumnWidths) => void;
   onNeedsLogin: (i: Integration, startId?: string) => void;
+  /** A tag chip on a row was clicked; the dashboard filters by it. */
+  onTagClick?: (tag: string) => void;
 };
 
-export function SessionTable({ sessions, workspace, searching, widths, onWidths, onNeedsLogin }: TableProps) {
+export function SessionTable({
+  sessions,
+  workspace,
+  searching,
+  widths,
+  onWidths,
+  onNeedsLogin,
+  onTagClick,
+}: TableProps) {
   const [collapsed, toggle] = useCollapsed();
   const rows = useMemo(() => groupSessions(sessions), [sessions]);
 
@@ -161,13 +171,28 @@ export function SessionTable({ sessions, workspace, searching, widths, onWidths,
         <TableBody>
           {rows.flatMap((r) => {
             if (!r.group)
-              return [<SessionRow key={r.key} session={r.session} workspace={workspace} onNeedsLogin={onNeedsLogin} />];
+              return [
+                <SessionRow
+                  key={r.key}
+                  session={r.session}
+                  workspace={workspace}
+                  onNeedsLogin={onNeedsLogin}
+                  onTagClick={onTagClick}
+                />,
+              ];
             const open = searching || !collapsed.includes(r.key);
             const out = [<AccountRow key={r.key} row={r} open={open} onToggle={() => toggle(r.key)} />];
             if (open)
               out.push(
                 ...r.sessions.map((s) => (
-                  <SessionRow key={s.id} session={s} workspace={workspace} nested onNeedsLogin={onNeedsLogin} />
+                  <SessionRow
+                    key={s.id}
+                    session={s}
+                    workspace={workspace}
+                    nested
+                    onNeedsLogin={onNeedsLogin}
+                    onTagClick={onTagClick}
+                  />
                 )),
               );
             return out;
