@@ -67,6 +67,9 @@ import {
   START_NEEDS_LOGIN,
 } from "@/lib/api";
 import { isLoggedIn } from "@/lib/format";
+import { SESSION_DRAG, TAG_DRAG } from "@/lib/drag";
+import { TagGlyph } from "@/lib/tags";
+import { TagDialog, type TagTarget } from "@/components/dialogs/TagDialog";
 import { cn } from "@/lib/utils";
 
 type Dialog =
@@ -80,6 +83,7 @@ type Dialog =
   | { kind: "login"; integration: Integration }
   | { kind: "settings" }
   | { kind: "rename"; integration: Integration }
+  | { kind: "tag"; target: TagTarget }
   | { kind: "import" }
   | { kind: "shortcuts" };
 
@@ -139,14 +143,19 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
       setDialog((d) => (d?.kind === kind ? null : { kind }));
     const onKey = (e: KeyboardEvent) => {
       if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
+      // Digits pick the sidebar filters in the order they show, top to bottom.
+      if (/^[1-9]$/.test(e.key)) {
+        const key = filterKeysRef.current[Number(e.key) - 1];
+        if (key !== undefined) {
+          e.preventDefault();
+          setFilter(key);
+        }
+        return;
+      }
       const actions: Record<string, () => void> = {
         ",": () => toggle("settings"),
         f: () => searchRef.current?.select(),
         i: () => toggle("import"),
-        "1": () => setFilter(null),
-        "2": () => setFilter("active"),
-        "3": () => setFilter("favorites"),
-        "4": () => setFilter("hidden"),
         "/": () => toggle("shortcuts"),
       };
       const action = actions[e.key.toLowerCase()];
@@ -162,6 +171,29 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   const manualCount = workspace.sessions.filter((s) => !s.integrationId).length;
   const favoriteCount = workspace.sessions.filter((s) => s.favorite).length;
   const hiddenCount = workspace.sessions.filter((s) => s.hidden).length;
+  const tags = workspace.tags ?? [];
+  // A tag filter is "tag:<name>"; the other filters are keywords or integration ids.
+  const tagFilter = chosenFilter?.startsWith("tag:") ? chosenFilter.slice(4) : null;
+  const tagCount = (tag: string) => workspace.sessions.filter((s) => !s.hidden && (s.tags ?? []).includes(tag)).length;
+  // The tag a drag hovers over; the item lights up as a drop target.
+  const [dropTag, setDropTag] = useState<string | null>(null);
+  // Sidebar filters in display order. Cmd+1 through Cmd+9 pick them, and the
+  // hold-modifier badges show each item's number.
+  const filterKeys: (string | null)[] = [
+    null,
+    ...(active > 0 ? ["active"] : []),
+    ...(favoriteCount > 0 ? ["favorites"] : []),
+    ...(manualCount > 0 ? ["manual"] : []),
+    ...tags.map((t) => `tag:${t.name}`),
+    ...CLOUD_SECTIONS.flatMap((sec) => workspace.integrations.filter((i) => i.cloud === sec.cloud).map((i) => i.id)),
+    ...(hiddenCount > 0 ? ["hidden"] : []),
+  ];
+  const filterKeysRef = useRef(filterKeys);
+  filterKeysRef.current = filterKeys;
+  const hintFor = (key: string | null) => {
+    const i = filterKeys.indexOf(key);
+    return i >= 0 && i < 9 ? hint(String(i + 1)) : undefined;
+  };
   const visibleCount = workspace.sessions.length - hiddenCount;
   // A filter whose sidebar item is gone falls back to "All sessions".
   const filterExists =
@@ -169,6 +201,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     (chosenFilter === "manual" && manualCount > 0) ||
     (chosenFilter === "favorites" && favoriteCount > 0) ||
     (chosenFilter === "hidden" && hiddenCount > 0) ||
+    (tagFilter !== null && tags.some((t) => t.name === tagFilter)) ||
     (chosenFilter === "active" && active > 0) ||
     workspace.integrations.some((i) => i.id === chosenFilter);
   const filter = filterExists ? chosenFilter : null;
@@ -189,7 +222,9 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 ? s.favorite
                 : filter === "active"
                   ? s.status === Status.StatusActive
-                  : s.integrationId === filter,
+                  : tagFilter !== null
+                    ? (s.tags ?? []).includes(tagFilter)
+                    : s.integrationId === filter,
         )
         .filter(
           (s) =>
@@ -199,7 +234,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
             ),
         )
     );
-  }, [workspace.sessions, query, filter]);
+  }, [workspace.sessions, query, filter, tagFilter]);
 
   async function run(label: string, fn: () => Promise<unknown>) {
     try {
@@ -235,7 +270,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
               active={filter === null}
               onClick={() => setFilter(null)}
               label="All sessions"
-              hint={hint("1")}
+              hint={hintFor(null)}
               count={visibleCount}
             />
             {active > 0 && (
@@ -243,7 +278,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 active={filter === "active"}
                 onClick={() => setFilter("active")}
                 label="Active"
-                hint={hint("2")}
+                hint={hintFor("active")}
                 count={active}
                 dot="ok"
               />
@@ -253,47 +288,101 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 active={filter === "favorites"}
                 onClick={() => setFilter("favorites")}
                 label="Favorites"
-                hint={hint("3")}
+                hint={hintFor("favorites")}
                 count={favoriteCount}
                 icon={<Star className="size-3.5 fill-current text-brand-orange" />}
               />
-            )}
-            {hiddenCount > 0 && (
-              <ContextMenu>
-                <ContextMenuTrigger asChild>
-                  <div>
-                    <SideItem
-                      active={filter === "hidden"}
-                      onClick={() => setFilter("hidden")}
-                      label="Hidden"
-                      hint={hint("4")}
-                      count={hiddenCount}
-                      icon={<EyeOff className="size-3.5" />}
-                    />
-                  </div>
-                </ContextMenuTrigger>
-                <ContextMenuContent className="min-w-40">
-                  <ActionItems
-                    menu="context"
-                    actions={[
-                      {
-                        label: "Unhide all",
-                        icon: <Eye />,
-                        onSelect: () => void run("Every session is visible again", () => api.UnhideAll()),
-                      },
-                    ]}
-                  />
-                </ContextMenuContent>
-              </ContextMenu>
             )}
             {manualCount > 0 && (
               <SideItem
                 active={filter === "manual"}
                 onClick={() => setFilter("manual")}
                 label="Manual"
+                hint={hintFor("manual")}
                 count={manualCount}
               />
             )}
+          </div>
+          <div>
+            <div className="flex items-center pr-1">
+              <p className="flex-1 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                Tags
+              </p>
+              <span className="flex size-6 items-center justify-center">
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  className="text-muted-foreground"
+                  onClick={() => setDialog({ kind: "tag", target: { kind: "new" } })}
+                  title="New tag"
+                  aria-label="New tag"
+                >
+                  <Plus className="size-3.5" />
+                </Button>
+              </span>
+            </div>
+            {tags.length === 0 && <p className="px-2 py-1 text-xs text-muted-foreground/60">None yet</p>}
+            {tags.map((t, index) => {
+              const tag = t.name;
+              const key = `tag:${tag}`;
+              const actions: Action[] = [
+                {
+                  label: "Edit tag",
+                  icon: <Pencil />,
+                  onSelect: () => setDialog({ kind: "tag", target: { kind: "edit", tag: t } }),
+                },
+                "separator",
+                {
+                  label: "Remove tag",
+                  icon: <Trash2 />,
+                  destructive: true,
+                  onSelect: () => void run(`Tag ${tag} removed`, () => api.RemoveTag(tag)),
+                },
+              ];
+              return (
+                <ContextMenu key={key}>
+                  <ContextMenuTrigger asChild>
+                    <SideItem
+                      active={filter === key}
+                      onClick={() => setFilter(key)}
+                      label={tag}
+                      hint={hintFor(key)}
+                      count={tagCount(tag)}
+                      icon={<TagGlyph tag={t} className="size-3.5" />}
+                      dropping={dropTag === tag}
+                      draggable
+                      onDragStart={(e) => {
+                        e.dataTransfer.setData(TAG_DRAG, tag);
+                        e.dataTransfer.effectAllowed = "move";
+                      }}
+                      onDragOver={(e) => {
+                        const types = Array.from(e.dataTransfer.types);
+                        if (!types.includes(SESSION_DRAG) && !types.includes(TAG_DRAG)) return;
+                        e.preventDefault();
+                        setDropTag(tag);
+                      }}
+                      onDragLeave={() => setDropTag((cur) => (cur === tag ? null : cur))}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setDropTag(null);
+                        const sessionId = e.dataTransfer.getData(SESSION_DRAG);
+                        if (sessionId) {
+                          void run(`Tagged ${tag}`, () => api.SetSessionTag(sessionId, tag, true));
+                          return;
+                        }
+                        const moved = e.dataTransfer.getData(TAG_DRAG);
+                        if (moved && moved !== tag) {
+                          void api.MoveTag(moved, index).catch((err) => toast.error(errorMessage(err)));
+                        }
+                      }}
+                    />
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="min-w-48">
+                    <ActionItems actions={actions} menu="context" />
+                  </ContextMenuContent>
+                </ContextMenu>
+              );
+            })}
           </div>
           {CLOUD_SECTIONS.map((sec) => {
             const items = workspace.integrations.filter((i) => i.cloud === sec.cloud);
@@ -382,6 +471,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                           active={filter === integ.id}
                           onClick={() => setFilter(integ.id)}
                           label={integ.alias}
+                          hint={hintFor(integ.id)}
                           dot={loggedIn ? "ok" : "off"}
                           trailing={
                             <DropdownMenu>
@@ -411,6 +501,37 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
               </div>
             );
           })}
+          {/* Hidden sits last: out of the way, like its sessions. */}
+          {hiddenCount > 0 && (
+            <div>
+              <ContextMenu>
+                <ContextMenuTrigger asChild>
+                  <div>
+                    <SideItem
+                      active={filter === "hidden"}
+                      onClick={() => setFilter("hidden")}
+                      label="Hidden"
+                      hint={hintFor("hidden")}
+                      count={hiddenCount}
+                      icon={<EyeOff className="size-3.5" />}
+                    />
+                  </div>
+                </ContextMenuTrigger>
+                <ContextMenuContent className="min-w-40">
+                  <ActionItems
+                    menu="context"
+                    actions={[
+                      {
+                        label: "Unhide all",
+                        icon: <Eye />,
+                        onSelect: () => void run("Every session is visible again", () => api.UnhideAll()),
+                      },
+                    ]}
+                  />
+                </ContextMenuContent>
+              </ContextMenu>
+            </div>
+          )}
         </nav>
         <div className="flex items-center justify-between border-t p-3 text-xs text-muted-foreground">
           <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
@@ -646,6 +767,11 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
         }
         onClose={() => setDialog(null)}
       />
+      <TagDialog
+        target={dialog?.kind === "tag" ? dialog.target : null}
+        onClose={() => setDialog(null)}
+        onRenamed={(from, to) => setFilter((f) => (f === `tag:${from}` ? `tag:${to}` : f))}
+      />
     </div>
   );
 }
@@ -659,6 +785,7 @@ function SideItem({
   icon,
   trailing,
   hint,
+  dropping,
   ...rest
 }: {
   active: boolean;
@@ -670,6 +797,8 @@ function SideItem({
   trailing?: React.ReactNode;
   /** Shortcut badge shown while the modifier is held. */
   hint?: string;
+  /** A drag hovers over this item. */
+  dropping?: boolean;
 } & React.ComponentProps<"div">) {
   return (
     <div
@@ -679,6 +808,7 @@ function SideItem({
         active
           ? "bg-sidebar-accent text-sidebar-accent-foreground"
           : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
+        dropping && "bg-sidebar-accent/60 text-foreground ring-1 ring-ring",
       )}
     >
       <button

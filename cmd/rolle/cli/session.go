@@ -16,7 +16,7 @@ import (
 
 func sessionCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "session", Aliases: []string{"sess"}, Short: "Manage sessions"}
-	cmd.AddCommand(sessionListCmd(), sessionAddCmd(), sessionRemoveCmd(), sessionProfileCmd(), sessionRegionCmd(), sessionHideCmd(true), sessionHideCmd(false))
+	cmd.AddCommand(sessionListCmd(), sessionAddCmd(), sessionRemoveCmd(), sessionProfileCmd(), sessionRegionCmd(), sessionHideCmd(true), sessionHideCmd(false), sessionTagCmd(true), sessionTagCmd(false))
 	return cmd
 }
 

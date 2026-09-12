@@ -14,10 +14,7 @@ export const SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: [MOD, ","], label: "Settings" },
   { keys: [MOD, "F"], label: "Search sessions" },
   { keys: [MOD, "I"], label: "Import from this machine" },
-  { keys: [MOD, "1"], label: "All sessions" },
-  { keys: [MOD, "2"], label: "Active sessions" },
-  { keys: [MOD, "3"], label: "Favorites" },
-  { keys: [MOD, "4"], label: "Hidden sessions" },
+  { keys: [MOD, "1…9"], label: "Sidebar filters, top to bottom" },
   { keys: ["Esc"], label: "Clear the search, close a dialog" },
   { keys: [MOD, "/"], label: "Keyboard shortcuts" },
 ];

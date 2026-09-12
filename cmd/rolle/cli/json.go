@@ -50,12 +50,13 @@ type sessionJSON struct {
 	Expires     *time.Time `json:"expires,omitempty"`
 	Favorite    bool       `json:"favorite,omitempty"`
 	Hidden      bool       `json:"hidden,omitempty"`
+	Tags        []string   `json:"tags,omitempty"`
 }
 
 func sessionOut(w *core.Workspace, s core.Session) sessionJSON {
 	out := sessionJSON{
 		ID: s.ID, Name: s.Name, Kind: s.Kind, Cloud: s.Kind.Cloud(), Status: string(s.Status),
-		Region: s.Region, Expires: s.Expires, Favorite: s.Favorite, Hidden: s.Hidden,
+		Region: s.Region, Expires: s.Expires, Favorite: s.Favorite, Hidden: s.Hidden, Tags: s.Tags,
 	}
 	if s.Kind.Cloud() == core.CloudAWS {
 		out.Profile = app.ProfileName(&s)

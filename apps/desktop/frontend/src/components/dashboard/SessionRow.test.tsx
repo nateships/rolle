@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { describe, expect, it, vi } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SessionRow } from "@/components/dashboard/SessionRow";
-import { api, Kind, Status, type Integration, type Session, type Workspace } from "@/lib/api";
+import { api, Kind, Status, type Integration, type Session, type Workspace, type Tag } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
 import { integration, session, ssoRole } from "@/test/fixtures";
 
@@ -13,13 +13,14 @@ vi.mock("@/lib/celebrate", () => ({ celebrate: vi.fn() }));
 
 function renderRow(
   s: Session,
-  opts: { integrations?: Integration[]; onNeedsLogin?: (i: Integration, id?: string) => void } = {},
+  opts: { integrations?: Integration[]; tags?: Tag[]; onNeedsLogin?: (i: Integration, id?: string) => void } = {},
 ) {
   const ws = {
     version: 1,
     onboarded: true,
     sessions: [s],
     integrations: opts.integrations ?? [],
+    tags: opts.tags ?? [],
   } as unknown as Workspace;
   return render(
     <TooltipProvider>
@@ -225,6 +226,30 @@ describe("SessionRow actions", () => {
     fireEvent.contextMenu(screen.getByText("personal"));
     await user.click(await screen.findByRole("menuitem", { name: /^unhide$/i }));
     expect(hide).toHaveBeenCalledWith(plain.id, false);
+  });
+
+  it("tags and untags from the Tags submenu and shows the chips", async () => {
+    const user = userEvent.setup();
+    const setTag = vi.spyOn(api, "SetSessionTag").mockResolvedValue();
+    const plain = session({ name: "personal", kind: Kind.KindAWSIAMUser, tags: ["Production"] });
+    renderRow(plain, {
+      tags: [{ name: "Production", color: "#e5484d", icon: "shield" }, { name: "Sandbox" }] as Tag[],
+    });
+    expect(screen.getByText("Production")).toBeInTheDocument();
+    // A submenu opens on hover, or with the right arrow from its trigger.
+    // Keyboard: open the Tags submenu with the right arrow, move to Sandbox, choose it.
+    fireEvent.contextMenu(screen.getByText("personal"));
+    await user.hover(await screen.findByRole("menuitem", { name: /^tags$/i }));
+    await user.keyboard("{ArrowRight}");
+    await screen.findByRole("menuitem", { name: /sandbox/i });
+    await user.keyboard("{ArrowDown}{Enter}");
+    await waitFor(() => expect(setTag).toHaveBeenCalledWith(plain.id, "Sandbox", true));
+    fireEvent.contextMenu(screen.getByText("personal"));
+    await user.hover(await screen.findByRole("menuitem", { name: /^tags$/i }));
+    await user.keyboard("{ArrowRight}");
+    await screen.findByRole("menuitem", { name: /production/i });
+    await user.keyboard("{Enter}");
+    await waitFor(() => expect(setTag).toHaveBeenCalledWith(plain.id, "Production", false));
   });
 
   it("toggles the favorite star", async () => {

@@ -82,6 +82,38 @@ describe("Dashboard", () => {
     expect(rowNames()).toContain("personal");
   });
 
+  it("lists tags in the sidebar, filters by one, and takes a dropped session", async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+    // Seeded: Production with one session, Sandbox with none.
+    expect(screen.getByRole("button", { name: /^Production/ })).toHaveTextContent("1");
+    expect(screen.getByRole("button", { name: /^Sandbox/ })).toHaveTextContent("0");
+    await user.click(screen.getByRole("button", { name: /^Production/ }));
+    expect(rowNames()).toEqual(["deployer"]);
+
+    const setTag = vi.spyOn(api, "SetSessionTag").mockResolvedValue();
+    const data = new Map<string, string>([["application/x-rolle-session", "s-personal"]]);
+    const dataTransfer = {
+      types: Array.from(data.keys()),
+      getData: (k: string) => data.get(k) ?? "",
+      setData: (k: string, v: string) => void data.set(k, v),
+      effectAllowed: "all",
+    };
+    const sandbox = screen.getByRole("button", { name: /^Sandbox/ }).closest("div")!;
+    fireEvent.dragOver(sandbox, { dataTransfer });
+    fireEvent.drop(sandbox, { dataTransfer });
+    expect(setTag).toHaveBeenCalledWith("s-personal", "Sandbox", true);
+
+    // The + button opens the new-tag dialog, which saves through AddTag.
+    const add = vi.spyOn(api, "AddTag").mockResolvedValue();
+    await user.click(screen.getByRole("button", { name: "New tag" }));
+    await user.type(await screen.findByPlaceholderText("Production"), "Staging");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() =>
+      expect(add).toHaveBeenCalledWith(expect.objectContaining({ name: "Staging", color: "#8b9099", icon: "tag" })),
+    );
+  });
+
   it("filters to favorites", async () => {
     const user = userEvent.setup();
     renderDashboard();

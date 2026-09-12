@@ -185,6 +185,46 @@ func TestIntegrationLoginDeviceFlowDiscoversRoles(t *testing.T) {
 	if out := mustRun(t, "session", "list"); strings.Contains(out, "Acme/") && !strings.Contains(out, "active") {
 		t.Fatalf("list after hiding the account:\n%s", out)
 	}
+	// Tags group sessions in the sidebar; the CLI manages them too.
+	mustRun(t, "tag", "add", "Prod", "--color", "#FF0000", "--icon", "shield")
+	mustRun(t, "tag", "add", "Sandbox")
+	if _, err := run(t, "tag", "add", "Odd", "--color", "red"); err == nil {
+		t.Fatal("a color that is not #rrggbb must fail")
+	}
+	mustRun(t, "session", "tag", "Acme/Admin", "prod")
+	if row := fields(lines(mustRun(t, "tag", "list"))[1]); strings.Join(row, " ") != "Prod #ff0000 shield" {
+		t.Fatalf("tag list row = %v", row)
+	}
+	mustRun(t, "tag", "move", "Sandbox", "0")
+	mustRun(t, "tag", "set", "Prod", "--name", "Production", "--icon", "rocket")
+	var tags []map[string]any
+	if err := json.Unmarshal([]byte(mustRun(t, "tag", "list", "--json")), &tags); err != nil {
+		t.Fatal(err)
+	}
+	if len(tags) != 2 || tags[1]["name"] != "Production" || tags[1]["color"] != "#ff0000" || tags[1]["icon"] != "rocket" {
+		t.Fatalf("tag list --json = %v", tags)
+	}
+	// An empty flag value clears the field back to the default.
+	mustRun(t, "tag", "set", "Production", "--icon", "")
+	if row := fields(lines(mustRun(t, "tag", "list"))[2]); strings.Join(row, " ") != "Production #ff0000" {
+		t.Fatalf("tag list row after clearing the icon = %v", row)
+	}
+	var tagged []map[string]any
+	if err := json.Unmarshal([]byte(mustRun(t, "session", "list", "--json", "--all")), &tagged); err != nil {
+		t.Fatal(err)
+	}
+	if fmt.Sprint(tagged[0]["tags"]) != "[Production]" {
+		t.Fatalf("session tags after rename = %v", tagged[0]["tags"])
+	}
+	mustRun(t, "session", "untag", "Acme/Admin", "Production")
+	mustRun(t, "tag", "remove", "Sandbox")
+	if out := mustRun(t, "tag", "list"); strings.Contains(out, "Sandbox") || !strings.Contains(out, "Production") {
+		t.Fatalf("tag list after remove = %q", out)
+	}
+	if _, err := run(t, "tag", "move", "Production", "x"); err == nil {
+		t.Fatal("non-numeric index must fail")
+	}
+
 	mustRun(t, "session", "unhide", "--all")
 	if out := mustRun(t, "session", "list"); !strings.Contains(out, "ReadOnly") || !strings.Contains(out, "Acme/Admin") {
 		t.Fatalf("list after unhide --all:\n%s", out)

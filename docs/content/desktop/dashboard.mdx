@@ -3,7 +3,7 @@ title: Dashboard
 description: The session table, favorites, filters, and row actions.
 ---
 
-The sidebar filters the table: **All sessions**, **Active**, **Favorites**, **Hidden**, **Manual** (sessions without an integration), and one entry per integration. A dot next to an integration shows whether it is signed in; hover it for the label.
+The sidebar filters the table: **All sessions**, **Active**, **Favorites**, **Manual** (sessions without an integration), one entry per tag, one entry per integration, and **Hidden** last. A dot next to an integration shows whether it is signed in; hover it for the label.
 
 ![The session table with account groups and two active sessions](/screenshots/dashboard-dark.png)
 
@@ -25,6 +25,10 @@ Each row shows the profile name and region (click either to change it), the stat
 
 The row menu also renames a session, sets the AWS profile name, changes the region, and removes the session. The account row's menu hides or unhides every role of the account at once; a role that a later sync discovers shows as usual. Hiding a session drops it from the favorites. Right-click **Hidden** in the sidebar for **Unhide all**.
 
+## Tags
+
+Tags are groups of your own. The **+** next to **Tags** in the sidebar creates one. Click the icon left of the name to pick any [Lucide](https://lucide.dev/icons) icon and a color. Drag a session onto a tag to add it, or use **Tags** in the session's menu. A tag shows on its sessions as a small chip, and its sidebar entry filters the table to them. Drag a tag onto another to reorder the list. The tag's menu edits or removes it; removing a tag takes it off every session. The CLI has the same controls under `rolle tag` and `rolle session tag`.
+
 ## Search
 
 The search box matches the session name, account ID, role name, profile, and region. Account groups expand while you search.
@@ -42,6 +46,6 @@ Hold ⌘ (Ctrl on Windows and Linux) for a moment and each shortcut appears as a
 | Settings | ⌘, | Ctrl+, |
 | Search sessions | ⌘F | Ctrl+F |
 | Import from this machine | ⌘I | Ctrl+I |
-| All sessions, Active, Favorites, Hidden | ⌘1, ⌘2, ⌘3, ⌘4 | Ctrl+1, Ctrl+2, Ctrl+3, Ctrl+4 |
+| Sidebar filters, top to bottom | ⌘1 to ⌘9 | Ctrl+1 to Ctrl+9 |
 | Clear the search, close a dialog | Esc | Esc |
 | Keyboard shortcuts | ⌘/ | Ctrl+/ |

@@ -67,6 +67,13 @@ export function AddIAMUser($in: $models.IAMUserInput): $CancellablePromise<core$
 }
 
 /**
+ * AddTag creates a sidebar tag.
+ */
+export function AddTag(tag: core$0.Tag): $CancellablePromise<void> {
+    return $Call.ByID(2166625714, tag);
+}
+
+/**
  * AzureLogin opens the browser sign-in, then discovers subscriptions.
  */
 export function AzureLogin(ref: string): $CancellablePromise<core$0.Session[] | null> {
@@ -199,6 +206,13 @@ export function InstallUpdate(): $CancellablePromise<void> {
 }
 
 /**
+ * MoveTag puts a tag at index in the sidebar order.
+ */
+export function MoveTag(name: string, index: number): $CancellablePromise<void> {
+    return $Call.ByID(1990271286, name, index);
+}
+
+/**
  * OpenConsole opens the AWS console for a session in the browser.
  */
 export function OpenConsole(ref: string): $CancellablePromise<void> {
@@ -247,6 +261,13 @@ export function RemoveIntegration(ref: string): $CancellablePromise<void> {
  */
 export function RemoveSession(ref: string): $CancellablePromise<void> {
     return $Call.ByID(3021866781, ref);
+}
+
+/**
+ * RemoveTag deletes a tag and takes it off every session.
+ */
+export function RemoveTag(name: string): $CancellablePromise<void> {
+    return $Call.ByID(2843774673, name);
 }
 
 /**
@@ -318,6 +339,13 @@ export function SetProfile(ref: string, profile: string): $CancellablePromise<vo
  */
 export function SetRegion(ref: string, region: string): $CancellablePromise<void> {
     return $Call.ByID(658228237, ref, region);
+}
+
+/**
+ * SetSessionTag adds a tag to a session or takes it off.
+ */
+export function SetSessionTag(ref: string, tag: string, on: boolean): $CancellablePromise<void> {
+    return $Call.ByID(423614861, ref, tag, on);
 }
 
 /**
@@ -397,6 +425,13 @@ export function UninstallCLI(): $CancellablePromise<void> {
  */
 export function UpdateSettings($in: core$0.Settings): $CancellablePromise<core$0.Settings> {
     return $Call.ByID(2682712267, $in);
+}
+
+/**
+ * UpdateTag changes a tag's name, color, or icon.
+ */
+export function UpdateTag(name: string, tag: core$0.Tag): $CancellablePromise<void> {
+    return $Call.ByID(3890086686, name, tag);
 }
 
 /**

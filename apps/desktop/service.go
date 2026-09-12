@@ -364,6 +364,23 @@ func (r *RolleService) SetFavorite(ref string, favorite bool) error {
 // SetHidden hides or shows a session.
 func (r *RolleService) SetHidden(ref string, hidden bool) error { return r.svc.SetHidden(ref, hidden) }
 
+// AddTag creates a sidebar tag.
+func (r *RolleService) AddTag(tag core.Tag) error { return r.svc.AddTag(tag) }
+
+// UpdateTag changes a tag's name, color, or icon.
+func (r *RolleService) UpdateTag(name string, tag core.Tag) error { return r.svc.UpdateTag(name, tag) }
+
+// RemoveTag deletes a tag and takes it off every session.
+func (r *RolleService) RemoveTag(name string) error { return r.svc.RemoveTag(name) }
+
+// MoveTag puts a tag at index in the sidebar order.
+func (r *RolleService) MoveTag(name string, index int) error { return r.svc.MoveTag(name, index) }
+
+// SetSessionTag adds a tag to a session or takes it off.
+func (r *RolleService) SetSessionTag(ref, tag string, on bool) error {
+	return r.svc.SetSessionTag(ref, tag, on)
+}
+
 // UnhideAll shows every hidden session again.
 func (r *RolleService) UnhideAll() error { return r.svc.UnhideAll() }
 

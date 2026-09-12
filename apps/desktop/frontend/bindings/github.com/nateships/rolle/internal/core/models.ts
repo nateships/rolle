@@ -194,6 +194,11 @@ export interface Session {
     "hidden"?: boolean;
 
     /**
+     * Tags are the names of the workspace tags this session belongs to.
+     */
+    "tags"?: string[] | null;
+
+    /**
      * Expires is when the current credentials stop working. Nil when inactive.
      */
     "expires"?: string | null;
@@ -279,12 +284,35 @@ export enum Status {
 };
 
 /**
+ * Tag is a user-defined group of sessions shown in the sidebar.
+ */
+export interface Tag {
+    "name": string;
+
+    /**
+     * Color is a #rrggbb value. Empty means the default.
+     */
+    "color"?: string;
+
+    /**
+     * Icon is a Lucide icon name, such as "shield". Empty means the tag icon.
+     */
+    "icon"?: string;
+}
+
+/**
  * Workspace is everything rolle persists, except secrets.
  */
 export interface Workspace {
     "version": number;
     "integrations": Integration[] | null;
     "sessions": Session[] | null;
+
+    /**
+     * Tags are user-defined groups, in sidebar order. Sessions refer to
+     * them by name.
+     */
+    "tags"?: Tag[] | null;
 
     /**
      * Onboarded is set once the desktop walkthrough completes.

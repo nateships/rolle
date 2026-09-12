@@ -6,6 +6,7 @@ import {
   type Integration,
   type Session,
   type Workspace as CoreWorkspace,
+  type Tag,
 } from "../../bindings/github.com/nateships/rolle/internal/core";
 type Workspace = Omit<CoreWorkspace, "sessions" | "integrations"> & {
   sessions: Session[];
@@ -22,6 +23,7 @@ const state: Workspace = {
   onboarded: new URLSearchParams(location.search).get("view") === "dashboard",
   integrations: [],
   sessions: [],
+  tags: [],
   settings: {
     theme: new URLSearchParams(location.search).get("theme") ?? "system",
     defaultRegion: "us-east-1",
@@ -111,9 +113,14 @@ function seed() {
       kind: "gcp",
       integrationId: "gcp",
       favorite: true,
+      tags: ["Production"],
       gcp: { projectId: "data-platform-4821", serviceAccount: "deployer@data-platform-4821.iam.gserviceaccount.com" },
     }),
   ];
+  state.tags = [
+    { name: "Production", color: "#e5484d", icon: "shield" },
+    { name: "Sandbox", color: "#00ce78", icon: "flask" },
+  ] as Tag[];
 }
 if (state.onboarded) seed();
 
@@ -420,6 +427,37 @@ export const mockApi = {
   SetFavorite: async (ref: string, fav: boolean) => {
     const x = state.sessions.find((s) => s.id === ref);
     if (x) (x as unknown as { favorite: boolean }).favorite = fav;
+    emit();
+  },
+  AddTag: async (tag: Tag) => {
+    state.tags = [...(state.tags ?? []), { ...tag, name: tag.name.trim() } as Tag];
+    emit();
+  },
+  UpdateTag: async (name: string, tag: Tag) => {
+    state.tags = (state.tags ?? []).map((t) => (t.name === name ? tag : t));
+    for (const x of state.sessions) x.tags = (x.tags ?? []).map((t) => (t === name ? tag.name : t));
+    emit();
+  },
+  RemoveTag: async (name: string) => {
+    state.tags = (state.tags ?? []).filter((t) => t.name !== name);
+    for (const x of state.sessions) x.tags = (x.tags ?? []).filter((t) => t !== name);
+    emit();
+  },
+  MoveTag: async (name: string, index: number) => {
+    const tags = state.tags ?? [];
+    const tag = tags.find((t) => t.name === name);
+    if (!tag) return;
+    const rest = tags.filter((t) => t.name !== name);
+    rest.splice(Math.max(0, Math.min(index, rest.length)), 0, tag);
+    state.tags = rest;
+    emit();
+  },
+  SetSessionTag: async (ref: string, tag: string, on: boolean) => {
+    const x = state.sessions.find((s) => s.id === ref);
+    if (!x) return;
+    const has = (x.tags ?? []).includes(tag);
+    if (on && !has) x.tags = [...(x.tags ?? []), tag];
+    if (!on && has) x.tags = (x.tags ?? []).filter((t) => t !== tag);
     emit();
   },
   SetHidden: async (ref: string, hidden: boolean) => {

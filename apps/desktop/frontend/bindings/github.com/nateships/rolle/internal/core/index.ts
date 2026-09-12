@@ -18,5 +18,6 @@ export type {
     Integration,
     Session,
     Settings,
+    Tag,
     Workspace
 } from "./models.js";

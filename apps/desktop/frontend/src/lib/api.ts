@@ -39,6 +39,7 @@ export type {
   Integration,
   Credentials,
   Settings,
+  Tag,
 } from "../../bindings/github.com/nateships/rolle/internal/core";
 export type {
   AppInfo,
