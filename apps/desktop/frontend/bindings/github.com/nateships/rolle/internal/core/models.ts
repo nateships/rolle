@@ -189,8 +189,7 @@ export interface Session {
     "favorite"?: boolean;
 
     /**
-     * Hidden keeps the session out of the lists and the tray menu. An
-     * account is hidden when every role in it is hidden.
+     * Hidden keeps the session out of the lists and the tray menu.
      */
     "hidden"?: boolean;
 

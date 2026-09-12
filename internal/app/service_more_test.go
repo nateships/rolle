@@ -611,17 +611,15 @@ func TestSetHiddenAndSetAccountHidden(t *testing.T) {
 	if got, _ := FindSession(w, "Acme/ReadOnly"); got.Hidden || !got.Favorite {
 		t.Fatalf("sibling = %+v", got)
 	}
-	if accountHidden(w, in.ID, "111111111111") {
-		t.Fatal("account with a visible role counts as hidden")
-	}
-
 	// Hiding the account covers every role and no other account.
 	if err := s.SetAccountHidden(in.ID, "111111111111", true); err != nil {
 		t.Fatal(err)
 	}
 	w, _ = s.Load()
-	if !accountHidden(w, in.ID, "111111111111") || accountHidden(w, in.ID, "222222222222") {
-		t.Fatalf("account hidden flags wrong: %+v", w.Sessions)
+	for _, name := range []string{"Acme/Admin", "Acme/ReadOnly"} {
+		if got, _ := FindSession(w, name); !got.Hidden || got.Favorite {
+			t.Fatalf("%s after hiding the account = %+v", name, got)
+		}
 	}
 	if got, _ := FindSession(w, "Other/Admin"); got.Hidden {
 		t.Fatal("other account touched")
@@ -635,8 +633,5 @@ func TestSetHiddenAndSetAccountHidden(t *testing.T) {
 	w, _ = s.Load()
 	if got, _ := FindSession(w, "Acme/Admin"); got.Hidden {
 		t.Fatal("unhide failed")
-	}
-	if accountHidden(w, in.ID, "333333333333") {
-		t.Fatal("an account with no roles is not hidden")
 	}
 }

@@ -382,9 +382,7 @@ func (s *Service) SyncSSO(ctx context.Context, ref string) ([]core.Session, erro
 			Region:        in.AWSSSO.Region,
 			IntegrationID: in.ID,
 			Status:        core.StatusInactive,
-			// A new role in a hidden account stays out of sight too.
-			Hidden: accountHidden(w, in.ID, acct.ID),
-			AWS:    &core.AWSSession{AccountID: acct.ID, RoleName: role.Name},
+			AWS:           &core.AWSSession{AccountID: acct.ID, RoleName: role.Name},
 		}
 		w.Sessions = append(w.Sessions, sess)
 		added = append(added, sess)
@@ -407,23 +405,6 @@ func (s *Service) SyncSSO(ctx context.Context, ref string) ([]core.Session, erro
 		return added, s.Save(w)
 	}
 	return added, nil
-}
-
-// accountHidden reports whether the account has roles and every one of them
-// is hidden. Roles added by this sync do not count, so the answer holds for a
-// whole sync.
-func accountHidden(w *core.Workspace, integrationID, accountID string) bool {
-	found := false
-	for _, sess := range w.Sessions {
-		if sess.IntegrationID != integrationID || sess.Kind != core.KindAWSSSORole || sess.AWS == nil || sess.AWS.AccountID != accountID {
-			continue
-		}
-		if !sess.Hidden {
-			return false
-		}
-		found = true
-	}
-	return found
 }
 
 func hasSSORole(w *core.Workspace, integrationID, accountID, role string) bool {
