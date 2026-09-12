@@ -177,6 +177,12 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   const tagCount = (tag: string) => workspace.sessions.filter((s) => !s.hidden && (s.tags ?? []).includes(tag)).length;
   // The tag a drag hovers over; the item lights up as a drop target.
   const [dropTag, setDropTag] = useState<string | null>(null);
+  // The tag that just took a drop; it pops for a moment.
+  const [poppedTag, setPoppedTag] = useState<string | null>(null);
+  const pop = (tag: string) => {
+    setPoppedTag(tag);
+    window.setTimeout(() => setPoppedTag((cur) => (cur === tag ? null : cur)), 450);
+  };
   // Sidebar filters in display order. Cmd+1 through Cmd+9 pick them, and the
   // hold-modifier badges show each item's number.
   const filterKeys: (string | null)[] = [
@@ -350,6 +356,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                       count={tagCount(tag)}
                       icon={<TagGlyph tag={t} className="size-3.5" />}
                       dropping={dropTag === tag}
+                      popped={poppedTag === tag}
                       draggable
                       onDragStart={(e) => {
                         e.dataTransfer.setData(TAG_DRAG, tag);
@@ -367,6 +374,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                         setDropTag(null);
                         const sessionId = e.dataTransfer.getData(SESSION_DRAG);
                         if (sessionId) {
+                          pop(tag);
                           void run(`Tagged ${tag}`, () => api.SetSessionTag(sessionId, tag, true));
                           return;
                         }
@@ -786,6 +794,7 @@ function SideItem({
   trailing,
   hint,
   dropping,
+  popped,
   ...rest
 }: {
   active: boolean;
@@ -799,6 +808,8 @@ function SideItem({
   hint?: string;
   /** A drag hovers over this item. */
   dropping?: boolean;
+  /** A drop just landed here; plays the pop. */
+  popped?: boolean;
 } & React.ComponentProps<"div">) {
   return (
     <div
@@ -809,6 +820,7 @@ function SideItem({
           ? "bg-sidebar-accent text-sidebar-accent-foreground"
           : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground",
         dropping && "bg-sidebar-accent/60 text-foreground ring-1 ring-ring",
+        popped && "drop-pop",
       )}
     >
       <button

@@ -34,7 +34,7 @@ import { celebrate } from "@/lib/celebrate";
 import { copyText } from "@/lib/clipboard";
 import { cloudOf, kindLabel, remaining, sessionSubtitle, useNow } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { SESSION_DRAG } from "@/lib/drag";
+import { SESSION_DRAG, setSessionDragImage } from "@/lib/drag";
 import { TagGlyph } from "@/lib/tags";
 
 const isAWSKind = (k: string) => cloudOf(k) === "aws";
@@ -214,6 +214,7 @@ export function SessionRow({
           onDragStartCapture={(e) => {
             e.dataTransfer.setData(SESSION_DRAG, s.id);
             e.dataTransfer.effectAllowed = "link";
+            setSessionDragImage(e, s.name);
           }}
           className={cn(
             "group border-b transition-colors hover:bg-muted/50",
@@ -279,13 +280,20 @@ export function SessionRow({
                   {(s.tags ?? []).map((name) => {
                     const t = tags.find((x) => x.name === name) ?? { name, color: "", icon: "" };
                     return (
-                      <Badge
+                      <motion.span
                         key={name}
-                        variant="secondary"
-                        className="h-5 shrink-0 gap-1 px-1.5 text-[10px] font-normal text-muted-foreground"
+                        initial={{ scale: 0.6, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: "spring", stiffness: 500, damping: 28 }}
+                        className="inline-flex"
                       >
-                        <TagGlyph tag={t} className="size-2.5" /> {name}
-                      </Badge>
+                        <Badge
+                          variant="secondary"
+                          className="h-5 shrink-0 gap-1 px-1.5 text-[10px] font-normal text-muted-foreground"
+                        >
+                          <TagGlyph tag={t} className="size-2.5" /> {name}
+                        </Badge>
+                      </motion.span>
                     );
                   })}
                 </div>

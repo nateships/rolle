@@ -188,3 +188,22 @@ body {
   background: currentColor;
   animation: pulse-ring 1.6s ease-out infinite;
 }
+
+/* A sidebar tag that just took a drop: a quick squeeze and flash. */
+@keyframes drop-pop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.06);
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 45%, transparent);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.drop-pop {
+  animation: drop-pop 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
