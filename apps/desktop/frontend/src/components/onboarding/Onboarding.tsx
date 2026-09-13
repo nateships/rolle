@@ -345,7 +345,9 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
         </Button>
       </header>
 
-      <main className="relative z-10 flex flex-1 items-center justify-center overflow-y-auto px-8 py-6">
+      {/* Auto margins on the step center it when there is room and align it
+          to the top when it is taller than the window, so nothing crops. */}
+      <main className="relative z-10 flex flex-1 overflow-y-auto px-8 py-6 [&>section]:m-auto">
         <AnimatePresence mode="wait">
           {step === "welcome" && (
             <motion.section key="welcome" {...slide} className="flex max-w-xl flex-col items-center text-center">
