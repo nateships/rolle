@@ -3,6 +3,8 @@
 package main
 
 import (
+	"errors"
+	"os/exec"
 	"syscall"
 	"unsafe"
 
@@ -10,19 +12,31 @@ import (
 )
 
 // userPathList returns the user's PATH from the registry, which is what new
-// terminals read. The process environment is stale after an install.
-func userPathList() string {
+// terminals read. The process environment is stale after an install. A
+// missing value is an empty PATH; any other failure is an error, so a
+// caller does not write a PATH it could not read.
+func userPathList() (string, error) {
 	k, err := registry.OpenKey(registry.CURRENT_USER, "Environment", registry.QUERY_VALUE)
 	if err != nil {
-		return ""
+		if errors.Is(err, registry.ErrNotExist) {
+			return "", nil
+		}
+		return "", err
 	}
 	defer func() { _ = k.Close() }()
 	v, _, err := k.GetStringValue("Path")
-	if err != nil {
-		return ""
+	if errors.Is(err, registry.ErrNotExist) {
+		return "", nil
 	}
-	return v
+	if err != nil {
+		return "", err
+	}
+	return v, nil
 }
+
+// hideWindow keeps a console command from flashing a window when the app,
+// built for the GUI subsystem, runs it.
+func hideWindow(cmd *exec.Cmd) { cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true} }
 
 // setUserPathList writes the user's PATH and tells open windows about it.
 func setUserPathList(list string) error {

@@ -200,17 +200,25 @@ func (r *RolleService) InstallUpdate() error {
 	// standard Windows account none in Program Files. Those installs swap
 	// through the administrator prompt instead.
 	exe, _ := os.Executable()
-	if target, elevate := updateTarget(runtime.GOOS, exe); elevate {
-		return r.installElevated(target)
+	appImage := os.Getenv("APPIMAGE")
+	target, elevate := updateTarget(runtime.GOOS, exe, appImage)
+	if elevate {
+		return r.installStaged(target, elevatedSwap)
+	}
+	// The AppImage runtime mounts the image read-only, so the updater's
+	// helper cannot swap the executable it sees. The image file itself is
+	// the user's and is replaced here.
+	if target == appImage && appImage != "" {
+		return r.installStaged(target, replaceFile)
 	}
 	// The updater window keeps this context for its Install and Retry
 	// buttons, so it must outlive the call.
 	return r.app.Updater.CheckAndInstall(context.Background())
 }
 
-// installElevated downloads and verifies the release like the updater does,
-// then replaces target with administrator privileges and relaunches.
-func (r *RolleService) installElevated(target string) error {
+// installStaged downloads and verifies the release like the updater does,
+// then puts the staged file in place of target through swap and relaunches.
+func (r *RolleService) installStaged(target string, swap func(staged, target string) error) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 	u := r.app.Updater
@@ -228,8 +236,8 @@ func (r *RolleService) installElevated(target string) error {
 	if staged == "" {
 		return errors.New("update: nothing staged")
 	}
-	debug.Logf("updater", "replacing %s from %s with administrator privileges", target, staged)
-	if err := elevatedSwap(staged, target); err != nil {
+	debug.Logf("updater", "replacing %s from %s", target, staged)
+	if err := swap(staged, target); err != nil {
 		return err
 	}
 	// The swap copied the staged file, so the staging directory is now
@@ -345,4 +353,23 @@ func newestManifestURL(ctx context.Context, client *http.Client, api string) (st
 		}
 	}
 	return "", errors.New("no release with a manifest")
+}
+
+// replaceFile puts staged in place of target as an executable. It writes
+// next to target first, so a failed copy changes nothing, then renames over
+// target; a running AppImage keeps its mount through the rename.
+func replaceFile(staged, target string) error {
+	data, err := os.ReadFile(staged)
+	if err != nil {
+		return err
+	}
+	tmp := target + ".new"
+	if err := os.WriteFile(tmp, data, 0o755); err != nil {
+		return err
+	}
+	if err := os.Rename(tmp, target); err != nil {
+		_ = os.Remove(tmp)
+		return err
+	}
+	return nil
 }

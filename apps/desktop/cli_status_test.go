@@ -118,7 +118,7 @@ func TestWindowsStatusReadsTheUserPath(t *testing.T) {
 		payload:   []byte("MZ"),
 		lookPath:  notFound,
 		versionOf: func(string) string { return version.Version },
-		userPath:  func() string { return userPath },
+		userPath:  func() (string, error) { return userPath, nil },
 	}
 	st := cliStatusIn(env)
 	if st.Installed || st.Reason != "" || st.Target != target {
