@@ -7,6 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.47.0
 	github.com/aws/aws-sdk-go-v2/config v1.33.4
 	github.com/aws/aws-sdk-go-v2/credentials v1.20.4
+	github.com/aws/aws-sdk-go-v2/service/eks v1.99.0
 	github.com/aws/aws-sdk-go-v2/service/sso v1.38.0
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.43.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.50.0
@@ -18,6 +19,7 @@ require (
 	golang.org/x/sys v0.48.0
 	golang.org/x/term v0.46.0
 	gopkg.in/ini.v1 v1.67.3
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
