@@ -133,7 +133,7 @@ func main() {
 		debug.Logf("ui", "workspace changed")
 		a.Event.Emit(EventWorkspaceChanged, struct{}{})
 	}
-	newTray(a, svc, window)
+	tr := newTray(a, svc, window)
 	installMouseNav(a)
 	if err := setupUpdater(a, svc); err != nil {
 		log.Println("updater:", err)
@@ -151,7 +151,7 @@ func main() {
 		}
 		// An update replaced the app; bring the app's copy of the command along.
 		refreshCLI()
-		alerts := newNotifier(notify)
+		alerts := newNotifier(notify, tr.onNotification)
 		w, _ := svc.Refresh()
 		alerts.tick(w, currentSettings(svc))
 		seen := modTime(svc.WorkspacePath)

@@ -10,20 +10,32 @@ import (
 	"github.com/nateships/rolle/internal/debug"
 )
 
-// warnBefore is how long before expiry a session that did not renew gets a
-// warning. Renewal runs inside the five-minute cache skew, so a session that
-// is still this close to expiry is not going to renew.
-const warnBefore = 2 * time.Minute
+// portalWarnBefore is how long before an Identity Center sign-in expires the
+// warning shows. Every session under the portal ends with it, and a new
+// sign-in takes a browser round trip, so this lead is longer than a session's.
+const portalWarnBefore = 15 * time.Minute
 
-// notice is one notification to send.
+// Notification categories. Each carries one action button.
+const (
+	categoryStart  = "rolle-start"
+	categorySignIn = "rolle-signin"
+	actionStart    = "start"
+	actionSignIn   = "signin"
+)
+
+// notice is one notification to send. Category names the action button, and
+// Data is what the action needs: a session or an integration ID.
 type notice struct {
 	ID, Title, Body string
+	Category        string
+	Data            map[string]any
 }
 
 // expiryNotices compares the previous and current session lists and returns
 // the notifications due now. warned records, per session, the expiry that was
 // already announced, so a renewed session warns again for its new expiry.
-func expiryNotices(prev, cur []core.Session, now time.Time, warned map[string]time.Time) []notice {
+// lead is how long before expiry the warning shows.
+func expiryNotices(prev, cur []core.Session, now time.Time, warned map[string]time.Time, lead time.Duration) []notice {
 	var out []notice
 	before := map[string]core.Session{}
 	for _, s := range prev {
@@ -34,12 +46,14 @@ func expiryNotices(prev, cur []core.Session, now time.Time, warned map[string]ti
 			continue
 		}
 		left := s.Expires.Sub(now)
-		if left > 0 && left <= warnBefore && !warned[s.ID].Equal(*s.Expires) {
+		if left > 0 && left <= lead && !warned[s.ID].Equal(*s.Expires) {
 			warned[s.ID] = *s.Expires
 			out = append(out, notice{
-				ID:    "expiry-" + s.ID,
-				Title: s.Name + " expires soon",
-				Body:  fmt.Sprintf("About %d minute(s) left. Start it again to keep working.", int(left.Minutes())+1),
+				ID:       "expiry-" + s.ID,
+				Title:    s.Name + " expires soon",
+				Body:     fmt.Sprintf("About %d minute(s) left. Start it again to keep working.", int(left.Minutes())+1),
+				Category: categoryStart,
+				Data:     map[string]any{"sessionId": s.ID},
 			})
 		}
 	}
@@ -51,10 +65,72 @@ func expiryNotices(prev, cur []core.Session, now time.Time, warned map[string]ti
 		}
 		if p.Expires != nil && !p.Expires.After(now) {
 			delete(warned, s.ID)
-			out = append(out, notice{ID: "expired-" + s.ID, Title: s.Name + " expired", Body: "The session ended. Start it again when you need it."})
+			out = append(out, notice{
+				ID:       "expired-" + s.ID,
+				Title:    s.Name + " expired",
+				Body:     "The session ended. Start it again when you need it.",
+				Category: categoryStart,
+				Data:     map[string]any{"sessionId": s.ID},
+			})
 		}
 	}
 	return out
+}
+
+// portalNotices warns before an Identity Center sign-in expires, for portals
+// that have an active session. warned records the expiry already announced
+// per integration, so a new sign-in warns again for its own expiry.
+func portalNotices(w *core.Workspace, now time.Time, warned map[string]time.Time) []notice {
+	var out []notice
+	for _, in := range w.Integrations {
+		if in.AWSSSO == nil || in.AWSSSO.TokenExpires == nil || !hasActive(w.Sessions, in.ID) {
+			continue
+		}
+		exp := *in.AWSSSO.TokenExpires
+		left := exp.Sub(now)
+		key := "portal-" + in.ID
+		if left <= 0 || left > portalWarnBefore || warned[key].Equal(exp) {
+			continue
+		}
+		warned[key] = exp
+		out = append(out, notice{
+			ID:       key,
+			Title:    in.Alias + " sign-in expires soon",
+			Body:     fmt.Sprintf("About %d minute(s) left. Sign in again to keep its sessions.", int(left.Minutes())+1),
+			Category: categorySignIn,
+			Data:     map[string]any{"integrationId": in.ID},
+		})
+	}
+	return out
+}
+
+func hasActive(sessions []core.Session, integrationID string) bool {
+	for _, s := range sessions {
+		if s.IntegrationID == integrationID && s.Status == core.StatusActive {
+			return true
+		}
+	}
+	return false
+}
+
+// expiringSoon reports whether anything the tray should flag is close to its
+// end: an active session inside lead, or a portal sign-in inside
+// portalWarnBefore that still has active sessions.
+func expiringSoon(w *core.Workspace, now time.Time, lead time.Duration) bool {
+	for _, s := range w.Sessions {
+		if s.Status == core.StatusActive && s.Expires != nil && s.Expires.After(now) && s.Expires.Sub(now) <= lead {
+			return true
+		}
+	}
+	for _, in := range w.Integrations {
+		if in.AWSSSO == nil || in.AWSSSO.TokenExpires == nil || !hasActive(w.Sessions, in.ID) {
+			continue
+		}
+		if left := in.AWSSSO.TokenExpires.Sub(now); left > 0 && left <= portalWarnBefore {
+			return true
+		}
+	}
+	return false
 }
 
 // notifier sends expiry notices through the OS notification center.
@@ -64,7 +140,10 @@ type notifier struct {
 	warned map[string]time.Time
 }
 
-func newNotifier(ns *notifications.NotificationService) *notifier {
+// newNotifier prepares the notification categories and routes the action a
+// user takes on a notification to act. A click on the notification body
+// arrives with an empty action.
+func newNotifier(ns *notifications.NotificationService, act func(action string, data map[string]any)) *notifier {
 	n := &notifier{svc: ns, warned: map[string]time.Time{}}
 	if ns == nil {
 		return n
@@ -73,8 +152,35 @@ func newNotifier(ns *notifications.NotificationService) *notifier {
 		if ok, err := ns.RequestNotificationAuthorization(); err != nil || !ok {
 			debug.Logf("notify", "authorization: ok=%v err=%v", ok, err)
 		}
+		for _, c := range []notifications.NotificationCategory{
+			{ID: categoryStart, Actions: []notifications.NotificationAction{{ID: actionStart, Title: "Start again"}}},
+			{ID: categorySignIn, Actions: []notifications.NotificationAction{{ID: actionSignIn, Title: "Sign in"}}},
+		} {
+			if err := ns.RegisterNotificationCategory(c); err != nil {
+				debug.Logf("notify", "category %s: %v", c.ID, err)
+			}
+		}
 	}()
+	if act != nil {
+		ns.OnNotificationResponse(func(r notifications.NotificationResult) {
+			if r.Error != nil {
+				debug.Logf("notify", "response: %v", r.Error)
+				return
+			}
+			act(userAction(r.Response.ActionIdentifier), r.Response.UserInfo)
+		})
+	}
 	return n
+}
+
+// userAction maps a platform action identifier to ours. The platforms name
+// a plain click on the notification in their own way; that becomes "".
+func userAction(id string) string {
+	switch id {
+	case actionStart, actionSignIn:
+		return id
+	}
+	return ""
 }
 
 // tick runs after every refresh with the current workspace and settings.
@@ -86,8 +192,12 @@ func (n *notifier) tick(w *core.Workspace, st core.Settings) {
 		n.prev = w.Sessions
 		return
 	}
-	for _, msg := range expiryNotices(n.prev, w.Sessions, time.Now(), n.warned) {
-		if err := n.svc.SendNotification(notifications.NotificationOptions{ID: msg.ID, Title: msg.Title, Body: msg.Body}); err != nil {
+	now := time.Now()
+	msgs := expiryNotices(n.prev, w.Sessions, now, n.warned, st.NotifyLead())
+	msgs = append(msgs, portalNotices(w, now, n.warned)...)
+	for _, msg := range msgs {
+		opts := notifications.NotificationOptions{ID: msg.ID, Title: msg.Title, Body: msg.Body, CategoryID: msg.Category, Data: msg.Data}
+		if err := n.svc.SendNotificationWithActions(opts); err != nil {
 			debug.Logf("notify", "%s: %v", msg.ID, err)
 		}
 	}

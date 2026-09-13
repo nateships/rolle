@@ -46,6 +46,17 @@ var trayIconColor []byte
 //go:embed build/trayicon-color-active.png
 var trayIconColorActive []byte
 
+// trayIconColorWarn is the active icon with its dot turned amber, made once
+// from the active variant so the two stay in step.
+var trayIconColorWarn = sync.OnceValue(func() []byte {
+	out, err := recolorDot(trayIconColorActive, trayIconColor, amber)
+	if err != nil {
+		debug.Logf("tray", "warn icon: %v", err)
+		return trayIconColorActive
+	}
+	return out
+})
+
 // tray is the system tray icon. Its menu starts and stops sessions, opens the
 // console or a terminal, copies credentials, and opens the window.
 type tray struct {
@@ -60,7 +71,7 @@ type tray struct {
 func newTray(a *application.App, svc *app.Service, window *application.WebviewWindow) *tray {
 	t := &tray{app: a, svc: svc, window: window}
 	t.item = a.SystemTray.New()
-	t.setIcon(false)
+	t.setIcon(false, false)
 	t.item.SetTooltip("rolle")
 	t.rebuild()
 	a.Event.On(EventWorkspaceChanged, func(*application.CustomEvent) { t.rebuild() })
@@ -78,16 +89,44 @@ func newTray(a *application.App, svc *app.Service, window *application.WebviewWi
 	return t
 }
 
-func (t *tray) setIcon(active bool) {
+// setIcon shows the state: plain, active, or active with something about to
+// expire. macOS draws the template icon in the menu bar tint, so the warning
+// goes into the label there.
+func (t *tray) setIcon(active, warn bool) {
 	if runtime.GOOS == "darwin" {
 		t.item.SetTemplateIcon(trayIconTemplate)
 		return
 	}
-	if active {
+	switch {
+	case warn:
+		t.item.SetIcon(trayIconColorWarn())
+	case active:
 		t.item.SetIcon(trayIconColorActive)
-	} else {
+	default:
 		t.item.SetIcon(trayIconColor)
 	}
+}
+
+// onNotification runs the action a user took on an expiry notification.
+// "start" starts the session again, "signin" opens the window on the
+// sign-in for the portal, and a plain click opens the window.
+func (t *tray) onNotification(action string, data map[string]any) {
+	sessionID, _ := data["sessionId"].(string)
+	integrationID, _ := data["integrationId"].(string)
+	switch action {
+	case actionStart:
+		if w, err := t.svc.Load(); err == nil {
+			if sess, err := app.FindSession(w, sessionID); err == nil {
+				t.start(*sess)
+				return
+			}
+		}
+	case actionSignIn:
+		if integrationID != "" {
+			t.app.Event.Emit(EventStartNeedsLogin, StartRequest{IntegrationID: integrationID})
+		}
+	}
+	t.showWindow()
 }
 
 // rebuild regenerates the menu from the current workspace.
@@ -156,14 +195,11 @@ func (t *tray) rebuild() {
 	t.mu.Lock()
 	t.active = len(active)
 	t.mu.Unlock()
-	t.setIcon(len(active) > 0)
+	warn := expiringSoon(w, time.Now(), currentSettings(t.svc).NotifyLead())
+	t.setIcon(len(active) > 0, warn)
 	t.item.SetTooltip(tooltip(active))
 	if runtime.GOOS == "darwin" {
-		if len(active) > 0 {
-			t.item.SetLabel(fmt.Sprintf("%d", len(active)))
-		} else {
-			t.item.SetLabel("")
-		}
+		t.item.SetLabel(trayLabel(len(active), warn))
 	}
 }
 
@@ -339,6 +375,18 @@ func (t *tray) start(sess core.Session) {
 // tray cannot collect.
 func needsInput(s core.Session) bool {
 	return s.Status != core.StatusActive && s.AWS != nil && s.AWS.MFADevice != ""
+}
+
+// trayLabel is the macOS menu bar text: the active count, with an
+// exclamation mark while something is about to expire.
+func trayLabel(active int, warn bool) string {
+	if active == 0 {
+		return ""
+	}
+	if warn {
+		return fmt.Sprintf("%d!", active)
+	}
+	return fmt.Sprintf("%d", active)
 }
 
 func countLabel(n int) string {

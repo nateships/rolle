@@ -238,6 +238,12 @@ export interface Settings {
     "notifyOff"?: boolean;
 
     /**
+     * NotifyLeadMinutes is how long before a session expires the warning
+     * shows. Zero means the default.
+     */
+    "notifyLeadMinutes"?: number;
+
+    /**
      * VerboseLogging turns on diagnostic output, the same as ROLLE_DEBUG=1.
      */
     "verboseLogging": boolean;

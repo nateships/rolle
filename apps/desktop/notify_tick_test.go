@@ -7,7 +7,7 @@ import (
 )
 
 func TestNotifierTickWithoutServiceTracksSessions(t *testing.T) {
-	n := newNotifier(nil)
+	n := newNotifier(nil, nil)
 	if n.svc != nil || n.warned == nil {
 		t.Fatalf("notifier = %+v", n)
 	}
