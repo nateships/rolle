@@ -3,6 +3,12 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  # A manual run bumps the tap alone, for a release whose tap job failed.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Released version to put in the cask, without the v
+        required: true
 
 permissions: {}
 
@@ -19,6 +25,7 @@ permissions: {}
 
 jobs:
   desktop:
+    if: github.event_name == 'push'
     strategy:
       fail-fast: false
       matrix:
@@ -266,13 +273,21 @@ jobs:
   # inside it. A missing tap token skips this job instead of failing.
   tap:
     needs: publish
-    # Pre-release tags (v1.2.0-rc.1) stay off Homebrew.
-    if: ${{ !contains(github.ref_name, '-') }}
+    # Pre-release tags (v1.2.0-rc.1) stay off Homebrew. A manual run skips
+    # the build jobs and bumps the tap for the version given.
+    if: ${{ !cancelled() && !contains(github.ref_name, '-') && (github.event_name == 'workflow_dispatch' || needs.publish.result == 'success') }}
     runs-on: macos-latest
     permissions: {}
     steps:
-      - name: Strip the v prefix from the tag
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+      - name: Pick the version from the tag or the input
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          if [ -n "$INPUT_VERSION" ]; then
+            echo "VERSION=$INPUT_VERSION" >> "$GITHUB_ENV"
+          else
+            echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          fi
       - uses: Homebrew/actions/setup-homebrew@49d03f1bf5d455a413dfbdf99e6718054a4cd975 # master
       - name: Bump the cask in the tap
         env:
@@ -285,6 +300,9 @@ jobs:
             echo "HOMEBREW_TAP_TOKEN is not set; the cask is not updated."
             exit 0
           fi
+          # Homebrew loads casks only from taps the user trusts. Trust ours
+          # before tapping it, or the tap fails as invalid.
+          brew trust --tap nateships/tap
           brew tap nateships/tap
           tap="$(brew --repository nateships/tap)"
           git -C "$tap" config user.name "github-actions[bot]"
