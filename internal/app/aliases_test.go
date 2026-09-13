@@ -93,8 +93,8 @@ func TestAliasesRenameBuiltNamesAndStick(t *testing.T) {
 
 func TestAliasesCannotClash(t *testing.T) {
 	s := seedAliasWorkspace(t)
-	// An alias that makes two sessions share a name is refused.
-	if err := s.SetAlias(AliasAccount, "222222222222", "acme-prod"); err == nil || !strings.Contains(err.Error(), "two sessions") {
+	// The name of another account is refused: it would make two sessions share a name.
+	if err := s.SetAlias(AliasAccount, "222222222222", "acme-prod"); err == nil || !strings.Contains(err.Error(), "taken") {
 		t.Fatalf("colliding names: %v", err)
 	}
 	if err := s.SetAlias(AliasAccount, "111111111111", "prod"); err != nil {
@@ -113,8 +113,24 @@ func TestAliasesCannotClash(t *testing.T) {
 	if err := s.SetAlias(AliasKind("team"), "x", "y"); err == nil {
 		t.Fatal("unknown kind accepted")
 	}
-	list, err := s.Aliases()
-	if err != nil || len(list) != 1 || list[0].Kind != AliasAccount || list[0].Key != "111111111111" || list[0].Name != "acme-prod" || list[0].Alias != "prod" {
-		t.Fatalf("aliases = %+v, %v", list, err)
+	// A name another account or permission set shows is refused too, so the
+	// raw name still names one key.
+	if err := s.SetAlias(AliasAccount, "222222222222", "111111111111"); err == nil || !strings.Contains(err.Error(), "taken") {
+		t.Fatalf("alias equal to another account ID: %v", err)
 	}
+	if err := s.SetAlias(AliasRole, "ReadOnly", "awsadministratoraccess"); err == nil || !strings.Contains(err.Error(), "taken") {
+		t.Fatalf("alias equal to another permission set: %v", err)
+	}
+	if _, err := resolveAliasKey(mustLoad(t, s), AliasRole, "AWSAdministratorAccess"); err != nil {
+		t.Fatalf("raw permission set name: %v", err)
+	}
+}
+
+func mustLoad(t *testing.T, s *Service) *core.Workspace {
+	t.Helper()
+	w, err := s.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	return w
 }

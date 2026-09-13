@@ -38,7 +38,7 @@ func TestKubeTokenNeedsAnActiveAzureSession(t *testing.T) {
 	if _, err := s.KubeToken(context.Background(), "sub"); !errors.Is(err, ErrSessionInactive) {
 		t.Fatalf("KubeToken on an inactive session = %v", err)
 	}
-	if _, err := s.KubeClusters(context.Background(), "sub", ""); !errors.Is(err, ErrSessionInactive) {
+	if _, _, err := s.KubeClusters(context.Background(), "sub", ""); !errors.Is(err, ErrSessionInactive) {
 		t.Fatalf("KubeClusters on an inactive session = %v", err)
 	}
 }

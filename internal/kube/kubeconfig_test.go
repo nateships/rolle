@@ -102,7 +102,7 @@ func TestMergeKeepsUnknownFieldsAndReplacesByName(t *testing.T) {
 		t.Fatalf("old cluster = %v", old)
 	}
 	ctx := find(doc, "contexts", "old")["context"].(map[string]any)
-	if ctx["user"] != "rolle:prod" || ctx["cluster"] != "old" {
+	if ctx["user"] != "rolle:prod" || ctx["cluster"] != "old" || ctx["namespace"] != "kube-system" {
 		t.Fatalf("old context = %v", ctx)
 	}
 	exec := find(doc, "users", "rolle:Contoso Production")["user"].(map[string]any)["exec"].(map[string]any)

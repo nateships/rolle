@@ -53,7 +53,7 @@ func kubeListCmd() *cobra.Command {
 		Short: "List the managed clusters a session can reach",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clusters, err := svc.KubeClusters(cmd.Context(), args[0], region)
+			_, clusters, err := svc.KubeClusters(cmd.Context(), args[0], region)
 			if err != nil {
 				return err
 			}
@@ -84,22 +84,14 @@ func kubeAddCmd() *cobra.Command {
 		Short: "Write kubeconfig contexts for a session's clusters",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clusters, err := svc.KubeClusters(cmd.Context(), args[0], region)
+			sess, clusters, err := svc.KubeClusters(cmd.Context(), args[0], region)
 			if err != nil {
 				return err
 			}
-			w, err := svc.Load()
-			if err != nil {
-				return err
-			}
-			sess, err := app.FindSession(w, args[0])
-			if err != nil {
-				return err
+			if len(clusters) == 0 {
+				return fmt.Errorf("%s reaches no clusters", sess.Name)
 			}
 			if len(args) == 1 && !all {
-				if len(clusters) == 0 {
-					return fmt.Errorf("%s reaches no clusters", sess.Name)
-				}
 				if err := printClusters(clusters); err != nil {
 					return err
 				}
@@ -119,20 +111,7 @@ func kubeAddCmd() *cobra.Command {
 					return err
 				}
 			}
-			entries := make([]kube.Entry, 0, len(clusters))
-			for _, c := range clusters {
-				e := kube.Entry{Context: c.Name, Cluster: c.Name, Server: c.Endpoint, CA: c.CA}
-				if context != "" {
-					e.Context = context
-				}
-				if sess.Kind.Cloud() == core.CloudAWS {
-					profile := app.ProfileName(sess)
-					e.User, e.Exec = "rolle:"+profile, kube.AWSExec(c.Region, c.Name, profile)
-				} else {
-					e.User, e.Exec = "rolle:"+sess.Name, kube.RolleExec(sess.Name)
-				}
-				entries = append(entries, e)
-			}
+			entries := kubeEntries(sess, clusters, context)
 			current := ""
 			if use {
 				current = entries[0].Context
@@ -160,6 +139,27 @@ func kubeAddCmd() *cobra.Command {
 	cmd.Flags().StringVar(&path, "kubeconfig", "", "kubeconfig to write (defaults to $KUBECONFIG, then ~/.kube/config)")
 	cmd.Flags().StringVar(&context, "context", "", "context name (defaults to the cluster name)")
 	return cmd
+}
+
+// kubeEntries builds one kubeconfig entry per cluster. The AWS exec plugin
+// names its cluster, so each cluster gets its own user; an Azure or Google
+// Cloud session has one user for every cluster.
+func kubeEntries(sess *core.Session, clusters []kube.Cluster, context string) []kube.Entry {
+	entries := make([]kube.Entry, 0, len(clusters))
+	for _, c := range clusters {
+		e := kube.Entry{Context: c.Name, Cluster: c.Name, Server: c.Endpoint, CA: c.CA}
+		if context != "" {
+			e.Context = context
+		}
+		if sess.Kind.Cloud() == core.CloudAWS {
+			profile := app.ProfileName(sess)
+			e.User, e.Exec = "rolle:"+profile+"@"+c.Name, kube.AWSExec(c.Region, c.Name, profile)
+		} else {
+			e.User, e.Exec = "rolle:"+sess.Name, kube.RolleExec(sess.Name)
+		}
+		entries = append(entries, e)
+	}
+	return entries
 }
 
 // pickClusters returns the clusters named in names, in that order.
