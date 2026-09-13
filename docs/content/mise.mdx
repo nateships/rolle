@@ -1,0 +1,55 @@
+---
+title: Projects with mise
+description: Tie a repository to a rolle session with mise, so the right credentials follow you into the directory.
+sidebar:
+  order: 10
+---
+
+[mise](https://mise.jdx.dev) sets environment variables per directory and runs hooks when you enter one. rolle's profiles and `rolle env` slot into that, so a `cd` into a repository is enough to work as the right role.
+
+## AWS
+
+An AWS session is a profile backed by `credential_process`, so the directory only has to name it. No credential touches the file.
+
+```toml
+[env]
+AWS_PROFILE = "acme-prod-admin"
+
+[hooks]
+enter = "rolle start acme-prod-admin"
+```
+
+The hook starts the session when you enter the directory, and signs you in first when the portal token is gone. Every AWS tool in that shell reads the profile and fetches fresh credentials through rolle when it needs them. Find the profile name with `rolle session list` or in the row's **Copy profile command**.
+
+## Azure and Google Cloud
+
+Azure and Google Cloud sessions export short-lived tokens. mise sources a script for them, and the redaction keeps the tokens out of `mise env` output and logs.
+
+```toml
+redactions = ["AZURE_ACCESS_TOKEN", "CLOUDSDK_AUTH_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN"]
+
+[env]
+_.source = ".rolle.sh"
+```
+
+```sh
+# .rolle.sh
+eval "$(rolle env contoso-prod)"
+```
+
+mise runs the script each time it builds the directory's environment, so the tokens stay current. When the session needs a sign-in, `rolle env` exits with code 3 and the message names the command to run.
+
+## One variable at a time
+
+A template fetches a single value and caches it, which suits an account ID that changes rarely.
+
+```toml
+[env]
+AWS_ACCOUNT_ID = "{{ exec(command='rolle session list --json | jq -r \'.[] | select(.name == \"acme-prod-admin\") | .accountId\'', cache_duration='1h') }}"
+```
+
+## Notes
+
+- `rolle start` is safe to run on an active session. It reports the session and its expiry and changes nothing.
+- The desktop app shows the session as active the moment the hook starts it, since the CLI and the app share one workspace.
+- Commit the `mise.toml`. Team members with the same session names get the same setup. Keep `.rolle.sh` too; it holds no secret.
