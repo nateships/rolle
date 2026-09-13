@@ -63,6 +63,11 @@ describe("SettingsDialog", () => {
     await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ hideOnClose: false })));
     expect(await screen.findByText("Saved")).toBeInTheDocument();
 
+    // The lead time shows while notifications are on and defaults to two minutes.
+    await user.click(screen.getByRole("combobox", { name: "Warn before a session expires" }));
+    await user.click(await screen.findByRole("option", { name: "5 minutes" }));
+    await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ notifyLeadMinutes: 5 })));
+
     await user.click(screen.getByRole("switch", { name: "Expiry notifications" }));
     await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ notifyOff: true })));
 

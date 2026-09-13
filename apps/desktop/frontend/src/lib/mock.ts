@@ -30,6 +30,7 @@ const state: Workspace = {
     assumeRoleMinutes: 60,
     hideOnClose: true,
     notifyOff: false,
+    notifyLeadMinutes: 0,
     verboseLogging: false,
     autoUpdateOff: false,
     updateChannel: "",

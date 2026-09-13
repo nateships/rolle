@@ -235,7 +235,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
               </Row>
               <Row
                 label="Expiry notifications"
-                hint="A system notification two minutes before a session expires, and when it does."
+                hint="A system notification before a session expires, when it does, and before an Identity Center sign-in with active sessions runs out."
               >
                 <Switch
                   aria-label="Expiry notifications"
@@ -243,6 +243,25 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                   onCheckedChange={(v) => update({ notifyOff: !v })}
                 />
               </Row>
+              {!settings.notifyOff && (
+                <Row label="Warn before a session expires" hint="The tray flags the session for the same time.">
+                  <Select
+                    value={String(settings.notifyLeadMinutes || 2)}
+                    onValueChange={(v) => update({ notifyLeadMinutes: Number(v) })}
+                  >
+                    <SelectTrigger className="w-64" aria-label="Warn before a session expires">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[2, 5, 10, 15].map((m) => (
+                        <SelectItem key={m} value={String(m)}>
+                          {m} minutes
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </Row>
+              )}
               <Row label="Verbose logging" hint="Same as ROLLE_DEBUG=1. Prints diagnostics to the app log.">
                 <Switch
                   aria-label="Verbose logging"

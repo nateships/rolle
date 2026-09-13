@@ -169,6 +169,9 @@ type Settings struct {
 	// NotifyOff silences the desktop notifications that warn before a session
 	// expires. Stored inverted so the default (zero value) keeps them on.
 	NotifyOff bool `json:"notifyOff,omitempty"`
+	// NotifyLeadMinutes is how long before a session expires the warning
+	// shows. Zero means the default.
+	NotifyLeadMinutes int `json:"notifyLeadMinutes,omitempty"`
 	// VerboseLogging turns on diagnostic output, the same as ROLLE_DEBUG=1.
 	VerboseLogging bool `json:"verboseLogging"`
 	// AutoUpdateOff disables background update checks. Stored inverted so
@@ -183,6 +186,19 @@ type Settings struct {
 	CABundle string `json:"caBundle,omitempty"`
 	// UpdateChannel is "beta" to install pre-releases. Empty means stable.
 	UpdateChannel string `json:"updateChannel,omitempty"`
+}
+
+// DefaultNotifyLead is the warning lead time when NotifyLeadMinutes is zero.
+// Renewal runs inside the five-minute cache skew, so a session that is still
+// this close to expiry is not going to renew.
+const DefaultNotifyLead = 2 * time.Minute
+
+// NotifyLead returns the warning lead time as a duration.
+func (s Settings) NotifyLead() time.Duration {
+	if s.NotifyLeadMinutes <= 0 {
+		return DefaultNotifyLead
+	}
+	return time.Duration(s.NotifyLeadMinutes) * time.Minute
 }
 
 // DefaultSettings are used until the user changes something.
@@ -204,6 +220,9 @@ func (s Settings) Normalize() Settings {
 	}
 	if s.AssumeRoleMinutes > 12*60 {
 		s.AssumeRoleMinutes = 12 * 60
+	}
+	if s.NotifyLeadMinutes < 0 || s.NotifyLeadMinutes > 60 {
+		s.NotifyLeadMinutes = 0
 	}
 	s.ProxyURL = strings.TrimSpace(s.ProxyURL)
 	s.CABundle = strings.TrimSpace(s.CABundle)
