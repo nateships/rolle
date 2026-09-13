@@ -103,8 +103,22 @@ export function SessionRow({
       await api.Start(s.id, mfaCode);
       const first = !workspace.sessions.some((x) => x.status === Status.StatusActive);
       if (first) celebrate("small");
+      // One line per fact: the account and role of an Identity Center role,
+      // or the session name, then the AWS profile.
+      const [account, role] =
+        s.kind === Kind.KindAWSSSORole && s.name.includes("/")
+          ? [s.name.split("/")[0], roleLabel(s.name)]
+          : ["", s.name];
       toast.success("Started", {
-        description: isAWS ? `${s.name} · profile ${profileName}` : s.name,
+        description: (
+          <>
+            {account && <span className="block">Account: {account}</span>}
+            <span className="block">
+              {account ? "Role" : "Session"}: {role}
+            </span>
+            {isAWS && <span className="block">Profile: {profileName}</span>}
+          </>
+        ),
         action: { label: "Copy env", onClick: () => void copy("env") },
       });
     } catch (e) {
