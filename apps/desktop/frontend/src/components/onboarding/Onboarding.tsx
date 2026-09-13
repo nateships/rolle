@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CommandLineInstall } from "@/components/CommandLine";
 import { StaticKeysCard } from "@/components/StaticKeys";
+import { RemoveKeysDialog, type RemoveKeysTarget } from "@/components/dialogs/RemoveKeysDialog";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { CloudGlyph, GopherLockup, GopherMark } from "@/components/Brand";
@@ -110,6 +111,8 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
   const foundFor = (c: CloudChoice) =>
     c === "aws" ? found.portals.length > 0 : c === "azure" ? found.tenants.length > 0 : !!found.gcp;
   const [importing, setImporting] = useState<string | null>(null);
+  // Imported IAM users; the offer to remove their keys outlives the found panel.
+  const [removingKeys, setRemovingKeys] = useState<RemoveKeysTarget | null>(null);
 
   async function importPortal(p: FoundPortal) {
     setImporting(p.startUrl);
@@ -408,6 +411,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                     onAzure={importAzure}
                     onGCP={importGCP}
                     onLeapp={importLeapp}
+                    onImportedUsers={(profiles) => setRemovingKeys({ profiles })}
                   />
                 </div>
               )}
@@ -722,6 +726,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
           {step === "done" && <Done key="done" count={discovered.length} onFinish={finish} />}
         </AnimatePresence>
       </main>
+      <RemoveKeysDialog target={removingKeys} onClose={() => setRemovingKeys(null)} />
       <footer className="relative z-10 grid grid-cols-[1fr_auto_1fr] items-center px-6 pb-4 text-xs text-muted-foreground">
         <span />
         <span>

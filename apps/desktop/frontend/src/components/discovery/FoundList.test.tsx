@@ -110,17 +110,14 @@ describe("FoundList", () => {
       path: "~/.aws/credentials",
       profiles: [{ name: "personal", keys: [{ name: "aws_access_key_id", preview: "AKIA…" }], imported: true }],
     });
-    const remove = vi.spyOn(api, "RemoveStaticProfile").mockResolvedValue();
-    render(<FoundList {...base} iamUsers={[iamUser()]} />);
+    const imported = vi.fn();
+    render(<FoundList {...base} iamUsers={[iamUser()]} onImportedUsers={imported} />);
     expect(screen.queryByRole("button", { name: /import all/i })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /IAM users in the credentials file/ }));
     await user.click(rowOf("personal").getByRole("button", { name: /import/i }));
     await waitFor(() => expect(imp).toHaveBeenCalledWith("personal"));
-    const dialog = await screen.findByRole("dialog", { name: "Remove profile from the credentials file?" });
-    expect(dialog).toHaveTextContent("[personal]");
-    expect(remove).not.toHaveBeenCalled();
-    await user.click(within(dialog).getByRole("button", { name: "Remove" }));
-    await waitFor(() => expect(remove).toHaveBeenCalledWith("personal"));
+    // The parent owns the removal offer, since the list rescans and drops the row.
+    await waitFor(() => expect(imported).toHaveBeenCalledWith(["personal"]));
   });
 
   it("imports every IAM user at once, then offers to remove them together", async () => {
@@ -133,15 +130,14 @@ describe("FoundList", () => {
         { name: "plain", keys: [{ name: "aws_access_key_id", preview: "AKIA…" }], imported: true },
       ],
     });
-    render(<FoundList {...base} iamUsers={[iamUser(), iamUser({ profile: "plain" })]} />);
+    const imported = vi.fn();
+    render(<FoundList {...base} iamUsers={[iamUser(), iamUser({ profile: "plain" })]} onImportedUsers={imported} />);
     // One user shows no Import all; two do.
     await user.click(screen.getByRole("button", { name: /import all/i }));
     await waitFor(() => expect(imp).toHaveBeenCalledTimes(2));
     expect(imp).toHaveBeenCalledWith("personal");
     expect(imp).toHaveBeenCalledWith("plain");
-    const dialog = await screen.findByRole("dialog", { name: "Remove profiles from the credentials file?" });
-    expect(dialog).toHaveTextContent("[personal]");
-    expect(dialog).toHaveTextContent("[plain]");
+    await waitFor(() => expect(imported).toHaveBeenCalledWith(["personal", "plain"]));
   });
 
   it("renders an empty list when nothing was found", () => {

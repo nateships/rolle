@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CloudGlyph } from "@/components/Brand";
-import { RemoveKeysDialog, type RemoveKeysTarget } from "@/components/dialogs/RemoveKeysDialog";
 import { api, errorMessage, type Workspace } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -148,6 +147,7 @@ export function FoundList({
   onAzure,
   onGCP,
   onLeapp,
+  onImportedUsers,
 }: {
   portals: FoundPortal[];
   tenants: FoundTenant[];
@@ -160,13 +160,14 @@ export function FoundList({
   onAzure: (t: FoundTenant) => void;
   onGCP: () => void;
   onLeapp?: () => void;
+  /** IAM users were imported; the parent offers to remove their keys from the file. */
+  onImportedUsers?: (profiles: string[]) => void;
 }) {
   const leappCount = leapp ? leapp.iamUsers.length + leapp.chainedRoles.length : 0;
-  // An IAM user imports here: the key moves into rolle, then the dialog offers to remove it from the file.
+  // An IAM user imports here: the key moves into rolle, then the parent offers to remove it from the file.
   const [importingUser, setImportingUser] = useState<string | null>(null);
   // The IAM users start folded, so a long credentials file leaves room for the rest of the step.
   const [usersOpen, setUsersOpen] = useState(false);
-  const [removing, setRemoving] = useState<RemoveKeysTarget | null>(null);
   // importUsers moves each key into rolle in turn, then offers to remove
   // the imported ones from the file together. "*" marks an import of all.
   async function importUsers(users: FoundIAMUser[]) {
@@ -183,7 +184,7 @@ export function FoundList({
     } finally {
       setImportingUser(null);
     }
-    if (done.length > 0) setRemoving({ profiles: done });
+    if (done.length > 0) onImportedUsers?.(done);
   }
   return (
     // The list scrolls inside a cap, so a long credentials file does not
@@ -296,7 +297,6 @@ export function FoundList({
             onImport={() => void importUsers([u])}
           />
         ))}
-      <RemoveKeysDialog target={removing} onClose={() => setRemoving(null)} />
     </ul>
   );
 }

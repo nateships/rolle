@@ -17,6 +17,7 @@ import {
   Star,
   Trash2,
   UserCog,
+  UserRound,
   Waypoints,
   Eye,
   EyeOff,
@@ -605,6 +606,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                         active={filter === "iam-users"}
                         onClick={() => setFilter("iam-users")}
                         label="Users"
+                        icon={<UserRound className="size-3.5" />}
                         hint={hintFor("iam-users")}
                         count={iamCount}
                       />
@@ -614,6 +616,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                         active={filter === "assumed-roles"}
                         onClick={() => setFilter("assumed-roles")}
                         label="Assumed roles"
+                        icon={<Waypoints className="size-3.5" />}
                         hint={hintFor("assumed-roles")}
                         count={roleCount}
                       />
