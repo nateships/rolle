@@ -13,7 +13,8 @@ permissions: {}
 # a workflow artifact. The manifest job signs the update manifest over those
 # files. The publish job then downloads everything and goreleaser creates the
 # GitHub release in one step, with the CLI archives, the desktop packages, the
-# manifest, and the notes. Nothing is uploaded to GitHub before that point.
+# manifest, and the notes. Nothing is uploaded to GitHub before that point, and
+# the release that release-please made stays a draft until goreleaser fills it.
 
 jobs:
   desktop:

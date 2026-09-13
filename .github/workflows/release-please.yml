@@ -2,7 +2,9 @@ name: Release Please
 
 # Opens and maintains a release pull request from the conventional commits on
 # main. Merging it creates the tag and the GitHub release, and the tag push
-# starts the Release workflow. The token must be a personal access token or a
+# starts the Release workflow. The release is turned into a draft at once, so
+# users and the updater see it only when goreleaser publishes it with its
+# assets at the end of that workflow. The token must be a personal access token or a
 # GitHub App token: work done with the default GITHUB_TOKEN triggers no CI on
 # the release pull request and no Release run on the tag.
 on:
@@ -19,7 +21,14 @@ jobs:
       pull-requests: write
     steps:
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
+        id: release
         with:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+      - name: Hold the release as a draft until its assets are attached
+        if: steps.release.outputs.releases_created == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          TAG: ${{ steps.release.outputs.tag_name }}
+        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft

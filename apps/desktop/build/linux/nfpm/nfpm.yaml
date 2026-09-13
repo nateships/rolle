@@ -9,7 +9,7 @@ platform: "linux"
 version: "0.0.1"
 section: "default"
 priority: "extra"
-maintainer: ${GIT_COMMITTER_NAME} <${GIT_COMMITTER_EMAIL}>
+maintainer: "nateships <nateships@users.noreply.github.com>"
 description: "Assume any role, any cloud"
 vendor: "nateships"
 homepage: "https://getrolle.com"
@@ -23,7 +23,9 @@ contents:
     dst: "/usr/local/bin/rolle"
   - src: "./build/appicon.png"
     dst: "/usr/share/icons/hicolor/128x128/apps/rolle.png"
-  - src: "./build/linux/rolle.desktop"
+  # The deb installs the app as rolle-desktop and the command as rolle, so the
+  # launcher comes from a tracked file that points at the app.
+  - src: "./build/linux/desktop"
     dst: "/usr/share/applications/rolle.desktop"
 
 # Default dependencies for the GTK4 + WebKitGTK 6.0 stack (Ubuntu 24.04+ / Debian 13+)
