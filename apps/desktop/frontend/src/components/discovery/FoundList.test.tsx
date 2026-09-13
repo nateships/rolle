@@ -110,6 +110,7 @@ describe("FoundList", () => {
     });
     const remove = vi.spyOn(api, "RemoveStaticProfile").mockResolvedValue();
     render(<FoundList {...base} iamUsers={[iamUser()]} />);
+    expect(screen.queryByRole("button", { name: /import all/i })).not.toBeInTheDocument();
     await user.click(rowOf("personal").getByRole("button", { name: /import/i }));
     await waitFor(() => expect(imp).toHaveBeenCalledWith("personal"));
     const dialog = await screen.findByRole("dialog", { name: "Remove profile from the credentials file?" });
@@ -117,6 +118,27 @@ describe("FoundList", () => {
     expect(remove).not.toHaveBeenCalled();
     await user.click(within(dialog).getByRole("button", { name: "Remove" }));
     await waitFor(() => expect(remove).toHaveBeenCalledWith("personal"));
+  });
+
+  it("imports every IAM user at once, then offers to remove them together", async () => {
+    const user = userEvent.setup();
+    const imp = vi.spyOn(api, "ImportIAMUser").mockResolvedValue({ id: "s1", name: "x" } as never);
+    vi.spyOn(api, "StaticProfiles").mockResolvedValue({
+      path: "~/.aws/credentials",
+      profiles: [
+        { name: "personal", keys: [{ name: "aws_access_key_id", preview: "AKIA…" }], imported: true },
+        { name: "plain", keys: [{ name: "aws_access_key_id", preview: "AKIA…" }], imported: true },
+      ],
+    });
+    render(<FoundList {...base} iamUsers={[iamUser(), iamUser({ profile: "plain" })]} />);
+    // One user shows no Import all; two do.
+    await user.click(screen.getByRole("button", { name: /import all/i }));
+    await waitFor(() => expect(imp).toHaveBeenCalledTimes(2));
+    expect(imp).toHaveBeenCalledWith("personal");
+    expect(imp).toHaveBeenCalledWith("plain");
+    const dialog = await screen.findByRole("dialog", { name: "Remove profiles from the credentials file?" });
+    expect(dialog).toHaveTextContent("[personal]");
+    expect(dialog).toHaveTextContent("[plain]");
   });
 
   it("renders an empty list when nothing was found", () => {

@@ -157,20 +157,28 @@ export function FoundList({
   // An IAM user imports here: the key moves into rolle, then the dialog offers to remove it from the file.
   const [importingUser, setImportingUser] = useState<string | null>(null);
   const [removing, setRemoving] = useState<RemoveKeysTarget | null>(null);
-  async function importUser(u: FoundIAMUser) {
-    setImportingUser(u.profile);
+  // importUsers moves each key into rolle in turn, then offers to remove
+  // the imported ones from the file together. "*" marks an import of all.
+  async function importUsers(users: FoundIAMUser[]) {
+    setImportingUser(users.length === 1 ? users[0].profile : "*");
+    const done: string[] = [];
     try {
-      await api.ImportIAMUser(u.profile);
-      toast.success("Imported", { description: u.profile });
-      setRemoving({ profiles: [u.profile] });
+      for (const u of users) {
+        await api.ImportIAMUser(u.profile);
+        done.push(u.profile);
+      }
+      toast.success("Imported", { description: done.length === 1 ? done[0] : `${done.length} IAM users` });
     } catch (e) {
       toast.error(errorMessage(e));
     } finally {
       setImportingUser(null);
     }
+    if (done.length > 0) setRemoving({ profiles: done });
   }
   return (
-    <ul className="space-y-2">
+    // The list scrolls inside a cap, so a long credentials file does not
+    // push the rest of the step off the screen.
+    <ul className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
       {portals.map((p) => (
         <FoundRow
           key={p.startUrl}
@@ -230,8 +238,20 @@ export function FoundList({
         />
       )}
       {iamUsers.length > 0 && (
-        <li className="pt-1 text-xs text-muted-foreground">
-          IAM users in the credentials file. Import moves a key into rolle.
+        <li className="flex items-center justify-between gap-3 pt-1 text-xs text-muted-foreground">
+          <span>IAM users in the credentials file. Import moves a key into rolle.</span>
+          {iamUsers.length > 1 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 shrink-0 gap-1.5 text-xs"
+              disabled={disabled || importingUser !== null}
+              onClick={() => void importUsers(iamUsers)}
+            >
+              {importingUser === "*" ? <Loader2 className="size-3 animate-spin" /> : <Import className="size-3" />}{" "}
+              Import all
+            </Button>
+          )}
         </li>
       )}
       {iamUsers.map((u) => (
@@ -242,9 +262,10 @@ export function FoundList({
           subtitle={[`${u.accessKeyId.slice(0, 4)}…`, u.region].filter(Boolean).join(" · ")}
           badge={u.mfaDevice ? "MFA" : undefined}
           badgeOk
-          busy={importingUser === u.profile}
+          compact
+          busy={importingUser === u.profile || importingUser === "*"}
           disabled={disabled || importingUser !== null}
-          onImport={() => void importUser(u)}
+          onImport={() => void importUsers([u])}
         />
       ))}
       <RemoveKeysDialog target={removing} onClose={() => setRemoving(null)} />
@@ -258,6 +279,7 @@ function FoundRow({
   subtitle,
   badge,
   badgeOk,
+  compact,
   busy,
   disabled,
   onImport,
@@ -267,13 +289,17 @@ function FoundRow({
   subtitle: string;
   badge?: string;
   badgeOk?: boolean;
+  /** One line: the subtitle sits after the title, and the row is shorter. */
+  compact?: boolean;
   busy: boolean;
   disabled: boolean;
   onImport: () => void;
 }) {
   return (
-    <li className="flex items-center gap-3 rounded-lg border bg-background/60 px-3 py-2.5">
-      <CloudGlyph cloud={cloud} />
+    <li
+      className={cn("flex items-center gap-3 rounded-lg border bg-background/60 px-3", compact ? "py-1.5" : "py-2.5")}
+    >
+      <CloudGlyph cloud={cloud} className={compact ? "size-6" : undefined} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <p className="truncate text-sm font-medium">{title}</p>
@@ -288,10 +314,17 @@ function FoundRow({
               {badge}
             </Badge>
           )}
+          {compact && subtitle && <p className="truncate font-mono text-[11px] text-muted-foreground">{subtitle}</p>}
         </div>
-        <p className="truncate font-mono text-[11px] text-muted-foreground">{subtitle}</p>
+        {!compact && <p className="truncate font-mono text-[11px] text-muted-foreground">{subtitle}</p>}
       </div>
-      <Button size="sm" variant="secondary" className="gap-1.5" onClick={onImport} disabled={disabled}>
+      <Button
+        size="sm"
+        variant="secondary"
+        className={cn("gap-1.5", compact && "h-7")}
+        onClick={onImport}
+        disabled={disabled}
+      >
         {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Import className="size-3.5" />} Import
       </Button>
     </li>
