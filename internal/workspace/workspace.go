@@ -43,6 +43,8 @@ func Load(path string) (*core.Workspace, error) {
 // Save writes the workspace atomically with owner-only permissions.
 func Save(path string, w *core.Workspace) error {
 	w.Version = core.WorkspaceVersion
+	// Computed for the window, not part of the file.
+	w.ShadowedProfiles = nil
 	data, err := json.MarshalIndent(w, "", "  ")
 	if err != nil {
 		return err

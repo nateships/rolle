@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/ini.v1"
 )
@@ -63,9 +64,30 @@ func CredentialsPath(configPath string) string {
 // staticKeys are the credential keys a shared credentials file can hold.
 var staticKeys = []string{"aws_access_key_id", "aws_secret_access_key", "aws_session_token"}
 
-// ErrShadowed is wrapped by the error Write returns when static keys in the
-// shared credentials file would take precedence over the rolle profile.
-var ErrShadowed = errors.New("profile is shadowed")
+// ErrShadowed matches, through errors.Is, the error Write returns when static
+// keys in the shared credentials file would take precedence over the profile.
+var ErrShadowed = errors.New("static keys take precedence over the profile")
+
+// ShadowedError is that error. Its text names the file and the profile.
+type ShadowedError struct {
+	Profile, Path string
+}
+
+func (e *ShadowedError) Error() string {
+	return fmt.Sprintf("%s has static keys for profile %q", Display(e.Path), e.Profile)
+}
+
+// Is makes errors.Is(err, ErrShadowed) true.
+func (e *ShadowedError) Is(target error) bool { return target == ErrShadowed }
+
+// Display shortens a path under the home directory to ~/..., for messages.
+func Display(path string) string {
+	home, err := os.UserHomeDir()
+	if err != nil || home == "" || !strings.HasPrefix(path, home+string(filepath.Separator)) {
+		return path
+	}
+	return "~" + path[len(home):]
+}
 
 // Shadow says what keeps tools from using a rolle profile of that name.
 type Shadow struct {
@@ -108,7 +130,7 @@ func Shadowed(configPath, profile string) *Shadow {
 // shadow the profile. Write checks the config file itself.
 func checkShadow(configPath, profile string) error {
 	if sh := Shadowed(configPath, profile); sh != nil && sh.Fixable {
-		return fmt.Errorf("%w: static keys in %s shadow profile %q", ErrShadowed, sh.Path, profile)
+		return &ShadowedError{Profile: profile, Path: sh.Path}
 	}
 	return nil
 }

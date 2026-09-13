@@ -133,7 +133,7 @@ export function RenameDialog({ target, onClose }: { target: RenameTarget | null;
             >
               <span>{warning}</span>
               {target?.fix && (
-                <Button type="button" size="sm" variant="ghost" className="h-6 shrink-0" onClick={() => void fix()}>
+                <Button type="button" size="sm" variant="outline" className="h-7 shrink-0" onClick={() => void fix()}>
                   Remove keys
                 </Button>
               )}

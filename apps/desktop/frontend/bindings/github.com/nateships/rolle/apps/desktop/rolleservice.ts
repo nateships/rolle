@@ -249,7 +249,8 @@ export function PendingUpdate(): $CancellablePromise<$models.UpdateInfo | null> 
 }
 
 /**
- * ProfileShadow returns the file that shadows a profile of that name, or "".
+ * ProfileShadow returns the file, in display form, whose static keys tools
+ * read instead of a profile of that name, or "".
  */
 export function ProfileShadow(name: string): $CancellablePromise<string> {
     return $Call.ByID(4258961860, name);
@@ -383,14 +384,6 @@ export function SetSessionTag(ref: string, tag: string, on: boolean): $Cancellab
  */
 export function Settings(): $CancellablePromise<core$0.Settings> {
     return $Call.ByID(1191667682);
-}
-
-/**
- * ShadowedProfiles maps each AWS profile name to the file whose keys tools
- * read instead of the rolle profile. Empty when nothing is shadowed.
- */
-export function ShadowedProfiles(): $CancellablePromise<{ [_ in string]?: string } | null> {
-    return $Call.ByID(518572152);
 }
 
 /**

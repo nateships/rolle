@@ -245,7 +245,7 @@ func TestWriteRefusesProfileShadowedByCredentialsFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	err := Write(config, Profile{Name: "default", SessionID: "s1", Executable: "/bin/rolle"})
-	if err == nil || !strings.Contains(err.Error(), "shadow") {
+	if !errors.Is(err, ErrShadowed) || !strings.Contains(err.Error(), `static keys for profile "default"`) {
 		t.Fatalf("err = %v", err)
 	}
 	if _, statErr := os.Stat(config); !os.IsNotExist(statErr) {

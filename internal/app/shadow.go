@@ -13,28 +13,27 @@ func (s *Service) ProfileShadow(name string) *awsconfig.Shadow {
 	return awsconfig.Shadowed(s.AWSConfigPath, name)
 }
 
-// ShadowedProfiles maps every AWS session's profile name to the file that
-// shadows it. Profiles nothing shadows are absent.
-func (s *Service) ShadowedProfiles() (map[string]string, error) {
-	w, err := s.Load()
-	if err != nil {
-		return nil, err
-	}
+// ShadowedProfiles maps every AWS session's profile name to the file, in
+// display form, whose static keys tools read instead of it. Profiles nothing
+// shadows are absent.
+func (s *Service) ShadowedProfiles(w *core.Workspace) map[string]string {
 	out := map[string]string{}
+	checked := map[string]bool{}
 	for i := range w.Sessions {
 		sess := &w.Sessions[i]
 		if sess.Kind.Cloud() != core.CloudAWS {
 			continue
 		}
 		name := ProfileName(sess)
-		if _, seen := out[name]; seen {
+		if checked[name] {
 			continue
 		}
+		checked[name] = true
 		if sh := s.ProfileShadow(name); sh != nil {
-			out[name] = sh.Path
+			out[name] = awsconfig.Display(sh.Path)
 		}
 	}
-	return out, nil
+	return out
 }
 
 // StaticKeys describes the shared credentials file's static keys.
@@ -52,7 +51,7 @@ func (s *Service) StaticProfiles() StaticKeys {
 	if profiles == nil {
 		profiles = []string{}
 	}
-	return StaticKeys{Path: path, Profiles: profiles}
+	return StaticKeys{Path: awsconfig.Display(path), Profiles: profiles}
 }
 
 // RemoveStaticProfile deletes the static keys of one section of the shared
@@ -82,7 +81,7 @@ func (s *Service) FixProfile(ref string) error {
 		return nil
 	}
 	if !sh.Fixable {
-		return fmt.Errorf("another tool configures profile %q in %s; use another profile name", name, sh.Path)
+		return fmt.Errorf("another tool configures profile %q in %s; use another profile name", name, awsconfig.Display(sh.Path))
 	}
 	return awsconfig.RemoveStaticKeys(s.AWSConfigPath, name)
 }

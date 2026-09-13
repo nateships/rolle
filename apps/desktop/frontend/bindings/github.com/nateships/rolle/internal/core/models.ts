@@ -350,4 +350,11 @@ export interface Workspace {
      * Settings holds user preferences. Nil means defaults.
      */
     "settings"?: Settings | null;
+
+    /**
+     * ShadowedProfiles maps an AWS profile name to the file whose static
+     * keys tools read instead of it. The desktop app fills it when it hands
+     * the workspace to the window; Save leaves it out.
+     */
+    "shadowedProfiles"?: { [_ in string]?: string } | null;
 }

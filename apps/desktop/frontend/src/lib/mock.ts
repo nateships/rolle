@@ -493,7 +493,6 @@ export const mockApi = {
     if (x) x.name = name;
     emit();
   },
-  ShadowedProfiles: async () => ({}) as Record<string, string>,
   ProfileShadow: async () => "",
   FixProfile: async () => {},
   StaticProfiles: async () => ({ path: "~/.aws/credentials", profiles: [] as string[] }),

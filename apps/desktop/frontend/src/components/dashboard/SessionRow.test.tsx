@@ -18,7 +18,7 @@ function renderRow(
     tags?: Tag[];
     onNeedsLogin?: (i: Integration, id?: string) => void;
     onTagClick?: (tag: string) => void;
-    shadows?: Record<string, string>;
+    shadows?: Record<string, string | undefined>;
   } = {},
 ) {
   const ws = {
@@ -479,15 +479,15 @@ describe("SessionRow actions", () => {
     const s = session({ name: "personal", kind: Kind.KindAWSIAMUser });
     const start = vi
       .spyOn(api, "Start")
-      .mockRejectedValueOnce(new Error('static keys in /h/.aws/credentials shadow profile "default"'))
+      .mockRejectedValueOnce(new Error('~/.aws/credentials has static keys for profile "default"'))
       .mockResolvedValue({} as never);
     const fix = vi.spyOn(api, "FixProfile").mockResolvedValue();
-    renderRow(s, { shadows: { default: "/h/.aws/credentials" } });
+    renderRow(s, { shadows: { default: "~/.aws/credentials" } });
     // The profile cell carries the mark and the reason.
     expect(screen.getByLabelText("Profile is shadowed")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /default/ })).toHaveAttribute(
       "title",
-      expect.stringContaining("static keys"),
+      "~/.aws/credentials has static keys for this profile. Click to fix.",
     );
     // A failed start offers the removal and starts again after it.
     const error = vi.spyOn(toast, "error");
@@ -509,9 +509,7 @@ describe("SessionRow actions", () => {
     await user.click(screen.getByRole("button", { name: /default/ }));
     await screen.findByRole("dialog", { name: "AWS profile name" });
     await user.type(screen.getByPlaceholderText("default"), "work");
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Static keys in /h/.aws/credentials shadow this profile.",
-    );
+    expect(await screen.findByRole("alert")).toHaveTextContent("/h/.aws/credentials has static keys for this profile.");
     // The warning offers the removal and checks again after it.
     const remove = vi.spyOn(api, "RemoveStaticProfile").mockResolvedValue();
     await user.click(screen.getByRole("button", { name: "Remove keys" }));

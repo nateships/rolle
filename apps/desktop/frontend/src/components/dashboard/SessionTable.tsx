@@ -111,7 +111,7 @@ type TableProps = {
   /** A tag chip on a row was clicked; the dashboard filters by it. */
   onTagClick?: (tag: string) => void;
   /** Profile name to the file whose static keys shadow it. */
-  shadows?: Record<string, string>;
+  shadows?: Record<string, string | undefined>;
 };
 
 export function SessionTable({

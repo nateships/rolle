@@ -16,6 +16,7 @@ import (
 
 	"github.com/nateships/rolle/internal/app"
 	"github.com/nateships/rolle/internal/aws"
+	"github.com/nateships/rolle/internal/awsconfig"
 	"github.com/nateships/rolle/internal/browser"
 	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/discover"
@@ -72,7 +73,14 @@ func ctx() (context.Context, context.CancelFunc) {
 // Workspace returns the stored workspace. Renewals run on the background
 // ticker in main.go, which saves and so emits EventWorkspaceChanged; the UI
 // must not wait on the network to paint.
-func (r *RolleService) Workspace() (*core.Workspace, error) { return r.svc.Load() }
+func (r *RolleService) Workspace() (*core.Workspace, error) {
+	w, err := r.svc.Load()
+	if err != nil {
+		return nil, err
+	}
+	w.ShadowedProfiles = r.svc.ShadowedProfiles(w)
+	return w, nil
+}
 
 // CompleteOnboarding marks the walkthrough as done.
 func (r *RolleService) CompleteOnboarding() error {
@@ -427,16 +435,11 @@ func (r *RolleService) SetAlias(kind, key, alias string) error {
 	return r.svc.SetAlias(app.AliasKind(kind), key, alias)
 }
 
-// ShadowedProfiles maps each AWS profile name to the file whose keys tools
-// read instead of the rolle profile. Empty when nothing is shadowed.
-func (r *RolleService) ShadowedProfiles() (map[string]string, error) {
-	return r.svc.ShadowedProfiles()
-}
-
-// ProfileShadow returns the file that shadows a profile of that name, or "".
+// ProfileShadow returns the file, in display form, whose static keys tools
+// read instead of a profile of that name, or "".
 func (r *RolleService) ProfileShadow(name string) string {
 	if sh := r.svc.ProfileShadow(name); sh != nil {
-		return sh.Path
+		return awsconfig.Display(sh.Path)
 	}
 	return ""
 }

@@ -60,7 +60,7 @@ export function SessionRow({
   /** The name on a tag chip was clicked. */
   onTagClick?: (tag: string) => void;
   /** Profile name to the file whose static keys shadow it. */
-  shadows?: Record<string, string>;
+  shadows?: Record<string, string | undefined>;
 }) {
   const [busy, setBusy] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
@@ -69,7 +69,7 @@ export function SessionRow({
   const profileName = isAWSKind(s.kind) ? s.aws?.profile || "default" : "";
   // Static keys under the same profile name win over this session.
   const shadowedBy = isAWSKind(s.kind) ? shadows?.[profileName] : undefined;
-  const shadowNote = shadowedBy ? `Static keys in ${shadowedBy} shadow this profile.` : "";
+  const shadowNote = shadowedBy ? `${shadowedBy} has static keys for this profile. Click to fix.` : "";
   const tags = workspace.tags ?? [];
   const active = s.status === Status.StatusActive;
   const needsMFA = s.kind === Kind.KindAWSIAMUser && !!s.aws?.mfaDevice;
@@ -376,7 +376,7 @@ export function SessionRow({
                     save: (n) => api.SetProfile(s.id, n),
                     check: async (n) => {
                       const path = await api.ProfileShadow(n || "default");
-                      return path ? `Static keys in ${path} shadow this profile.` : "";
+                      return path ? `${path} has static keys for this profile.` : "";
                     },
                     fix: (n) => api.RemoveStaticProfile(n || "default"),
                   })

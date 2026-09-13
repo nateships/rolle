@@ -25,7 +25,7 @@ func startCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			creds, err := svc.Start(cmd.Context(), args[0], app.StartOptions{MFACode: mfa})
 			if errors.Is(err, awsconfig.ErrShadowed) {
-				return fmt.Errorf("%w\nrolle session fix-profile %q removes them", err, args[0])
+				return fmt.Errorf("%w; tools read those first\nrolle session fix-profile %q removes them", err, args[0])
 			}
 			if err != nil {
 				return err

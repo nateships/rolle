@@ -9,7 +9,7 @@ Set `ROLLE_DEBUG=1`, pass `rolle --debug`, or turn on **Settings â†’ Advanced â†
 
 ## `ExpiredToken` or the wrong identity after Start
 
-If `~/.aws/credentials` holds static keys under the same profile name, the AWS credential chain reads those before rolle's `credential_process`. rolle refuses to start a session onto such a profile and marks the profile in the table. Click the mark and choose **Remove keys**, run `rolle session fix-profile <session>`, or give the session another profile name. [Profiles and regions](/aws/profiles-and-regions#static-keys-shadow-a-profile) has the details.
+If `~/.aws/credentials` holds static keys under the same profile name, the AWS credential chain reads those before rolle's `credential_process`. rolle refuses to start a session onto such a profile and marks the profile in the table. Click the mark and choose **Remove keys**, run `rolle session fix-profile <session>`, or give the session another profile name. [Profiles and regions](/aws/profiles-and-regions#static-keys-in-awscredentials) has the details.
 
 ## "login required" when a role starts
 
