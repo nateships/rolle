@@ -18,9 +18,14 @@ const id = () => Math.random().toString(36).slice(2, 10);
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 
+// ?keys=1 adds static keys in ~/.aws/credentials to the demo: a shadowed
+// profile on the personal user and two profiles for the cleanup card.
+const demoKeys = new URLSearchParams(location.search).get("keys") === "1";
+
 const state: Workspace = {
   version: 1,
   onboarded: new URLSearchParams(location.search).get("view") === "dashboard",
+  shadowedProfiles: demoKeys ? { personal: "~/.aws/credentials" } : undefined,
   integrations: [],
   sessions: [],
   tags: [],
@@ -100,7 +105,12 @@ function seed() {
       region: "eu-west-1",
       aws: { roleArn: "arn:aws:iam::123456789012:role/Admin", sourceSessionId: "x" },
     }),
-    s({ name: "personal", kind: "aws-iam-user", region: "us-west-2", aws: { mfaDevice: "arn:aws:iam::1:mfa/me" } }),
+    s({
+      name: "personal",
+      kind: "aws-iam-user",
+      region: "us-west-2",
+      aws: { mfaDevice: "arn:aws:iam::1:mfa/me", profile: "personal" },
+    }),
     s({
       name: "Contoso Production",
       kind: "azure",
@@ -517,7 +527,29 @@ export const mockApi = {
     emit();
   },
   ProfileShadow: async () => "",
-  StaticProfiles: async () => ({ path: "~/.aws/credentials", profiles: [] as string[] }),
+  StaticProfiles: async () => ({
+    path: "~/.aws/credentials",
+    profiles: demoKeys
+      ? [
+          {
+            name: "personal",
+            keys: [
+              { name: "aws_access_key_id", preview: "AKIA…" },
+              { name: "aws_secret_access_key", preview: "…" },
+            ],
+            imported: true,
+          },
+          {
+            name: "legacy-ci",
+            keys: [
+              { name: "aws_access_key_id", preview: "AKIA…" },
+              { name: "aws_secret_access_key", preview: "…" },
+            ],
+            imported: false,
+          },
+        ]
+      : [],
+  }),
   RemoveStaticProfile: async () => {},
   SetAlias: async (_kind: string, key: string, alias: string) => {
     // The mock keeps no original names, so an empty alias changes nothing.
