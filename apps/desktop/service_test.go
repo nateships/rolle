@@ -151,7 +151,7 @@ func TestAWSSSOIntegrationLifecycle(t *testing.T) {
 		t.Fatalf("wait without start: %v", err)
 	}
 	// Cancel drops a pending login and tolerates a missing one.
-	r.pending[in.ID] = &aws.DeviceAuthorization{}
+	r.pending[in.ID] = &pendingLogin{auth: &aws.DeviceAuthorization{}}
 	r.CancelSSOLogin(in.ID)
 	r.CancelSSOLogin(in.ID)
 	if len(r.pending) != 0 {

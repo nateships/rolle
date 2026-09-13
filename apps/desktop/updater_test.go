@@ -105,13 +105,17 @@ func TestAppBundleAndWritable(t *testing.T) {
 
 func TestUpdateTargetAndWindowsScripts(t *testing.T) {
 	dir := t.TempDir()
-	if target, elevate := updateTarget("windows", filepath.Join(dir, "rolle.exe")); target != filepath.Join(dir, "rolle.exe") || elevate {
+	if target, elevate := updateTarget("windows", filepath.Join(dir, "rolle.exe"), ""); target != filepath.Join(dir, "rolle.exe") || elevate {
 		t.Fatalf("writable dir = %q %v", target, elevate)
 	}
-	if target, elevate := updateTarget("linux", "/usr/local/bin/rolle-desktop"); target != "/usr/local/bin/rolle-desktop" || elevate {
+	if target, elevate := updateTarget("linux", "/usr/local/bin/rolle-desktop", ""); target != "/usr/local/bin/rolle-desktop" || elevate {
 		t.Fatalf("linux = %q %v", target, elevate)
 	}
-	if target, elevate := updateTarget("darwin", "/usr/local/bin/rolle-desktop"); target != "" || elevate {
+	// An AppImage runs from a read-only mount; the image file is the target.
+	if target, elevate := updateTarget("linux", "/tmp/.mount_rolleAb12/usr/bin/rolle", "/home/n/Apps/rolle.AppImage"); target != "/home/n/Apps/rolle.AppImage" || elevate {
+		t.Fatalf("appimage = %q %v", target, elevate)
+	}
+	if target, elevate := updateTarget("darwin", "/usr/local/bin/rolle-desktop", ""); target != "" || elevate {
 		t.Fatalf("darwin outside a bundle = %q %v", target, elevate)
 	}
 	const exe = `C:\Program Files\nateships\rolle\rolle.exe`
@@ -144,5 +148,40 @@ func TestInstallError(t *testing.T) {
 	}
 	if err := installError(nil, errors.New("exit status 1"), false); err == nil || err.Error() != "install failed: exit status 1" {
 		t.Fatalf("without output = %v", err)
+	}
+}
+
+func TestReplaceFileSwapsInPlace(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("mode bits")
+	}
+	dir := t.TempDir()
+	staged := filepath.Join(dir, "staged.AppImage")
+	target := filepath.Join(dir, "rolle.AppImage")
+	if err := os.WriteFile(staged, []byte("new"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(target, []byte("old"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := replaceFile(staged, target); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(target)
+	if err != nil || string(got) != "new" {
+		t.Fatalf("target = %q, %v", got, err)
+	}
+	if fi, _ := os.Stat(target); fi.Mode().Perm()&0o111 == 0 {
+		t.Fatalf("target is not executable: %v", fi.Mode())
+	}
+	if _, err := os.Stat(target + ".new"); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("temporary copy left behind: %v", err)
+	}
+	// A missing staged file changes nothing.
+	if err := replaceFile(filepath.Join(dir, "missing"), target); err == nil {
+		t.Fatal("missing staged file: no error")
+	}
+	if got, _ := os.ReadFile(target); string(got) != "new" {
+		t.Fatalf("target changed on a failed swap: %q", got)
 	}
 }

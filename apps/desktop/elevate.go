@@ -13,9 +13,12 @@ import (
 const errorCancelled = 1223
 
 // updateTarget is what the updater replaces: the bundle on macOS, the
-// executable elsewhere. The second result is true when the current account
-// cannot replace it, so the swap needs elevation.
-func updateTarget(goos, exe string) (target string, needsElevation bool) {
+// AppImage file on Linux when the app runs from one, the executable
+// elsewhere. The second result is true when the current account cannot
+// replace it, so the swap needs elevation. appImage is the APPIMAGE
+// variable the AppImage runtime sets; the executable itself then sits on a
+// read-only mount.
+func updateTarget(goos, exe, appImage string) (target string, needsElevation bool) {
 	switch goos {
 	case "darwin":
 		bundle := appBundle(exe)
@@ -25,6 +28,10 @@ func updateTarget(goos, exe string) (target string, needsElevation bool) {
 		return bundle, !writable(filepath.Dir(bundle)) || !writable(bundle)
 	case "windows":
 		return exe, !writable(filepath.Dir(exe))
+	case "linux":
+		if appImage != "" {
+			return appImage, false
+		}
 	}
 	return exe, false
 }

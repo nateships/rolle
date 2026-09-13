@@ -33,12 +33,27 @@ type RolleService struct {
 	app *application.App
 
 	mu      sync.Mutex
-	pending map[string]*aws.DeviceAuthorization
+	pending map[string]*pendingLogin
+}
+
+// pendingLogin is a browser sign-in between Start and the end of Wait.
+// cancel is set while WaitSSOLogin blocks and makes it return.
+type pendingLogin struct {
+	auth   *aws.DeviceAuthorization
+	cancel context.CancelFunc
+}
+
+// abandon frees the login's listener and unblocks a waiting caller.
+func (p *pendingLogin) abandon() {
+	if p.cancel != nil {
+		p.cancel()
+	}
+	p.auth.Cancel()
 }
 
 // NewRolleService wires the service to the shared application layer.
 func NewRolleService(svc *app.Service) *RolleService {
-	return &RolleService{svc: svc, pending: map[string]*aws.DeviceAuthorization{}}
+	return &RolleService{svc: svc, pending: map[string]*pendingLogin{}}
 }
 
 // ServiceStartup captures the running application for event emission.
@@ -92,9 +107,9 @@ func (r *RolleService) StartSSOLogin(ref string) (DeviceLogin, error) {
 	r.mu.Lock()
 	if old := r.pending[ref]; old != nil {
 		// A second click abandons the first login; free its loopback port.
-		old.Cancel()
+		old.abandon()
 	}
-	r.pending[ref] = auth
+	r.pending[ref] = &pendingLogin{auth: auth}
 	r.mu.Unlock()
 	_ = browser.Open(auth.VerificationURI)
 	return DeviceLogin{VerificationURI: auth.VerificationURI, UserCode: auth.UserCode}, nil
@@ -103,26 +118,37 @@ func (r *RolleService) StartSSOLogin(ref string) (DeviceLogin, error) {
 // CancelSSOLogin abandons a login that WaitSSOLogin is waiting on.
 func (r *RolleService) CancelSSOLogin(ref string) {
 	r.mu.Lock()
-	auth := r.pending[ref]
+	p := r.pending[ref]
 	delete(r.pending, ref)
 	r.mu.Unlock()
-	if auth != nil {
-		auth.Cancel()
+	if p != nil {
+		p.abandon()
 	}
 }
 
 // WaitSSOLogin blocks until the user approves, then discovers roles.
 func (r *RolleService) WaitSSOLogin(ref string) ([]core.Session, error) {
-	r.mu.Lock()
-	auth := r.pending[ref]
-	delete(r.pending, ref)
-	r.mu.Unlock()
-	if auth == nil {
-		return nil, fmt.Errorf("no login in progress for %s", ref)
-	}
 	c, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
 	defer cancel()
-	if err := auth.Wait(c); err != nil {
+	// The entry stays until Wait returns, so Cancel can find it and unblock
+	// this call through the context.
+	r.mu.Lock()
+	p := r.pending[ref]
+	if p != nil {
+		p.cancel = cancel
+	}
+	r.mu.Unlock()
+	if p == nil {
+		return nil, fmt.Errorf("no login in progress for %s", ref)
+	}
+	defer func() {
+		r.mu.Lock()
+		if r.pending[ref] == p {
+			delete(r.pending, ref)
+		}
+		r.mu.Unlock()
+	}()
+	if err := p.auth.Wait(c); err != nil {
 		return nil, err
 	}
 	return r.svc.FinishSSOLogin(c, ref)

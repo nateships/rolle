@@ -49,7 +49,7 @@ type cliEnv struct {
 	payload   []byte
 	lookPath  func(file string) (string, error)
 	versionOf func(path string) string
-	userPath  func() string
+	userPath  func() (string, error)
 }
 
 func liveEnv() cliEnv {
@@ -122,7 +122,12 @@ func (r *RolleService) InstallCLI() (CLIStatus, error) {
 		return st, err
 	}
 	if env.goos == "windows" {
-		if list, changed := pathListAdd(env.userPath(), filepath.Dir(st.Target)); changed {
+		// An unreadable PATH is not an empty one; writing would replace it.
+		list, err := env.userPath()
+		if err != nil {
+			return st, fmt.Errorf("read PATH: %w", err)
+		}
+		if list, changed := pathListAdd(list, filepath.Dir(st.Target)); changed {
 			if err := setUserPathList(list); err != nil {
 				return st, fmt.Errorf("add %s to PATH: %w", filepath.Dir(st.Target), err)
 			}
@@ -156,7 +161,11 @@ func (r *RolleService) UninstallCLI() error {
 		return err
 	}
 	if env.goos == "windows" {
-		if list, changed := pathListRemove(env.userPath(), filepath.Dir(target)); changed {
+		list, err := env.userPath()
+		if err != nil {
+			return fmt.Errorf("read PATH: %w", err)
+		}
+		if list, changed := pathListRemove(list, filepath.Dir(target)); changed {
 			return setUserPathList(list)
 		}
 	}
@@ -227,7 +236,7 @@ func userDirStatus(env cliEnv) CLIStatus {
 	} else if _, err := os.Stat(target); err == nil {
 		// The file is there but this process's PATH does not see it: a fresh
 		// Windows install, or a Linux PATH without ~/.local/bin.
-		if env.goos == "windows" && pathListHas(env.userPath(), filepath.Dir(target)) {
+		if env.goos == "windows" && pathListHasIn(env, filepath.Dir(target)) {
 			st.Installed, st.Path = true, target
 			st.Note = "Open a new terminal to use it."
 		} else if env.goos == "linux" {
@@ -267,23 +276,39 @@ func cliFileName(goos string) string {
 }
 
 // writeCLI puts the payload at target through a temporary file, so a reader
-// never sees a half-written command.
+// never sees a half-written command. Windows refuses to replace a running
+// executable but lets it be renamed, so the old command moves aside first
+// and comes back if the swap fails.
 func writeCLI(target string, payload []byte) error {
 	if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 		return err
 	}
 	tmp := target + ".tmp"
 	if err := os.WriteFile(tmp, payload, 0o755); err != nil {
+		_ = os.Remove(tmp)
 		return err
 	}
-	return os.Rename(tmp, target)
+	aside := target + ".old"
+	_ = os.Remove(aside)
+	moved := os.Rename(target, aside) == nil
+	if err := os.Rename(tmp, target); err != nil {
+		_ = os.Remove(tmp)
+		if moved {
+			_ = os.Rename(aside, target)
+		}
+		return err
+	}
+	_ = os.Remove(aside)
+	return nil
 }
 
 // commandVersion runs `path --version` and returns the version it prints.
 func commandVersion(path string) string {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	out, err := exec.CommandContext(ctx, path, "--version").Output()
+	cmd := exec.CommandContext(ctx, path, "--version")
+	hideWindow(cmd)
+	out, err := cmd.Output()
 	if err != nil {
 		return ""
 	}
@@ -292,6 +317,13 @@ func commandVersion(path string) string {
 		return ""
 	}
 	return fields[len(fields)-1]
+}
+
+// pathListHasIn reads the user's PATH and reports whether it names dir. An
+// unreadable PATH counts as not having it.
+func pathListHasIn(env cliEnv, dir string) bool {
+	list, err := env.userPath()
+	return err == nil && pathListHas(list, dir)
 }
 
 // pathListHas reports whether the ;-separated Windows PATH list names dir.
@@ -359,7 +391,9 @@ func linkCLI(target string) error {
 	if err == nil {
 		return nil
 	}
-	if !errors.Is(err, os.ErrPermission) && !errors.Is(err, os.ErrNotExist) {
+	// A link the user cannot remove fails the Remove above and then the
+	// Symlink with "exists"; ln -sfn as administrator replaces it.
+	if !errors.Is(err, os.ErrPermission) && !errors.Is(err, os.ErrNotExist) && !errors.Is(err, os.ErrExist) {
 		return err
 	}
 	return adminShell(fmt.Sprintf("mkdir -p /usr/local/bin && ln -sfn %s %s", shellQuote(target), shellQuote(cliLink)))
@@ -371,7 +405,8 @@ func adminShell(script string) error {
 	as := fmt.Sprintf(`do shell script %s with administrator privileges`, appleScriptString(script))
 	out, err := exec.Command("osascript", "-e", as).CombinedOutput()
 	if err != nil {
-		return installError(out, err, strings.Contains(string(out), "User canceled"))
+		// osascript reports a declined prompt as error -128 in every language.
+		return installError(out, err, strings.Contains(string(out), "(-128)"))
 	}
 	return nil
 }
