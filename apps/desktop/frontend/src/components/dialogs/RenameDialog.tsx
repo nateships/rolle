@@ -6,7 +6,9 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { REMOVE_KEYS_BUTTON } from "@/components/dialogs/RemoveKeysDialog";
 import { errorMessage } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 export type RenameTarget = {
   kind: "integration" | "session" | "profile";
@@ -20,8 +22,8 @@ export type RenameTarget = {
   everywhere?: { label: string; name: string; save: (name: string) => Promise<unknown> };
   /** Looks at the typed name and returns a warning to show, or "". */
   check?: (name: string) => Promise<string>;
-  /** Clears what the warning is about; the check runs again after it. */
-  fix?: (name: string) => Promise<unknown>;
+  /** Opens the fix for what the warning is about, with the typed name. */
+  onFix?: (name: string) => void;
 };
 
 const COPY: Record<
@@ -54,7 +56,7 @@ export function RenameDialog({ target, onClose }: { target: RenameTarget | null;
   const [busy, setBusy] = useState(false);
   const [all, setAll] = useState(false);
   const [warning, setWarning] = useState("");
-  const [checked, setChecked] = useState(0);
+  const [checked] = useState(0);
   const check = target?.check;
   // The check runs a moment after typing stops. The counter is a deliberate
   // extra dependency: a fix bumps it so the check runs again.
@@ -65,16 +67,6 @@ export function RenameDialog({ target, onClose }: { target: RenameTarget | null;
     return () => clearTimeout(t);
   }, [check, name, checked]);
   /* oxlint-enable react/exhaustive-effect-dependencies */
-  const fix = async () => {
-    if (!target?.fix) return;
-    try {
-      await target.fix(name.trim());
-      toast.success("Static keys removed from the file");
-      setChecked((n) => n + 1);
-    } catch (err) {
-      toast.error(errorMessage(err));
-    }
-  };
   const targetId = target?.id;
   const targetName = target?.name;
   // The id is a deliberate extra dependency: a new target with the same name still resets the field.
@@ -132,9 +124,15 @@ export function RenameDialog({ target, onClose }: { target: RenameTarget | null;
               className="flex items-center justify-between gap-3 text-xs text-amber-600 dark:text-amber-400"
             >
               <span>{warning}</span>
-              {target?.fix && (
-                <Button type="button" size="sm" variant="outline" className="h-7 shrink-0" onClick={() => void fix()}>
-                  Remove from file
+              {target?.onFix && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className={cn("h-7 shrink-0", REMOVE_KEYS_BUTTON)}
+                  onClick={() => target.onFix?.(name.trim())}
+                >
+                  Remove…
                 </Button>
               )}
             </div>

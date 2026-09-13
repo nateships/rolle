@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { KeyRound, Loader2 } from "lucide-react";
+import { KeyRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { REMOVE_KEYS_BUTTON, RemoveKeysDialog, type RemoveKeysTarget } from "@/components/dialogs/RemoveKeysDialog";
 import { api, errorMessage } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -10,50 +11,29 @@ type Keys = { path: string; profiles: string[] };
 /**
  * The sections of ~/.aws/credentials that hold static keys. Tools read those
  * before any rolle profile of the same name, so the card offers to remove
- * them. It renders nothing when the file holds none. Removal is a two-step
- * click: the first arms the button, the second removes.
+ * them. It renders nothing when the file holds none. Every removal goes
+ * through the shared confirmation.
  */
 export function StaticKeysCard({ className }: { className?: string }) {
   const [keys, setKeys] = useState<Keys | null>(null);
-  const [armed, setArmed] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [removing, setRemoving] = useState<RemoveKeysTarget | null>(null);
   const refresh = () =>
     void api
       .StaticProfiles()
       .then((k) => setKeys({ path: k.path, profiles: k.profiles ?? [] }))
       .catch((e) => toast.error(errorMessage(e)));
   useEffect(refresh, []);
-  // An armed button disarms on its own.
-  useEffect(() => {
-    if (!armed) return;
-    const t = setTimeout(() => setArmed(null), 4000);
-    return () => clearTimeout(t);
-  }, [armed]);
 
   if (!keys || keys.profiles.length === 0) return null;
 
-  async function remove(names: string[]) {
-    setBusy(true);
-    setArmed(null);
-    try {
-      for (const n of names) await api.RemoveStaticProfile(n);
-      toast.success(names.length === 1 ? `Static keys of ${names[0]} removed` : "Static keys removed");
-      refresh();
-    } catch (e) {
-      toast.error(errorMessage(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-  const removeButton = (key: string, label: string, names: string[]) => (
+  const removeButton = (label: string, profiles: string[]) => (
     <Button
       size="sm"
-      variant={armed === key ? "destructive" : "ghost"}
-      className="h-7"
-      disabled={busy}
-      onClick={() => (armed === key ? void remove(names) : setArmed(key))}
+      variant="outline"
+      className={cn("h-7", REMOVE_KEYS_BUTTON)}
+      onClick={() => setRemoving({ path: keys.path, profiles })}
     >
-      {busy && armed === null ? <Loader2 className="size-3.5 animate-spin" /> : armed === key ? "Confirm" : label}
+      {label}
     </Button>
   );
 
@@ -70,15 +50,16 @@ export function StaticKeysCard({ className }: { className?: string }) {
             {keys.profiles.map((p) => (
               <li key={p} className="flex items-center justify-between gap-3">
                 <code className="font-mono text-xs">{p}</code>
-                {removeButton(p, "Remove", [p])}
+                {removeButton("Remove…", [p])}
               </li>
             ))}
           </ul>
           {keys.profiles.length > 1 && (
-            <div className="mt-2 flex justify-end">{removeButton("*", "Remove all", keys.profiles)}</div>
+            <div className="mt-2 flex justify-end">{removeButton("Remove all…", keys.profiles)}</div>
           )}
         </div>
       </div>
+      <RemoveKeysDialog target={removing} onClose={() => setRemoving(null)} onDone={refresh} />
     </div>
   );
 }

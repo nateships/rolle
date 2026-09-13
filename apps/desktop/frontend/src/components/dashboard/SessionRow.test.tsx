@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
 import { describe, expect, it, vi } from "vitest";
@@ -481,7 +481,6 @@ describe("SessionRow actions", () => {
       .spyOn(api, "Start")
       .mockRejectedValueOnce(new Error('~/.aws/credentials has static keys for profile "default"'))
       .mockResolvedValue({} as never);
-    const fix = vi.spyOn(api, "FixProfile").mockResolvedValue();
     renderRow(s, { shadows: { default: "~/.aws/credentials" } });
     // The profile cell carries the mark and the reason.
     expect(screen.getByLabelText("Profile is shadowed")).toBeInTheDocument();
@@ -489,16 +488,19 @@ describe("SessionRow actions", () => {
       "title",
       "~/.aws/credentials has static keys for this profile. Click to fix.",
     );
-    // A failed start offers the removal and starts again after it.
+    // A failed start offers the fix. The confirmation removes the keys and starts again.
+    const remove = vi.spyOn(api, "RemoveStaticProfile").mockResolvedValue();
     const error = vi.spyOn(toast, "error");
     await user.click(screen.getByRole("button", { name: /^start$/i }));
     await waitFor(() => expect(error).toHaveBeenCalled());
     expect(error.mock.calls[0][0]).toBe("Static keys in ~/.aws/credentials");
-    const opts = error.mock.calls[0][1] as { description?: string; action?: { label: string; onClick: () => void } };
-    expect(opts.description).toBe("Tools read them before profile default.");
-    expect(opts.action?.label).toBe("Remove from file");
-    opts.action!.onClick();
-    await waitFor(() => expect(fix).toHaveBeenCalledWith(s.id));
+    const opts = error.mock.calls[0][1] as { action?: { label: string; onClick: () => void } };
+    expect(opts.action?.label).toBe("Fix…");
+    act(() => opts.action!.onClick());
+    const confirm = await screen.findByRole("dialog", { name: "Remove static keys" });
+    expect(confirm).toHaveTextContent("This cannot be undone.");
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith("default"));
     await waitFor(() => expect(start).toHaveBeenCalledTimes(2));
   });
 
@@ -512,10 +514,9 @@ describe("SessionRow actions", () => {
     await screen.findByRole("dialog", { name: "AWS profile name" });
     await user.type(screen.getByPlaceholderText("default"), "work");
     expect(await screen.findByRole("alert")).toHaveTextContent("/h/.aws/credentials has static keys for this profile.");
-    // The warning offers the removal and checks again after it.
-    const remove = vi.spyOn(api, "RemoveStaticProfile").mockResolvedValue();
-    await user.click(screen.getByRole("button", { name: "Remove from file" }));
-    await waitFor(() => expect(remove).toHaveBeenCalledWith("work"));
+    // The warning's button opens the confirmation for that name.
+    await user.click(screen.getByRole("button", { name: "Remove…" }));
+    expect(await screen.findByRole("dialog", { name: "Remove static keys" })).toHaveTextContent("[work]");
   });
 
   it("sets the AWS profile name from the profile cell", async () => {

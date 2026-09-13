@@ -494,7 +494,6 @@ export const mockApi = {
     emit();
   },
   ProfileShadow: async () => "",
-  FixProfile: async () => {},
   StaticProfiles: async () => ({ path: "~/.aws/credentials", profiles: [] as string[] }),
   RemoveStaticProfile: async () => {},
   SetAlias: async (_kind: string, key: string, alias: string) => {

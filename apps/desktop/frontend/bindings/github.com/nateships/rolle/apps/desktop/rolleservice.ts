@@ -152,13 +152,6 @@ export function ExportSupportBundle(): $CancellablePromise<string> {
 }
 
 /**
- * FixProfile removes the static keys that shadow the session's profile.
- */
-export function FixProfile(ref: string): $CancellablePromise<void> {
-    return $Call.ByID(2025457879, ref);
-}
-
-/**
  * GCPStatus checks for local gcloud credentials and the gcloud CLI.
  */
 export function GCPStatus(): $CancellablePromise<$models.GCPStatus> {

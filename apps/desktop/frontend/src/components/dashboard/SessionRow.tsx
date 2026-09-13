@@ -31,6 +31,7 @@ import { RegionDialog } from "@/components/dialogs/RegionDialog";
 import { CloudGlyph } from "@/components/Brand";
 import { MFADialog } from "@/components/dialogs/Dialogs";
 import { RenameDialog, type RenameTarget } from "@/components/dialogs/RenameDialog";
+import { RemoveKeysDialog, type RemoveKeysTarget } from "@/components/dialogs/RemoveKeysDialog";
 import { api, errorMessage, Kind, Status, type Integration, type Session, type Workspace } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
 import { copyText } from "@/lib/clipboard";
@@ -65,6 +66,8 @@ export function SessionRow({
   const [busy, setBusy] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
   const [editing, setEditing] = useState<RenameTarget | null>(null);
+  // The static keys to remove from ~/.aws/credentials, and whether to start after.
+  const [removing, setRemoving] = useState<(RemoveKeysTarget & { thenStart: boolean }) | null>(null);
   const [regionOpen, setRegionOpen] = useState(false);
   const profileName = isAWSKind(s.kind) ? s.aws?.profile || "default" : "";
   // Static keys under the same profile name win over this session.
@@ -96,26 +99,17 @@ export function SessionRow({
       } else if (/static keys/i.test(msg)) {
         // The keys can go and the start can run again.
         toast.error(`Static keys in ${shadowedBy ?? "~/.aws/credentials"}`, {
-          description: `Tools read them before profile ${profileName}.`,
-          action: { label: "Remove from file", onClick: () => void fixProfile() },
+          action: {
+            label: "Fix…",
+            onClick: () =>
+              setRemoving({ path: shadowedBy ?? "~/.aws/credentials", profiles: [profileName], thenStart: true }),
+          },
         });
       } else {
         toast.error(msg);
       }
     } finally {
       setBusy(false);
-    }
-  }
-
-  // fixProfile removes the static keys that shadow the profile, then starts
-  // the session again.
-  async function fixProfile() {
-    try {
-      await api.FixProfile(s.id);
-      toast.success("Static keys removed from the file");
-      await start();
-    } catch (e) {
-      toast.error(errorMessage(e));
     }
   }
 
@@ -381,7 +375,14 @@ export function SessionRow({
                       const path = await api.ProfileShadow(n || "default");
                       return path ? `${path} has static keys for this profile.` : "";
                     },
-                    fix: (n) => api.RemoveStaticProfile(n || "default"),
+                    onFix: (n) => {
+                      setEditing(null);
+                      setRemoving({
+                        path: shadowedBy ?? "~/.aws/credentials",
+                        profiles: [n || "default"],
+                        thenStart: false,
+                      });
+                    },
                   })
                 }
                 className={cn(
@@ -481,6 +482,11 @@ export function SessionRow({
               }}
             />
             <RenameDialog target={editing} onClose={() => setEditing(null)} />
+            <RemoveKeysDialog
+              target={removing}
+              onClose={() => setRemoving(null)}
+              onDone={() => removing?.thenStart && void start()}
+            />
             <RegionDialog session={regionOpen ? s : null} onClose={() => setRegionOpen(false)} />
           </TableCell>
         </motion.tr>

@@ -452,11 +452,6 @@ func (r *RolleService) StaticProfiles() app.StaticKeys { return r.svc.StaticProf
 // credentials file.
 func (r *RolleService) RemoveStaticProfile(name string) error { return r.svc.RemoveStaticProfile(name) }
 
-// FixProfile removes the static keys that shadow the session's profile.
-func (r *RolleService) FixProfile(ref string) error {
-	return r.svc.FixProfile(ref)
-}
-
 // RenameSession changes a session's name.
 func (r *RolleService) RenameSession(ref, name string) error {
 	return r.svc.RenameSession(ref, name)
