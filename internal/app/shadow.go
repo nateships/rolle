@@ -65,7 +65,7 @@ func (s *Service) StaticProfiles() StaticKeys {
 }
 
 // RemoveStaticProfile deletes the static keys of one section of the shared
-// credentials file. Other keys of the section and other sections stay.
+// credentials file, the whole section. Other sections stay.
 func (s *Service) RemoveStaticProfile(name string) error {
 	if name == "" {
 		return fmt.Errorf("profile name is empty")

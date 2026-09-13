@@ -216,30 +216,31 @@ func IAMUserKeys(configPath string) []IAMUserKey {
 		if c, err := cfg.GetSection(sectionName(sec.Name())); err == nil {
 			k.Region, k.MFADevice = c.Key("region").String(), c.Key("mfa_serial").String()
 		}
+		// The credentials file wins over the config file for the same profile.
+		if r := sec.Key("region").String(); r != "" {
+			k.Region = r
+		}
+		if m := sec.Key("mfa_serial").String(); m != "" {
+			k.MFADevice = m
+		}
 		out = append(out, k)
 	}
 	return out
 }
 
-// RemoveStaticKeys deletes the static credential keys of profile from the
-// shared credentials file. A section left empty goes too. Other keys and
-// other sections stay.
+// RemoveStaticKeys deletes the profile's section from the shared credentials
+// file. The whole section goes: a region or other key left there would win
+// over the same profile in the config file. Other sections stay.
 func RemoveStaticKeys(configPath, profile string) error {
 	credPath := CredentialsPath(configPath)
 	f, err := load(credPath)
 	if err != nil {
 		return err
 	}
-	sec, err := f.GetSection(profile)
-	if err != nil {
+	if _, err := f.GetSection(profile); err != nil {
 		return nil
 	}
-	for _, k := range staticKeys {
-		sec.DeleteKey(k)
-	}
-	if len(sec.Keys()) == 0 {
-		f.DeleteSection(profile)
-	}
+	f.DeleteSection(profile)
 	return save(credPath, f)
 }
 
