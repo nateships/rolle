@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.0](https://github.com/nateships/rolle/compare/v0.1.10...v0.2.0) (2026-09-13)
+
+
+### Features
+
+* **app:** warn before an Identity Center sign-in expires, a lead-time setting, notification actions, and an amber tray ([#57](https://github.com/nateships/rolle/issues/57)) ([1eded49](https://github.com/nateships/rolle/commit/1eded49e89521b165bc27850dd5057d1fa3b5e5c))
+* **cli:** kubeconfig contexts that follow a session ([#59](https://github.com/nateships/rolle/issues/59)) ([8f48fff](https://github.com/nateships/rolle/commit/8f48ffff67ceeeeb2335a427cb5091f196b3f929))
+* name a permission set in every account from the rename dialog ([#58](https://github.com/nateships/rolle/issues/58)) ([e3cb73a](https://github.com/nateships/rolle/commit/e3cb73a4d0647aab8500ae6315b85f47639c6efe))
+* the gopher dances when onboarding opens ([#53](https://github.com/nateships/rolle/issues/53)) ([d73b2fd](https://github.com/nateships/rolle/commit/d73b2fd25ff669964869f0d4293497da7623664f))
+
+
+### Bug Fixes
+
+* review findings since 0.1.10 across kube, alerts, aliases, and the release hold ([#62](https://github.com/nateships/rolle/issues/62)) ([f967a65](https://github.com/nateships/rolle/commit/f967a65de35fe07f6cd475101f3d3ace394cbd93))
+
 ## [0.1.10](https://github.com/nateships/rolle/compare/v0.1.9...v0.1.10) (2026-09-13)
 
 
