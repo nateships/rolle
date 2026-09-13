@@ -21,7 +21,20 @@ The hook starts the session when you enter the directory, and signs you in first
 
 ## Azure and Google Cloud
 
-Azure and Google Cloud sessions export short-lived tokens. mise sources a script for them, and the redaction keeps the tokens out of `mise env` output and logs.
+Azure and Google Cloud sessions export short-lived tokens. `rolle token` prints one, and a template puts it in a variable. Later entries can copy an earlier one, so the token is fetched once. The redaction keeps it out of `mise env` output and logs.
+
+```toml
+redactions = ["CLOUDSDK_AUTH_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN"]
+
+[env]
+CLOUDSDK_CORE_PROJECT = "analytics-prod"
+CLOUDSDK_AUTH_ACCESS_TOKEN = "{{ exec(command='rolle token analytics') }}"
+GOOGLE_OAUTH_ACCESS_TOKEN = "{{ env.CLOUDSDK_AUTH_ACCESS_TOKEN }}"
+```
+
+mise runs the command each time it builds the directory's environment. rolle answers from its credential cache, so this is fast, and no token is written to mise's cache. When the session needs a sign-in, the command exits with code 3 and names the command to run.
+
+To export every variable a session carries, source a script instead:
 
 ```toml
 redactions = ["AZURE_ACCESS_TOKEN", "CLOUDSDK_AUTH_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN"]
@@ -35,7 +48,7 @@ _.source = ".rolle.sh"
 eval "$(rolle env contoso-prod)"
 ```
 
-mise runs the script each time it builds the directory's environment, so the tokens stay current. When the session needs a sign-in, `rolle env` exits with code 3 and the message names the command to run.
+`rolle env` covers every variable a session carries: the token, and the tenant, subscription, or project it belongs to.
 
 ## One variable at a time
 
