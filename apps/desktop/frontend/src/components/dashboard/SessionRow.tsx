@@ -103,11 +103,9 @@ export function SessionRow({
       await api.Start(s.id, mfaCode);
       const first = !workspace.sessions.some((x) => x.status === Status.StatusActive);
       if (first) celebrate("small");
-      // An AWS session is a profile; the shell needs nothing more. The
-      // others need their tokens, so the toast offers them.
       toast.success("Started", {
         description: isAWS ? `${s.name} · profile ${profileName}` : s.name,
-        action: isAWS ? undefined : { label: "Copy env", onClick: () => void copy("env") },
+        action: { label: "Copy env", onClick: () => void copy("env") },
       });
     } catch (e) {
       const msg = errorMessage(e);

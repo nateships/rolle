@@ -126,7 +126,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
       setDialog({ kind: "login", integration: integ });
       return;
     }
-    void run(startId ? "Session started" : "Synced", async () => {
+    void run(startId ? "Started" : "Synced", async () => {
       await api.SyncGCP(integ.id);
       if (startId) await api.Start(startId, "");
     });
