@@ -37,13 +37,13 @@ func ListAKS(ctx context.Context, client *http.Client, token, subscriptionID str
 		if err != nil {
 			return nil, fmt.Errorf("aks cluster %s: %w", mc.Name, err)
 		}
-		out = append(out, Cluster{Name: mc.Name, Location: mc.Location, Endpoint: server, CA: ca, Cloud: core.CloudAzure, ID: mc.ID})
+		out = append(out, Cluster{Name: mc.Name, Location: mc.Location, Endpoint: server, CA: ca, Cloud: core.CloudAzure})
 	}
 	return out, nil
 }
 
 // aksCredentials reads the server and certificate from the cluster user
-// kubeconfig that ARM returns. The token in that kubeconfig is not used.
+// kubeconfig that ARM returns. rolle does not use the token in that kubeconfig.
 func aksCredentials(ctx context.Context, client *http.Client, token, clusterID string) (string, []byte, error) {
 	url := fmt.Sprintf("%s%s/listClusterUserCredential?api-version=%s", azure.ARMBase, clusterID, aksAPIVersion)
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)

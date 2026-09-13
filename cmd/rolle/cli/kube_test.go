@@ -9,6 +9,7 @@ import (
 
 	"github.com/nateships/rolle/internal/app"
 	"github.com/nateships/rolle/internal/core"
+	"github.com/nateships/rolle/internal/kube"
 )
 
 const testKubeconfig = `apiVersion: v1
@@ -83,6 +84,20 @@ func TestKubeAttach(t *testing.T) {
 	}
 	if _, err := run(t, "kube", "attach", "dev"); err == nil {
 		t.Fatal("attach without a context accepted")
+	}
+}
+
+func TestKubeEntriesGiveEachEKSClusterItsOwnUser(t *testing.T) {
+	aws := &core.Session{Name: "dev", Kind: core.KindAWSIAMUser, AWS: &core.AWSSession{Profile: "work"}}
+	clusters := []kube.Cluster{{Name: "api", Region: "eu-west-1"}, {Name: "batch", Region: "eu-west-1"}}
+	got := kubeEntries(aws, clusters, "")
+	if len(got) != 2 || got[0].User == got[1].User || got[0].User != "rolle:work@api" || got[1].Exec.Args[5] != "batch" {
+		t.Fatalf("aws entries = %+v", got)
+	}
+	az := &core.Session{Name: "Contoso Production", Kind: core.KindAzure}
+	got = kubeEntries(az, clusters, "ctx")
+	if len(got) != 2 || got[0].User != got[1].User || got[0].User != "rolle:Contoso Production" || got[0].Context != "ctx" {
+		t.Fatalf("azure entries = %+v", got)
 	}
 }
 

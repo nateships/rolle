@@ -3,7 +3,6 @@ package app
 import (
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 
 	"github.com/nateships/rolle/internal/core"
@@ -18,16 +17,6 @@ const (
 	// AliasRole renames a permission set, by its name, in every account.
 	AliasRole AliasKind = "role"
 )
-
-// Alias is one row of ListAliases.
-type Alias struct {
-	Kind AliasKind `json:"kind"`
-	// Key is the account ID or the permission set name.
-	Key string `json:"key"`
-	// Name is what Identity Center calls it. Empty when no session shows it.
-	Name  string `json:"name,omitempty"`
-	Alias string `json:"alias"`
-}
 
 // aliases returns the workspace's alias tables, made when absent.
 func aliases(w *core.Workspace) *core.Aliases {
@@ -91,9 +80,10 @@ func fillAccountNames(w *core.Workspace) {
 }
 
 // SetAlias names an account or a permission set. An empty alias clears it.
-// Every role session that still carries its built name is renamed; a
-// session renamed by hand keeps its name. The alias must be unique among
-// its kind, and no resulting session name may collide with another.
+// SetAlias renames every role session that still carries its built name. A
+// session renamed by hand keeps its name. The alias must be unique among its
+// kind, must not equal the name another key shows, and no resulting session
+// name may collide with another.
 func (s *Service) SetAlias(kind AliasKind, key, alias string) error {
 	alias = strings.Join(strings.Fields(alias), " ")
 	if strings.Contains(alias, "/") {
@@ -114,6 +104,18 @@ func (s *Service) SetAlias(kind AliasKind, key, alias string) error {
 	for k, v := range table {
 		if k != key && alias != "" && strings.EqualFold(v, alias) {
 			return fmt.Errorf("%s alias %q is taken by %s", kind, alias, k)
+		}
+	}
+	// A name another key already shows would make the label name two keys.
+	for _, sess := range w.Sessions {
+		if sess.Kind != core.KindAWSSSORole || sess.AWS == nil || alias == "" {
+			continue
+		}
+		k, labels := aliasLabels(w, kind, sess.AWS)
+		for _, l := range labels {
+			if k != key && l != "" && strings.EqualFold(l, alias) {
+				return fmt.Errorf("%s alias %q is taken by %s", kind, alias, k)
+			}
 		}
 	}
 	// Names before the change tell which sessions still carry a built name.
@@ -146,34 +148,6 @@ func (s *Service) SetAlias(kind AliasKind, key, alias string) error {
 	return s.Save(w)
 }
 
-// Aliases lists the workspace's aliases, accounts first, each kind sorted.
-func (s *Service) Aliases() ([]Alias, error) {
-	w, err := s.Load()
-	if err != nil {
-		return nil, err
-	}
-	if w.Aliases == nil {
-		return nil, nil
-	}
-	names := map[string]string{}
-	for _, sess := range w.Sessions {
-		if sess.Kind == core.KindAWSSSORole && sess.AWS != nil {
-			names[sess.AWS.AccountID] = sess.AWS.AccountName
-		}
-	}
-	var out []Alias
-	for k, v := range w.Aliases.Accounts {
-		out = append(out, Alias{Kind: AliasAccount, Key: k, Name: names[k], Alias: v})
-	}
-	n := len(out)
-	for k, v := range w.Aliases.Roles {
-		out = append(out, Alias{Kind: AliasRole, Key: k, Name: k, Alias: v})
-	}
-	sort.Slice(out[:n], func(i, j int) bool { return out[i].Key < out[j].Key })
-	sort.Slice(out[n:], func(i, j int) bool { return out[n+i].Key < out[n+j].Key })
-	return out, nil
-}
-
 func aliasTable(w *core.Workspace, kind AliasKind) (map[string]string, error) {
 	a := aliases(w)
 	switch kind {
@@ -195,16 +169,7 @@ func resolveAliasKey(w *core.Workspace, kind AliasKind, ref string) (string, err
 		if sess.Kind != core.KindAWSSSORole || sess.AWS == nil {
 			continue
 		}
-		var key string
-		var labels []string
-		switch kind {
-		case AliasAccount:
-			key = sess.AWS.AccountID
-			labels = []string{key, sess.AWS.AccountName, accountLabel(w, sess.AWS)}
-		case AliasRole:
-			key = sess.AWS.RoleName
-			labels = []string{key, roleLabel(w, key)}
-		}
+		key, labels := aliasLabels(w, kind, sess.AWS)
 		if seen[key] {
 			continue
 		}
@@ -223,4 +188,14 @@ func resolveAliasKey(w *core.Workspace, kind AliasKind, ref string) (string, err
 		return "", fmt.Errorf("%s %q: %w", kind, ref, core.ErrNotFound)
 	}
 	return "", fmt.Errorf("%s %q: %w", kind, ref, ErrAmbiguous)
+}
+
+// aliasLabels returns the alias table key of a session for kind and every
+// name the key shows: the key itself, the Identity Center name, and the
+// alias.
+func aliasLabels(w *core.Workspace, kind AliasKind, a *core.AWSSession) (string, []string) {
+	if kind == AliasAccount {
+		return a.AccountID, []string{a.AccountID, a.AccountName, accountLabel(w, a)}
+	}
+	return a.RoleName, []string{a.RoleName, roleLabel(w, a.RoleName)}
 }

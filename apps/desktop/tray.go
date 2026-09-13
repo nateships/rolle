@@ -117,7 +117,9 @@ func (t *tray) onNotification(action string, data map[string]any) {
 	case actionStart:
 		if w, err := t.svc.Load(); err == nil {
 			if sess, err := app.FindSession(w, sessionID); err == nil {
-				t.start(*sess)
+				// The platform delivers the response on its notification
+				// thread; a start makes network calls, so it runs apart.
+				go t.start(*sess)
 				return
 			}
 		}
@@ -195,7 +197,9 @@ func (t *tray) rebuild() {
 	t.mu.Lock()
 	t.active = len(active)
 	t.mu.Unlock()
-	warn := expiringSoon(w, time.Now(), currentSettings(t.svc).NotifyLead())
+	// Expiry notifications off silences the tray flag too.
+	st := w.EffectiveSettings()
+	warn := !st.NotifyOff && expiringSoon(w, time.Now(), st.NotifyLead())
 	t.setIcon(len(active) > 0, warn)
 	t.item.SetTooltip(tooltip(active))
 	if runtime.GOOS == "darwin" {

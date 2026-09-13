@@ -24,9 +24,10 @@ type Entry struct {
 	Exec Exec
 }
 
-// Merge writes entries into the kubeconfig at path. An entry with the same
-// name replaces the old one; other entries and unknown fields stay. A
-// missing file becomes a new kubeconfig. current, when set, becomes
+// Merge writes entries into the kubeconfig at path. A cluster or user with
+// the same name replaces the old one; a context with the same name keeps its
+// other fields, such as the namespace. Other entries and unknown fields
+// stay. A missing file becomes a new kubeconfig. current, when set, becomes
 // current-context.
 func Merge(path string, entries []Entry, current string) error {
 	doc, err := load(path)
@@ -39,7 +40,14 @@ func Merge(path string, entries []Entry, current string) error {
 			cluster["certificate-authority-data"] = base64.StdEncoding.EncodeToString(e.CA)
 		}
 		upsert(doc, "clusters", e.Cluster, cluster)
-		upsert(doc, "contexts", e.Context, map[string]any{"cluster": e.Cluster, "user": e.User})
+		context := map[string]any{}
+		if old := find(doc, "contexts", e.Context); old != nil {
+			if body, ok := old["context"].(map[string]any); ok {
+				context = body
+			}
+		}
+		context["cluster"], context["user"] = e.Cluster, e.User
+		upsert(doc, "contexts", e.Context, context)
 		upsert(doc, "users", e.User, map[string]any{"exec": e.Exec.spec()})
 	}
 	if current != "" {

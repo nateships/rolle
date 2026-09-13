@@ -2,13 +2,14 @@ name: Release Please
 
 # Opens and maintains a release pull request from the conventional commits on
 # main. Merging it creates the tag and the GitHub release, and the tag push
-# starts the Release workflow. The release is marked a pre-release at once, so
-# "latest" and the updater stay on the previous version until goreleaser fills
-# it with assets and clears the mark at the end of that workflow. A draft would
-# not do: goreleaser looks the release up by tag, and that lookup skips drafts,
-# so it would create a second release. The token must be a personal access token or a
-# GitHub App token: work done with the default GITHUB_TOKEN triggers no CI on
-# the release pull request and no Release run on the tag.
+# starts the Release workflow. The step below turns the release into a draft
+# at once, so "latest" and the updater stay on the previous version until
+# goreleaser has attached every asset. goreleaser finds the draft by its name
+# (release.use_existing_draft in .goreleaser.yaml), fills it, and publishes it
+# in its last step. A pre-release mark would not do: goreleaser clears that
+# mark in its first call, before any upload. The token must be a personal
+# access token or a GitHub App token: work done with the default GITHUB_TOKEN
+# triggers no CI on the release pull request and no Release run on the tag.
 on:
   push:
     branches: [main]
@@ -28,9 +29,9 @@ jobs:
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
-      - name: Hold the release as a pre-release until its assets are attached
+      - name: Hold the release as a draft until its assets are attached
         if: steps.release.outputs.releases_created == 'true'
         env:
           GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
           TAG: ${{ steps.release.outputs.tag_name }}
-        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --prerelease
+        run: gh release edit "$TAG" --repo "$GITHUB_REPOSITORY" --draft

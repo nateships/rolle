@@ -53,7 +53,7 @@ func ListGKE(ctx context.Context, client *http.Client, token, project string) ([
 		if err != nil {
 			return nil, fmt.Errorf("gke cluster %s: certificate: %w", c.Name, err)
 		}
-		out = append(out, Cluster{Name: c.Name, Location: c.Location, Endpoint: "https://" + c.Endpoint, CA: ca, Cloud: core.CloudGCP, Project: project})
+		out = append(out, Cluster{Name: c.Name, Location: c.Location, Endpoint: "https://" + c.Endpoint, CA: ca, Cloud: core.CloudGCP})
 	}
 	return out, nil
 }

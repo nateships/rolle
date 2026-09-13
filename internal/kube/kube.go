@@ -19,10 +19,6 @@ type Cluster struct {
 	Cloud core.Cloud
 	// Region is the EKS region.
 	Region string
-	// ID is the AKS resource ID.
-	ID string
-	// Project is the GKE project.
-	Project string
 }
 
 // Exec is a kubeconfig exec plugin: the command kubectl runs for a token.

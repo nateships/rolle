@@ -83,13 +83,10 @@ func expiryNotices(prev, cur []core.Session, now time.Time, warned map[string]ti
 func portalNotices(w *core.Workspace, now time.Time, warned map[string]time.Time) []notice {
 	var out []notice
 	for _, in := range w.Integrations {
-		if in.AWSSSO == nil || in.AWSSSO.TokenExpires == nil || !hasActive(w.Sessions, in.ID) {
-			continue
-		}
+		left, ok := portalDue(w, in, now)
 		exp := *in.AWSSSO.TokenExpires
-		left := exp.Sub(now)
 		key := "portal-" + in.ID
-		if left <= 0 || left > portalWarnBefore || warned[key].Equal(exp) {
+		if !ok || warned[key].Equal(exp) {
 			continue
 		}
 		warned[key] = exp
@@ -102,6 +99,16 @@ func portalNotices(w *core.Workspace, now time.Time, warned map[string]time.Time
 		})
 	}
 	return out
+}
+
+// portalDue reports whether the Identity Center sign-in of in ends inside
+// portalWarnBefore while a session under it is active, and how long is left.
+func portalDue(w *core.Workspace, in core.Integration, now time.Time) (time.Duration, bool) {
+	if in.AWSSSO == nil || in.AWSSSO.TokenExpires == nil || !hasActive(w.Sessions, in.ID) {
+		return 0, false
+	}
+	left := in.AWSSSO.TokenExpires.Sub(now)
+	return left, left > 0 && left <= portalWarnBefore
 }
 
 func hasActive(sessions []core.Session, integrationID string) bool {
@@ -123,10 +130,7 @@ func expiringSoon(w *core.Workspace, now time.Time, lead time.Duration) bool {
 		}
 	}
 	for _, in := range w.Integrations {
-		if in.AWSSSO == nil || in.AWSSSO.TokenExpires == nil || !hasActive(w.Sessions, in.ID) {
-			continue
-		}
-		if left := in.AWSSSO.TokenExpires.Sub(now); left > 0 && left <= portalWarnBefore {
+		if _, ok := portalDue(w, in, now); ok {
 			return true
 		}
 	}
@@ -140,25 +144,28 @@ type notifier struct {
 	warned map[string]time.Time
 }
 
-// newNotifier prepares the notification categories and routes the action a
+// newNotifier registers the notification categories and routes the action a
 // user takes on a notification to act. A click on the notification body
-// arrives with an empty action.
+// arrives with an empty action. The categories are registered before the
+// first send: a notice sent with an unknown category shows no button, and the
+// platforms report no error for it.
 func newNotifier(ns *notifications.NotificationService, act func(action string, data map[string]any)) *notifier {
 	n := &notifier{svc: ns, warned: map[string]time.Time{}}
 	if ns == nil {
 		return n
 	}
+	for _, c := range []notifications.NotificationCategory{
+		{ID: categoryStart, Actions: []notifications.NotificationAction{{ID: actionStart, Title: "Start again"}}},
+		{ID: categorySignIn, Actions: []notifications.NotificationAction{{ID: actionSignIn, Title: "Sign in"}}},
+	} {
+		if err := ns.RegisterNotificationCategory(c); err != nil {
+			debug.Logf("notify", "category %s: %v", c.ID, err)
+		}
+	}
+	// The authorization prompt can wait on the user; it does not block the refresh loop.
 	go func() {
 		if ok, err := ns.RequestNotificationAuthorization(); err != nil || !ok {
 			debug.Logf("notify", "authorization: ok=%v err=%v", ok, err)
-		}
-		for _, c := range []notifications.NotificationCategory{
-			{ID: categoryStart, Actions: []notifications.NotificationAction{{ID: actionStart, Title: "Start again"}}},
-			{ID: categorySignIn, Actions: []notifications.NotificationAction{{ID: actionSignIn, Title: "Sign in"}}},
-		} {
-			if err := ns.RegisterNotificationCategory(c); err != nil {
-				debug.Logf("notify", "category %s: %v", c.ID, err)
-			}
 		}
 	}()
 	if act != nil {

@@ -50,10 +50,12 @@ signs:
       - --yes
 
 release:
-  # goreleaser creates the release. The workflow downloads the signed desktop
-  # packages and the update manifest into release-assets/ first, so one step
-  # publishes everything.
+  # goreleaser fills the draft that release-please made. The workflow downloads
+  # the signed desktop packages and the update manifest into release-assets/
+  # first, so one step publishes everything. goreleaser finds a draft by its
+  # name, which release-please sets to the tag; a lookup by tag skips drafts.
   draft: false
+  use_existing_draft: true
   mode: replace
   prerelease: auto
   extra_files:

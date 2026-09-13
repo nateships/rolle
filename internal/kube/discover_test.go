@@ -51,7 +51,7 @@ func TestListGKE(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 1 || got[0].Name != "web" || got[0].Location != "europe-west1" || got[0].Endpoint != "https://35.1.2.3" || got[0].Cloud != core.CloudGCP || got[0].Project != "my-project" || !strings.HasPrefix(string(got[0].CA), "-----BEGIN CERTIFICATE-----") {
+	if len(got) != 1 || got[0].Name != "web" || got[0].Location != "europe-west1" || got[0].Endpoint != "https://35.1.2.3" || got[0].Cloud != core.CloudGCP || !strings.HasPrefix(string(got[0].CA), "-----BEGIN CERTIFICATE-----") {
 		t.Fatalf("clusters = %+v", got)
 	}
 	denied := testClient(t, func(w http.ResponseWriter, _ *http.Request) { http.Error(w, "nope", http.StatusForbidden) })
@@ -83,7 +83,7 @@ func TestListAKS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(got) != 1 || got[0].Name != "prod" || got[0].Location != "eastus" || got[0].Endpoint != "https://prod.hcp.eastus.azmk8s.io:443" || got[0].ID != id || got[0].Cloud != core.CloudAzure || !strings.HasPrefix(string(got[0].CA), "-----BEGIN CERTIFICATE-----") {
+	if len(got) != 1 || got[0].Name != "prod" || got[0].Location != "eastus" || got[0].Endpoint != "https://prod.hcp.eastus.azmk8s.io:443" || got[0].Cloud != core.CloudAzure || !strings.HasPrefix(string(got[0].CA), "-----BEGIN CERTIFICATE-----") {
 		t.Fatalf("clusters = %+v", got)
 	}
 }

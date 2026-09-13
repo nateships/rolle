@@ -408,10 +408,17 @@ func (s *Service) SyncSSO(ctx context.Context, ref string) ([]core.Session, erro
 	}
 	seen := map[string]bool{}
 	var added []core.Session
+	corrected := 0
 	for _, f := range roles {
 		acct, role := f.acct, f.role
 		seen[acct.ID+"/"+role.Name] = true
-		if hasSSORole(w, in.ID, acct.ID, role.Name) {
+		if have := findSSORole(w, in.ID, acct.ID, role.Name); have != nil {
+			// A session from before the field, or renamed by hand, may carry
+			// a guessed account name. Identity Center has the true one.
+			if have.AWS.AccountName != acct.Name {
+				have.AWS.AccountName = acct.Name
+				corrected++
+			}
 			continue
 		}
 		aws := &core.AWSSession{AccountID: acct.ID, RoleName: role.Name, AccountName: acct.Name}
@@ -441,19 +448,21 @@ func (s *Service) SyncSSO(ctx context.Context, ref string) ([]core.Session, erro
 	for _, id := range gone {
 		s.dropDependents(w, id)
 	}
-	if len(added) > 0 || len(gone) > 0 {
+	if len(added) > 0 || len(gone) > 0 || corrected > 0 {
 		return added, s.Save(w)
 	}
 	return added, nil
 }
 
-func hasSSORole(w *core.Workspace, integrationID, accountID, role string) bool {
-	for _, sess := range w.Sessions {
+// findSSORole returns the session of a portal's account and permission set, or nil.
+func findSSORole(w *core.Workspace, integrationID, accountID, role string) *core.Session {
+	for i := range w.Sessions {
+		sess := &w.Sessions[i]
 		if sess.IntegrationID == integrationID && sess.AWS != nil && sess.AWS.AccountID == accountID && sess.AWS.RoleName == role {
-			return true
+			return sess
 		}
 	}
-	return false
+	return nil
 }
 
 // AddAssumeRoleInput describes a new AssumeRole session.

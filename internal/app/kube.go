@@ -37,21 +37,23 @@ func (s *Service) KubeToken(ctx context.Context, ref string) (core.Credentials, 
 	return s.credentials(ctx, w, sess)
 }
 
-// KubeClusters lists the managed clusters an active session can reach. For
-// AWS, region wins over the session region, which wins over the default.
-func (s *Service) KubeClusters(ctx context.Context, ref, region string) ([]kube.Cluster, error) {
+// KubeClusters lists the managed clusters an active session can reach, with
+// the session ref names. For AWS, region wins over the session region, which
+// wins over the default.
+func (s *Service) KubeClusters(ctx context.Context, ref, region string) (*core.Session, []kube.Cluster, error) {
 	w, err := s.Load()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	sess, err := FindSession(w, ref)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	creds, err := s.credentials(ctx, w, sess)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
+	var clusters []kube.Cluster
 	switch sess.Kind.Cloud() {
 	case core.CloudAWS:
 		if region == "" {
@@ -60,11 +62,16 @@ func (s *Service) KubeClusters(ctx context.Context, ref, region string) ([]kube.
 		if region == "" {
 			region = w.EffectiveSettings().DefaultRegion
 		}
-		return kube.ListEKS(ctx, creds, region)
+		clusters, err = kube.ListEKS(ctx, creds, region)
 	case core.CloudAzure:
-		return kube.ListAKS(ctx, nil, creds.Token, sess.Azure.SubscriptionID)
+		clusters, err = kube.ListAKS(ctx, nil, creds.Token, sess.Azure.SubscriptionID)
 	case core.CloudGCP:
-		return kube.ListGKE(ctx, nil, creds.Token, sess.GCP.ProjectID)
+		clusters, err = kube.ListGKE(ctx, nil, creds.Token, sess.GCP.ProjectID)
+	default:
+		return nil, nil, fmt.Errorf("session kind %q is not supported", sess.Kind)
 	}
-	return nil, fmt.Errorf("session kind %q is not supported", sess.Kind)
+	if err != nil {
+		return nil, nil, err
+	}
+	return sess, clusters, nil
 }

@@ -24,6 +24,13 @@ describe("GopherRig", () => {
     expect(part(container, "hands-root").getAttribute("transform")).not.toBeNull();
   });
 
+  it("picks a random move on its own with plain autoplay", () => {
+    vi.spyOn(Math, "random").mockReturnValue(0);
+    const { container } = render(<GopherRig autoplay />);
+    act(() => void vi.advanceTimersByTime(700));
+    expect(part(container, "hands-root").getAttribute("transform")).not.toBeNull();
+  });
+
   it("returns every part to rest after the dance and after the peek", () => {
     const { container } = render(<GopherRig />);
     const svg = container.querySelector("svg")!;
