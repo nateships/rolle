@@ -492,14 +492,11 @@ export const mockApi = {
     if (x) x.name = name;
     emit();
   },
-  SetAlias: async (kind: string, key: string, alias: string) => {
+  SetAlias: async (_kind: string, key: string, alias: string) => {
     // The mock keeps no original names, so an empty alias changes nothing.
     if (!alias) return;
     for (const s of state.sessions) {
-      if (!s.aws || s.kind !== "aws-sso-role") continue;
-      const [acct, ...rest] = s.name.split("/");
-      if (kind === "account" && s.aws.accountId === key) s.name = `${alias}/${rest.join("/")}`;
-      if (kind === "role" && s.aws.roleName === key) s.name = `${acct}/${alias}`;
+      if (s.aws?.roleName === key && s.kind === "aws-sso-role") s.name = `${s.name.split("/")[0]}/${alias}`;
     }
     emit();
   },

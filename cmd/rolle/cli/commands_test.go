@@ -185,23 +185,6 @@ func TestIntegrationLoginDeviceFlowDiscoversRoles(t *testing.T) {
 	if out := mustRun(t, "session", "list"); strings.Contains(out, "Acme/") && !strings.Contains(out, "active") {
 		t.Fatalf("list after hiding the account:\n%s", out)
 	}
-	// Aliases rename the account and the permission set in every session name.
-	mustRun(t, "alias", "account", "111111111111", "Prod")
-	mustRun(t, "alias", "role", "Admin", "Root")
-	if out := mustRun(t, "session", "list", "--all"); !strings.Contains(out, "Prod/Root") || !strings.Contains(out, "Prod/ReadOnly") {
-		t.Fatalf("list after aliases:\n%s", out)
-	}
-	if _, err := run(t, "alias", "role", "ReadOnly", "root"); err == nil {
-		t.Fatal("a second permission set with the same alias must fail")
-	}
-	if row := fields(lines(mustRun(t, "alias", "list"))[1]); strings.Join(row, " ") != "account 111111111111 Acme Prod" {
-		t.Fatalf("alias list row = %v", row)
-	}
-	mustRun(t, "alias", "role", "Root", "--clear")
-	mustRun(t, "alias", "account", "Prod", "--clear")
-	if out := mustRun(t, "session", "list", "--all"); !strings.Contains(out, "Acme/Admin") {
-		t.Fatalf("list after clearing aliases:\n%s", out)
-	}
 	// Tags group sessions in the sidebar; the CLI manages them too.
 	mustRun(t, "tag", "add", "Prod", "--color", "#FF0000", "--icon", "shield")
 	mustRun(t, "tag", "add", "Sandbox")

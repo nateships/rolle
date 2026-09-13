@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { errorMessage } from "@/lib/api";
 
 export type RenameTarget = {
-  kind: "integration" | "session" | "profile" | "account";
+  kind: "integration" | "session" | "profile";
   id: string;
   name: string;
   save: (name: string) => Promise<unknown>;
@@ -33,13 +33,6 @@ const COPY: Record<
     title: "Rename session",
     description: "The AWS profile name does not change.",
     done: (v) => `Renamed to ${v}`,
-  },
-  account: {
-    title: "Rename account",
-    description:
-      "Every role of this account takes the name, now and after each sync. Leave empty to restore the name from Identity Center.",
-    allowEmpty: true,
-    done: (v) => (v ? `Renamed to ${v}` : "Name restored"),
   },
   profile: {
     title: "AWS profile name",
