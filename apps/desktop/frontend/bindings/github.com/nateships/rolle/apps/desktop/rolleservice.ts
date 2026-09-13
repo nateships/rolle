@@ -314,6 +314,14 @@ export function SetAccountHidden(integrationID: string, accountID: string, hidde
 }
 
 /**
+ * SetAlias names an Identity Center account or permission set in every
+ * session name. An empty alias clears it.
+ */
+export function SetAlias(kind: string, key: string, alias: string): $CancellablePromise<void> {
+    return $Call.ByID(3846202439, kind, key, alias);
+}
+
+/**
  * SetFavorite pins or unpins a session.
  */
 export function SetFavorite(ref: string, favorite: boolean): $CancellablePromise<void> {

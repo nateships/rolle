@@ -66,7 +66,14 @@ func Default() (*Service, error) {
 }
 
 // Load reads the workspace.
-func (s *Service) Load() (*core.Workspace, error) { return workspace.Load(s.WorkspacePath) }
+func (s *Service) Load() (*core.Workspace, error) {
+	w, err := workspace.Load(s.WorkspacePath)
+	if err != nil {
+		return nil, err
+	}
+	fillAccountNames(w)
+	return w, nil
+}
 
 // Save writes the workspace and notifies OnChange.
 func (s *Service) Save(w *core.Workspace) error {
@@ -407,14 +414,15 @@ func (s *Service) SyncSSO(ctx context.Context, ref string) ([]core.Session, erro
 		if hasSSORole(w, in.ID, acct.ID, role.Name) {
 			continue
 		}
+		aws := &core.AWSSession{AccountID: acct.ID, RoleName: role.Name, AccountName: acct.Name}
 		sess := core.Session{
 			ID:            newID(),
-			Name:          acct.Name + "/" + role.Name,
+			Name:          ssoName(w, aws),
 			Kind:          core.KindAWSSSORole,
 			Region:        in.AWSSSO.Region,
 			IntegrationID: in.ID,
 			Status:        core.StatusInactive,
-			AWS:           &core.AWSSession{AccountID: acct.ID, RoleName: role.Name},
+			AWS:           aws,
 		}
 		w.Sessions = append(w.Sessions, sess)
 		added = append(added, sess)

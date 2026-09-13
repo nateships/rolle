@@ -446,6 +446,27 @@ describe("SessionRow actions", () => {
     await waitFor(() => expect(dialog).not.toBeInTheDocument());
   });
 
+  it("names a permission set in every account from the rename dialog", async () => {
+    const user = userEvent.setup();
+    const s = ssoRole("Acme Prod", "111", "AWSAdministratorAccess");
+    const setAlias = vi.spyOn(api, "SetAlias").mockResolvedValue();
+    const rename = vi.spyOn(api, "RenameSession").mockResolvedValue();
+    renderRow(s);
+
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    await user.click(await screen.findByRole("menuitem", { name: "Rename" }));
+    await screen.findByRole("dialog", { name: "Rename session" });
+    // The toggle swaps the field to the role part alone.
+    await user.click(screen.getByRole("switch", { name: "Apply to this role in every account" }));
+    const input = screen.getByDisplayValue("AWSAdministratorAccess");
+    await user.clear(input);
+    await user.type(input, "Admin");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(setAlias).toHaveBeenCalledWith("role", "AWSAdministratorAccess", "Admin"));
+    expect(rename).not.toHaveBeenCalled();
+  });
+
   it("sets the AWS profile name from the profile cell", async () => {
     const user = userEvent.setup();
     const s = session({ name: "personal", kind: Kind.KindAWSIAMUser });

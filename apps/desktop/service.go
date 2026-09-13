@@ -421,6 +421,12 @@ func (r *RolleService) SetRegion(ref, region string) error { return r.svc.SetReg
 // SetProfile sets the AWS profile name for a session. Empty restores the default.
 func (r *RolleService) SetProfile(ref, profile string) error { return r.svc.SetProfile(ref, profile) }
 
+// SetAlias names an Identity Center account or permission set in every
+// session name. An empty alias clears it.
+func (r *RolleService) SetAlias(kind, key, alias string) error {
+	return r.svc.SetAlias(app.AliasKind(kind), key, alias)
+}
+
 // RenameSession changes a session's name.
 func (r *RolleService) RenameSession(ref, name string) error {
 	return r.svc.RenameSession(ref, name)

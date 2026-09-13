@@ -122,6 +122,8 @@ export function SessionRow({
     }
   }
 
+  // Set for an Identity Center role; its permission set can be renamed in every account.
+  const roleName = s.kind === Kind.KindAWSSSORole ? s.aws?.roleName : undefined;
   // One action list feeds the row menu and the right-click menu.
   const common: Action[] = [
     {
@@ -153,7 +155,21 @@ export function SessionRow({
     {
       label: "Rename",
       icon: <Pencil />,
-      onSelect: () => setEditing({ kind: "session", id: s.id, name: s.name, save: (n) => api.RenameSession(s.id, n) }),
+      onSelect: () =>
+        setEditing({
+          kind: "session",
+          id: s.id,
+          name: s.name,
+          save: (n) => api.RenameSession(s.id, n),
+          // An Identity Center role can take the name in every account instead.
+          everywhere: roleName
+            ? {
+                label: "Apply to this role in every account",
+                name: roleLabel(s.name),
+                save: (n) => api.SetAlias("role", roleName, n),
+              }
+            : undefined,
+        }),
     },
     ...(isAWS
       ? ([

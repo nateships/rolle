@@ -118,6 +118,9 @@ type AWSSession struct {
 	// AccountID and RoleName identify an SSO role or the target of AssumeRole.
 	AccountID string `json:"accountId,omitempty"`
 	RoleName  string `json:"roleName,omitempty"`
+	// AccountName is the name Identity Center gives the account. Aliases
+	// and the session name build on it.
+	AccountName string `json:"accountName,omitempty"`
 	// RoleARN is the role to assume. Set for KindAWSAssumeRole.
 	RoleARN string `json:"roleArn,omitempty"`
 	// SourceSessionID provides credentials for AssumeRole.
@@ -249,10 +252,20 @@ type Workspace struct {
 	// Tags are user-defined groups, in sidebar order. Sessions refer to
 	// them by name.
 	Tags []Tag `json:"tags,omitempty"`
+	// Aliases rename Identity Center accounts and permission sets in every
+	// session name. They apply across every portal.
+	Aliases *Aliases `json:"aliases,omitempty"`
 	// Onboarded is set once the desktop walkthrough completes.
 	Onboarded bool `json:"onboarded"`
 	// Settings holds user preferences. Nil means defaults.
 	Settings *Settings `json:"settings,omitempty"`
+}
+
+// Aliases are the display names for Identity Center accounts, by account
+// ID, and permission sets, by name. An alias is unique among its kind.
+type Aliases struct {
+	Accounts map[string]string `json:"accounts,omitempty"`
+	Roles    map[string]string `json:"roles,omitempty"`
 }
 
 // EffectiveSettings returns the stored settings with defaults applied.

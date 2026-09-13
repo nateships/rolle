@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { errorMessage } from "@/lib/api";
 
 export type RenameTarget = {
@@ -11,6 +13,11 @@ export type RenameTarget = {
   id: string;
   name: string;
   save: (name: string) => Promise<unknown>;
+  /**
+   * A second way to save: the name becomes an alias for the permission set
+   * in every account. The toggle swaps the field to the role part alone.
+   */
+  everywhere?: { label: string; name: string; save: (name: string) => Promise<unknown> };
 };
 
 const COPY: Record<
@@ -41,16 +48,24 @@ const COPY: Record<
 export function RenameDialog({ target, onClose }: { target: RenameTarget | null; onClose: () => void }) {
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [all, setAll] = useState(false);
   const targetId = target?.id;
   const targetName = target?.name;
   // The id is a deliberate extra dependency: a new target with the same name still resets the field.
   /* oxlint-disable react/exhaustive-effect-dependencies */
   useEffect(() => {
     setName(targetName ?? "");
+    setAll(false);
   }, [targetId, targetName]);
   /* oxlint-enable react/exhaustive-effect-dependencies */
   const copy = COPY[target?.kind ?? "session"];
-  const valid = (copy.allowEmpty || name.trim().length > 0) && name.trim() !== (target?.name ?? "");
+  const everywhere = all ? target?.everywhere : undefined;
+  const initial = everywhere?.name ?? target?.name ?? "";
+  const valid = (copy.allowEmpty || name.trim().length > 0) && name.trim() !== initial;
+  const toggleAll = (on: boolean) => {
+    setAll(on);
+    setName(on ? (target?.everywhere?.name ?? "") : (target?.name ?? ""));
+  };
   return (
     <Dialog open={!!target} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-sm">
@@ -65,8 +80,10 @@ export function RenameDialog({ target, onClose }: { target: RenameTarget | null;
             if (!target || !valid) return;
             setBusy(true);
             try {
-              await target.save(name.trim());
-              toast.success(copy.done(name.trim()));
+              await (everywhere ? everywhere.save(name.trim()) : target.save(name.trim()));
+              toast.success(
+                everywhere ? `${everywhere.name} is now ${name.trim()} in every account` : copy.done(name.trim()),
+              );
               onClose();
             } catch (err) {
               toast.error(errorMessage(err));
@@ -83,6 +100,14 @@ export function RenameDialog({ target, onClose }: { target: RenameTarget | null;
             onFocus={(e) => e.target.select()}
             className={target?.kind === "profile" ? "font-mono" : undefined}
           />
+          {target?.everywhere && (
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <Label htmlFor="rename-everywhere" className="font-normal text-muted-foreground">
+                {target.everywhere.label}
+              </Label>
+              <Switch id="rename-everywhere" checked={all} onCheckedChange={toggleAll} />
+            </div>
+          )}
           <Button type="submit" className="w-full" disabled={!valid || busy}>
             {busy ? <Loader2 className="size-4 animate-spin" /> : "Save"}
           </Button>

@@ -30,6 +30,12 @@ export interface AWSSession {
     "roleName"?: string;
 
     /**
+     * AccountName is the name Identity Center gives the account. Aliases
+     * and the session name build on it.
+     */
+    "accountName"?: string;
+
+    /**
      * RoleARN is the role to assume. Set for KindAWSAssumeRole.
      */
     "roleArn"?: string;
@@ -48,6 +54,15 @@ export interface AWSSession {
      * MFADevice is the serial or ARN of the MFA device for IAM users.
      */
     "mfaDevice"?: string;
+}
+
+/**
+ * Aliases are the display names for Identity Center accounts, by account
+ * ID, and permission sets, by name. An alias is unique among its kind.
+ */
+export interface Aliases {
+    "accounts"?: { [_ in string]?: string } | null;
+    "roles"?: { [_ in string]?: string } | null;
 }
 
 /**
@@ -319,6 +334,12 @@ export interface Workspace {
      * them by name.
      */
     "tags"?: Tag[] | null;
+
+    /**
+     * Aliases rename Identity Center accounts and permission sets in every
+     * session name. They apply across every portal.
+     */
+    "aliases"?: Aliases | null;
 
     /**
      * Onboarded is set once the desktop walkthrough completes.
