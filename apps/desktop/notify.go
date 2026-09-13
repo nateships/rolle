@@ -83,10 +83,15 @@ func expiryNotices(prev, cur []core.Session, now time.Time, warned map[string]ti
 func portalNotices(w *core.Workspace, now time.Time, warned map[string]time.Time) []notice {
 	var out []notice
 	for _, in := range w.Integrations {
+		// portalDue is false for an integration without a portal token, so
+		// the expiry is read only after the check.
 		left, ok := portalDue(w, in, now)
+		if !ok {
+			continue
+		}
 		exp := *in.AWSSSO.TokenExpires
 		key := "portal-" + in.ID
-		if !ok || warned[key].Equal(exp) {
+		if warned[key].Equal(exp) {
 			continue
 		}
 		warned[key] = exp

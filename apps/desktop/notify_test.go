@@ -57,6 +57,8 @@ func TestPortalNoticesAndExpiringSoon(t *testing.T) {
 	warned := map[string]time.Time{}
 	w := &core.Workspace{
 		Integrations: []core.Integration{
+			// An Azure tenant has no portal token and must not be read as one.
+			{ID: "az", Alias: "contoso", Azure: &core.AzureIntegration{}},
 			{ID: "i1", Alias: "acme", AWSSSO: &core.AWSSSOIntegration{TokenExpires: at(10 * time.Minute)}},
 			{ID: "i2", Alias: "idle", AWSSSO: &core.AWSSSOIntegration{TokenExpires: at(10 * time.Minute)}},
 			{ID: "i3", Alias: "far", AWSSSO: &core.AWSSSOIntegration{TokenExpires: at(2 * time.Hour)}},
@@ -76,11 +78,11 @@ func TestPortalNoticesAndExpiringSoon(t *testing.T) {
 		t.Fatalf("repeat warning: %+v", got)
 	}
 	// A new sign-in warns again for its own expiry.
-	w.Integrations[0].AWSSSO.TokenExpires = at(8 * time.Hour)
+	w.Integrations[1].AWSSSO.TokenExpires = at(8 * time.Hour)
 	if got := portalNotices(w, now, warned); len(got) != 0 {
 		t.Fatalf("fresh sign-in: %+v", got)
 	}
-	w.Integrations[0].AWSSSO.TokenExpires = at(5 * time.Minute)
+	w.Integrations[1].AWSSSO.TokenExpires = at(5 * time.Minute)
 	if got := portalNotices(w, now, warned); len(got) != 1 {
 		t.Fatalf("second warning: %+v", got)
 	}
@@ -89,7 +91,7 @@ func TestPortalNoticesAndExpiringSoon(t *testing.T) {
 	if !expiringSoon(w, now, core.DefaultNotifyLead) {
 		t.Fatal("portal inside its lead: not flagged")
 	}
-	w.Integrations[0].AWSSSO.TokenExpires = at(8 * time.Hour)
+	w.Integrations[1].AWSSSO.TokenExpires = at(8 * time.Hour)
 	if expiringSoon(w, now, core.DefaultNotifyLead) {
 		t.Fatal("nothing close: flagged")
 	}
