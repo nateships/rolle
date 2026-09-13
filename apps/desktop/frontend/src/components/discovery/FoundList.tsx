@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Import, Loader2 } from "lucide-react";
+import { ChevronDown, Import, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -156,6 +156,8 @@ export function FoundList({
   const leappCount = leapp ? leapp.iamUsers.length + leapp.chainedRoles.length : 0;
   // An IAM user imports here: the key moves into rolle, then the dialog offers to remove it from the file.
   const [importingUser, setImportingUser] = useState<string | null>(null);
+  // The IAM users start folded, so a long credentials file leaves room for the rest of the step.
+  const [usersOpen, setUsersOpen] = useState(false);
   const [removing, setRemoving] = useState<RemoveKeysTarget | null>(null);
   // importUsers moves each key into rolle in turn, then offers to remove
   // the imported ones from the file together. "*" marks an import of all.
@@ -178,7 +180,7 @@ export function FoundList({
   return (
     // The list scrolls inside a cap, so a long credentials file does not
     // push the rest of the step off the screen.
-    <ul className="max-h-[22rem] space-y-2 overflow-y-auto pr-1">
+    <ul className="space-y-2">
       {portals.map((p) => (
         <FoundRow
           key={p.startUrl}
@@ -239,35 +241,42 @@ export function FoundList({
       )}
       {iamUsers.length > 0 && (
         <li className="flex items-center justify-between gap-3 pt-1 text-xs text-muted-foreground">
-          <span>IAM users in the credentials file. Import moves a key into rolle.</span>
-          {iamUsers.length > 1 && (
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-6 shrink-0 gap-1.5 text-xs"
-              disabled={disabled || importingUser !== null}
-              onClick={() => void importUsers(iamUsers)}
-            >
-              {importingUser === "*" ? <Loader2 className="size-3 animate-spin" /> : <Import className="size-3" />}{" "}
-              Import all
-            </Button>
-          )}
+          <button
+            type="button"
+            className="flex items-center gap-1.5 rounded hover:text-foreground"
+            aria-expanded={usersOpen}
+            onClick={() => setUsersOpen((o) => !o)}
+          >
+            <ChevronDown className={cn("size-3.5 transition-transform", !usersOpen && "-rotate-90")} />
+            {iamUsers.length} IAM user{iamUsers.length === 1 ? "" : "s"} in the credentials file
+          </button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="h-6 shrink-0 gap-1.5 text-xs"
+            disabled={disabled || importingUser !== null}
+            onClick={() => void importUsers(iamUsers)}
+          >
+            {importingUser === "*" ? <Loader2 className="size-3 animate-spin" /> : <Import className="size-3" />}
+            {iamUsers.length === 1 ? "Import" : "Import all"}
+          </Button>
         </li>
       )}
-      {iamUsers.map((u) => (
-        <FoundRow
-          key={u.profile}
-          cloud="aws"
-          title={u.profile}
-          subtitle={[`${u.accessKeyId.slice(0, 4)}…`, u.region].filter(Boolean).join(" · ")}
-          badge={u.mfaDevice ? "MFA" : undefined}
-          badgeOk
-          compact
-          busy={importingUser === u.profile || importingUser === "*"}
-          disabled={disabled || importingUser !== null}
-          onImport={() => void importUsers([u])}
-        />
-      ))}
+      {usersOpen &&
+        iamUsers.map((u) => (
+          <FoundRow
+            key={u.profile}
+            cloud="aws"
+            title={u.profile}
+            subtitle={[`${u.accessKeyId.slice(0, 4)}…`, u.region].filter(Boolean).join(" · ")}
+            badge={u.mfaDevice ? "MFA" : undefined}
+            badgeOk
+            compact
+            busy={importingUser === u.profile || importingUser === "*"}
+            disabled={disabled || importingUser !== null}
+            onImport={() => void importUsers([u])}
+          />
+        ))}
       <RemoveKeysDialog target={removing} onClose={() => setRemoving(null)} />
     </ul>
   );
