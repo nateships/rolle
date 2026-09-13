@@ -54,18 +54,31 @@ func Open(o Options) error {
 
 func shQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'" }
 
-// Exports formats env as shell assignments, one per line, for eval in a POSIX
-// shell or in PowerShell. Empty values are skipped.
-func Exports(env [][2]string, powershell bool) string {
+// Exports formats env as shell assignments, one per line, for a launcher
+// script in a POSIX shell or in PowerShell. Empty values are skipped.
+func Exports(env [][2]string, powershell bool) string { return exports(env, powershell, false) }
+
+// EvalExports formats env for eval in the user's shell. An empty credential
+// removes the variable, so a stale token from an earlier session does not
+// stay set. Other empty values, such as a region, leave the shell's own
+// value alone.
+func EvalExports(env [][2]string, powershell bool) string { return exports(env, powershell, true) }
+
+// cleared names the variables an empty value removes in EvalExports.
+var cleared = map[string]bool{"AWS_SESSION_TOKEN": true}
+
+func exports(env [][2]string, powershell, unset bool) string {
 	var b strings.Builder
 	for _, kv := range env {
-		if kv[1] == "" {
-			continue
-		}
-		if powershell {
+		switch {
+		case kv[1] != "" && powershell:
 			fmt.Fprintf(&b, "$env:%s = %s\n", kv[0], psQuote(kv[1]))
-		} else {
+		case kv[1] != "":
 			fmt.Fprintf(&b, "export %s=%s\n", kv[0], shQuote(kv[1]))
+		case unset && cleared[kv[0]] && powershell:
+			fmt.Fprintf(&b, "Remove-Item Env:%s -ErrorAction SilentlyContinue\n", kv[0])
+		case unset && cleared[kv[0]]:
+			fmt.Fprintf(&b, "unset %s\n", kv[0])
 		}
 	}
 	return b.String()

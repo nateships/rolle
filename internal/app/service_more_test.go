@@ -12,6 +12,7 @@ import (
 	"github.com/nateships/rolle/internal/aws"
 	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/debug"
+	"github.com/nateships/rolle/internal/netcfg"
 	"github.com/nateships/rolle/internal/secrets"
 )
 
@@ -492,6 +493,32 @@ func TestAddGCPImpersonationValidation(t *testing.T) {
 	w, _ := s.Load()
 	if len(w.Sessions) != 0 {
 		t.Fatalf("rejected input must not add sessions: %+v", w.Sessions)
+	}
+}
+
+func TestUpdateSettingsLogsProxyWithoutPassword(t *testing.T) {
+	s := testService(t)
+	t.Cleanup(func() { _ = netcfg.Apply(core.Settings{}) })
+	if _, err := s.UpdateSettings(core.Settings{ProxyURL: "http://nate:hunter2@proxy.corp:3128"}); err != nil {
+		t.Fatal(err)
+	}
+	for _, line := range debug.Recent() {
+		if strings.Contains(line, "hunter2") {
+			t.Fatalf("settings log leaks the proxy password: %s", line)
+		}
+	}
+}
+
+func TestRemoveSessionReportsCleanupFailure(t *testing.T) {
+	s := testService(t)
+	sess := addIAMUser(t, s, "dev")
+	// A directory in place of the config file makes the profile cleanup fail.
+	s.AWSConfigPath = t.TempDir()
+	if err := s.RemoveSession(sess.ID); err == nil || !strings.Contains(err.Error(), "cleanup failed") {
+		t.Fatalf("RemoveSession = %v, want a cleanup error", err)
+	}
+	if w, _ := s.Load(); len(w.Sessions) != 0 {
+		t.Fatalf("session must be removed even when cleanup fails: %+v", w.Sessions)
 	}
 }
 

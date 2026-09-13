@@ -224,11 +224,12 @@ func TestStartStatusStopAndEnv(t *testing.T) {
 		t.Fatalf("status: %v", got)
 	}
 	out = mustRun(t, "env", "dev")
-	if !strings.Contains(out, "export AWS_ACCESS_KEY_ID='AKIA'\n") || !strings.Contains(out, "export AWS_SECRET_ACCESS_KEY='secret'\n") || !strings.Contains(out, "export AWS_REGION='us-east-1'\n") || strings.Contains(out, "AWS_SESSION_TOKEN") {
+	// An IAM user has no session token. The eval output clears a stale one.
+	if !strings.Contains(out, "export AWS_ACCESS_KEY_ID='AKIA'\n") || !strings.Contains(out, "export AWS_SECRET_ACCESS_KEY='secret'\n") || !strings.Contains(out, "export AWS_REGION='us-east-1'\n") || !strings.Contains(out, "unset AWS_SESSION_TOKEN\n") {
 		t.Fatalf("env output:\n%s", out)
 	}
 	out = mustRun(t, "env", "dev", "--powershell")
-	if !strings.Contains(out, "$env:AWS_ACCESS_KEY_ID = ") {
+	if !strings.Contains(out, "$env:AWS_ACCESS_KEY_ID = ") || !strings.Contains(out, "Remove-Item Env:AWS_SESSION_TOKEN -ErrorAction SilentlyContinue\n") {
 		t.Fatalf("powershell output:\n%s", out)
 	}
 	out = mustRun(t, "creds", "--session", reload(t, s, "dev").ID)

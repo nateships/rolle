@@ -38,6 +38,9 @@ func Root() *cobra.Command {
 			}
 			svc = s
 			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt)
+			// The first Ctrl-C cancels the context. Release the handler then,
+			// so a second Ctrl-C ends a command that does not read the context.
+			go func() { <-ctx.Done(); stop() }()
 			cmd.SetContext(ctx)
 			cobra.OnFinalize(stop)
 			return nil

@@ -3,7 +3,7 @@ title: Service account impersonation
 description: Mint short-lived tokens for a service account from your own credentials.
 ---
 
-An impersonation session calls the IAM Credentials API to mint a token for a service account. rolle also writes an impersonated ADC file so client libraries pick it up.
+An impersonation session calls the IAM Credentials API to mint a token for a service account. rolle also writes an impersonated ADC file so client libraries pick it up. That file embeds your gcloud refresh token as the source credential; it lives under `credentials/gcp/` in the cache directory with owner-only permissions, and rolle removes it when the session stops.
 
 ```sh
 rolle session add gcp-impersonate \

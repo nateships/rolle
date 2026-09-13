@@ -53,6 +53,7 @@ func fakeHome(t *testing.T) (home, adcPath string) {
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("APPDATA", home)
+	t.Setenv("CLOUDSDK_CONFIG", "")
 	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", "")
 	if runtime.GOOS == "windows" {
 		return home, filepath.Join(home, "gcloud", "application_default_credentials.json")
@@ -76,6 +77,11 @@ func TestADCPath(t *testing.T) {
 	_, want := fakeHome(t)
 	if got, err := ADCPath(); err != nil || got != want {
 		t.Fatalf("ADCPath = %q, %v; want %q", got, err, want)
+	}
+	cfg := t.TempDir()
+	t.Setenv("CLOUDSDK_CONFIG", cfg)
+	if got, err := ADCPath(); err != nil || got != filepath.Join(cfg, "application_default_credentials.json") {
+		t.Fatalf("ADCPath with CLOUDSDK_CONFIG = %q, %v", got, err)
 	}
 	custom := filepath.Join(t.TempDir(), "adc.json")
 	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", custom)

@@ -107,7 +107,7 @@ func envCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Print(terminal.Exports(env, powershell))
+			fmt.Print(terminal.EvalExports(env, powershell))
 			return nil
 		},
 	}
@@ -141,8 +141,8 @@ func statusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
 		Short: "Show active sessions",
-		RunE: func(_ *cobra.Command, _ []string) error {
-			w, err := svc.Refresh()
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			w, err := svc.RefreshContext(cmd.Context())
 			if err != nil {
 				return err
 			}

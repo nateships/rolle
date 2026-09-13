@@ -181,18 +181,27 @@ func load(path string) (*ini.File, error) {
 }
 
 func save(path string, f *ini.File) error {
+	// Write onto the target of a symlinked config, so the link stays a link.
+	if real, err := filepath.EvalSymlinks(path); err == nil {
+		path = real
+	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return err
 	}
-	tmp := path + ".rolle-tmp"
-	if err := f.SaveTo(tmp); err != nil {
+	// CreateTemp opens the file with owner-only permissions and a unique name.
+	tmp, err := os.CreateTemp(filepath.Dir(path), filepath.Base(path)+".rolle-*")
+	if err != nil {
 		return err
 	}
-	if err := os.Chmod(tmp, 0o600); err != nil {
-		_ = os.Remove(tmp)
+	_, err = f.WriteTo(tmp)
+	if cerr := tmp.Close(); err == nil {
+		err = cerr
+	}
+	if err != nil {
+		_ = os.Remove(tmp.Name())
 		return err
 	}
-	return os.Rename(tmp, path)
+	return os.Rename(tmp.Name(), path)
 }
 
 // wroteRegion reports whether rolle added the region key: a taken-over
