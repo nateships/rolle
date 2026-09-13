@@ -19,7 +19,7 @@
 Assume any role, any cloud.
 
 <p align="center">
-  <img src="docs/public/screenshots/dashboard-dark.png" alt="rolle dashboard: AWS accounts with their roles, an Azure subscription, and Google Cloud projects, two sessions active" width="900">
+  <img src="docs/public/screenshots/dashboard-dark.png" alt="rolle dashboard: tags, AWS accounts with their roles, IAM users, an Azure subscription, and Google Cloud projects, two sessions active" width="900">
 </p>
 
 rolle is a desktop app and a CLI. It hands short-lived AWS, Azure, and Google Cloud credentials to your tools and writes no secret to disk.
