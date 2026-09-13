@@ -493,7 +493,9 @@ describe("SessionRow actions", () => {
     const error = vi.spyOn(toast, "error");
     await user.click(screen.getByRole("button", { name: /^start$/i }));
     await waitFor(() => expect(error).toHaveBeenCalled());
-    const opts = error.mock.calls[0][1] as { action?: { label: string; onClick: () => void } };
+    expect(error.mock.calls[0][0]).toBe("Static keys in ~/.aws/credentials");
+    const opts = error.mock.calls[0][1] as { description?: string; action?: { label: string; onClick: () => void } };
+    expect(opts.description).toBe("Tools read them before profile default.");
     expect(opts.action?.label).toBe("Remove from file");
     opts.action!.onClick();
     await waitFor(() => expect(fix).toHaveBeenCalledWith(s.id));

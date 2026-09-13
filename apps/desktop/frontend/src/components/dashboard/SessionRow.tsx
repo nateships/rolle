@@ -95,7 +95,10 @@ export function SessionRow({
         onNeedsLogin(integration, s.id);
       } else if (/static keys/i.test(msg)) {
         // The keys can go and the start can run again.
-        toast.error(msg, { action: { label: "Remove from file", onClick: () => void fixProfile() } });
+        toast.error(`Static keys in ${shadowedBy ?? "~/.aws/credentials"}`, {
+          description: `Tools read them before profile ${profileName}.`,
+          action: { label: "Remove from file", onClick: () => void fixProfile() },
+        });
       } else {
         toast.error(msg);
       }
