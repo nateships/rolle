@@ -151,6 +151,18 @@ describe("Dashboard", () => {
     expect(rowNames()).toEqual(["Acme Prod", "AdministratorAccess", "deployer"]);
   });
 
+  it("leaves hidden sessions out of the sidebar counts", () => {
+    // deployer is a manual favorite; hidden, it leaves both lists and both counts.
+    Object.assign(
+      workspace.sessions.find((s) => s.name === "deployer")!,
+      { hidden: true },
+    );
+    renderDashboard();
+    const sidebar = within(screen.getByRole("complementary"));
+    expect(sidebar.getByRole("button", { name: /^Favorites/ })).toHaveTextContent("Favorites1");
+    expect(sidebar.getByRole("button", { name: /^Manual/ })).toHaveTextContent("Manual2");
+  });
+
   it("filters to one integration", async () => {
     const user = userEvent.setup();
     renderDashboard();

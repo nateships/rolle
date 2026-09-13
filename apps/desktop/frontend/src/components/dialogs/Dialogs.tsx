@@ -429,6 +429,7 @@ export function AddGCPImpersonationDialog({
   useEffect(() => {
     if (open) return;
     setName("");
+    setIntegrationRef("");
     setProjectId("");
     setServiceAccount("");
   }, [open]);

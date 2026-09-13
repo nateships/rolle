@@ -101,7 +101,10 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   );
   // ?settings=1 opens the settings dialog in the browser preview.
   // A session that waits for a sign-in. It starts when the login completes.
-  const [pendingStart, setPendingStart] = useState<string | null>(null);
+  // The session to start once a sign-in completes. A ref, so the login
+  // dialog's completion handler reads the latest value, not the one from
+  // the render that opened it.
+  const pendingStart = useRef<string | null>(null);
   const [dialog, setDialog] = useState<Dialog>(() => {
     if (inWails) return null;
     const q = new URLSearchParams(location.search);
@@ -119,7 +122,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   // A Google Cloud integration has no sign-in dialog: a sync re-reads the gcloud credentials.
   function needsLogin(integ: Integration, startId?: string) {
     if (integ.cloud !== CloudKind.CloudGCP) {
-      setPendingStart(startId ?? null);
+      pendingStart.current = startId ?? null;
       setDialog({ kind: "login", integration: integ });
       return;
     }
@@ -160,8 +163,9 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   const hint = (key: string) => (held ? combo(key) : undefined);
 
   const active = workspace.sessions.filter((s) => s.status === Status.StatusActive).length;
-  const manualCount = workspace.sessions.filter((s) => !s.integrationId).length;
-  const favoriteCount = workspace.sessions.filter((s) => s.favorite).length;
+  // Hidden sessions leave every list but Hidden, so the counts skip them too.
+  const manualCount = workspace.sessions.filter((s) => !s.hidden && !s.integrationId).length;
+  const favoriteCount = workspace.sessions.filter((s) => !s.hidden && s.favorite).length;
   const hiddenCount = workspace.sessions.filter((s) => s.hidden).length;
   const tags = useMemo(() => workspace.tags ?? [], [workspace.tags]);
   // A tag filter is "tag:<name>"; the other filters are keywords or integration ids.
@@ -803,13 +807,13 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
         integration={dialog?.kind === "login" ? dialog.integration : null}
         onClose={() => {
           setDialog(null);
-          setPendingStart(null);
+          pendingStart.current = null;
         }}
         onDone={(integ) => {
           setFilter(integ.id);
-          if (pendingStart) {
-            const id = pendingStart;
-            setPendingStart(null);
+          const id = pendingStart.current;
+          if (id) {
+            pendingStart.current = null;
             api
               .Start(id, "")
               .then(() => toast.success("Session started"))

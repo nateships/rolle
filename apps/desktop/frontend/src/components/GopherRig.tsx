@@ -91,8 +91,9 @@ export function GopherRig({ className, autoplay }: { className?: string; autopla
         pose(ease(t) * 370);
         hands?.setAttribute("opacity", String(Math.max(0, 1 - t * 4)));
       },
-      () =>
-        setTimeout(
+      () => {
+        // The pause is tracked too, so an unmount during it stops the peek.
+        state.current.timer = setTimeout(
           () =>
             animate(
               900,
@@ -103,7 +104,8 @@ export function GopherRig({ className, autoplay }: { className?: string; autopla
               finish,
             ),
           450,
-        ),
+        );
+      },
     );
   }
 

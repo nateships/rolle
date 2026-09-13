@@ -611,6 +611,17 @@ func TestSetHiddenAndSetAccountHidden(t *testing.T) {
 	if got, _ := FindSession(w, "Acme/ReadOnly"); got.Hidden || !got.Favorite {
 		t.Fatalf("sibling = %+v", got)
 	}
+	// Starring a hidden role brings it back.
+	if err := s.SetFavorite("Acme/Admin", true); err != nil {
+		t.Fatal(err)
+	}
+	w, _ = s.Load()
+	if got, _ := FindSession(w, "Acme/Admin"); got.Hidden || !got.Favorite {
+		t.Fatalf("starred hidden role = %+v", got)
+	}
+	if err := s.SetHidden("Acme/Admin", true); err != nil {
+		t.Fatal(err)
+	}
 	// Hiding the account covers every role and no other account.
 	if err := s.SetAccountHidden(in.ID, "111111111111", true); err != nil {
 		t.Fatal(err)
