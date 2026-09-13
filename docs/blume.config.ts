@@ -26,5 +26,7 @@ export default defineConfig({
   ai: { llmsTxt: true },
   analytics: { vercel: true },
   seo: { og: { logo: "/mark.svg", palette: { background: "#101114", foreground: "#F4F0E8", muted: "#B4B8C0" } } },
+  // The roadmap page is gone; the changelog says what is new.
+  redirects: [{ from: "/roadmap", to: "/changelog" }],
   deployment: { output: "static", site: "https://getrolle.com" },
 });
