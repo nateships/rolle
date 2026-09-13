@@ -497,8 +497,8 @@ describe("SessionRow actions", () => {
     const opts = error.mock.calls[0][1] as { action?: { label: string; onClick: () => void } };
     expect(opts.action?.label).toBe("Fix…");
     act(() => opts.action!.onClick());
-    const confirm = await screen.findByRole("dialog", { name: "Remove static keys" });
-    expect(confirm).toHaveTextContent("This cannot be undone.");
+    const confirm = await screen.findByRole("dialog", { name: "Remove static keys?" });
+    expect(confirm).toHaveTextContent("Cannot be undone.");
     await user.click(screen.getByRole("button", { name: "Remove" }));
     await waitFor(() => expect(remove).toHaveBeenCalledWith("default"));
     await waitFor(() => expect(start).toHaveBeenCalledTimes(2));
@@ -516,7 +516,7 @@ describe("SessionRow actions", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("/h/.aws/credentials has static keys for this profile.");
     // The warning's button opens the confirmation for that name.
     await user.click(screen.getByRole("button", { name: "Remove…" }));
-    expect(await screen.findByRole("dialog", { name: "Remove static keys" })).toHaveTextContent("[work]");
+    expect(await screen.findByRole("dialog", { name: "Remove static keys?" })).toHaveTextContent("[work]");
   });
 
   it("sets the AWS profile name from the profile cell", async () => {

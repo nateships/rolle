@@ -25,7 +25,7 @@ describe("StaticKeysCard", () => {
     await user.click(first);
     // Nothing goes before the confirmation.
     expect(remove).not.toHaveBeenCalled();
-    expect(await screen.findByRole("dialog", { name: "Remove static keys" })).toHaveTextContent("[default]");
+    expect(await screen.findByRole("dialog", { name: "Remove static keys?" })).toHaveTextContent("[default]");
     await user.click(screen.getByRole("button", { name: "Remove" }));
     await waitFor(() => expect(remove).toHaveBeenCalledWith("default"));
     await waitFor(() => expect(list).toHaveBeenCalledTimes(2));

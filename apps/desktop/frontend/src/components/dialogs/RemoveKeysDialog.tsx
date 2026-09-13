@@ -27,7 +27,6 @@ export function RemoveKeysDialog({
 }) {
   const [busy, setBusy] = useState(false);
   const names = target?.profiles ?? [];
-  const list = names.length > 3 ? `${names.length} sections` : names.map((n) => `[${n}]`).join(", ");
   async function remove() {
     if (!target) return;
     setBusy(true);
@@ -46,11 +45,17 @@ export function RemoveKeysDialog({
     <Dialog open={!!target} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Remove static keys</DialogTitle>
-          <DialogDescription>
-            Deletes the access key lines of {list} from {target?.path}. Other lines stay. This cannot be undone.
-          </DialogDescription>
+          <DialogTitle>Remove static keys?</DialogTitle>
+          <DialogDescription>Cannot be undone.</DialogDescription>
         </DialogHeader>
+        <div className="rounded-md border bg-muted/40 px-3 py-2 text-sm">
+          <ul className="max-h-32 space-y-0.5 overflow-y-auto font-mono text-xs">
+            {names.map((n) => (
+              <li key={n}>[{n}]</li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-xs text-muted-foreground">{target?.path}</p>
+        </div>
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={onClose} disabled={busy}>
             Cancel
