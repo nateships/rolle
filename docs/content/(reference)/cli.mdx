@@ -47,6 +47,17 @@ Exit codes: `0` success, `1` error, `3` a sign-in is needed (run `rolle integrat
 
 `sess` is an alias for `session`. A `<session>` argument accepts the name or the ID.
 
+## Aliases
+
+An alias replaces the name Identity Center gives an account or a permission set in every session name. Sync keeps it. No two accounts and no two permission sets can share an alias, and a session renamed by hand keeps its name.
+
+| Command | Purpose |
+| --- | --- |
+| `rolle alias account <account-id\|name> <alias>` | Name an account; every role of it takes the name |
+| `rolle alias role <permission-set> <alias>` | Name a permission set in every account |
+| `rolle alias account <account-id\|name> --clear` | Restore the name from Identity Center; `alias role` takes `--clear` too |
+| `rolle alias list` | List aliases; `--json` for scripts |
+
 ## Tags
 
 | Command | Purpose |

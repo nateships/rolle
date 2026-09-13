@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { ChevronRight, ChevronsDownUp, ChevronsUpDown, Copy, Eye, EyeOff } from "lucide-react";
+import { ChevronRight, ChevronsDownUp, ChevronsUpDown, Copy, Eye, EyeOff, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { ActionItems, type Action } from "@/components/ActionMenu";
@@ -8,6 +8,7 @@ import { copyText } from "@/lib/clipboard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CloudGlyph } from "@/components/Brand";
 import { SessionRow } from "./SessionRow";
+import { RenameDialog, type RenameTarget } from "@/components/dialogs/RenameDialog";
 import { api, errorMessage, Kind, Status, type Integration, type Session, type Workspace } from "@/lib/api";
 import { cloudOf } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -206,8 +207,20 @@ export function SessionTable({
 function AccountRow({ row, open, onToggle }: { row: Row & { group: true }; open: boolean; onToggle: () => void }) {
   const active = row.sessions.filter((s) => s.status === Status.StatusActive).length;
   const allHidden = row.sessions.every((s) => s.hidden);
+  const [editing, setEditing] = useState<RenameTarget | null>(null);
   const actions: Action[] = [
     { label: open ? "Collapse" : "Expand", icon: open ? <ChevronsDownUp /> : <ChevronsUpDown />, onSelect: onToggle },
+    {
+      label: "Rename account",
+      icon: <Pencil />,
+      onSelect: () =>
+        setEditing({
+          kind: "account",
+          id: row.accountId,
+          name: row.label,
+          save: (n) => api.SetAlias("account", row.accountId, n),
+        }),
+    },
     {
       label: "Copy account ID",
       icon: <Copy />,
@@ -270,6 +283,7 @@ function AccountRow({ row, open, onToggle }: { row: Row & { group: true }; open:
       <ContextMenuContent className="min-w-48">
         <ActionItems actions={actions} menu="context" />
       </ContextMenuContent>
+      <RenameDialog target={editing} onClose={() => setEditing(null)} />
     </ContextMenu>
   );
 }

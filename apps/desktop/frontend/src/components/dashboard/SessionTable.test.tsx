@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -65,6 +65,20 @@ describe("SessionTable", () => {
     fireEvent.contextMenu(screen.getByText("Acme Prod"));
     await user.click(await screen.findByRole("menuitem", { name: "Unhide account" }));
     expect(hide).toHaveBeenCalledWith("acme", "111", false);
+  });
+
+  it("renames an account from its context menu", async () => {
+    const user = userEvent.setup();
+    const setAlias = vi.spyOn(api, "SetAlias").mockResolvedValue();
+    renderTable(roles);
+    fireEvent.contextMenu(screen.getByText("Acme Prod"));
+    await user.click(await screen.findByRole("menuitem", { name: "Rename account" }));
+    await screen.findByRole("dialog", { name: "Rename account" });
+    const input = screen.getByDisplayValue("Acme Prod");
+    await user.clear(input);
+    await user.type(input, "Prod");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await waitFor(() => expect(setAlias).toHaveBeenCalledWith("account", "111", "Prod"));
   });
 
   it("collapses an account when its row is clicked and remembers it", async () => {

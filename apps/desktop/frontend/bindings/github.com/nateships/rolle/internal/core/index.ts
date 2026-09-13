@@ -10,6 +10,7 @@ export {
 export type {
     AWSSSOIntegration,
     AWSSession,
+    Aliases,
     AzureIntegration,
     AzureSession,
     Credentials,

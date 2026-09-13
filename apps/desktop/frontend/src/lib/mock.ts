@@ -492,6 +492,17 @@ export const mockApi = {
     if (x) x.name = name;
     emit();
   },
+  SetAlias: async (kind: string, key: string, alias: string) => {
+    // The mock keeps no original names, so an empty alias changes nothing.
+    if (!alias) return;
+    for (const s of state.sessions) {
+      if (!s.aws || s.kind !== "aws-sso-role") continue;
+      const [acct, ...rest] = s.name.split("/");
+      if (kind === "account" && s.aws.accountId === key) s.name = `${alias}/${rest.join("/")}`;
+      if (kind === "role" && s.aws.roleName === key) s.name = `${acct}/${alias}`;
+    }
+    emit();
+  },
   RenameIntegration: async (ref: string, alias: string) => {
     const x = state.integrations.find((i) => i.id === ref);
     if (x) x.alias = alias;
