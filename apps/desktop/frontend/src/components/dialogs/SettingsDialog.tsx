@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { StaticKeysCard } from "@/components/StaticKeys";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -262,6 +263,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                   </Select>
                 </Row>
               )}
+              <StaticKeysCard />
               <Row label="Verbose logging" hint="Same as ROLLE_DEBUG=1. Prints diagnostics to the app log.">
                 <Switch
                   aria-label="Verbose logging"

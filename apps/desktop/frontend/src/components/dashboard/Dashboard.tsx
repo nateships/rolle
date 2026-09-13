@@ -157,6 +157,20 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     if (inWails) return Events.On(UPDATE_AVAILABLE, (e: { data: UpdateInfo }) => setUpdate(e.data));
   }, []);
 
+  // Profiles whose static keys in ~/.aws/credentials win over rolle. The
+  // file can change outside the app, so every workspace change re-reads it.
+  const [shadows, setShadows] = useState<Record<string, string>>({});
+  // The workspace is a deliberate extra dependency: every save is a moment
+  // the credentials file may have changed with it.
+  /* oxlint-disable react/exhaustive-effect-dependencies */
+  useEffect(() => {
+    void api
+      .ShadowedProfiles()
+      .then((m) => setShadows((m ?? {}) as Record<string, string>))
+      .catch(() => setShadows({}));
+  }, [workspace]);
+  /* oxlint-enable react/exhaustive-effect-dependencies */
+
   const searchRef = useRef<HTMLInputElement>(null);
   // Holding the modifier shows each shortcut as a badge next to its control.
   const held = useModifierHeld();
@@ -772,6 +786,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                       onWidths={setWidths}
                       onNeedsLogin={needsLogin}
                       onTagClick={(tag) => setFilter(`tag:${tag}`)}
+                      shadows={shadows}
                     />
                   </section>
                 </div>

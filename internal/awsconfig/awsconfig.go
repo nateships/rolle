@@ -4,6 +4,7 @@
 package awsconfig
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -59,25 +60,102 @@ func CredentialsPath(configPath string) string {
 	return filepath.Join(filepath.Dir(configPath), "credentials")
 }
 
-// checkShadow fails when the shared credentials file holds static keys for the
-// profile. The SDK credential chain reads those before credential_process, so
-// the SDK never uses the rolle profile.
+// staticKeys are the credential keys a shared credentials file can hold.
+var staticKeys = []string{"aws_access_key_id", "aws_secret_access_key", "aws_session_token"}
+
+// ErrShadowed is wrapped by the error Write returns when static keys in the
+// shared credentials file would take precedence over the rolle profile.
+var ErrShadowed = errors.New("profile is shadowed")
+
+// Shadow says what keeps tools from using a rolle profile of that name.
+type Shadow struct {
+	// Path is the file that holds the conflicting keys.
+	Path string
+	// Fixable is true when RemoveStaticKeys clears the conflict: static keys
+	// in the shared credentials file. A profile that another tool configures
+	// in the config file needs another profile name instead.
+	Fixable bool
+}
+
+// Shadowed reports what shadows a rolle profile called profile: static keys
+// in the shared credentials file, which the SDK credential chain reads before
+// credential_process, or another tool's credential keys in the config file.
+// Nil when nothing does.
+func Shadowed(configPath, profile string) *Shadow {
+	credPath := CredentialsPath(configPath)
+	if f, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, credPath); err == nil {
+		if sec, err := f.GetSection(profile); err == nil {
+			for _, k := range staticKeys {
+				if sec.HasKey(k) {
+					return &Shadow{Path: credPath, Fixable: true}
+				}
+			}
+		}
+	}
+	if f, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, configPath); err == nil {
+		if sec, err := f.GetSection(sectionName(profile)); err == nil && !sec.HasKey(marker) {
+			for _, k := range credentialKeys {
+				if sec.HasKey(k) {
+					return &Shadow{Path: configPath}
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// checkShadow fails when static keys in the shared credentials file would
+// shadow the profile. Write checks the config file itself.
 func checkShadow(configPath, profile string) error {
+	if sh := Shadowed(configPath, profile); sh != nil && sh.Fixable {
+		return fmt.Errorf("%w: profile %q has static keys in %s; tools use those, not this session", ErrShadowed, profile, sh.Path)
+	}
+	return nil
+}
+
+// StaticProfiles lists the sections of the shared credentials file that hold
+// static keys, in file order. The file's path comes second.
+func StaticProfiles(configPath string) ([]string, string) {
 	credPath := CredentialsPath(configPath)
 	f, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, credPath)
 	if err != nil {
-		return nil // no credentials file, nothing shadows
+		return nil, credPath
+	}
+	var out []string
+	for _, sec := range f.Sections() {
+		if sec.Name() == ini.DefaultSection {
+			continue
+		}
+		for _, k := range staticKeys {
+			if sec.HasKey(k) {
+				out = append(out, sec.Name())
+				break
+			}
+		}
+	}
+	return out, credPath
+}
+
+// RemoveStaticKeys deletes the static credential keys of profile from the
+// shared credentials file. A section left empty goes too. Other keys and
+// other sections stay.
+func RemoveStaticKeys(configPath, profile string) error {
+	credPath := CredentialsPath(configPath)
+	f, err := load(credPath)
+	if err != nil {
+		return err
 	}
 	sec, err := f.GetSection(profile)
 	if err != nil {
 		return nil
 	}
-	for _, k := range []string{"aws_access_key_id", "aws_secret_access_key", "aws_session_token"} {
-		if sec.HasKey(k) {
-			return fmt.Errorf("profile %q has static keys in %s that would shadow rolle; remove that section or give the session another profile name", profile, credPath)
-		}
+	for _, k := range staticKeys {
+		sec.DeleteKey(k)
 	}
-	return nil
+	if len(sec.Keys()) == 0 {
+		f.DeleteSection(profile)
+	}
+	return save(credPath, f)
 }
 
 // Write adds or replaces the profile in the config file at path. A profile

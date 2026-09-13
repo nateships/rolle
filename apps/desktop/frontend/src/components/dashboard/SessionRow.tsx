@@ -5,11 +5,13 @@ import {
   Globe,
   Loader2,
   MoreHorizontal,
+  KeyRound,
   Pencil,
   Play,
   Square,
   SquareTerminal,
   Star,
+  TriangleAlert,
   Terminal,
   Trash2,
   Eye,
@@ -50,6 +52,7 @@ export function SessionRow({
   nested,
   onNeedsLogin,
   onTagClick,
+  shadows,
 }: {
   session: Session;
   workspace: Workspace;
@@ -57,12 +60,19 @@ export function SessionRow({
   onNeedsLogin?: (integration: Integration, startSessionId?: string) => void;
   /** The name on a tag chip was clicked. */
   onTagClick?: (tag: string) => void;
+  /** Profile name to the file whose static keys shadow it. */
+  shadows?: Record<string, string>;
 }) {
   const [busy, setBusy] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
   const [editing, setEditing] = useState<RenameTarget | null>(null);
   const [regionOpen, setRegionOpen] = useState(false);
   const profileName = isAWSKind(s.kind) ? s.aws?.profile || "default" : "";
+  // Static keys under the same profile name win over this session.
+  const shadowedBy = isAWSKind(s.kind) ? shadows?.[profileName] : undefined;
+  const shadowNote = shadowedBy
+    ? `Profile ${profileName} has static keys in ${shadowedBy}. Tools use those, not this session.`
+    : "";
   const tags = workspace.tags ?? [];
   const active = s.status === Status.StatusActive;
   const needsMFA = s.kind === Kind.KindAWSIAMUser && !!s.aws?.mfaDevice;
@@ -86,11 +96,26 @@ export function SessionRow({
       const msg = errorMessage(e);
       if (/login required/i.test(msg) && integration && onNeedsLogin) {
         onNeedsLogin(integration, s.id);
+      } else if (/static keys/i.test(msg)) {
+        // The keys can go and the start can run again.
+        toast.error(msg, { action: { label: "Remove keys", onClick: () => void fixProfile(true) } });
       } else {
         toast.error(msg);
       }
     } finally {
       setBusy(false);
+    }
+  }
+
+  // fixProfile removes the static keys that shadow the profile, then starts
+  // the session when asked.
+  async function fixProfile(thenStart: boolean) {
+    try {
+      await api.FixProfile(s.id);
+      toast.success(`Static keys of profile ${profileName} removed`);
+      if (thenStart) await start();
+    } catch (e) {
+      toast.error(errorMessage(e));
     }
   }
 
@@ -149,6 +174,15 @@ export function SessionRow({
                 onSelect: () => void api.SetSessionTag(s.id, t.name, !on).catch((e) => toast.error(errorMessage(e))),
               };
             }),
+          },
+        ] as Action[])
+      : []),
+    ...(shadowedBy
+      ? ([
+          {
+            label: "Remove static keys",
+            icon: <KeyRound />,
+            onSelect: () => void fixProfile(false),
           },
         ] as Action[])
       : []),
@@ -346,17 +380,27 @@ export function SessionRow({
             {isAWS ? (
               <button
                 type="button"
-                title="Change the AWS profile name"
                 onClick={() =>
                   setEditing({
                     kind: "profile",
                     id: s.id,
                     name: s.aws?.profile ?? "",
                     save: (n) => api.SetProfile(s.id, n),
+                    check: async (n) => {
+                      const path = await api.ProfileShadow(n || "default");
+                      return path
+                        ? `Profile ${n || "default"} has static keys in ${path}. Tools use those, not this session.`
+                        : "";
+                    },
                   })
                 }
-                className="rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+                className={cn(
+                  "inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-accent hover:text-foreground",
+                  shadowedBy && "text-amber-600 dark:text-amber-400",
+                )}
+                title={shadowNote || "Change the AWS profile name"}
               >
+                {shadowedBy && <TriangleAlert aria-label="Profile is shadowed" className="size-3" />}
                 {profileName}
               </button>
             ) : (

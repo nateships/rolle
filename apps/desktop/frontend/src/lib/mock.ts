@@ -493,6 +493,11 @@ export const mockApi = {
     if (x) x.name = name;
     emit();
   },
+  ShadowedProfiles: async () => ({}) as Record<string, string>,
+  ProfileShadow: async () => "",
+  FixProfile: async () => {},
+  StaticProfiles: async () => ({ path: "~/.aws/credentials", profiles: [] as string[] }),
+  RemoveStaticProfile: async () => {},
   SetAlias: async (_kind: string, key: string, alias: string) => {
     // The mock keeps no original names, so an empty alias changes nothing.
     if (!alias) return;

@@ -5,5 +5,6 @@ export type {
     AddAssumeRoleInput,
     AddGCPImpersonationInput,
     ImportResult,
-    LeappImportResult
+    LeappImportResult,
+    StaticKeys
 } from "./models.js";

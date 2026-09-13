@@ -110,6 +110,8 @@ type TableProps = {
   onNeedsLogin: (i: Integration, startId?: string) => void;
   /** A tag chip on a row was clicked; the dashboard filters by it. */
   onTagClick?: (tag: string) => void;
+  /** Profile name to the file whose static keys shadow it. */
+  shadows?: Record<string, string>;
 };
 
 export function SessionTable({
@@ -120,6 +122,7 @@ export function SessionTable({
   onWidths,
   onNeedsLogin,
   onTagClick,
+  shadows,
 }: TableProps) {
   const [collapsed, toggle] = useCollapsed();
   const rows = useMemo(() => groupSessions(sessions), [sessions]);
@@ -178,6 +181,7 @@ export function SessionTable({
                   workspace={workspace}
                   onNeedsLogin={onNeedsLogin}
                   onTagClick={onTagClick}
+                  shadows={shadows}
                 />,
               ];
             const open = searching || !collapsed.includes(r.key);
@@ -192,6 +196,7 @@ export function SessionTable({
                     nested
                     onNeedsLogin={onNeedsLogin}
                     onTagClick={onTagClick}
+                    shadows={shadows}
                   />
                 )),
               );

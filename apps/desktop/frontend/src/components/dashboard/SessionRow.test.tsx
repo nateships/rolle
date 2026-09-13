@@ -18,6 +18,7 @@ function renderRow(
     tags?: Tag[];
     onNeedsLogin?: (i: Integration, id?: string) => void;
     onTagClick?: (tag: string) => void;
+    shadows?: Record<string, string>;
   } = {},
 ) {
   const ws = {
@@ -31,7 +32,13 @@ function renderRow(
     <TooltipProvider>
       <table>
         <tbody>
-          <SessionRow session={s} workspace={ws} onNeedsLogin={opts.onNeedsLogin} onTagClick={opts.onTagClick} />
+          <SessionRow
+            session={s}
+            workspace={ws}
+            onNeedsLogin={opts.onNeedsLogin}
+            onTagClick={opts.onTagClick}
+            shadows={opts.shadows}
+          />
         </tbody>
       </table>
     </TooltipProvider>,
@@ -465,6 +472,48 @@ describe("SessionRow actions", () => {
 
     await waitFor(() => expect(setAlias).toHaveBeenCalledWith("role", "AWSAdministratorAccess", "Admin"));
     expect(rename).not.toHaveBeenCalled();
+  });
+
+  it("marks a shadowed profile and removes the keys before a retry", async () => {
+    const user = userEvent.setup();
+    const s = session({ name: "personal", kind: Kind.KindAWSIAMUser });
+    const start = vi
+      .spyOn(api, "Start")
+      .mockRejectedValueOnce(new Error("profile default has static keys in /h/.aws/credentials; tools use those"))
+      .mockResolvedValue({} as never);
+    const fix = vi.spyOn(api, "FixProfile").mockResolvedValue();
+    renderRow(s, { shadows: { default: "/h/.aws/credentials" } });
+    // The profile cell carries the mark and the reason.
+    expect(screen.getByLabelText("Profile is shadowed")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /default/ })).toHaveAttribute(
+      "title",
+      expect.stringContaining("static keys"),
+    );
+    // The row menu offers the removal on its own.
+    await user.click(screen.getByRole("button", { name: "More actions" }));
+    expect(await screen.findByRole("menuitem", { name: "Remove static keys" })).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    // A failed start offers the removal and starts again after it.
+    const error = vi.spyOn(toast, "error");
+    await user.click(screen.getByRole("button", { name: /^start$/i }));
+    await waitFor(() => expect(error).toHaveBeenCalled());
+    const opts = error.mock.calls[0][1] as { action?: { label: string; onClick: () => void } };
+    expect(opts.action?.label).toBe("Remove keys");
+    opts.action!.onClick();
+    await waitFor(() => expect(fix).toHaveBeenCalledWith(s.id));
+    await waitFor(() => expect(start).toHaveBeenCalledTimes(2));
+  });
+
+  it("warns in the profile dialog when the typed name is shadowed", async () => {
+    const user = userEvent.setup();
+    const s = session({ name: "personal", kind: Kind.KindAWSIAMUser });
+    vi.spyOn(api, "ProfileShadow").mockImplementation(((n: string) =>
+      Promise.resolve(n === "work" ? "/h/.aws/credentials" : "")) as never);
+    renderRow(s);
+    await user.click(screen.getByRole("button", { name: /default/ }));
+    await screen.findByRole("dialog", { name: "AWS profile name" });
+    await user.type(screen.getByPlaceholderText("default"), "work");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Profile work has static keys in /h/.aws/credentials");
   });
 
   it("sets the AWS profile name from the profile cell", async () => {

@@ -51,3 +51,18 @@ export interface LeappImportResult {
      */
     "skipped": string[] | null;
 }
+
+/**
+ * StaticKeys describes the shared credentials file's static keys.
+ */
+export interface StaticKeys {
+    /**
+     * Path is the shared credentials file.
+     */
+    "path": string;
+
+    /**
+     * Profiles are the sections that hold static keys, in file order.
+     */
+    "profiles": string[] | null;
+}

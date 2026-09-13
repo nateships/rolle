@@ -18,6 +18,17 @@ rolle_session = <session-id>
 - Two sessions can share a profile name. Starting one stops the other.
 - rolle refuses to overwrite a profile that holds real credential keys, and it restores a plain `[default]` section (region and output) when the session stops.
 
+## Static keys shadow a profile
+
+The AWS credential chain reads static keys in `~/.aws/credentials` before `credential_process` in `~/.aws/config`. A `[default]` section with `aws_access_key_id` there wins over a rolle profile named `default`, and every tool uses the old keys.
+
+rolle refuses to start a session onto a shadowed profile and names the file. The profile column shows an amber mark and the reason, the profile dialog warns as you type a name, and `rolle session list --json` carries the file as `shadowedBy`. To clear it, remove the keys or give the session another profile name:
+
+- The start error and the row menu offer **Remove static keys**, which deletes that section's keys from `~/.aws/credentials`. The CLI does the same with `rolle session fix-profile <session>`.
+- **Settings → General → Static keys** and the last onboarding step list every section with static keys and remove the ones you pick. The CLI does the same with `rolle cleanup`.
+
+A profile that another tool configures in `~/.aws/config`, with `credential_process`, `sso_session`, or `role_arn`, cannot be taken over. Give the session another profile name.
+
 ## Rename a profile
 
 Click the profile name in the session table, or use the row menu **Set AWS profile name**. Names match `[A-Za-z0-9_.-]+`. An empty name restores `default`.

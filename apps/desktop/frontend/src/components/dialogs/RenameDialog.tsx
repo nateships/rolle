@@ -18,6 +18,8 @@ export type RenameTarget = {
    * in every account. The toggle swaps the field to the role part alone.
    */
   everywhere?: { label: string; name: string; save: (name: string) => Promise<unknown> };
+  /** Looks at the typed name and returns a warning to show, or "". */
+  check?: (name: string) => Promise<string>;
 };
 
 const COPY: Record<
@@ -49,6 +51,14 @@ export function RenameDialog({ target, onClose }: { target: RenameTarget | null;
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [all, setAll] = useState(false);
+  const [warning, setWarning] = useState("");
+  const check = target?.check;
+  // The check runs a moment after typing stops.
+  useEffect(() => {
+    if (!check) return;
+    const t = setTimeout(() => void check(name.trim()).then(setWarning, () => setWarning("")), 250);
+    return () => clearTimeout(t);
+  }, [check, name]);
   const targetId = target?.id;
   const targetName = target?.name;
   // The id is a deliberate extra dependency: a new target with the same name still resets the field.
@@ -100,6 +110,11 @@ export function RenameDialog({ target, onClose }: { target: RenameTarget | null;
             onFocus={(e) => e.target.select()}
             className={target?.kind === "profile" ? "font-mono" : undefined}
           />
+          {warning && (
+            <p role="alert" className="text-xs text-amber-600 dark:text-amber-400">
+              {warning}
+            </p>
+          )}
           {target?.everywhere && (
             <div className="flex items-center justify-between gap-3 text-sm">
               <Label htmlFor="rename-everywhere" className="font-normal text-muted-foreground">

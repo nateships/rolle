@@ -427,6 +427,33 @@ func (r *RolleService) SetAlias(kind, key, alias string) error {
 	return r.svc.SetAlias(app.AliasKind(kind), key, alias)
 }
 
+// ShadowedProfiles maps each AWS profile name to the file whose keys tools
+// read instead of the rolle profile. Empty when nothing is shadowed.
+func (r *RolleService) ShadowedProfiles() (map[string]string, error) {
+	return r.svc.ShadowedProfiles()
+}
+
+// ProfileShadow returns the file that shadows a profile of that name, or "".
+func (r *RolleService) ProfileShadow(name string) string {
+	if sh := r.svc.ProfileShadow(name); sh != nil {
+		return sh.Path
+	}
+	return ""
+}
+
+// StaticProfiles lists the sections of ~/.aws/credentials that hold static
+// keys, with the file's path.
+func (r *RolleService) StaticProfiles() app.StaticKeys { return r.svc.StaticProfiles() }
+
+// RemoveStaticProfile deletes the static keys of one section of the shared
+// credentials file.
+func (r *RolleService) RemoveStaticProfile(name string) error { return r.svc.RemoveStaticProfile(name) }
+
+// FixProfile removes the static keys that shadow the session's profile.
+func (r *RolleService) FixProfile(ref string) error {
+	return r.svc.FixProfile(ref)
+}
+
 // RenameSession changes a session's name.
 func (r *RolleService) RenameSession(ref, name string) error {
 	return r.svc.RenameSession(ref, name)

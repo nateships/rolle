@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/nateships/rolle/internal/app"
+	"github.com/nateships/rolle/internal/awsconfig"
 	"github.com/nateships/rolle/internal/browser"
 	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/terminal"
@@ -23,6 +24,9 @@ func startCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			creds, err := svc.Start(cmd.Context(), args[0], app.StartOptions{MFACode: mfa})
+			if errors.Is(err, awsconfig.ErrShadowed) {
+				return fmt.Errorf("%w\nrolle session fix-profile %q removes those keys", err, args[0])
+			}
 			if err != nil {
 				return err
 			}

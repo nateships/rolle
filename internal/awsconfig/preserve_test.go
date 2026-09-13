@@ -278,3 +278,58 @@ region = us-west-2
 		t.Fatalf("Remove did not restore the original file:\n%s", got)
 	}
 }
+
+func TestShadowedAndRemoveStaticKeys(t *testing.T) {
+	dir := t.TempDir()
+	config := filepath.Join(dir, "config")
+	credPath := filepath.Join(dir, "credentials")
+	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", credPath)
+	creds := "[default]\naws_access_key_id = AKIA\naws_secret_access_key = x\nregion = us-west-2\n\n[other]\nregion = us-east-1\n"
+	if err := os.WriteFile(credPath, []byte(creds), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(config, []byte("[profile vault]\ncredential_process = aws-vault exec x\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// Static keys in the credentials file can be removed; another tool's
+	// config cannot; a plain section shadows nothing.
+	if sh := Shadowed(config, "default"); sh == nil || sh.Path != credPath || !sh.Fixable {
+		t.Fatalf("default = %+v", sh)
+	}
+	if sh := Shadowed(config, "vault"); sh == nil || sh.Path != config || sh.Fixable {
+		t.Fatalf("vault = %+v", sh)
+	}
+	if sh := Shadowed(config, "other"); sh != nil {
+		t.Fatalf("other = %+v", sh)
+	}
+	if err := Write(config, Profile{Name: "default", SessionID: "s1", Executable: "/bin/rolle"}); !errors.Is(err, ErrShadowed) {
+		t.Fatalf("write shadowed: %v", err)
+	}
+	// Removing the keys keeps the rest of the section and the other section.
+	if err := RemoveStaticKeys(config, "default"); err != nil {
+		t.Fatal(err)
+	}
+	got, _ := os.ReadFile(credPath)
+	if s := string(got); strings.Contains(s, "aws_access_key_id") || !strings.Contains(s, "region = us-west-2") || !strings.Contains(s, "[other]") {
+		t.Fatalf("credentials after fix:\n%s", s)
+	}
+	if sh := Shadowed(config, "default"); sh != nil {
+		t.Fatalf("still shadowed: %+v", sh)
+	}
+	if err := Write(config, Profile{Name: "default", SessionID: "s1", Executable: "/bin/rolle"}); err != nil {
+		t.Fatal(err)
+	}
+	// A section with keys only disappears; a missing section is not an error.
+	if err := os.WriteFile(credPath, []byte("[solo]\naws_access_key_id = A\naws_secret_access_key = B\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := RemoveStaticKeys(config, "solo"); err != nil {
+		t.Fatal(err)
+	}
+	if got, _ := os.ReadFile(credPath); strings.Contains(string(got), "[solo]") {
+		t.Fatalf("empty section kept:\n%s", got)
+	}
+	if err := RemoveStaticKeys(config, "missing"); err != nil {
+		t.Fatal(err)
+	}
+}
