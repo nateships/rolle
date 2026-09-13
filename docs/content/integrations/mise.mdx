@@ -5,19 +5,21 @@ description: Tie a repository to a rolle session with mise, so the right credent
 
 [mise](https://mise.jdx.dev) sets environment variables per directory and runs hooks when you enter one. rolle's profiles and `rolle env` slot into that, so a `cd` into a repository is enough to work as the right role.
 
+The examples use session names as `rolle session list` shows them: `Acme Prod/AdministratorAccess` for an Identity Center role, `Contoso Production` for an Azure subscription, `my-project` for a Google Cloud project.
+
 ## AWS
 
 An AWS session is a profile backed by `credential_process`, so the directory only has to name it. No credential touches the file.
 
 ```toml
 [env]
-AWS_PROFILE = "acme-prod-admin"
+AWS_PROFILE = "acme-prod"
 
 [hooks]
-enter = "rolle start acme-prod-admin"
+enter = "rolle start 'Acme Prod/AdministratorAccess'"
 ```
 
-The hook starts the session when you enter the directory, and signs you in first when the portal token is gone. Every AWS tool in that shell reads the profile and fetches fresh credentials through rolle when it needs them. Find the profile name with `rolle session list` or in the row's **Copy profile command**.
+`AWS_PROFILE` is the session's profile, the **Profile** column in the app and in `rolle session list`. The hook takes the session name. It starts the session when you enter the directory, and signs you in first when the portal token is gone. Every AWS tool in that shell reads the profile and fetches fresh credentials through rolle when it needs them.
 
 ## Azure and Google Cloud
 
@@ -27,8 +29,8 @@ Azure and Google Cloud sessions export short-lived tokens. `rolle token` prints 
 redactions = ["CLOUDSDK_AUTH_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN"]
 
 [env]
-CLOUDSDK_CORE_PROJECT = "analytics-prod"
-CLOUDSDK_AUTH_ACCESS_TOKEN = "{{ exec(command='rolle token analytics') }}"
+CLOUDSDK_CORE_PROJECT = "my-project"
+CLOUDSDK_AUTH_ACCESS_TOKEN = "{{ exec(command='rolle token my-project') }}"
 GOOGLE_OAUTH_ACCESS_TOKEN = "{{ env.CLOUDSDK_AUTH_ACCESS_TOKEN }}"
 ```
 
@@ -45,7 +47,7 @@ _.source = ".rolle.sh"
 
 ```sh
 # .rolle.sh
-eval "$(rolle env contoso-prod)"
+eval "$(rolle env 'Contoso Production')"
 ```
 
 `rolle env` covers every variable a session carries: the token, and the tenant, subscription, or project it belongs to.
@@ -56,7 +58,7 @@ A template fetches a single value and caches it, which suits an account ID that 
 
 ```toml
 [env]
-AWS_ACCOUNT_ID = """{{ exec(command="rolle session list --json | jq -r '.[] | select(.name == \"acme-prod-admin\") | .accountId'", cache_duration="1h") }}"""
+AWS_ACCOUNT_ID = """{{ exec(command="rolle session list --json | jq -r '.[] | select(.name == \"Acme Prod/AdministratorAccess\") | .accountId'", cache_duration="1h") }}"""
 ```
 
 ## Notes
