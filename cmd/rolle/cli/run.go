@@ -95,6 +95,27 @@ func credsCmd() *cobra.Command {
 	return cmd
 }
 
+// tokenCmd prints the bearer token of an Azure or Google Cloud session, for
+// tools that take one value: a mise template, a curl header, a kubeconfig.
+func tokenCmd() *cobra.Command {
+	return &cobra.Command{
+		Use:   "token <session>",
+		Short: "Print the bearer token of an Azure or Google Cloud session",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			creds, err := svc.Credentials(cmd.Context(), args[0])
+			if err != nil {
+				return err
+			}
+			if creds.Token == "" {
+				return fmt.Errorf("%s has no bearer token; AWS sessions are profiles, use rolle env or --profile", args[0])
+			}
+			fmt.Println(creds.Token)
+			return nil
+		},
+	}
+}
+
 func envCmd() *cobra.Command {
 	var powershell bool
 	cmd := &cobra.Command{

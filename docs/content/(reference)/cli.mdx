@@ -1,8 +1,6 @@
 ---
 title: CLI reference
 description: Every rolle command.
-sidebar:
-  order: 8
 ---
 
 The CLI and the desktop app share one workspace, so a session started in one is active in the other.
@@ -67,6 +65,7 @@ Exit codes: `0` success, `1` error, `3` a sign-in is needed (run `rolle integrat
 | `rolle stop <session>` | Stop a session |
 | `rolle status` | Show active sessions |
 | `rolle env <session> [--powershell]` | Print credentials as shell exports |
+| `rolle token <session>` | Print the bearer token of an Azure or Google Cloud session |
 | `rolle shell <session>` | Open a terminal window with the credentials ready |
 | `rolle console <session> [--print]` | Open the cloud console |
 | `rolle reset [--yes]` | Remove every session, integration, secret, and cached credential |

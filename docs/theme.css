@@ -24,3 +24,26 @@ header a[href="/"] img {
 header a[href="/"] img[src="/logo-light.svg"] {
   height: 4.5rem;
 }
+
+/* Cloud cards on the landing page carry the provider marks in place of an icon. */
+.cloud-logo {
+  display: block;
+  height: 1.5rem;
+  width: auto;
+  margin: 0 0 0.625rem;
+}
+
+.cloud-logo-dark,
+[data-theme="dark"] .cloud-logo-light {
+  display: none;
+}
+
+[data-theme="dark"] .cloud-logo-dark {
+  display: block;
+}
+
+.cloud-title {
+  margin: 0 0 0.375rem;
+  font-weight: 500;
+  color: var(--color-foreground, inherit);
+}

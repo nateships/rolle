@@ -228,6 +228,10 @@ func TestStartStatusStopAndEnv(t *testing.T) {
 	if !strings.Contains(out, "export AWS_ACCESS_KEY_ID='AKIA'\n") || !strings.Contains(out, "export AWS_SECRET_ACCESS_KEY='secret'\n") || !strings.Contains(out, "export AWS_REGION='us-east-1'\n") || !strings.Contains(out, "unset AWS_SESSION_TOKEN\n") {
 		t.Fatalf("env output:\n%s", out)
 	}
+	// An AWS session is a profile, not a bearer token.
+	if _, err := run(t, "token", "dev"); err == nil || !strings.Contains(err.Error(), "no bearer token") {
+		t.Fatalf("token on an AWS session: %v", err)
+	}
 	out = mustRun(t, "env", "dev", "--powershell")
 	if !strings.Contains(out, "$env:AWS_ACCESS_KEY_ID = ") || !strings.Contains(out, "Remove-Item Env:AWS_SESSION_TOKEN -ErrorAction SilentlyContinue\n") {
 		t.Fatalf("powershell output:\n%s", out)

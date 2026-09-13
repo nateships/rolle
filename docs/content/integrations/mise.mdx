@@ -1,0 +1,68 @@
+---
+title: mise
+description: Tie a repository to a rolle session with mise, so the right credentials follow you into the directory.
+---
+
+[mise](https://mise.jdx.dev) sets environment variables per directory and runs hooks when you enter one. rolle's profiles and `rolle env` slot into that, so a `cd` into a repository is enough to work as the right role.
+
+The examples use session names as `rolle session list` shows them: `Acme Prod/AdministratorAccess` for an Identity Center role, `Contoso Production` for an Azure subscription, `my-project` for a Google Cloud project.
+
+## AWS
+
+An AWS session is a profile backed by `credential_process`, so the directory only has to name it. No credential touches the file.
+
+```toml
+[env]
+AWS_PROFILE = "acme-prod"
+
+[hooks]
+enter = "rolle start 'Acme Prod/AdministratorAccess'"
+```
+
+`AWS_PROFILE` is the session's profile, the **Profile** column in the app and in `rolle session list`. The hook takes the session name. It starts the session when you enter the directory, and signs you in first when the portal token is gone. Every AWS tool in that shell reads the profile and fetches fresh credentials through rolle when it needs them.
+
+## Azure and Google Cloud
+
+Azure and Google Cloud sessions export short-lived tokens. `rolle token` prints one, and a template puts it in a variable. Later entries can copy an earlier one, so the token is fetched once. The redaction keeps it out of `mise env` output and logs.
+
+```toml
+redactions = ["CLOUDSDK_AUTH_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN"]
+
+[env]
+CLOUDSDK_CORE_PROJECT = "my-project"
+CLOUDSDK_AUTH_ACCESS_TOKEN = "{{ exec(command='rolle token my-project') }}"
+GOOGLE_OAUTH_ACCESS_TOKEN = "{{ env.CLOUDSDK_AUTH_ACCESS_TOKEN }}"
+```
+
+mise runs the command each time it builds the directory's environment. rolle answers from its credential cache, so this is fast, and no token is written to mise's cache. When the session needs a sign-in, the command exits with code 3 and names the command to run.
+
+To export every variable a session carries, source a script instead:
+
+```toml
+redactions = ["AZURE_ACCESS_TOKEN", "CLOUDSDK_AUTH_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN"]
+
+[env]
+_.source = ".rolle.sh"
+```
+
+```sh
+# .rolle.sh
+eval "$(rolle env 'Contoso Production')"
+```
+
+`rolle env` covers every variable a session carries: the token, and the tenant, subscription, or project it belongs to.
+
+## One variable at a time
+
+A template fetches a single value and caches it, which suits an account ID that changes rarely.
+
+```toml
+[env]
+AWS_ACCOUNT_ID = """{{ exec(command="rolle session list --json | jq -r '.[] | select(.name == \"Acme Prod/AdministratorAccess\") | .accountId'", cache_duration="1h") }}"""
+```
+
+## Notes
+
+- `rolle start` is safe to run on an active session. It reports the session and its expiry and changes nothing.
+- The desktop app shows the session as active the moment the hook starts it, since the CLI and the app share one workspace.
+- Commit the `mise.toml`. Team members with the same session names get the same setup. Keep `.rolle.sh` too; it holds no secret.
