@@ -33,20 +33,34 @@ func (s *Service) Discover(ctx context.Context) discover.Result {
 	return r
 }
 
-// storedAccessKeyIDs collects the access key IDs of every IAM user session.
-// A key the secret store cannot read is absent.
+// storedAccessKeyIDs collects the access key IDs of every IAM user session
+// from the workspace. A session from before the ID was recorded reads it
+// from the keychain once and saves it, so later calls touch no keychain.
 func (s *Service) storedAccessKeyIDs() map[string]bool {
 	out := map[string]bool{}
 	w, err := s.Load()
 	if err != nil {
 		return out
 	}
-	for _, sess := range w.Sessions {
-		if sess.Kind != core.KindAWSIAMUser {
+	filled := false
+	for i := range w.Sessions {
+		sess := &w.Sessions[i]
+		if sess.Kind != core.KindAWSIAMUser || sess.AWS == nil {
 			continue
 		}
-		if key, err := aws.LoadAccessKey(s.Secrets, sess.ID); err == nil && key.AccessKeyID != "" {
-			out[key.AccessKeyID] = true
+		if sess.AWS.AccessKeyID == "" {
+			if key, err := aws.LoadAccessKey(s.Secrets, sess.ID); err == nil && key.AccessKeyID != "" {
+				sess.AWS.AccessKeyID = key.AccessKeyID
+				filled = true
+			}
+		}
+		if sess.AWS.AccessKeyID != "" {
+			out[sess.AWS.AccessKeyID] = true
+		}
+	}
+	if filled {
+		if err := s.Save(w); err != nil {
+			debug.Logf("import", "record access key ids: %v", err)
 		}
 	}
 	return out

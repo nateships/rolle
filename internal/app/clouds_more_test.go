@@ -597,6 +597,24 @@ func TestImportIAMUserFromCredentialsFile(t *testing.T) {
 	if len(st.Profiles) != 2 || st.Profiles[0].Imported || !st.Profiles[1].Imported {
 		t.Fatalf("static profiles = %+v", st.Profiles)
 	}
+	// The session records its access key ID. A session from before that
+	// gets the ID from the keychain once and keeps it.
+	w, _ := s.Load()
+	imported, _ := FindSession(w, "personal")
+	if imported.AWS.AccessKeyID != "AKIA2" {
+		t.Fatalf("recorded access key id = %q", imported.AWS.AccessKeyID)
+	}
+	imported.AWS.AccessKeyID = ""
+	if err := s.Save(w); err != nil {
+		t.Fatal(err)
+	}
+	if st := s.StaticProfiles(); !st.Profiles[1].Imported {
+		t.Fatalf("imported mark lost without the recorded id: %+v", st.Profiles)
+	}
+	w, _ = s.Load()
+	if again, _ := FindSession(w, "personal"); again.AWS.AccessKeyID != "AKIA2" {
+		t.Fatalf("access key id not filled back: %q", again.AWS.AccessKeyID)
+	}
 	// A profile without a config section takes the default region.
 	if got, err := s.ImportIAMUser("default"); err != nil || got.Region != core.DefaultSettings().DefaultRegion || got.AWS.Profile != "default" {
 		t.Fatalf("default profile = %+v, %v", got, err)

@@ -122,6 +122,9 @@ type AWSSession struct {
 	// AccountName is the name Identity Center gives the account. Aliases
 	// and the session name build on it.
 	AccountName string `json:"accountName,omitempty"`
+	// AccessKeyID names the IAM user's key. Not a secret; the secret stays
+	// in the keychain. Import uses it to tell a stored key from a new one.
+	AccessKeyID string `json:"accessKeyId,omitempty"`
 	// RoleARN is the role to assume. Set for KindAWSAssumeRole.
 	RoleARN string `json:"roleArn,omitempty"`
 	// SourceSessionID provides credentials for AssumeRole.
