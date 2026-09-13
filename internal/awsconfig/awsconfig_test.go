@@ -119,3 +119,36 @@ func TestWriteRefusesSectionWithCredentials(t *testing.T) {
 		t.Fatal("expected refusal")
 	}
 }
+
+func TestIAMUserKeysReadsPairsAndConfigSections(t *testing.T) {
+	dir := t.TempDir()
+	config := filepath.Join(dir, "config")
+	credPath := filepath.Join(dir, "credentials")
+	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", credPath)
+	// A missing file is quiet.
+	if got := IAMUserKeys(config); got != nil {
+		t.Fatalf("missing file = %+v", got)
+	}
+	creds := "[default]\naws_access_key_id = AKIA1\naws_secret_access_key = s1\n\n[personal]\naws_access_key_id = AKIA2\naws_secret_access_key = s2\n\n[token-only]\naws_session_token = t\n\n[half]\naws_access_key_id = AKIA3\n"
+	if err := os.WriteFile(credPath, []byte(creds), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(config, []byte("[default]\nregion = us-east-1\nmfa_serial = arn:aws:iam::1:mfa/me\n\n[profile personal]\nregion = us-west-2\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	got := IAMUserKeys(config)
+	want := []IAMUserKey{
+		{Profile: "default", AccessKeyID: "AKIA1", SecretAccessKey: "s1", Region: "us-east-1", MFADevice: "arn:aws:iam::1:mfa/me"},
+		{Profile: "personal", AccessKeyID: "AKIA2", SecretAccessKey: "s2", Region: "us-west-2"},
+	}
+	if len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("keys = %+v", got)
+	}
+	// Without a config file the keys still come through.
+	if err := os.Remove(config); err != nil {
+		t.Fatal(err)
+	}
+	if got := IAMUserKeys(config); len(got) != 2 || got[0].Region != "" || got[0].MFADevice != "" {
+		t.Fatalf("keys without config = %+v", got)
+	}
+}

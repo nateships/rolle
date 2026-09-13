@@ -137,10 +137,34 @@ func sessionAddCmd() *cobra.Command {
 	}
 
 	var iu app.AddIAMUserInput
+	var fromProfile string
 	iam := &cobra.Command{
 		Use:   "iam-user",
 		Short: "Add an IAM user with an access key",
+		Long: "Add an IAM user with an access key. --from-profile reads the key of a profile in ~/.aws/credentials " +
+			"and names the session and its profile after it; --name, --region, --mfa-device, and --profile override that.",
 		RunE: func(_ *cobra.Command, _ []string) error {
+			if fromProfile != "" {
+				in, err := svc.IAMUserFromProfile(fromProfile)
+				if err != nil {
+					return err
+				}
+				if iu.Name != "" {
+					in.Name = iu.Name
+				}
+				if iu.Region != "" {
+					in.Region = iu.Region
+				}
+				if iu.MFADevice != "" {
+					in.MFADevice = iu.MFADevice
+				}
+				if iu.Profile != "" {
+					in.Profile = iu.Profile
+				}
+				iu = in
+			} else if iu.Name == "" || iu.Region == "" {
+				return fmt.Errorf("--name and --region are required without --from-profile")
+			}
 			if iu.Key.SecretAccessKey == "" {
 				fmt.Fprint(os.Stderr, "Secret access key: ")
 				b, err := term.ReadPassword(int(os.Stdin.Fd()))
@@ -164,9 +188,9 @@ func sessionAddCmd() *cobra.Command {
 	iam.Flags().StringVar(&iu.Key.SecretAccessKey, "secret-access-key", "", "secret access key (prompted when omitted)")
 	iam.Flags().StringVar(&iu.MFADevice, "mfa-device", "", "MFA device ARN or serial")
 	iam.Flags().StringVar(&iu.Profile, "profile", "", "AWS profile name (empty uses the shared default profile)")
-	for _, f := range []string{"name", "region", "access-key-id"} {
-		_ = iam.MarkFlagRequired(f)
-	}
+	iam.Flags().StringVar(&fromProfile, "from-profile", "", "read the key of this profile in ~/.aws/credentials")
+	iam.MarkFlagsOneRequired("access-key-id", "from-profile")
+	iam.MarkFlagsMutuallyExclusive("access-key-id", "from-profile")
 
 	add.AddCommand(assume, iam, sessionAddGCPImpersonateCmd())
 	return add

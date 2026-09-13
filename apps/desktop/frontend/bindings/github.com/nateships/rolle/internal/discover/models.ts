@@ -42,6 +42,22 @@ export interface GCPAccount {
 }
 
 /**
+ * IAMUserKey is an access key in the shared credentials file. The secret
+ * stays in the file; the import reads it again by profile name.
+ */
+export interface IAMUserKey {
+    "profile": string;
+    "accessKeyId": string;
+    "region": string;
+    "mfaDevice": string;
+
+    /**
+     * Imported is true when a rolle session already holds this key.
+     */
+    "imported": boolean;
+}
+
+/**
  * LeappChainedRole is an AssumeRole session whose source is another session.
  */
 export interface LeappChainedRole {
@@ -85,6 +101,7 @@ export interface LeappWorkspace {
 export interface Result {
     "awsPortals": AWSPortal[] | null;
     "azureTenants": AzureTenant[] | null;
+    "iamUsers": IAMUserKey[] | null;
     "gcp"?: GCPAccount | null;
 
     /**

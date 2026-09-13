@@ -622,3 +622,49 @@ func TestExitCodes(t *testing.T) {
 		}
 	}
 }
+
+func TestSessionAddIAMUserFromProfile(t *testing.T) {
+	home := isolate(t)
+	s := testCLI(t)
+	credPath := filepath.Join(home, "credentials")
+	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", credPath)
+	if err := os.WriteFile(credPath, []byte("[personal]\naws_access_key_id = AKIA\naws_secret_access_key = secret\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(s.AWSConfigPath), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(s.AWSConfigPath, []byte("[profile personal]\nregion = us-west-2\nmfa_serial = arn:aws:iam::1:mfa/me\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if out := mustRun(t, "session", "add", "iam-user", "--from-profile", "personal"); !strings.HasPrefix(out, "added personal (") {
+		t.Fatalf("output:\n%s", out)
+	}
+	var listed []map[string]any
+	if err := json.Unmarshal([]byte(mustRun(t, "session", "list", "--json")), &listed); err != nil {
+		t.Fatal(err)
+	}
+	if len(listed) != 1 || listed[0]["name"] != "personal" || listed[0]["kind"] != "aws-iam-user" || listed[0]["region"] != "us-west-2" || listed[0]["profile"] != "personal" {
+		t.Fatalf("session list --json = %v", listed)
+	}
+	if sess := reload(t, s, "personal"); sess.AWS.MFADevice != "arn:aws:iam::1:mfa/me" {
+		t.Fatalf("mfa = %q", sess.AWS.MFADevice)
+	}
+	// Flags override what the file gives.
+	mustRun(t, "session", "add", "iam-user", "--from-profile", "personal", "--name", "work", "--region", "eu-west-1", "--profile", "work")
+	if sess := reload(t, s, "work"); sess.Region != "eu-west-1" || sess.AWS.Profile != "work" || sess.AWS.MFADevice != "arn:aws:iam::1:mfa/me" {
+		t.Fatalf("overridden = %+v aws = %+v", sess, sess.AWS)
+	}
+	if _, err := run(t, "session", "add", "iam-user", "--from-profile", "personal", "--access-key-id", "AKIA"); err == nil || !strings.Contains(err.Error(), "none of the others can be") {
+		t.Fatalf("conflict = %v", err)
+	}
+	if _, err := run(t, "session", "add", "iam-user", "--name", "x", "--region", "r"); err == nil || !strings.Contains(err.Error(), "at least one of the flags") {
+		t.Fatalf("neither flag = %v", err)
+	}
+	if _, err := run(t, "session", "add", "iam-user", "--access-key-id", "AKIA", "--secret-access-key", "s"); err == nil || !strings.Contains(err.Error(), "--name and --region are required") {
+		t.Fatalf("missing name = %v", err)
+	}
+	if _, err := run(t, "session", "add", "iam-user", "--from-profile", "nosuch"); err == nil || !strings.Contains(err.Error(), `no access key for profile "nosuch"`) {
+		t.Fatalf("missing profile = %v", err)
+	}
+}

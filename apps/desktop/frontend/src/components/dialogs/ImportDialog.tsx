@@ -57,6 +57,7 @@ export function ImportDialog({
             tenants={d.tenants}
             gcp={d.gcp}
             leapp={d.leapp}
+            iamUsers={d.iamUsers}
             importing={importing}
             disabled={importing !== null}
             onAWS={(p) =>

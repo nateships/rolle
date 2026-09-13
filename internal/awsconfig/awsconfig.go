@@ -141,6 +141,9 @@ type StaticProfile struct {
 	Name string `json:"name"`
 	// Keys are the static key lines, with values masked for display.
 	Keys []StaticKey `json:"keys"`
+	// Imported is true when a rolle session holds the same access key. The
+	// app layer sets it; StaticProfiles leaves it false.
+	Imported bool `json:"imported"`
 }
 
 // StaticKey is one masked key line of a profile.
@@ -183,6 +186,39 @@ func preview(key, value string) string {
 		return value[:4] + "…"
 	}
 	return "…"
+}
+
+// IAMUserKey is an access key pair of the shared credentials file, with the
+// region and MFA device of its config section.
+type IAMUserKey struct {
+	Profile, AccessKeyID, SecretAccessKey, Region, MFADevice string
+}
+
+// IAMUserKeys lists the profiles of the shared credentials file that hold a
+// complete access key pair, in file order. The region and mfa_serial come
+// from the section of the same profile in the config file when it has one.
+func IAMUserKeys(configPath string) []IAMUserKey {
+	f, err := load(CredentialsPath(configPath))
+	if err != nil {
+		return nil
+	}
+	cfg, err := load(configPath)
+	if err != nil {
+		return nil
+	}
+	var out []IAMUserKey
+	for _, sec := range f.Sections() {
+		id, secret := sec.Key("aws_access_key_id").String(), sec.Key("aws_secret_access_key").String()
+		if sec.Name() == ini.DefaultSection || id == "" || secret == "" {
+			continue
+		}
+		k := IAMUserKey{Profile: sec.Name(), AccessKeyID: id, SecretAccessKey: secret}
+		if c, err := cfg.GetSection(sectionName(sec.Name())); err == nil {
+			k.Region, k.MFADevice = c.Key("region").String(), c.Key("mfa_serial").String()
+		}
+		out = append(out, k)
+	}
+	return out
 }
 
 // RemoveStaticKeys deletes the static credential keys of profile from the

@@ -399,6 +399,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                     tenants={found.tenants}
                     gcp={found.gcp}
                     leapp={found.leapp}
+                    iamUsers={found.iamUsers}
                     importing={importing}
                     disabled={busy}
                     onAWS={importPortal}

@@ -19,3 +19,13 @@ rolle start personal --mfa-code 123456
 | `--secret-access-key` | Secret access key. Prompted when omitted |
 | `--mfa-device` | MFA device ARN or serial. The desktop app asks for the code on Start |
 | `--profile` | AWS profile name. Empty uses `default` |
+| `--from-profile` | Read the key of this profile in `~/.aws/credentials` instead of `--access-key-id` |
+
+## From the credentials file
+
+`--from-profile` reads the access key of a profile in `~/.aws/credentials` and names the session and its profile after it. The region and `mfa_serial` of the matching `~/.aws/config` section come along. `--name`, `--region`, `--mfa-device`, and `--profile` override them. The key stays in the file; `rolle cleanup <profile>` removes it, and rolle then serves the profile.
+
+```sh
+rolle session add iam-user --from-profile personal
+rolle cleanup personal
+```

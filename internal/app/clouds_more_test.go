@@ -14,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nateships/rolle/internal/aws"
 	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/secrets"
 )
@@ -556,5 +557,49 @@ func TestImportLeappSessionsNil(t *testing.T) {
 	res, err := s.ImportLeappSessions(nil)
 	if err != nil || len(res.Sessions) != 0 || len(res.Skipped) != 0 {
 		t.Fatalf("nil import = %+v, %v", res, err)
+	}
+}
+
+func TestImportIAMUserFromCredentialsFile(t *testing.T) {
+	home := fakeHome(t)
+	s := testService(t)
+	credPath := filepath.Join(home, ".aws", "credentials")
+	writeFile(t, credPath, "[default]\naws_access_key_id = AKIA1\naws_secret_access_key = s1\n\n[personal]\naws_access_key_id = AKIA2\naws_secret_access_key = s2\n")
+	writeFile(t, s.AWSConfigPath, "[profile personal]\nregion = us-west-2\nmfa_serial = arn:aws:iam::1:mfa/me\n")
+
+	sess, err := s.ImportIAMUser("personal")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sess.Name != "personal" || sess.Kind != core.KindAWSIAMUser || sess.Region != "us-west-2" || sess.AWS.MFADevice != "arn:aws:iam::1:mfa/me" || sess.AWS.Profile != "personal" {
+		t.Fatalf("session = %+v aws = %+v", sess, sess.AWS)
+	}
+	if key, err := aws.LoadAccessKey(s.Secrets, sess.ID); err != nil || key.AccessKeyID != "AKIA2" || key.SecretAccessKey != "s2" {
+		t.Fatalf("key = %+v, %v", key, err)
+	}
+	// The key stays in the file until the caller removes it.
+	if data, _ := os.ReadFile(credPath); !strings.Contains(string(data), "AKIA2") {
+		t.Fatalf("credentials file changed:\n%s", data)
+	}
+	// A second import of the same name is refused; a missing profile too.
+	if _, err := s.ImportIAMUser("personal"); err == nil || !strings.Contains(err.Error(), "already exists") {
+		t.Fatalf("duplicate = %v", err)
+	}
+	if _, err := s.ImportIAMUser("nosuch"); err == nil || !strings.Contains(err.Error(), `no access key for profile "nosuch"`) {
+		t.Fatalf("missing = %v", err)
+	}
+	// Discover and StaticProfiles mark the imported key, not the other one.
+	r := s.Discover(context.Background())
+	if len(r.IAMUsers) != 2 || r.IAMUsers[0].Profile != "default" || r.IAMUsers[0].Imported || !r.IAMUsers[1].Imported {
+		t.Fatalf("discover = %+v", r.IAMUsers)
+	}
+	st := s.StaticProfiles()
+	if len(st.Profiles) != 2 || st.Profiles[0].Imported || !st.Profiles[1].Imported {
+		t.Fatalf("static profiles = %+v", st.Profiles)
+	}
+	// ImportIAMUsers stops at the first error and keeps what it made.
+	got, err := s.ImportIAMUsers([]string{"default", "nosuch"})
+	if err == nil || len(got) != 1 || got[0].Name != "default" || got[0].AWS.Profile != "default" {
+		t.Fatalf("import many = %+v, %v", got, err)
 	}
 }

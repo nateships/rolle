@@ -263,8 +263,11 @@ func TestMergeLeapp(t *testing.T) {
 func TestScanUsesOverriddenLocations(t *testing.T) {
 	home := fakeHome(t)
 	cfg := filepath.Join(t.TempDir(), "config")
-	write(t, cfg, "[sso-session acme]\nsso_start_url = https://acme.awsapps.com/start\nsso_region = eu-west-1\n\n[profile dev]\nsso_session = acme\n")
+	write(t, cfg, "[sso-session acme]\nsso_start_url = https://acme.awsapps.com/start\nsso_region = eu-west-1\n\n[profile dev]\nsso_session = acme\n\n[profile keys]\nregion = us-west-2\nmfa_serial = arn:aws:iam::1:mfa/me\n")
 	t.Setenv("AWS_CONFIG_FILE", cfg)
+	creds := filepath.Join(t.TempDir(), "credentials")
+	write(t, creds, "[keys]\naws_access_key_id = AKIA\naws_secret_access_key = secret\n")
+	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", creds)
 	cache := mkdir(t, filepath.Join(home, ".aws", "sso", "cache"))
 	write(t, filepath.Join(cache, "x.json"), `{"startUrl":"https://acme.awsapps.com/start/","accessToken":"tok","expiresAt":"`+rfc3339(time.Hour)+`"}`)
 
@@ -290,16 +293,22 @@ func TestScanUsesOverriddenLocations(t *testing.T) {
 	if r.Leapp != nil {
 		t.Fatalf("leapp = %+v", r.Leapp)
 	}
+	// The key comes without its secret; region and MFA come from the config section.
+	want := IAMUserKey{Profile: "keys", AccessKeyID: "AKIA", Region: "us-west-2", MFADevice: "arn:aws:iam::1:mfa/me"}
+	if len(r.IAMUsers) != 1 || r.IAMUsers[0] != want {
+		t.Fatalf("iam users = %+v", r.IAMUsers)
+	}
 }
 
 func TestScanWithNothingInstalled(t *testing.T) {
 	home := fakeHome(t)
 	t.Setenv("AWS_CONFIG_FILE", filepath.Join(home, ".aws", "config"))
+	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", filepath.Join(home, ".aws", "credentials"))
 	t.Setenv("AZURE_CONFIG_DIR", filepath.Join(home, ".azure"))
 	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", filepath.Join(home, "no-adc.json"))
 	t.Setenv("LEAPP_HOME", home)
 	r := Scan(context.Background())
-	if r.AWSPortals != nil || r.AzureTenants != nil || r.GCP != nil || r.Leapp != nil {
+	if r.AWSPortals != nil || r.AzureTenants != nil || r.IAMUsers != nil || r.GCP != nil || r.Leapp != nil {
 		t.Fatalf("empty machine = %+v", r)
 	}
 	// Without the ADC override the default path under the fake home is used.

@@ -21,7 +21,72 @@ import (
 )
 
 // Discover reports identities other tools already configured on this machine.
-func (s *Service) Discover(ctx context.Context) discover.Result { return discover.Scan(ctx) }
+// An access key that a rolle session already holds is marked imported.
+func (s *Service) Discover(ctx context.Context) discover.Result {
+	r := discover.Scan(ctx)
+	if len(r.IAMUsers) > 0 {
+		have := s.storedAccessKeyIDs()
+		for i := range r.IAMUsers {
+			r.IAMUsers[i].Imported = have[r.IAMUsers[i].AccessKeyID]
+		}
+	}
+	return r
+}
+
+// storedAccessKeyIDs collects the access key IDs of every IAM user session.
+// A key the secret store cannot read is absent.
+func (s *Service) storedAccessKeyIDs() map[string]bool {
+	out := map[string]bool{}
+	w, err := s.Load()
+	if err != nil {
+		return out
+	}
+	for _, sess := range w.Sessions {
+		if sess.Kind != core.KindAWSIAMUser {
+			continue
+		}
+		if key, err := aws.LoadAccessKey(s.Secrets, sess.ID); err == nil {
+			out[key.AccessKeyID] = true
+		}
+	}
+	return out
+}
+
+// IAMUserFromProfile builds the input for an IAM user session from the access
+// key of a profile in the shared credentials file. The session and its
+// profile take the profile's name.
+func (s *Service) IAMUserFromProfile(profile string) (AddIAMUserInput, error) {
+	for _, k := range awsconfig.IAMUserKeys(s.AWSConfigPath) {
+		if k.Profile == profile {
+			return AddIAMUserInput{Name: profile, Region: k.Region, MFADevice: k.MFADevice, Profile: profile, Key: aws.AccessKey{AccessKeyID: k.AccessKeyID, SecretAccessKey: k.SecretAccessKey}}, nil
+		}
+	}
+	return AddIAMUserInput{}, fmt.Errorf("no access key for profile %q in %s", profile, awsconfig.Display(awsconfig.CredentialsPath(s.AWSConfigPath)))
+}
+
+// ImportIAMUser creates an IAM user session from the access key of a profile
+// in the shared credentials file. The key stays in the file; the caller
+// removes it, and rolle then serves the profile.
+func (s *Service) ImportIAMUser(profile string) (core.Session, error) {
+	in, err := s.IAMUserFromProfile(profile)
+	if err != nil {
+		return core.Session{}, err
+	}
+	return s.AddIAMUser(in)
+}
+
+// ImportIAMUsers imports several profiles and stops at the first error.
+func (s *Service) ImportIAMUsers(profiles []string) ([]core.Session, error) {
+	var out []core.Session
+	for _, p := range profiles {
+		sess, err := s.ImportIAMUser(p)
+		if err != nil {
+			return out, err
+		}
+		out = append(out, sess)
+	}
+	return out, nil
+}
 
 // ImportResult describes an imported Identity Center portal.
 type ImportResult struct {

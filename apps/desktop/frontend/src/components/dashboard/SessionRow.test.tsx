@@ -484,7 +484,7 @@ describe("SessionRow actions", () => {
     const start = vi.spyOn(api, "Start").mockResolvedValue({} as never);
     vi.spyOn(api, "StaticProfiles").mockResolvedValue({
       path: "~/.aws/credentials",
-      profiles: [{ name: "default", keys: [{ name: "aws_access_key_id", preview: "AKIA…" }] }],
+      profiles: [{ name: "default", keys: [{ name: "aws_access_key_id", preview: "AKIA…" }], imported: false }],
     });
     renderRow(s, { shadows: { default: "~/.aws/credentials" } });
     // The profile cell carries the mark and the reason.
@@ -516,7 +516,7 @@ describe("SessionRow actions", () => {
     const start = vi.spyOn(api, "Start").mockResolvedValue({} as never);
     vi.spyOn(api, "StaticProfiles").mockResolvedValue({
       path: "~/.aws/credentials",
-      profiles: [{ name: "default", keys: [{ name: "aws_access_key_id", preview: "AKIA…" }] }],
+      profiles: [{ name: "default", keys: [{ name: "aws_access_key_id", preview: "AKIA…" }], imported: false }],
     });
     vi.spyOn(api, "RemoveStaticProfile").mockResolvedValue();
     const error = vi.spyOn(toast, "error");
@@ -538,7 +538,7 @@ describe("SessionRow actions", () => {
     const s = session({ name: "personal", kind: Kind.KindAWSIAMUser });
     vi.spyOn(api, "StaticProfiles").mockResolvedValue({
       path: "/h/.aws/credentials",
-      profiles: [{ name: "work", keys: [{ name: "aws_access_key_id", preview: "AKIA…" }] }],
+      profiles: [{ name: "work", keys: [{ name: "aws_access_key_id", preview: "AKIA…" }], imported: false }],
     });
     vi.spyOn(api, "ProfileShadow").mockImplementation(((n: string) =>
       Promise.resolve(n === "work" ? "/h/.aws/credentials" : "")) as never);

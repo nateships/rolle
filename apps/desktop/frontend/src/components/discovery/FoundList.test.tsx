@@ -1,7 +1,14 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { FoundList, tenantAlias, type FoundPortal, type FoundTenant } from "@/components/discovery/FoundList";
+import {
+  FoundList,
+  tenantAlias,
+  type FoundIAMUser,
+  type FoundPortal,
+  type FoundTenant,
+} from "@/components/discovery/FoundList";
+import { api } from "@/lib/api";
 
 const portal = (o: Partial<FoundPortal> = {}): FoundPortal => ({
   alias: "Engineering",
@@ -16,6 +23,15 @@ const tenant = (o: Partial<FoundTenant> = {}): FoundTenant => ({
   tenantId: "t-1",
   account: "nate@contoso.com",
   source: "az",
+  ...o,
+});
+
+const iamUser = (o: Partial<FoundIAMUser> = {}): FoundIAMUser => ({
+  profile: "personal",
+  accessKeyId: "AKIAIOSFODNN7EXAMPLE",
+  region: "us-west-2",
+  mfaDevice: "arn:aws:iam::1:mfa/me",
+  imported: false,
   ...o,
 });
 
@@ -74,6 +90,33 @@ describe("FoundList", () => {
       <FoundList {...base} leapp={{ iamUsers: [{ name: "a" }], chainedRoles: [], ssoRoles: 0 }} onLeapp={undefined} />,
     );
     expect(screen.queryByText(/leapp/i)).not.toBeInTheDocument();
+  });
+
+  it("lists IAM users by profile, region, and MFA", () => {
+    render(<FoundList {...base} iamUsers={[iamUser(), iamUser({ profile: "plain", region: "", mfaDevice: "" })]} />);
+    expect(screen.getByText(/IAM users in the credentials file/)).toBeInTheDocument();
+    expect(rowOf("personal").getByText("AKIA… · us-west-2")).toBeInTheDocument();
+    expect(rowOf("personal").getByText("MFA")).toBeInTheDocument();
+    expect(rowOf("plain").getByText("AKIA…")).toBeInTheDocument();
+    expect(rowOf("plain").queryByText("MFA")).not.toBeInTheDocument();
+  });
+
+  it("imports an IAM user, then offers to remove the key from the file", async () => {
+    const user = userEvent.setup();
+    const imp = vi.spyOn(api, "ImportIAMUser").mockResolvedValue({ id: "s1", name: "personal" } as never);
+    vi.spyOn(api, "StaticProfiles").mockResolvedValue({
+      path: "~/.aws/credentials",
+      profiles: [{ name: "personal", keys: [{ name: "aws_access_key_id", preview: "AKIA…" }], imported: true }],
+    });
+    const remove = vi.spyOn(api, "RemoveStaticProfile").mockResolvedValue();
+    render(<FoundList {...base} iamUsers={[iamUser()]} />);
+    await user.click(rowOf("personal").getByRole("button", { name: /import/i }));
+    await waitFor(() => expect(imp).toHaveBeenCalledWith("personal"));
+    const dialog = await screen.findByRole("dialog", { name: "Remove profile from the credentials file?" });
+    expect(dialog).toHaveTextContent("[personal]");
+    expect(remove).not.toHaveBeenCalled();
+    await user.click(within(dialog).getByRole("button", { name: "Remove" }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith("personal"));
   });
 
   it("renders an empty list when nothing was found", () => {
