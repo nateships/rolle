@@ -41,6 +41,14 @@ const SOURCE_LABEL: Record<string, string> = { "aws-cli": "AWS CLI", granted: "G
 /** Scan the machine once and filter out identities the workspace already has. */
 export function useDiscovery(workspace: Workspace, enabled = true) {
   const [found, setFound] = useState<Found | null>(null);
+  // A scan reads local files only, so it runs again each time the caller
+  // enables it and each time the workspace changes; the credentials file
+  // watcher raises that event too.
+  /* oxlint-disable react/exhaustive-effect-dependencies */
+  useEffect(() => {
+    setFound(null);
+  }, [enabled, workspace]);
+  /* oxlint-enable react/exhaustive-effect-dependencies */
   useEffect(() => {
     if (!enabled || found) return;
     // Go nil slices arrive as null; normalise every list before anything calls .filter or .length.

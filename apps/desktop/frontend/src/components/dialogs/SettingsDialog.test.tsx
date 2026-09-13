@@ -79,6 +79,14 @@ describe("SettingsDialog", () => {
     await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ verboseLogging: true })));
   });
 
+  it("hides and shows sidebar sections from Appearance", async () => {
+    const user = userEvent.setup();
+    await open();
+    await tab(user, "Appearance");
+    await user.click(screen.getByRole("switch", { name: "Azure tenants" }));
+    await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ hiddenSections: ["azure"] })));
+  });
+
   it("writes the duration, terminal, and default region", async () => {
     const user = userEvent.setup();
     await open();

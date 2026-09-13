@@ -483,7 +483,8 @@ describe("Dashboard", () => {
       workspace = { ...workspace, sessions: [], integrations: [] } as Workspace;
       renderDashboard();
       expect(screen.getByRole("heading", { name: "No sessions yet" })).toBeInTheDocument();
-      expect(screen.getAllByText("None yet")).toHaveLength(3);
+      // Identity Center, AWS IAM, Azure, and Google Cloud each say so.
+      expect(screen.getAllByText("None yet")).toHaveLength(4);
       expect(screen.getByText("0 active")).toBeInTheDocument();
       // The sidebar hides filters that have nothing to show.
       expect(screen.queryByRole("button", { name: /^Active/ })).not.toBeInTheDocument();

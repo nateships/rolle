@@ -31,6 +31,7 @@ const state: Workspace = {
     hideOnClose: true,
     notifyOff: false,
     notifyLeadMinutes: 0,
+    hiddenSections: [],
     verboseLogging: false,
     autoUpdateOff: false,
     updateChannel: "",

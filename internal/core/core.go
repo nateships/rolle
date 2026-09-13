@@ -5,6 +5,7 @@ package core
 
 import (
 	"errors"
+	"slices"
 	"strings"
 	"time"
 )
@@ -189,7 +190,13 @@ type Settings struct {
 	CABundle string `json:"caBundle,omitempty"`
 	// UpdateChannel is "beta" to install pre-releases. Empty means stable.
 	UpdateChannel string `json:"updateChannel,omitempty"`
+	// HiddenSections names the sidebar sections the window leaves out:
+	// aws-sso, aws-iam, azure, gcp. Their sessions still show under All.
+	HiddenSections []string `json:"hiddenSections,omitempty"`
 }
+
+// SidebarSections are the sidebar sections a user can hide.
+var SidebarSections = []string{"aws-sso", "aws-iam", "azure", "gcp"}
 
 // DefaultNotifyLead is the warning lead time when NotifyLeadMinutes is zero.
 // Renewal runs inside the five-minute cache skew, so a session that is still
@@ -227,6 +234,13 @@ func (s Settings) Normalize() Settings {
 	if s.NotifyLeadMinutes < 0 || s.NotifyLeadMinutes > 60 {
 		s.NotifyLeadMinutes = 0
 	}
+	var hidden []string
+	for _, h := range s.HiddenSections {
+		if slices.Contains(SidebarSections, h) && !slices.Contains(hidden, h) {
+			hidden = append(hidden, h)
+		}
+	}
+	s.HiddenSections = hidden
 	s.ProxyURL = strings.TrimSpace(s.ProxyURL)
 	s.CABundle = strings.TrimSpace(s.CABundle)
 	if s.UpdateChannel != "beta" {

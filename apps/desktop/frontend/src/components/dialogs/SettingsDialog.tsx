@@ -56,6 +56,14 @@ const TERMINALS: { value: string; label: string }[] = IS_MAC
       ]
     : [{ value: "auto", label: "$TERMINAL or the system default" }];
 
+// The sidebar sections a user can hide; the keys match core.SidebarSections.
+const SIDEBAR_SECTIONS: [string, string][] = [
+  ["aws-sso", "AWS Identity Center"],
+  ["aws-iam", "AWS IAM"],
+  ["azure", "Azure tenants"],
+  ["gcp", "Google Cloud"],
+];
+
 const DURATIONS = [60, 120, 240, 480, 720];
 
 export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -309,6 +317,19 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                   ))}
                 </div>
               </Row>
+              <p className="pt-2 text-xs font-medium text-muted-foreground">Sidebar sections</p>
+              {SIDEBAR_SECTIONS.map(([key, label]) => (
+                <Row key={key} label={label}>
+                  <Switch
+                    aria-label={label}
+                    checked={!(settings.hiddenSections ?? []).includes(key)}
+                    onCheckedChange={(on) => {
+                      const rest = (settings.hiddenSections ?? []).filter((k) => k !== key);
+                      update({ hiddenSections: on ? rest : [...rest, key] });
+                    }}
+                  />
+                </Row>
+              ))}
             </TabsContent>
 
             <TabsContent value="about" className="mt-4 min-h-[27rem] space-y-5 text-xs">

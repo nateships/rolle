@@ -119,7 +119,7 @@ func TestRemoveIntegrationKeepsOrderOfRemaining(t *testing.T) {
 
 func TestDefaultSettings(t *testing.T) {
 	want := Settings{Theme: "system", DefaultRegion: "us-east-1", AssumeRoleMinutes: 60, HideOnClose: true}
-	if got := DefaultSettings(); got != want {
+	if got := DefaultSettings(); !reflect.DeepEqual(got, want) {
 		t.Fatalf("DefaultSettings = %+v, want %+v", got, want)
 	}
 }
@@ -144,7 +144,7 @@ func TestSettingsNormalizeTable(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := tc.in.Normalize(); got != tc.want {
+			if got := tc.in.Normalize(); !reflect.DeepEqual(got, tc.want) {
 				t.Fatalf("Normalize(%+v) = %+v, want %+v", tc.in, got, tc.want)
 			}
 		})
@@ -152,7 +152,7 @@ func TestSettingsNormalizeTable(t *testing.T) {
 }
 
 func TestEffectiveSettings(t *testing.T) {
-	if got := (&Workspace{}).EffectiveSettings(); got != DefaultSettings() {
+	if got := (&Workspace{}).EffectiveSettings(); !reflect.DeepEqual(got, DefaultSettings()) {
 		t.Fatalf("nil settings = %+v", got)
 	}
 	stored := &Settings{Theme: "sepia", AssumeRoleMinutes: 1}
@@ -185,7 +185,7 @@ func TestCredentialsExpiredAtBoundary(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := (Credentials{Expiration: tc.exp}).Expired(now, tc.skew); got != tc.want {
+			if got := (Credentials{Expiration: tc.exp}).Expired(now, tc.skew); !reflect.DeepEqual(got, tc.want) {
 				t.Fatalf("Expired = %v, want %v", got, tc.want)
 			}
 		})

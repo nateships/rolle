@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -218,7 +219,7 @@ func TestUpdateSettingsNormalizesBadValues(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := core.Settings{Theme: "system", DefaultRegion: "us-east-1", AssumeRoleMinutes: 60, Terminal: "iterm", VerboseLogging: true}
-	if got != want {
+	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("normalized = %+v, want %+v", got, want)
 	}
 	if !debug.Enabled() {
@@ -235,7 +236,7 @@ func TestUpdateSettingsNormalizesBadValues(t *testing.T) {
 		t.Fatal("verbose logging off must disable debug output")
 	}
 	again, err := s.Settings()
-	if err != nil || again != got {
+	if err != nil || !reflect.DeepEqual(again, got) {
 		t.Fatalf("reloaded = %+v, %v", again, err)
 	}
 }
