@@ -96,7 +96,7 @@ describe("FoundList", () => {
     render(<FoundList {...base} iamUsers={[iamUser(), iamUser({ profile: "plain", region: "", mfaDevice: "" })]} />);
     // The group starts folded; the heading opens it.
     expect(screen.queryByText("personal")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /2 IAM users in the credentials file/ }));
+    fireEvent.click(screen.getByRole("button", { name: /IAM users in the credentials file/ }));
     expect(rowOf("personal").getByText("AKIA… · us-west-2")).toBeInTheDocument();
     expect(rowOf("personal").getByText("MFA")).toBeInTheDocument();
     expect(rowOf("plain").getByText("AKIA…")).toBeInTheDocument();
@@ -113,7 +113,7 @@ describe("FoundList", () => {
     const remove = vi.spyOn(api, "RemoveStaticProfile").mockResolvedValue();
     render(<FoundList {...base} iamUsers={[iamUser()]} />);
     expect(screen.queryByRole("button", { name: /import all/i })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /1 IAM user in the credentials file/ }));
+    await user.click(screen.getByRole("button", { name: /IAM users in the credentials file/ }));
     await user.click(rowOf("personal").getByRole("button", { name: /import/i }));
     await waitFor(() => expect(imp).toHaveBeenCalledWith("personal"));
     const dialog = await screen.findByRole("dialog", { name: "Remove profile from the credentials file?" });

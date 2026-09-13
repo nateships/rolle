@@ -240,25 +240,36 @@ export function FoundList({
         />
       )}
       {iamUsers.length > 0 && (
-        <li className="flex items-center justify-between gap-3 pt-1 text-xs text-muted-foreground">
+        <li className="flex items-center gap-3 rounded-lg border bg-background/60 px-3 py-2.5">
+          <CloudGlyph cloud="aws" />
           <button
             type="button"
-            className="flex items-center gap-1.5 rounded hover:text-foreground"
+            className="flex min-w-0 flex-1 items-center gap-2 text-left"
             aria-expanded={usersOpen}
             onClick={() => setUsersOpen((o) => !o)}
           >
-            <ChevronDown className={cn("size-3.5 transition-transform", !usersOpen && "-rotate-90")} />
-            {iamUsers.length} IAM user{iamUsers.length === 1 ? "" : "s"} in the credentials file
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <p className="truncate text-sm font-medium">IAM users in the credentials file</p>
+                <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-normal text-muted-foreground">
+                  {iamUsers.length}
+                </Badge>
+              </div>
+              <p className="truncate text-[11px] text-muted-foreground">Static keys. Import moves them into rolle.</p>
+            </div>
+            <ChevronDown
+              className={cn("size-4 shrink-0 text-muted-foreground transition-transform", !usersOpen && "-rotate-90")}
+            />
           </button>
           <Button
             size="sm"
-            variant="ghost"
-            className="h-6 shrink-0 gap-1.5 text-xs"
+            variant="secondary"
+            className="gap-1.5"
             disabled={disabled || importingUser !== null}
             onClick={() => void importUsers(iamUsers)}
           >
-            {importingUser === "*" ? <Loader2 className="size-3 animate-spin" /> : <Import className="size-3" />}
-            {iamUsers.length === 1 ? "Import" : "Import all"}
+            {importingUser === "*" ? <Loader2 className="size-3.5 animate-spin" /> : <Import className="size-3.5" />}
+            {iamUsers.length === 1 ? "Import" : `Import all ${iamUsers.length}`}
           </Button>
         </li>
       )}
