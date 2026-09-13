@@ -243,7 +243,9 @@ export function PendingUpdate(): $CancellablePromise<$models.UpdateInfo | null> 
 
 /**
  * ProfileShadow returns the file, in display form, whose static keys tools
- * read instead of a profile of that name, or "".
+ * read instead of a profile of that name, or "". The window offers to remove
+ * those keys, so a profile that another tool configures in the config file
+ * reports "".
  */
 export function ProfileShadow(name: string): $CancellablePromise<string> {
     return $Call.ByID(4258961860, name);

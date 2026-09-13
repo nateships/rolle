@@ -15,22 +15,23 @@ func (s *Service) ProfileShadow(name string) *awsconfig.Shadow {
 
 // ShadowedProfiles maps every AWS session's profile name to the file, in
 // display form, whose static keys tools read instead of it. Profiles nothing
-// shadows are absent.
+// shadows are absent. The map holds the shadows RemoveStaticProfile clears;
+// a profile that another tool configures in the config file is not in it.
 func (s *Service) ShadowedProfiles(w *core.Workspace) map[string]string {
+	// One parse of the credentials file serves every session.
+	profiles, path := awsconfig.StaticProfiles(s.AWSConfigPath)
+	static := map[string]bool{}
+	for _, p := range profiles {
+		static[p.Name] = true
+	}
 	out := map[string]string{}
-	checked := map[string]bool{}
 	for i := range w.Sessions {
 		sess := &w.Sessions[i]
 		if sess.Kind.Cloud() != core.CloudAWS {
 			continue
 		}
-		name := ProfileName(sess)
-		if checked[name] {
-			continue
-		}
-		checked[name] = true
-		if sh := s.ProfileShadow(name); sh != nil {
-			out[name] = awsconfig.Display(sh.Path)
+		if name := ProfileName(sess); static[name] {
+			out[name] = awsconfig.Display(path)
 		}
 	}
 	return out
@@ -66,27 +67,4 @@ func (s *Service) RemoveStaticProfile(name string) error {
 	// The workspace file did not change, but what the window shows did.
 	s.notify()
 	return nil
-}
-
-// FixProfile removes the static keys that shadow the session's profile from
-// the shared credentials file. A profile that another tool configures in the
-// config file cannot be fixed this way; the session needs another name.
-func (s *Service) FixProfile(ref string) error {
-	w, err := s.Load()
-	if err != nil {
-		return err
-	}
-	sess, err := FindSession(w, ref)
-	if err != nil {
-		return err
-	}
-	name := ProfileName(sess)
-	sh := s.ProfileShadow(name)
-	if sh == nil {
-		return nil
-	}
-	if !sh.Fixable {
-		return fmt.Errorf("another tool configures profile %q in %s; use another profile name", name, awsconfig.Display(sh.Path))
-	}
-	return awsconfig.RemoveStaticKeys(s.AWSConfigPath, name)
 }

@@ -510,6 +510,29 @@ describe("SessionRow actions", () => {
     await waitFor(() => expect(start).toHaveBeenCalledTimes(1));
   });
 
+  it("shows the conflict before the MFA prompt, and the prompt after the fix", async () => {
+    const user = userEvent.setup();
+    const s = session({ name: "personal", kind: Kind.KindAWSIAMUser, aws: { mfaDevice: "arn:aws:iam::1:mfa/me" } });
+    const start = vi.spyOn(api, "Start").mockResolvedValue({} as never);
+    vi.spyOn(api, "StaticProfiles").mockResolvedValue({
+      path: "~/.aws/credentials",
+      profiles: [{ name: "default", keys: [{ name: "aws_access_key_id", preview: "AKIA…" }] }],
+    });
+    vi.spyOn(api, "RemoveStaticProfile").mockResolvedValue();
+    const error = vi.spyOn(toast, "error");
+    renderRow(s, { shadows: { default: "~/.aws/credentials" } });
+    await user.click(screen.getByRole("button", { name: /^start$/i }));
+    await waitFor(() => expect(error).toHaveBeenCalledWith("Local profile conflict", expect.anything()));
+    expect(screen.queryByRole("dialog", { name: "MFA code" })).not.toBeInTheDocument();
+    const opts = error.mock.calls[0][1] as { action?: { onClick: () => void } };
+    act(() => opts.action!.onClick());
+    const confirm = await screen.findByRole("dialog", { name: "Remove profile from the credentials file?" });
+    await user.click(within(confirm).getByRole("button", { name: "Remove" }));
+    // The code is still needed; nothing starts without it.
+    expect(await screen.findByRole("dialog", { name: "MFA code" })).toBeInTheDocument();
+    expect(start).not.toHaveBeenCalled();
+  });
+
   it("warns in the profile dialog when the typed name is shadowed", async () => {
     const user = userEvent.setup();
     const s = session({ name: "personal", kind: Kind.KindAWSIAMUser });

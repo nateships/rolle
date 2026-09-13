@@ -24,3 +24,6 @@ coverage.out
 # CI keeps the Go and lint caches inside the checkout
 /.cache/
 /desktop
+
+# Agent worktrees
+.claude/worktrees/

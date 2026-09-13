@@ -436,9 +436,11 @@ func (r *RolleService) SetAlias(kind, key, alias string) error {
 }
 
 // ProfileShadow returns the file, in display form, whose static keys tools
-// read instead of a profile of that name, or "".
+// read instead of a profile of that name, or "". The window offers to remove
+// those keys, so a profile that another tool configures in the config file
+// reports "".
 func (r *RolleService) ProfileShadow(name string) string {
-	if sh := r.svc.ProfileShadow(name); sh != nil {
+	if sh := r.svc.ProfileShadow(name); sh != nil && sh.Fixable {
 		return awsconfig.Display(sh.Path)
 	}
 	return ""

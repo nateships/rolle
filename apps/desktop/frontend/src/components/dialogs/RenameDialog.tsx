@@ -56,17 +56,13 @@ export function RenameDialog({ target, onClose }: { target: RenameTarget | null;
   const [busy, setBusy] = useState(false);
   const [all, setAll] = useState(false);
   const [warning, setWarning] = useState("");
-  const [checked] = useState(0);
   const check = target?.check;
-  // The check runs a moment after typing stops. The counter is a deliberate
-  // extra dependency: a fix bumps it so the check runs again.
-  /* oxlint-disable react/exhaustive-effect-dependencies */
+  // The check runs a moment after typing stops.
   useEffect(() => {
     if (!check) return;
     const t = setTimeout(() => void check(name.trim()).then(setWarning, () => setWarning("")), 250);
     return () => clearTimeout(t);
-  }, [check, name, checked]);
-  /* oxlint-enable react/exhaustive-effect-dependencies */
+  }, [check, name]);
   const targetId = target?.id;
   const targetName = target?.name;
   // The id is a deliberate extra dependency: a new target with the same name still resets the field.
@@ -74,6 +70,7 @@ export function RenameDialog({ target, onClose }: { target: RenameTarget | null;
   useEffect(() => {
     setName(targetName ?? "");
     setAll(false);
+    setWarning("");
   }, [targetId, targetName]);
   /* oxlint-enable react/exhaustive-effect-dependencies */
   const copy = COPY[target?.kind ?? "session"];

@@ -11,6 +11,7 @@ import (
 	"golang.org/x/term"
 
 	"github.com/nateships/rolle/internal/app"
+	"github.com/nateships/rolle/internal/awsconfig"
 	"github.com/nateships/rolle/internal/core"
 )
 
@@ -217,7 +218,10 @@ func sessionFixProfileCmd() *cobra.Command {
 				fmt.Printf("profile %s is not shadowed\n", name)
 				return nil
 			}
-			if err := svc.FixProfile(sess.ID); err != nil {
+			if !sh.Fixable {
+				return fmt.Errorf("another tool configures profile %q in %s; use another profile name", name, awsconfig.Display(sh.Path))
+			}
+			if err := svc.RemoveStaticProfile(name); err != nil {
 				return err
 			}
 			fmt.Printf("removed the static keys of profile %s from %s\n", name, sh.Path)

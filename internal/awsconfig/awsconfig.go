@@ -105,7 +105,7 @@ type Shadow struct {
 // Nil when nothing does.
 func Shadowed(configPath, profile string) *Shadow {
 	credPath := CredentialsPath(configPath)
-	if f, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, credPath); err == nil {
+	if f, err := load(credPath); err == nil {
 		if sec, err := f.GetSection(profile); err == nil {
 			for _, k := range staticKeys {
 				if sec.HasKey(k) {
@@ -114,7 +114,7 @@ func Shadowed(configPath, profile string) *Shadow {
 			}
 		}
 	}
-	if f, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, configPath); err == nil {
+	if f, err := load(configPath); err == nil {
 		if sec, err := f.GetSection(sectionName(profile)); err == nil && !sec.HasKey(marker) {
 			for _, k := range credentialKeys {
 				if sec.HasKey(k) {
@@ -154,7 +154,7 @@ type StaticKey struct {
 // static keys, in file order. The file's path comes second.
 func StaticProfiles(configPath string) ([]StaticProfile, string) {
 	credPath := CredentialsPath(configPath)
-	f, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, credPath)
+	f, err := load(credPath)
 	if err != nil {
 		return nil, credPath
 	}

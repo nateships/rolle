@@ -44,11 +44,11 @@ export function RemoveKeysDialog({
   const shown = (listing?.profiles ?? []).filter((p) => target?.profiles.includes(p.name));
 
   async function remove() {
-    if (!target) return;
+    if (!target || !listing) return;
     setBusy(true);
     try {
       for (const n of target.profiles) await api.RemoveStaticProfile(n);
-      toast.success(`Removed from ${listing?.path ?? "~/.aws/credentials"}`);
+      toast.success(`Removed from ${listing.path}`);
       onClose();
       onDone?.();
     } catch (e) {
@@ -66,7 +66,13 @@ export function RemoveKeysDialog({
           </DialogTitle>
           <DialogDescription>Cannot be undone.</DialogDescription>
         </DialogHeader>
-        {listing && (
+        {listing && shown.length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            No static keys for {target?.profiles.join(", ")} in{" "}
+            <span className="font-mono text-xs">{listing.path}</span>.
+          </p>
+        )}
+        {listing && shown.length > 0 && (
           <div className="space-y-1.5">
             <p className="font-mono text-xs text-muted-foreground">{listing.path}</p>
             <pre className="max-h-48 overflow-y-auto rounded-md border bg-muted/40 px-3 py-2 font-mono text-xs leading-5">
@@ -87,7 +93,7 @@ export function RemoveKeysDialog({
           <Button variant="outline" onClick={onClose} disabled={busy}>
             Cancel
           </Button>
-          <Button variant="destructive" onClick={() => void remove()} disabled={busy || !listing}>
+          <Button variant="destructive" onClick={() => void remove()} disabled={busy || shown.length === 0}>
             {busy ? <Loader2 className="size-4 animate-spin" /> : "Remove"}
           </Button>
         </div>

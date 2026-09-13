@@ -32,11 +32,23 @@ func cleanupCmd() *cobra.Command {
 				fmt.Println("rolle cleanup <profile> removes a section's keys; --all removes every one.")
 				return nil
 			}
+			has := map[string]bool{}
+			for _, p := range st.Profiles {
+				has[p.Name] = true
+			}
 			names := args
 			if all {
-				names = names[:0]
+				if len(args) > 0 {
+					return fmt.Errorf("--all takes no profile names")
+				}
+				names = make([]string, 0, len(st.Profiles))
 				for _, p := range st.Profiles {
 					names = append(names, p.Name)
+				}
+			}
+			for _, n := range names {
+				if !has[n] {
+					return fmt.Errorf("no static keys for profile %q in %s", n, st.Path)
 				}
 			}
 			for _, n := range names {

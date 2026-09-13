@@ -163,6 +163,12 @@ func TestIntegrationLoginDeviceFlowDiscoversRoles(t *testing.T) {
 	if err := json.Unmarshal([]byte(mustRun(t, "cleanup", "--json")), &cleanup); err != nil || !strings.Contains(fmt.Sprint(cleanup["profiles"]), "name:a]") || !strings.Contains(fmt.Sprint(cleanup["profiles"]), "preview:…") {
 		t.Fatalf("cleanup --json = %v, %v", cleanup, err)
 	}
+	if _, err := run(t, "cleanup", "nosuch"); err == nil || !strings.Contains(err.Error(), `no static keys for profile "nosuch"`) {
+		t.Fatalf("cleanup of a missing section: %v", err)
+	}
+	if _, err := run(t, "cleanup", "a", "--all"); err == nil || !strings.Contains(err.Error(), "--all takes no profile names") {
+		t.Fatalf("cleanup with names and --all: %v", err)
+	}
 	mustRun(t, "cleanup", "--all")
 	if out := mustRun(t, "cleanup"); !strings.Contains(out, "no static keys") {
 		t.Fatalf("cleanup after --all: %q", out)

@@ -78,23 +78,28 @@ export function SessionRow({
   const needsMFA = s.kind === Kind.KindAWSIAMUser && !!s.aws?.mfaDevice;
   const source = s.aws?.sourceSessionId ? workspace.sessions.find((x) => x.id === s.aws?.sourceSessionId) : undefined;
 
-  // shadowToast names the file and offers the fix, which starts the session after.
-  function shadowToast() {
+  // shadowToast offers the fix, which starts the session after.
+  function shadowToast(description: string) {
     toast.error("Local profile conflict", {
-      description: `${profileName} in ${shadowedBy ?? "~/.aws/credentials"}`,
+      description,
       action: { label: "Fix", onClick: () => setRemoving({ profiles: [profileName], thenStart: true }) },
     });
   }
 
-  // start runs the session. A profile that static keys already shadow cannot
-  // start, so the toast comes at once; afterFix skips that check, since the
-  // shadow map refreshes with the next workspace event.
-  async function start(mfaCode = "", afterFix = false) {
-    if (busy) return;
-    if (shadowedBy && !afterFix) {
-      shadowToast();
+  // begin starts the session, or asks for the MFA code first. A profile that
+  // static keys shadow cannot start, so the toast comes before either.
+  function begin() {
+    if (shadowedBy) {
+      shadowToast(`${profileName} in ${shadowedBy}`);
       return;
     }
+    if (needsMFA) setMfaOpen(true);
+    else void start();
+  }
+
+  // start runs the session.
+  async function start(mfaCode = "") {
+    if (busy) return;
     setBusy(true);
     // Start first; the backend may renew the portal token silently. A "login
     // required" error is the one signal that the browser is needed.
@@ -123,13 +128,32 @@ export function SessionRow({
       if (/login required/i.test(msg) && integration && onNeedsLogin) {
         onNeedsLogin(integration, s.id);
       } else if (/static keys/i.test(msg)) {
-        shadowToast();
+        shadowToast(msg);
       } else {
         toast.error(msg);
       }
     } finally {
       setBusy(false);
     }
+  }
+
+  // profileTarget opens the profile dialog. It warns when the typed name is
+  // shadowed and offers to remove the keys.
+  function profileTarget(): RenameTarget {
+    return {
+      kind: "profile",
+      id: s.id,
+      name: s.aws?.profile ?? "",
+      save: (n) => api.SetProfile(s.id, n),
+      check: async (n) => {
+        const path = await api.ProfileShadow(n || "default");
+        return path ? `${path} has a profile with this name.` : "";
+      },
+      onFix: (n) => {
+        setEditing(null);
+        setRemoving({ profiles: [n || "default"], thenStart: false });
+      },
+    };
   }
 
   async function stop() {
@@ -212,13 +236,7 @@ export function SessionRow({
           {
             label: "Set AWS profile name",
             icon: <Terminal />,
-            onSelect: () =>
-              setEditing({
-                kind: "profile",
-                id: s.id,
-                name: s.aws?.profile ?? "",
-                save: (n) => api.SetProfile(s.id, n),
-              }),
+            onSelect: () => setEditing(profileTarget()),
           },
           { label: "Change region", icon: <Globe />, onSelect: () => setRegionOpen(true) },
           { label: "Copy profile command", icon: <Terminal />, onSelect: () => void copy("profile") },
@@ -236,7 +254,7 @@ export function SessionRow({
     {
       label: active ? "Stop" : "Start",
       icon: active ? <Square /> : <Play />,
-      onSelect: () => (active ? void stop() : needsMFA ? setMfaOpen(true) : void start()),
+      onSelect: () => (active ? void stop() : begin()),
     },
     ...(active
       ? ([
@@ -285,7 +303,7 @@ export function SessionRow({
                 type="button"
                 aria-label={active ? "Stop" : "Start"}
                 disabled={busy}
-                onClick={() => (active ? stop() : needsMFA ? setMfaOpen(true) : start())}
+                onClick={() => (active ? void stop() : begin())}
                 className={cn(
                   "relative inline-flex size-7 items-center justify-center rounded-full border transition-colors disabled:opacity-60",
                   active
@@ -382,22 +400,7 @@ export function SessionRow({
             {isAWS ? (
               <button
                 type="button"
-                onClick={() =>
-                  setEditing({
-                    kind: "profile",
-                    id: s.id,
-                    name: s.aws?.profile ?? "",
-                    save: (n) => api.SetProfile(s.id, n),
-                    check: async (n) => {
-                      const path = await api.ProfileShadow(n || "default");
-                      return path ? `${path} has a profile with this name.` : "";
-                    },
-                    onFix: (n) => {
-                      setEditing(null);
-                      setRemoving({ profiles: [n || "default"], thenStart: false });
-                    },
-                  })
-                }
+                onClick={() => setEditing(profileTarget())}
                 className={cn(
                   "inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-accent hover:text-foreground",
                   shadowedBy && "text-amber-600 dark:text-amber-400",
@@ -498,7 +501,7 @@ export function SessionRow({
             <RemoveKeysDialog
               target={removing}
               onClose={() => setRemoving(null)}
-              onDone={() => removing?.thenStart && void start("", true)}
+              onDone={() => removing?.thenStart && (needsMFA ? setMfaOpen(true) : void start())}
             />
             <RegionDialog session={regionOpen ? s : null} onClose={() => setRegionOpen(false)} />
           </TableCell>
