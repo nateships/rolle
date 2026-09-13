@@ -29,7 +29,7 @@ mise run reset              # wipe the local workspace, secrets, cache, and AWS 
 
 Changes reach `main` through pull requests that pass CI. Commit subjects follow [Conventional Commits](https://www.conventionalcommits.org): `feat(cli):`, `fix(app):`, `docs:`, `chore:`. A commit-msg hook checks them.
 
-[release-please](https://github.com/googleapis/release-please) keeps a release pull request open from those commits. Merging it tags the release and starts the build. Until 1.0, a feature bumps the patch version.
+[release-please](https://github.com/googleapis/release-please) keeps a release pull request open from those commits. Merging it tags the release and starts the build. Until 1.0, a feature bumps the minor version and a fix bumps the patch version.
 
 ## Layout
 
