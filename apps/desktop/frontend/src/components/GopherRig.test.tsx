@@ -13,9 +13,10 @@ describe("GopherRig", () => {
     return container.querySelector(`[data-part="${name}"]`)!;
   }
 
-  it("plays the first move on its own with autoplay", () => {
-    vi.spyOn(Math, "random").mockReturnValue(0);
-    const { container } = render(<GopherRig autoplay />);
+  it("plays the named move on its own with autoplay", () => {
+    // Random would pick the peek; the named move wins.
+    vi.spyOn(Math, "random").mockReturnValue(0.9);
+    const { container } = render(<GopherRig autoplay="dance" />);
     // Nothing moves before the section has settled.
     act(() => void vi.advanceTimersByTime(200));
     expect(part(container, "hands-root").getAttribute("transform")).toBeNull();

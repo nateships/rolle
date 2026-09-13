@@ -5,9 +5,12 @@ import { cn } from "@/lib/utils";
  * The gopher on its cards as editable vector layers, from docs/brand/animation-kit.
  * A click plays a short dance or a hide-then-peek behind the green card, picked
  * at random. Nothing else happens; that is the point. Reduced motion skips it.
- * With autoplay, the first move plays on its own shortly after mount.
+ * With autoplay, the first move plays on its own shortly after mount: a
+ * random one for true, or the named one.
  */
-export function GopherRig({ className, autoplay }: { className?: string; autoplay?: boolean }) {
+export type Autoplay = boolean | "dance" | "peek";
+
+export function GopherRig({ className, autoplay }: { className?: string; autoplay?: Autoplay }) {
   const uid = useId().replace(/:/g, "");
   const svg = useRef<SVGSVGElement>(null);
   const state = useRef<{
@@ -128,16 +131,16 @@ export function GopherRig({ className, autoplay }: { className?: string; autopla
   // Autoplay waits for the section's own entrance to settle first.
   useEffect(() => {
     if (!autoplay) return;
-    const t = setTimeout(play, 350);
+    const t = setTimeout(() => play(autoplay === true ? undefined : autoplay), 350);
     return () => clearTimeout(t);
   }, [autoplay]);
 
-  function play() {
+  function play(move?: "dance" | "peek") {
     if (state.current.busy) return;
     if (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     state.current.busy = true;
     reset();
-    if (Math.random() < 0.5) {
+    if ((move ?? (Math.random() < 0.5 ? "dance" : "peek")) === "dance") {
       animate(2400, dance, finish);
     } else {
       hideThenPeek();
@@ -145,7 +148,7 @@ export function GopherRig({ className, autoplay }: { className?: string; autopla
   }
 
   return (
-    <svg ref={svg} viewBox="0 0 385 310" className={cn("size-full", className)} aria-hidden onClick={play}>
+    <svg ref={svg} viewBox="0 0 385 310" className={cn("size-full", className)} aria-hidden onClick={() => play()}>
       <defs>
         <mask id={`${uid}-front`} maskUnits="userSpaceOnUse" x="-200" y="-200" width="1000" height="1000">
           <rect x="-200" y="-200" width="1000" height="1000" fill="white" />
