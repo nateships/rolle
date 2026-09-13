@@ -9,6 +9,8 @@ extend-exclude = [
   "*.svg",
   "*.icns",
   "go.sum",
+  # release-please writes it, and its commit hashes read as words.
+  "CHANGELOG.md",
 ]
 
 [default.extend-identifiers]
