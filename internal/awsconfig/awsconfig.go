@@ -108,7 +108,7 @@ func Shadowed(configPath, profile string) *Shadow {
 // shadow the profile. Write checks the config file itself.
 func checkShadow(configPath, profile string) error {
 	if sh := Shadowed(configPath, profile); sh != nil && sh.Fixable {
-		return fmt.Errorf("%w: profile %q has static keys in %s; tools use those, not this session", ErrShadowed, profile, sh.Path)
+		return fmt.Errorf("%w: static keys in %s shadow profile %q", ErrShadowed, sh.Path, profile)
 	}
 	return nil
 }

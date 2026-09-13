@@ -22,10 +22,9 @@ rolle_session = <session-id>
 
 The AWS credential chain reads static keys in `~/.aws/credentials` before `credential_process` in `~/.aws/config`. A `[default]` section with `aws_access_key_id` there wins over a rolle profile named `default`, and every tool uses the old keys.
 
-rolle refuses to start a session onto a shadowed profile and names the file. The profile column shows an amber mark and the reason, the profile dialog warns as you type a name, and `rolle session list --json` carries the file as `shadowedBy`. To clear it, remove the keys or give the session another profile name:
+rolle refuses to start a session onto a shadowed profile. The profile column shows an amber mark. Click it, and the profile dialog names the file and offers **Remove keys**, which deletes that section's static keys. The start error offers the same. `rolle session list --json` carries the file as `shadowedBy`, and `rolle session fix-profile <session>` removes the keys.
 
-- The start error and the row menu offer **Remove static keys**, which deletes that section's keys from `~/.aws/credentials`. The CLI does the same with `rolle session fix-profile <session>`.
-- **Settings → AWS → Static keys** and the last onboarding step list every section with static keys and remove the ones you pick. The CLI does the same with `rolle cleanup`.
+**Settings → AWS → Static keys** and the last onboarding step list every section with static keys and remove the ones you pick. The CLI does the same with `rolle cleanup`.
 
 A profile that another tool configures in `~/.aws/config`, with `credential_process`, `sso_session`, or `role_arn`, cannot be taken over. Give the session another profile name.
 

@@ -20,6 +20,8 @@ export type RenameTarget = {
   everywhere?: { label: string; name: string; save: (name: string) => Promise<unknown> };
   /** Looks at the typed name and returns a warning to show, or "". */
   check?: (name: string) => Promise<string>;
+  /** Clears what the warning is about; the check runs again after it. */
+  fix?: (name: string) => Promise<unknown>;
 };
 
 const COPY: Record<
@@ -52,13 +54,27 @@ export function RenameDialog({ target, onClose }: { target: RenameTarget | null;
   const [busy, setBusy] = useState(false);
   const [all, setAll] = useState(false);
   const [warning, setWarning] = useState("");
+  const [checked, setChecked] = useState(0);
   const check = target?.check;
-  // The check runs a moment after typing stops.
+  // The check runs a moment after typing stops. The counter is a deliberate
+  // extra dependency: a fix bumps it so the check runs again.
+  /* oxlint-disable react/exhaustive-effect-dependencies */
   useEffect(() => {
     if (!check) return;
     const t = setTimeout(() => void check(name.trim()).then(setWarning, () => setWarning("")), 250);
     return () => clearTimeout(t);
-  }, [check, name]);
+  }, [check, name, checked]);
+  /* oxlint-enable react/exhaustive-effect-dependencies */
+  const fix = async () => {
+    if (!target?.fix) return;
+    try {
+      await target.fix(name.trim());
+      toast.success("Static keys removed");
+      setChecked((n) => n + 1);
+    } catch (err) {
+      toast.error(errorMessage(err));
+    }
+  };
   const targetId = target?.id;
   const targetName = target?.name;
   // The id is a deliberate extra dependency: a new target with the same name still resets the field.
@@ -111,9 +127,17 @@ export function RenameDialog({ target, onClose }: { target: RenameTarget | null;
             className={target?.kind === "profile" ? "font-mono" : undefined}
           />
           {warning && (
-            <p role="alert" className="text-xs text-amber-600 dark:text-amber-400">
-              {warning}
-            </p>
+            <div
+              role="alert"
+              className="flex items-center justify-between gap-3 text-xs text-amber-600 dark:text-amber-400"
+            >
+              <span>{warning}</span>
+              {target?.fix && (
+                <Button type="button" size="sm" variant="ghost" className="h-6 shrink-0" onClick={() => void fix()}>
+                  Remove keys
+                </Button>
+              )}
+            </div>
           )}
           {target?.everywhere && (
             <div className="flex items-center justify-between gap-3 text-sm">

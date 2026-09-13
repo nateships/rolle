@@ -64,9 +64,9 @@ export function StaticKeysCard({ className }: { className?: string }) {
         <div className="min-w-0 flex-1">
           <p className="font-medium">Static keys in {keys.path}</p>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Tools read these before any rolle profile of the same name. Remove the ones rolle replaces.
+            Tools read these before a rolle profile of the same name.
           </p>
-          <ul className="mt-3 space-y-1">
+          <ul className="mt-3 max-h-40 space-y-1 overflow-y-auto pr-1">
             {keys.profiles.map((p) => (
               <li key={p} className="flex items-center justify-between gap-3">
                 <code className="font-mono text-xs">{p}</code>

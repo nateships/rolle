@@ -479,7 +479,7 @@ describe("SessionRow actions", () => {
     const s = session({ name: "personal", kind: Kind.KindAWSIAMUser });
     const start = vi
       .spyOn(api, "Start")
-      .mockRejectedValueOnce(new Error("profile default has static keys in /h/.aws/credentials; tools use those"))
+      .mockRejectedValueOnce(new Error('static keys in /h/.aws/credentials shadow profile "default"'))
       .mockResolvedValue({} as never);
     const fix = vi.spyOn(api, "FixProfile").mockResolvedValue();
     renderRow(s, { shadows: { default: "/h/.aws/credentials" } });
@@ -489,10 +489,6 @@ describe("SessionRow actions", () => {
       "title",
       expect.stringContaining("static keys"),
     );
-    // The row menu offers the removal on its own.
-    await user.click(screen.getByRole("button", { name: "More actions" }));
-    expect(await screen.findByRole("menuitem", { name: "Remove static keys" })).toBeInTheDocument();
-    await user.keyboard("{Escape}");
     // A failed start offers the removal and starts again after it.
     const error = vi.spyOn(toast, "error");
     await user.click(screen.getByRole("button", { name: /^start$/i }));
@@ -513,7 +509,13 @@ describe("SessionRow actions", () => {
     await user.click(screen.getByRole("button", { name: /default/ }));
     await screen.findByRole("dialog", { name: "AWS profile name" });
     await user.type(screen.getByPlaceholderText("default"), "work");
-    expect(await screen.findByRole("alert")).toHaveTextContent("Profile work has static keys in /h/.aws/credentials");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Static keys in /h/.aws/credentials shadow this profile.",
+    );
+    // The warning offers the removal and checks again after it.
+    const remove = vi.spyOn(api, "RemoveStaticProfile").mockResolvedValue();
+    await user.click(screen.getByRole("button", { name: "Remove keys" }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith("work"));
   });
 
   it("sets the AWS profile name from the profile cell", async () => {

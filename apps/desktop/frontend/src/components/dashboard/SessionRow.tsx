@@ -5,7 +5,6 @@ import {
   Globe,
   Loader2,
   MoreHorizontal,
-  KeyRound,
   Pencil,
   Play,
   Square,
@@ -70,9 +69,7 @@ export function SessionRow({
   const profileName = isAWSKind(s.kind) ? s.aws?.profile || "default" : "";
   // Static keys under the same profile name win over this session.
   const shadowedBy = isAWSKind(s.kind) ? shadows?.[profileName] : undefined;
-  const shadowNote = shadowedBy
-    ? `Profile ${profileName} has static keys in ${shadowedBy}. Tools use those, not this session.`
-    : "";
+  const shadowNote = shadowedBy ? `Static keys in ${shadowedBy} shadow this profile.` : "";
   const tags = workspace.tags ?? [];
   const active = s.status === Status.StatusActive;
   const needsMFA = s.kind === Kind.KindAWSIAMUser && !!s.aws?.mfaDevice;
@@ -98,7 +95,7 @@ export function SessionRow({
         onNeedsLogin(integration, s.id);
       } else if (/static keys/i.test(msg)) {
         // The keys can go and the start can run again.
-        toast.error(msg, { action: { label: "Remove keys", onClick: () => void fixProfile(true) } });
+        toast.error(msg, { action: { label: "Remove keys", onClick: () => void fixProfile() } });
       } else {
         toast.error(msg);
       }
@@ -108,12 +105,12 @@ export function SessionRow({
   }
 
   // fixProfile removes the static keys that shadow the profile, then starts
-  // the session when asked.
-  async function fixProfile(thenStart: boolean) {
+  // the session again.
+  async function fixProfile() {
     try {
       await api.FixProfile(s.id);
-      toast.success(`Static keys of profile ${profileName} removed`);
-      if (thenStart) await start();
+      toast.success("Static keys removed");
+      await start();
     } catch (e) {
       toast.error(errorMessage(e));
     }
@@ -174,15 +171,6 @@ export function SessionRow({
                 onSelect: () => void api.SetSessionTag(s.id, t.name, !on).catch((e) => toast.error(errorMessage(e))),
               };
             }),
-          },
-        ] as Action[])
-      : []),
-    ...(shadowedBy
-      ? ([
-          {
-            label: "Remove static keys",
-            icon: <KeyRound />,
-            onSelect: () => void fixProfile(false),
           },
         ] as Action[])
       : []),
@@ -388,10 +376,9 @@ export function SessionRow({
                     save: (n) => api.SetProfile(s.id, n),
                     check: async (n) => {
                       const path = await api.ProfileShadow(n || "default");
-                      return path
-                        ? `Profile ${n || "default"} has static keys in ${path}. Tools use those, not this session.`
-                        : "";
+                      return path ? `Static keys in ${path} shadow this profile.` : "";
                     },
+                    fix: (n) => api.RemoveStaticProfile(n || "default"),
                   })
                 }
                 className={cn(

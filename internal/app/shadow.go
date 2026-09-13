@@ -82,7 +82,7 @@ func (s *Service) FixProfile(ref string) error {
 		return nil
 	}
 	if !sh.Fixable {
-		return fmt.Errorf("profile %q in %s is configured by another tool; give the session another profile name", name, sh.Path)
+		return fmt.Errorf("another tool configures profile %q in %s; use another profile name", name, sh.Path)
 	}
 	return awsconfig.RemoveStaticKeys(s.AWSConfigPath, name)
 }
