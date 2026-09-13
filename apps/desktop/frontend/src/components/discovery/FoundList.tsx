@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Import, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CloudGlyph } from "@/components/Brand";
-import { api, type Workspace } from "@/lib/api";
+import { api, errorMessage, type Workspace } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export type FoundPortal = {
@@ -70,7 +71,11 @@ export function useDiscovery(workspace: Workspace, enabled = true) {
             : null,
         });
       })
-      .catch(() => setFound(EMPTY));
+      .catch((e) => {
+        // A failed scan is not an empty one; say so instead of "nothing new".
+        toast.error("Scan failed", { description: errorMessage(e) });
+        setFound(EMPTY);
+      });
   }, [enabled, found]);
 
   const trim = (u: string) => u.replace(/\/$/, "");

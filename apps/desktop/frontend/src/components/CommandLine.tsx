@@ -12,7 +12,11 @@ import { cn } from "@/lib/utils";
 export function CommandLineInstall({ compact = false, className }: { compact?: boolean; className?: string }) {
   const [status, setStatus] = useState<CLIStatus | null>(null);
   const [busy, setBusy] = useState(false);
-  const refresh = () => void api.CLIStatus().then(setStatus);
+  const refresh = () =>
+    void api
+      .CLIStatus()
+      .then(setStatus)
+      .catch((e) => toast.error(errorMessage(e)));
   useEffect(refresh, []);
 
   if (!status || status.reason === "unsupported") return null;

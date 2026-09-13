@@ -208,7 +208,14 @@ function AccountRow({ row, open, onToggle }: { row: Row & { group: true }; open:
   const allHidden = row.sessions.every((s) => s.hidden);
   const actions: Action[] = [
     { label: open ? "Collapse" : "Expand", icon: open ? <ChevronsDownUp /> : <ChevronsUpDown />, onSelect: onToggle },
-    { label: "Copy account ID", icon: <Copy />, onSelect: () => void copyText(row.accountId) },
+    {
+      label: "Copy account ID",
+      icon: <Copy />,
+      onSelect: () =>
+        void copyText(row.accountId)
+          .then(() => toast.success("Account ID copied"))
+          .catch((e) => toast.error(errorMessage(e))),
+    },
     {
       label: allHidden ? "Unhide account" : "Hide account",
       icon: allHidden ? <Eye /> : <EyeOff />,

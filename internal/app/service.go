@@ -1165,6 +1165,10 @@ func (s *Service) SetFavorite(ref string, favorite bool) error {
 		return err
 	}
 	sess.Favorite = favorite
+	// A favorite is in the Favorites list, so it cannot stay hidden.
+	if favorite {
+		sess.Hidden = false
+	}
 	return s.Save(w)
 }
 

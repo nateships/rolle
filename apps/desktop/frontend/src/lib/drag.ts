@@ -6,6 +6,8 @@ export const TAG_DRAG = "application/x-rolle-tag";
  * Replaces the browser's ghost of the whole row with a small pill that names
  * the session. The element has to be in the document when setDragImage
  * runs; it is removed on the next frame, once the browser has copied it.
+ * WebKit copies the pill from the screen, so it sits inside the viewport
+ * behind the page instead of off screen.
  */
 export function setSessionDragImage(e: React.DragEvent, name: string) {
   if (typeof e.dataTransfer.setDragImage !== "function") return;
@@ -13,8 +15,9 @@ export function setSessionDragImage(e: React.DragEvent, name: string) {
   pill.textContent = name;
   Object.assign(pill.style, {
     position: "fixed",
-    top: "-100px",
-    left: "-100px",
+    top: "0",
+    left: "0",
+    zIndex: "-1",
     padding: "6px 12px",
     borderRadius: "9999px",
     background: "#101114",

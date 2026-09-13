@@ -327,12 +327,17 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
             />
           ))}
         </div>
-        {/* Skip lands on the final step, so the command install is still offered. */}
+        {/* Skip lands on the final step, so the command install is still offered.
+            It also abandons a sign-in in progress, so a later approval cannot
+            pull the user back. */}
         <Button
           variant="ghost"
           size="sm"
           className="no-drag text-muted-foreground"
-          onClick={() => go("done")}
+          onClick={() => {
+            cancelLogin();
+            go("done");
+          }}
           disabled={step === "done"}
         >
           Skip
@@ -497,6 +502,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                         setLogin(dl);
                         go("approve");
                         const added = (await api.WaitSSOLogin(integ.id)) ?? [];
+                        if (cancelledRef.current) return;
                         loginRef.current = null;
                         setDiscovered((prev) => [...prev, ...added]);
                         go("roles");
