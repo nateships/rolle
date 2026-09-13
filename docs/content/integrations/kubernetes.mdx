@@ -1,0 +1,43 @@
+---
+title: Kubernetes
+description: Kubeconfig contexts that authenticate through a rolle session, for EKS, AKS, GKE, and clusters you run yourself.
+---
+
+`rolle kube` writes kubeconfig contexts that take their credentials from a rolle session. The kubeconfig holds no token: `kubectl` runs an exec plugin, the plugin asks rolle, and the context stops working when the session stops. Start the session again and the same context works again.
+
+The examples use session names as `rolle session list` shows them: `Acme Prod/AdministratorAccess` for an Identity Center role, `Contoso Production` for an Azure subscription, `my-project` for a Google Cloud project.
+
+## Managed clusters
+
+`rolle kube list` shows the EKS, AKS, or GKE clusters a started session can reach. `rolle kube add` writes a context for each cluster you name, or for all of them.
+
+```sh
+rolle start "Acme Prod/AdministratorAccess"
+rolle kube list "Acme Prod/AdministratorAccess"             # NAME  LOCATION  ENDPOINT
+rolle kube add "Acme Prod/AdministratorAccess" prod-eu --use # one cluster, made the current context
+rolle kube add "Contoso Production" --all                    # every AKS cluster in the subscription
+rolle kube add my-project web --context gke-web              # a GKE cluster under another context name
+kubectl --context prod-eu get nodes
+```
+
+An EKS session searches its own region. Pass `--region` to search another one. Without a cluster name and without `--all`, `rolle kube add` lists the clusters and exits with code 1, so a script never writes a context by accident.
+
+## How each cloud authenticates
+
+**EKS.** The context runs `aws eks get-token` with `AWS_PROFILE` set to the session's profile. The AWS CLI reads the profile, which fetches credentials through rolle, and signs the token request. The AWS CLI must be installed.
+
+**AKS and GKE.** The context runs `rolle kube token <session>`, which prints a short-lived bearer token for the cluster: an Entra ID token for the AKS server application, or the session's Google Cloud token. The `rolle` command must be on your `PATH`; **Install command** in the desktop app does this.
+
+## Clusters you run yourself
+
+A context that already runs an exec plugin on AWS credentials, such as `aws-iam-authenticator` on a kops or kubeadm cluster, can follow a session too. `rolle kube attach` sets `AWS_PROFILE` on that plugin:
+
+```sh
+rolle kube attach "Acme Prod/AdministratorAccess" kops-prod
+```
+
+For an Azure or Google Cloud session, `attach` replaces the context's exec plugin with `rolle kube token`. Clusters that authenticate with client certificates or their own OIDC provider are out of scope.
+
+## Where it writes
+
+`rolle kube add` and `rolle kube attach` edit the first file in `$KUBECONFIG`, else `~/.kube/config`, or the file named with `--kubeconfig`. Entries with the same name are replaced; every other entry and field stays. The context and cluster entries take the cluster name. The user entry is `rolle:<profile>` for AWS and `rolle:<session>` for Azure and Google Cloud.

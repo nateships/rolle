@@ -67,6 +67,13 @@
       "capability": "CAPABILITY_FILES",
       "capabilityName": "FILES",
       "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/kube",
+      "packageName": "kube"
+    },
+    {
+      "capability": "CAPABILITY_FILES",
+      "capabilityName": "FILES",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
       "packageDir": "github.com/nateships/rolle/internal/netcfg",
       "packageName": "netcfg"
     },
@@ -167,6 +174,13 @@
       "capabilityType": "CAPABILITY_TYPE_DIRECT",
       "packageDir": "github.com/nateships/rolle/internal/gcp",
       "packageName": "gcp"
+    },
+    {
+      "capability": "CAPABILITY_NETWORK",
+      "capabilityName": "NETWORK",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/kube",
+      "packageName": "kube"
     },
     {
       "capability": "CAPABILITY_NETWORK",
@@ -325,6 +339,13 @@
     {
       "capability": "CAPABILITY_READ_SYSTEM_STATE",
       "capabilityName": "READ_SYSTEM_STATE",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/kube",
+      "packageName": "kube"
+    },
+    {
+      "capability": "CAPABILITY_READ_SYSTEM_STATE",
+      "capabilityName": "READ_SYSTEM_STATE",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/netcfg",
       "packageName": "netcfg"
@@ -408,14 +429,14 @@
     },
     {
       "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
-      "capabilityName": "MODIFY_SYSTEM_STATE/ENV",
+      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/aws",
       "packageName": "aws"
     },
     {
       "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
-      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
+      "capabilityName": "MODIFY_SYSTEM_STATE/ENV",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/aws",
       "packageName": "aws"
@@ -466,12 +487,19 @@
       "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
       "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/kube",
+      "packageName": "kube"
+    },
+    {
+      "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/ENV",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/secrets",
       "packageName": "secrets"
     },
     {
       "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
-      "capabilityName": "MODIFY_SYSTEM_STATE/ENV",
+      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/secrets",
       "packageName": "secrets"
@@ -529,6 +557,13 @@
       "capability": "CAPABILITY_SYSTEM_CALLS",
       "capabilityName": "SYSTEM_CALLS",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/kube",
+      "packageName": "kube"
+    },
+    {
+      "capability": "CAPABILITY_SYSTEM_CALLS",
+      "capabilityName": "SYSTEM_CALLS",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/secrets",
       "packageName": "secrets"
     },
@@ -592,6 +627,13 @@
       "capability": "CAPABILITY_ARBITRARY_EXECUTION",
       "capabilityName": "ARBITRARY_EXECUTION",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/kube",
+      "packageName": "kube"
+    },
+    {
+      "capability": "CAPABILITY_ARBITRARY_EXECUTION",
+      "capabilityName": "ARBITRARY_EXECUTION",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/secrets",
       "packageName": "secrets"
     },
@@ -605,7 +647,7 @@
     {
       "capability": "CAPABILITY_UNANALYZED",
       "capabilityName": "UNANALYZED",
-      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
       "packageDir": "github.com/nateships/rolle/cmd/rolle/cli",
       "packageName": "cli"
     },
@@ -657,6 +699,13 @@
       "capabilityType": "CAPABILITY_TYPE_DIRECT",
       "packageDir": "github.com/nateships/rolle/internal/gcp",
       "packageName": "gcp"
+    },
+    {
+      "capability": "CAPABILITY_UNANALYZED",
+      "capabilityName": "UNANALYZED",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/kube",
+      "packageName": "kube"
     },
     {
       "capability": "CAPABILITY_UNANALYZED",
@@ -739,6 +788,13 @@
       "capability": "CAPABILITY_UNSAFE_POINTER",
       "capabilityName": "UNSAFE_POINTER",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/kube",
+      "packageName": "kube"
+    },
+    {
+      "capability": "CAPABILITY_UNSAFE_POINTER",
+      "capabilityName": "UNSAFE_POINTER",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/secrets",
       "packageName": "secrets"
     },
@@ -818,6 +874,13 @@
       "capabilityType": "CAPABILITY_TYPE_DIRECT",
       "packageDir": "github.com/nateships/rolle/internal/gcp",
       "packageName": "gcp"
+    },
+    {
+      "capability": "CAPABILITY_REFLECT",
+      "capabilityName": "REFLECT",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/kube",
+      "packageName": "kube"
     },
     {
       "capability": "CAPABILITY_REFLECT",
@@ -900,6 +963,13 @@
       "capability": "CAPABILITY_EXEC",
       "capabilityName": "EXEC",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/kube",
+      "packageName": "kube"
+    },
+    {
+      "capability": "CAPABILITY_EXEC",
+      "capabilityName": "EXEC",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/secrets",
       "packageName": "secrets"
     },
@@ -947,6 +1017,10 @@
     {
       "path": "github.com/aws/aws-sdk-go-v2/internal/v4a",
       "version": "v1.5.3"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/service/eks",
+      "version": "v1.99.0"
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding",
@@ -1027,6 +1101,10 @@
     {
       "path": "gopkg.in/ini.v1",
       "version": "v1.67.3"
+    },
+    {
+      "path": "gopkg.in/yaml.v3",
+      "version": "v3.0.1"
     }
   ],
   "packageInfo": [
@@ -1239,6 +1317,20 @@
       "path": "github.com/aws/aws-sdk-go-v2/internal/v4a/internal/v4"
     },
     {
+      "ignoredFiles": [
+        "request_snapshot_test.go",
+        "response_snapshot_test.go",
+        "snapshot_test.go"
+      ],
+      "path": "github.com/aws/aws-sdk-go-v2/service/eks"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/service/eks/internal/endpoints"
+    },
+    {
+      "path": "github.com/aws/aws-sdk-go-v2/service/eks/types"
+    },
+    {
       "path": "github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding"
     },
     {
@@ -1389,6 +1481,9 @@
       "path": "github.com/aws/smithy-go/transport/http/internal/io"
     },
     {
+      "path": "github.com/aws/smithy-go/waiter"
+    },
+    {
       "ignoredFiles": [
         "auth_default_windows.go",
         "auth_sha1_windows.go",
@@ -1456,6 +1551,9 @@
     },
     {
       "path": "github.com/nateships/rolle/internal/gcp"
+    },
+    {
+      "path": "github.com/nateships/rolle/internal/kube"
     },
     {
       "path": "github.com/nateships/rolle/internal/netcfg"
@@ -1869,6 +1967,9 @@
     },
     {
       "path": "gopkg.in/ini.v1"
+    },
+    {
+      "path": "gopkg.in/yaml.v3"
     }
   ]
 }

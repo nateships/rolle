@@ -12,7 +12,12 @@ import (
 // ARMScope is the Azure Resource Manager scope requested at sign-in.
 const ARMScope = "https://management.azure.com/.default"
 
-const armBase = "https://management.azure.com"
+// AKSScope is the AKS server application scope. A token for it is the bearer
+// token an AKS cluster with Entra ID sign-in accepts.
+const AKSScope = "6dae42f8-4368-4678-94ff-3960e28e3630/.default"
+
+// ARMBase is the Azure Resource Manager endpoint.
+const ARMBase = "https://management.azure.com"
 
 // Subscription is one Azure subscription visible to the signed-in user.
 type Subscription struct {
@@ -25,12 +30,12 @@ type Subscription struct {
 // ListSubscriptions returns subscriptions the token can see.
 func ListSubscriptions(ctx context.Context, client *http.Client, token string) ([]Subscription, error) {
 	var out []Subscription
-	err := armList(ctx, client, token, armBase+"/subscriptions?api-version=2022-12-01", &out)
+	err := ARMList(ctx, client, token, ARMBase+"/subscriptions?api-version=2022-12-01", &out)
 	return out, err
 }
 
-// armList follows nextLink pagination and appends "value" entries into out.
-func armList[T any](ctx context.Context, client *http.Client, token, url string, out *[]T) error {
+// ARMList follows nextLink pagination and appends "value" entries into out.
+func ARMList[T any](ctx context.Context, client *http.Client, token, url string, out *[]T) error {
 	if client == nil {
 		client = http.DefaultClient
 	}

@@ -8,7 +8,7 @@ The CLI and the desktop app share one workspace, so a session started in one is 
 ```
 rolle [command] [flags]
   --debug        verbose diagnostics (same as ROLLE_DEBUG=1)
-  --json         machine-readable output for list, status, and start
+  --json         machine-readable output for the list, status, start, and kube commands
   -v, --version  print the version
 ```
 
@@ -56,6 +56,17 @@ Exit codes: `0` success, `1` error, `3` a sign-in is needed (run `rolle integrat
 | `rolle tag set <name> [--name N] [--color C] [--icon I]` | Change a tag; a new name follows through to every session |
 | `rolle tag move <name> <index>` | Put a tag at a position in the sidebar, counting from 0 |
 | `rolle tag remove <name>` | Delete a tag and take it off every session |
+
+## Kubernetes
+
+| Command | Purpose |
+| --- | --- |
+| `rolle kube list <session> [--region R]` | List the EKS, AKS, or GKE clusters a started session can reach |
+| `rolle kube add <session> [cluster ...] [--all] [--region R] [--kubeconfig PATH] [--context NAME] [--use]` | Write a kubeconfig context per cluster that authenticates through the session |
+| `rolle kube attach <session> <context> [--kubeconfig PATH]` | Make an existing context authenticate through the session |
+| `rolle kube token <session>` | Print an `ExecCredential` for kubectl; the contexts `kube add` writes for AKS and GKE run this |
+
+[Kubernetes](/integrations/kubernetes) explains how each cloud authenticates.
 
 ## Credentials
 

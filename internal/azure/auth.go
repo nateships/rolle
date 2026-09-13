@@ -118,6 +118,11 @@ func (d *DeviceCode) Wait(ctx context.Context) (string, error) {
 
 // Token returns an ARM access token, refreshing silently.
 func (a *Auth) Token(ctx context.Context) (core.Credentials, error) {
+	return a.TokenFor(ctx, ARMScope)
+}
+
+// TokenFor returns an access token for scope, refreshing silently.
+func (a *Auth) TokenFor(ctx context.Context, scope string) (core.Credentials, error) {
 	client, err := a.client()
 	if err != nil {
 		return core.Credentials{}, err
@@ -140,7 +145,7 @@ func (a *Auth) Token(ctx context.Context) (core.Credentials, error) {
 			}
 		}
 	}
-	res, err := client.AcquireTokenSilent(ctx, []string{ARMScope}, public.WithSilentAccount(acct))
+	res, err := client.AcquireTokenSilent(ctx, []string{scope}, public.WithSilentAccount(acct))
 	if err != nil {
 		if transient(err) {
 			return core.Credentials{}, fmt.Errorf("azure token: %w", err)
