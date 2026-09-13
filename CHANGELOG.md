@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/nateships/rolle/compare/v0.2.1...v0.3.0) (2026-09-13)
+
+
+### Features
+
+* import IAM users from the credentials file ([#69](https://github.com/nateships/rolle/issues/69)) ([d24c161](https://github.com/nateships/rolle/commit/d24c16146103cafc9d05f0d8cb37c51b76c4dbdf))
+* warn when static keys shadow a profile, and remove them from the app or the CLI ([#64](https://github.com/nateships/rolle/issues/64)) ([ab6daa1](https://github.com/nateships/rolle/commit/ab6daa14276d7216d764a55bd235e704508c59f9))
+
 ## [0.2.1](https://github.com/nateships/rolle/compare/v0.2.0...v0.2.1) (2026-09-13)
 
 
