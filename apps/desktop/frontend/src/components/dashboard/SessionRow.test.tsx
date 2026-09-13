@@ -494,7 +494,7 @@ describe("SessionRow actions", () => {
     await user.click(screen.getByRole("button", { name: /^start$/i }));
     await waitFor(() => expect(error).toHaveBeenCalled());
     const opts = error.mock.calls[0][1] as { action?: { label: string; onClick: () => void } };
-    expect(opts.action?.label).toBe("Remove keys");
+    expect(opts.action?.label).toBe("Remove from file");
     opts.action!.onClick();
     await waitFor(() => expect(fix).toHaveBeenCalledWith(s.id));
     await waitFor(() => expect(start).toHaveBeenCalledTimes(2));
@@ -512,7 +512,7 @@ describe("SessionRow actions", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("/h/.aws/credentials has static keys for this profile.");
     // The warning offers the removal and checks again after it.
     const remove = vi.spyOn(api, "RemoveStaticProfile").mockResolvedValue();
-    await user.click(screen.getByRole("button", { name: "Remove keys" }));
+    await user.click(screen.getByRole("button", { name: "Remove from file" }));
     await waitFor(() => expect(remove).toHaveBeenCalledWith("work"));
   });
 

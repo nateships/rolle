@@ -22,7 +22,7 @@ rolle_session = <session-id>
 
 The AWS credential chain reads static keys in `~/.aws/credentials` before `credential_process` in `~/.aws/config`. A `[default]` section with `aws_access_key_id` there wins over a rolle profile named `default`, and every tool uses the old keys.
 
-rolle refuses to start a session onto such a profile. The profile column shows an amber mark. Click it, and the profile dialog names the file and offers **Remove keys**, which deletes that section's static keys. The start error offers the same. `rolle session list --json` carries the file as `shadowedBy`, and `rolle session fix-profile <session>` removes the keys.
+rolle refuses to start a session onto such a profile. The profile column shows an amber mark. Click it, and the profile dialog names the file and offers **Remove from file**, which deletes that section's static keys. The start error offers the same. `rolle session list --json` carries the file as `shadowedBy`, and `rolle session fix-profile <session>` removes the keys.
 
 **Settings → AWS → Static keys** and the last onboarding step list every section with static keys and remove the ones you pick. The CLI does the same with `rolle cleanup`.
 

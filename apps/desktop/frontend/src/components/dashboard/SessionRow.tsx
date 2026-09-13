@@ -95,7 +95,7 @@ export function SessionRow({
         onNeedsLogin(integration, s.id);
       } else if (/static keys/i.test(msg)) {
         // The keys can go and the start can run again.
-        toast.error(msg, { action: { label: "Remove keys", onClick: () => void fixProfile() } });
+        toast.error(msg, { action: { label: "Remove from file", onClick: () => void fixProfile() } });
       } else {
         toast.error(msg);
       }
@@ -109,7 +109,7 @@ export function SessionRow({
   async function fixProfile() {
     try {
       await api.FixProfile(s.id);
-      toast.success("Static keys removed");
+      toast.success("Static keys removed from the file");
       await start();
     } catch (e) {
       toast.error(errorMessage(e));
