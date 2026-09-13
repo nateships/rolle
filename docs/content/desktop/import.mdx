@@ -13,5 +13,10 @@ description: Bring in what your machine already has.
 | Granted | Profiles with `granted_sso_*` keys or a Granted `credential_process` | Identity Center portals |
 | az CLI | `azureProfile.json` | Azure tenants |
 | gcloud | Application Default Credentials | A Google Cloud integration |
+| Credentials file | `~/.aws/credentials` sections with an access key | IAM user sessions |
 
 rolle treats portals that differ only by a trailing slash as one.
+
+## IAM users
+
+The **IAM users** group lists each profile of `~/.aws/credentials` that holds an access key, with its region and an **MFA** badge when the `~/.aws/config` section sets `mfa_serial`. A key a rolle session already holds is not listed. **Import** stores the key in the OS keychain as an IAM user session named after the profile, with the same profile name, then offers to remove the key from the file. **Import all** does this for every listed key in one pass. Once the key is gone, rolle serves the profile. Decline, and the key stays where it is; the session's profile shows the amber mark until you remove it.

@@ -305,12 +305,12 @@ func TestShadowedAndRemoveStaticKeys(t *testing.T) {
 	if err := Write(config, Profile{Name: "default", SessionID: "s1", Executable: "/bin/rolle"}); !errors.Is(err, ErrShadowed) {
 		t.Fatalf("write shadowed: %v", err)
 	}
-	// Removing the keys keeps the rest of the section and the other section.
+	// Removing the profile takes its whole section, region included, and keeps the other section.
 	if err := RemoveStaticKeys(config, "default"); err != nil {
 		t.Fatal(err)
 	}
 	got, _ := os.ReadFile(credPath)
-	if s := string(got); strings.Contains(s, "aws_access_key_id") || !strings.Contains(s, "region = us-west-2") || !strings.Contains(s, "[other]") {
+	if s := string(got); strings.Contains(s, "[default]") || strings.Contains(s, "region = us-west-2") || !strings.Contains(s, "[other]") {
 		t.Fatalf("credentials after fix:\n%s", s)
 	}
 	if sh := Shadowed(config, "default"); sh != nil {

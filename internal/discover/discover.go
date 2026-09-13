@@ -44,10 +44,22 @@ type GCPAccount struct {
 	Account string `json:"account"`
 }
 
+// IAMUserKey is an access key in the shared credentials file. The secret
+// stays in the file; the import reads it again by profile name.
+type IAMUserKey struct {
+	Profile     string `json:"profile"`
+	AccessKeyID string `json:"accessKeyId"`
+	Region      string `json:"region"`
+	MFADevice   string `json:"mfaDevice"`
+	// Imported is true when a rolle session already holds this key.
+	Imported bool `json:"imported"`
+}
+
 // Result is everything found on the machine.
 type Result struct {
 	AWSPortals   []AWSPortal   `json:"awsPortals"`
 	AzureTenants []AzureTenant `json:"azureTenants"`
+	IAMUsers     []IAMUserKey  `json:"iamUsers"`
 	GCP          *GCPAccount   `json:"gcp,omitempty"`
 	// Leapp holds sessions from a Leapp workspace that rolle can recreate.
 	Leapp *LeappWorkspace `json:"leapp,omitempty"`
@@ -59,6 +71,7 @@ func Scan(ctx context.Context) Result {
 	var r Result
 	if path, err := awsconfig.DefaultPath(); err == nil {
 		r.AWSPortals = awsPortals(path, ssoCacheDir())
+		r.IAMUsers = iamUsers(path)
 	}
 	r.AzureTenants = azureTenants(azureProfilePath())
 	if acct, err := gcp.DetectAccount(ctx); err == nil {
@@ -96,6 +109,16 @@ func (r *Result) mergeLeapp(lw *LeappWorkspace) {
 	if len(lw.IAMUsers) > 0 || len(lw.ChainedRoles) > 0 || lw.SSORoles > 0 {
 		r.Leapp = lw
 	}
+}
+
+// iamUsers lists the access keys of the shared credentials file that pairs
+// with the config file, without their secrets.
+func iamUsers(configPath string) []IAMUserKey {
+	var out []IAMUserKey
+	for _, k := range awsconfig.IAMUserKeys(configPath) {
+		out = append(out, IAMUserKey{Profile: k.Profile, AccessKeyID: k.AccessKeyID, Region: k.Region, MFADevice: k.MFADevice})
+	}
+	return out
 }
 
 // awsPortals groups sso-session blocks and profiles that set sso_start_url

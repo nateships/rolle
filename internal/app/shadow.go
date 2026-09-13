@@ -47,16 +47,21 @@ type StaticKeys struct {
 
 // StaticProfiles lists the profiles of the shared credentials file that hold
 // static keys. Tools read those before any rolle profile of the same name.
+// A profile whose access key a rolle session holds is marked imported.
 func (s *Service) StaticProfiles() StaticKeys {
 	profiles, path := awsconfig.StaticProfiles(s.AWSConfigPath)
-	if profiles == nil {
-		profiles = []awsconfig.StaticProfile{}
+	if len(profiles) == 0 {
+		return StaticKeys{Path: awsconfig.Display(path), Profiles: []awsconfig.StaticProfile{}}
+	}
+	have := s.storedAccessKeyIDs()
+	for i := range profiles {
+		profiles[i].Imported = have[profiles[i].AccessKeyID]
 	}
 	return StaticKeys{Path: awsconfig.Display(path), Profiles: profiles}
 }
 
 // RemoveStaticProfile deletes the static keys of one section of the shared
-// credentials file. Other keys of the section and other sections stay.
+// credentials file, the whole section. Other sections stay.
 func (s *Service) RemoveStaticProfile(name string) error {
 	if name == "" {
 		return fmt.Errorf("profile name is empty")

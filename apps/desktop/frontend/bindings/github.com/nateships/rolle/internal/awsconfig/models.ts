@@ -24,4 +24,10 @@ export interface StaticProfile {
      * Keys are the static key lines, with values masked for display.
      */
     "keys": StaticKey[] | null;
+
+    /**
+     * Imported is true when a rolle session holds the same access key. The
+     * app layer sets it; StaticProfiles leaves it false.
+     */
+    "imported": boolean;
 }

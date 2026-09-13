@@ -533,7 +533,7 @@ func (s *Service) AddIAMUser(in AddIAMUserInput) (core.Session, error) {
 		Kind:   core.KindAWSIAMUser,
 		Region: in.Region,
 		Status: core.StatusInactive,
-		AWS:    &core.AWSSession{MFADevice: in.MFADevice, Profile: in.Profile},
+		AWS:    &core.AWSSession{MFADevice: in.MFADevice, Profile: in.Profile, AccessKeyID: in.Key.AccessKeyID},
 	}
 	if err := aws.StoreAccessKey(s.Secrets, sess.ID, in.Key); err != nil {
 		return core.Session{}, err

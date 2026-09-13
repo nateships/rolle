@@ -24,7 +24,7 @@ The AWS credential chain reads static keys in `~/.aws/credentials` before `crede
 
 rolle refuses to start a session onto such a profile. The profile column shows an amber mark. Click it, and the profile dialog names the file and offers **Remove**. The start error offers **Fix**. Both open one confirmation that names the section and the file and deletes only that section's static keys. `rolle session list --json` carries the file as `shadowedBy`, and `rolle session fix-profile <session>` removes the keys.
 
-The **Profiles in ~/.aws/credentials** card under **Settings → AWS** and the last onboarding step list every profile with static keys and remove the ones you pick. The CLI does the same with `rolle cleanup`.
+The **Profiles in ~/.aws/credentials** card under **Settings → AWS** and the last onboarding step list every profile with static keys and remove the ones you pick. **Import** moves the key into rolle as an IAM user session named after the profile, then offers the removal. The CLI does the same with `rolle cleanup` and `rolle session add iam-user --from-profile`.
 
 A profile that another tool configures in `~/.aws/config`, with `credential_process`, `sso_session`, or `role_arn`, cannot be taken over. Give the session another profile name.
 

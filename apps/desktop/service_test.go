@@ -2,6 +2,7 @@ package main
 
 import (
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -121,7 +122,7 @@ func TestSettingsRoundTrip(t *testing.T) {
 	if got.Theme != "light" || got.UpdateChannel != "beta" || !got.AutoUpdateOff {
 		t.Fatalf("updated = %+v", got)
 	}
-	if again, _ := r.Settings(); again != got {
+	if again, _ := r.Settings(); !reflect.DeepEqual(again, got) {
 		t.Fatalf("stored = %+v, want %+v", again, got)
 	}
 }

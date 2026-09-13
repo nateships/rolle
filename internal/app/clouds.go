@@ -21,7 +21,83 @@ import (
 )
 
 // Discover reports identities other tools already configured on this machine.
-func (s *Service) Discover(ctx context.Context) discover.Result { return discover.Scan(ctx) }
+// An access key that a rolle session already holds is marked imported.
+func (s *Service) Discover(ctx context.Context) discover.Result {
+	r := discover.Scan(ctx)
+	if len(r.IAMUsers) > 0 {
+		have := s.storedAccessKeyIDs()
+		for i := range r.IAMUsers {
+			r.IAMUsers[i].Imported = have[r.IAMUsers[i].AccessKeyID]
+		}
+	}
+	return r
+}
+
+// storedAccessKeyIDs collects the access key IDs of every IAM user session
+// from the workspace. A session from before the ID was recorded reads it
+// from the keychain once and saves it, so later calls touch no keychain.
+func (s *Service) storedAccessKeyIDs() map[string]bool {
+	out := map[string]bool{}
+	w, err := s.Load()
+	if err != nil {
+		return out
+	}
+	filled := false
+	for i := range w.Sessions {
+		sess := &w.Sessions[i]
+		if sess.Kind != core.KindAWSIAMUser || sess.AWS == nil {
+			continue
+		}
+		if sess.AWS.AccessKeyID == "" {
+			if key, err := aws.LoadAccessKey(s.Secrets, sess.ID); err == nil && key.AccessKeyID != "" {
+				sess.AWS.AccessKeyID = key.AccessKeyID
+				filled = true
+			}
+		}
+		if sess.AWS.AccessKeyID != "" {
+			out[sess.AWS.AccessKeyID] = true
+		}
+	}
+	if filled {
+		if err := s.Save(w); err != nil {
+			debug.Logf("import", "record access key ids: %v", err)
+		}
+	}
+	return out
+}
+
+// IAMUserFromProfile builds the input for an IAM user session from the access
+// key of a profile in the shared credentials file. The session and its
+// profile take the profile's name. A profile without a region gets the
+// default region from Settings; STS needs one for the MFA session token.
+func (s *Service) IAMUserFromProfile(profile string) (AddIAMUserInput, error) {
+	for _, k := range awsconfig.IAMUserKeys(s.AWSConfigPath) {
+		if k.Profile != profile {
+			continue
+		}
+		in := AddIAMUserInput{Name: profile, Region: k.Region, MFADevice: k.MFADevice, Profile: profile, Key: aws.AccessKey{AccessKeyID: k.AccessKeyID, SecretAccessKey: k.SecretAccessKey}}
+		if in.Region == "" {
+			w, err := s.Load()
+			if err != nil {
+				return AddIAMUserInput{}, err
+			}
+			in.Region = w.EffectiveSettings().DefaultRegion
+		}
+		return in, nil
+	}
+	return AddIAMUserInput{}, fmt.Errorf("no access key for profile %q in %s", profile, awsconfig.Display(awsconfig.CredentialsPath(s.AWSConfigPath)))
+}
+
+// ImportIAMUser creates an IAM user session from the access key of a profile
+// in the shared credentials file. The key stays in the file; the caller
+// removes it, and rolle then serves the profile.
+func (s *Service) ImportIAMUser(profile string) (core.Session, error) {
+	in, err := s.IAMUserFromProfile(profile)
+	if err != nil {
+		return core.Session{}, err
+	}
+	return s.AddIAMUser(in)
+}
 
 // ImportResult describes an imported Identity Center portal.
 type ImportResult struct {

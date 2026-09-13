@@ -289,6 +289,12 @@ export interface Settings {
      * UpdateChannel is "beta" to install pre-releases. Empty means stable.
      */
     "updateChannel"?: string;
+
+    /**
+     * HiddenSections names the sidebar sections the window leaves out:
+     * aws-sso, aws-iam, azure, gcp. Their sessions still show under All.
+     */
+    "hiddenSections"?: string[] | null;
 }
 
 /**

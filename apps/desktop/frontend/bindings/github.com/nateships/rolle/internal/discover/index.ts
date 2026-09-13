@@ -5,6 +5,7 @@ export type {
     AWSPortal,
     AzureTenant,
     GCPAccount,
+    IAMUserKey,
     LeappChainedRole,
     LeappIAMUser,
     LeappWorkspace,

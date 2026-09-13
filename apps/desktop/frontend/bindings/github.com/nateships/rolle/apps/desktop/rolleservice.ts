@@ -174,6 +174,14 @@ export function ImportAWSSSO(alias: string, startURL: string, region: string): $
 }
 
 /**
+ * ImportIAMUser creates an IAM user session from the access key of a profile
+ * in ~/.aws/credentials. The key stays in the file until the user removes it.
+ */
+export function ImportIAMUser(profile: string): $CancellablePromise<core$0.Session> {
+    return $Call.ByID(3237078112, profile);
+}
+
+/**
  * ImportLeappSessions recreates IAM users and chained roles from a Leapp workspace.
  */
 export function ImportLeappSessions(): $CancellablePromise<app$0.LeappImportResult> {

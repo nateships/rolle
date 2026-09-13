@@ -450,6 +450,12 @@ func (r *RolleService) ProfileShadow(name string) string {
 // keys, with the file's path.
 func (r *RolleService) StaticProfiles() app.StaticKeys { return r.svc.StaticProfiles() }
 
+// ImportIAMUser creates an IAM user session from the access key of a profile
+// in ~/.aws/credentials. The key stays in the file until the user removes it.
+func (r *RolleService) ImportIAMUser(profile string) (core.Session, error) {
+	return r.svc.ImportIAMUser(profile)
+}
+
 // RemoveStaticProfile deletes the static keys of one section of the shared
 // credentials file.
 func (r *RolleService) RemoveStaticProfile(name string) error { return r.svc.RemoveStaticProfile(name) }

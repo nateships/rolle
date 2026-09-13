@@ -1,7 +1,14 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { FoundList, tenantAlias, type FoundPortal, type FoundTenant } from "@/components/discovery/FoundList";
+import {
+  FoundList,
+  tenantAlias,
+  type FoundIAMUser,
+  type FoundPortal,
+  type FoundTenant,
+} from "@/components/discovery/FoundList";
+import { api } from "@/lib/api";
 
 const portal = (o: Partial<FoundPortal> = {}): FoundPortal => ({
   alias: "Engineering",
@@ -16,6 +23,15 @@ const tenant = (o: Partial<FoundTenant> = {}): FoundTenant => ({
   tenantId: "t-1",
   account: "nate@contoso.com",
   source: "az",
+  ...o,
+});
+
+const iamUser = (o: Partial<FoundIAMUser> = {}): FoundIAMUser => ({
+  profile: "personal",
+  accessKeyId: "AKIAIOSFODNN7EXAMPLE",
+  region: "us-west-2",
+  mfaDevice: "arn:aws:iam::1:mfa/me",
+  imported: false,
   ...o,
 });
 
@@ -74,6 +90,54 @@ describe("FoundList", () => {
       <FoundList {...base} leapp={{ iamUsers: [{ name: "a" }], chainedRoles: [], ssoRoles: 0 }} onLeapp={undefined} />,
     );
     expect(screen.queryByText(/leapp/i)).not.toBeInTheDocument();
+  });
+
+  it("lists IAM users by profile, region, and MFA", () => {
+    render(<FoundList {...base} iamUsers={[iamUser(), iamUser({ profile: "plain", region: "", mfaDevice: "" })]} />);
+    // The group starts folded; the heading opens it.
+    expect(screen.queryByText("personal")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /IAM users in the credentials file/ }));
+    expect(rowOf("personal").getByText("AKIA… · us-west-2")).toBeInTheDocument();
+    expect(rowOf("personal").getByText("MFA")).toBeInTheDocument();
+    expect(rowOf("plain").getByText("AKIA…")).toBeInTheDocument();
+    expect(rowOf("plain").queryByText("MFA")).not.toBeInTheDocument();
+  });
+
+  it("imports an IAM user, then offers to remove the key from the file", async () => {
+    const user = userEvent.setup();
+    const imp = vi.spyOn(api, "ImportIAMUser").mockResolvedValue({ id: "s1", name: "personal" } as never);
+    vi.spyOn(api, "StaticProfiles").mockResolvedValue({
+      path: "~/.aws/credentials",
+      profiles: [{ name: "personal", keys: [{ name: "aws_access_key_id", preview: "AKIA…" }], imported: true }],
+    });
+    const imported = vi.fn();
+    render(<FoundList {...base} iamUsers={[iamUser()]} onImportedUsers={imported} />);
+    expect(screen.queryByRole("button", { name: /import all/i })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /IAM users in the credentials file/ }));
+    await user.click(rowOf("personal").getByRole("button", { name: /import/i }));
+    await waitFor(() => expect(imp).toHaveBeenCalledWith("personal"));
+    // The parent owns the removal offer, since the list rescans and drops the row.
+    await waitFor(() => expect(imported).toHaveBeenCalledWith(["personal"]));
+  });
+
+  it("imports every IAM user at once, then offers to remove them together", async () => {
+    const user = userEvent.setup();
+    const imp = vi.spyOn(api, "ImportIAMUser").mockResolvedValue({ id: "s1", name: "x" } as never);
+    vi.spyOn(api, "StaticProfiles").mockResolvedValue({
+      path: "~/.aws/credentials",
+      profiles: [
+        { name: "personal", keys: [{ name: "aws_access_key_id", preview: "AKIA…" }], imported: true },
+        { name: "plain", keys: [{ name: "aws_access_key_id", preview: "AKIA…" }], imported: true },
+      ],
+    });
+    const imported = vi.fn();
+    render(<FoundList {...base} iamUsers={[iamUser(), iamUser({ profile: "plain" })]} onImportedUsers={imported} />);
+    // One user shows no Import all; two do.
+    await user.click(screen.getByRole("button", { name: /import all/i }));
+    await waitFor(() => expect(imp).toHaveBeenCalledTimes(2));
+    expect(imp).toHaveBeenCalledWith("personal");
+    expect(imp).toHaveBeenCalledWith("plain");
+    await waitFor(() => expect(imported).toHaveBeenCalledWith(["personal", "plain"]));
   });
 
   it("renders an empty list when nothing was found", () => {

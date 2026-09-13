@@ -31,6 +31,7 @@ const state: Workspace = {
     hideOnClose: true,
     notifyOff: false,
     notifyLeadMinutes: 0,
+    hiddenSections: [],
     verboseLogging: false,
     autoUpdateOff: false,
     updateChannel: "",
@@ -219,6 +220,19 @@ export const mockApi = {
     emit();
     return s;
   },
+  ImportIAMUser: async (profile: string) => {
+    const s = {
+      id: id(),
+      name: profile,
+      kind: "aws-iam-user",
+      region: "us-west-2",
+      status: "inactive",
+      aws: { mfaDevice: "arn:aws:iam::1:mfa/me", profile },
+    } as Session;
+    state.sessions.push(s);
+    emit();
+    return s;
+  },
   RemoveSession: async (ref: string) => {
     state.sessions = state.sessions.filter((s) => s.id !== ref);
     emit();
@@ -355,7 +369,7 @@ export const mockApi = {
   Discover: async () => {
     await wait(400);
     const q = new URLSearchParams(location.search);
-    if (q.get("found") === "none") return { awsPortals: [], azureTenants: [], gcp: null };
+    if (q.get("found") === "none") return { awsPortals: [], azureTenants: [], iamUsers: [], gcp: null };
     return {
       awsPortals: [
         {
@@ -376,6 +390,15 @@ export const mockApi = {
         },
       ],
       azureTenants: [{ tenantId: "72f988bf-86f1-41af-91ab-2d7cd011db47", account: "nate@contoso.com", source: "az" }],
+      iamUsers: [
+        {
+          profile: "personal-keys",
+          accessKeyId: "AKIAIOSFODNN7EXAMPLE",
+          region: "us-west-2",
+          mfaDevice: "arn:aws:iam::1:mfa/me",
+          imported: false,
+        },
+      ],
       gcp: { account: "nate@example.com" },
       leapp: { iamUsers: [{ name: "personal-old" }], chainedRoles: [{ name: "prod-admin-old" }], ssoRoles: 28 },
     };

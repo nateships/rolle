@@ -103,7 +103,19 @@ func Write(w io.Writer, in Inputs) error {
 		return err
 	}
 	if in.Workspace != nil {
-		wsJSON, err := json.MarshalIndent(in.Workspace, "", "  ")
+		// The access key IDs of IAM user sessions stay out of the bundle, in
+		// any format the regex would miss.
+		w := *in.Workspace
+		w.Sessions = make([]core.Session, len(in.Workspace.Sessions))
+		for i, sess := range in.Workspace.Sessions {
+			if sess.AWS != nil && sess.AWS.AccessKeyID != "" {
+				aws := *sess.AWS
+				aws.AccessKeyID = "<access-key-id>"
+				sess.AWS = &aws
+			}
+			w.Sessions[i] = sess
+		}
+		wsJSON, err := json.MarshalIndent(&w, "", "  ")
 		if err != nil {
 			return err
 		}

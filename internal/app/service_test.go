@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -249,7 +250,7 @@ func TestSettingsRoundTrip(t *testing.T) {
 		t.Fatalf("saved = %+v, %v", saved, err)
 	}
 	again, _ := s.Settings()
-	if again != saved {
+	if !reflect.DeepEqual(again, saved) {
 		t.Fatalf("reloaded = %+v, want %+v", again, saved)
 	}
 }

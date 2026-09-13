@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"testing"
 
@@ -25,7 +26,7 @@ func TestModTimeIsZeroForMissingFile(t *testing.T) {
 
 func TestCurrentSettingsFallsBackToDefaults(t *testing.T) {
 	r := testrolle(t)
-	if got := currentSettings(r.svc); got != core.DefaultSettings() {
+	if got := currentSettings(r.svc); !reflect.DeepEqual(got, core.DefaultSettings()) {
 		t.Fatalf("settings = %+v", got)
 	}
 	st, _ := r.Settings()
@@ -39,7 +40,7 @@ func TestCurrentSettingsFallsBackToDefaults(t *testing.T) {
 	if err := os.WriteFile(r.svc.WorkspacePath, []byte("{not json"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if got := currentSettings(r.svc); got != core.DefaultSettings() {
+	if got := currentSettings(r.svc); !reflect.DeepEqual(got, core.DefaultSettings()) {
 		t.Fatalf("settings from corrupt workspace = %+v", got)
 	}
 }

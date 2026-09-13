@@ -141,6 +141,12 @@ type StaticProfile struct {
 	Name string `json:"name"`
 	// Keys are the static key lines, with values masked for display.
 	Keys []StaticKey `json:"keys"`
+	// Imported is true when a rolle session holds the same access key. The
+	// app layer sets it; StaticProfiles leaves it false.
+	Imported bool `json:"imported"`
+	// AccessKeyID is the unmasked aws_access_key_id, for the app layer to
+	// match against stored keys. It never leaves the process.
+	AccessKeyID string `json:"-"`
 }
 
 // StaticKey is one masked key line of a profile.
@@ -170,7 +176,7 @@ func StaticProfiles(configPath string) ([]StaticProfile, string) {
 			}
 		}
 		if len(keys) > 0 {
-			out = append(out, StaticProfile{Name: sec.Name(), Keys: keys})
+			out = append(out, StaticProfile{Name: sec.Name(), Keys: keys, AccessKeyID: sec.Key("aws_access_key_id").String()})
 		}
 	}
 	return out, credPath
@@ -185,25 +191,60 @@ func preview(key, value string) string {
 	return "…"
 }
 
-// RemoveStaticKeys deletes the static credential keys of profile from the
-// shared credentials file. A section left empty goes too. Other keys and
-// other sections stay.
+// IAMUserKey is an access key pair of the shared credentials file, with the
+// region and MFA device of its config section.
+type IAMUserKey struct {
+	Profile, AccessKeyID, SecretAccessKey, Region, MFADevice string
+}
+
+// IAMUserKeys lists the profiles of the shared credentials file that hold a
+// complete access key pair, in file order. The region and mfa_serial come
+// from the section of the same profile in the config file when it has one.
+func IAMUserKeys(configPath string) []IAMUserKey {
+	f, err := load(CredentialsPath(configPath))
+	if err != nil {
+		return nil
+	}
+	// A config file that does not load costs only the region and MFA device.
+	cfg, err := load(configPath)
+	if err != nil {
+		cfg = ini.Empty()
+	}
+	var out []IAMUserKey
+	for _, sec := range f.Sections() {
+		id, secret := sec.Key("aws_access_key_id").String(), sec.Key("aws_secret_access_key").String()
+		if sec.Name() == ini.DefaultSection || id == "" || secret == "" {
+			continue
+		}
+		k := IAMUserKey{Profile: sec.Name(), AccessKeyID: id, SecretAccessKey: secret}
+		if c, err := cfg.GetSection(sectionName(sec.Name())); err == nil {
+			k.Region, k.MFADevice = c.Key("region").String(), c.Key("mfa_serial").String()
+		}
+		// The credentials file wins over the config file for the same profile.
+		if r := sec.Key("region").String(); r != "" {
+			k.Region = r
+		}
+		if m := sec.Key("mfa_serial").String(); m != "" {
+			k.MFADevice = m
+		}
+		out = append(out, k)
+	}
+	return out
+}
+
+// RemoveStaticKeys deletes the profile's section from the shared credentials
+// file. The whole section goes: a region or other key left there would win
+// over the same profile in the config file. Other sections stay.
 func RemoveStaticKeys(configPath, profile string) error {
 	credPath := CredentialsPath(configPath)
 	f, err := load(credPath)
 	if err != nil {
 		return err
 	}
-	sec, err := f.GetSection(profile)
-	if err != nil {
+	if _, err := f.GetSection(profile); err != nil {
 		return nil
 	}
-	for _, k := range staticKeys {
-		sec.DeleteKey(k)
-	}
-	if len(sec.Keys()) == 0 {
-		f.DeleteSection(profile)
-	}
+	f.DeleteSection(profile)
 	return save(credPath, f)
 }
 

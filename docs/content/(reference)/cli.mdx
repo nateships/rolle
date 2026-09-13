@@ -40,6 +40,7 @@ Exit codes: `0` success, `1` error, `3` a sign-in is needed (run `rolle integrat
 | `rolle session tag <session> <tag>` / `untag <session> <tag>` | Add a session to a sidebar tag, or take it off |
 | `rolle session add assume-role --name N --role-arn ARN --source S --region R [--external-id ID] [--profile P]` | Assume a role from another session |
 | `rolle session add iam-user --name N --access-key-id ID --region R [--secret-access-key K] [--mfa-device M] [--profile P]` | Add an IAM user |
+| `rolle session add iam-user --from-profile P [--name N] [--region R] [--mfa-device M] [--profile P2]` | Add an IAM user from the access key of a profile in `~/.aws/credentials` |
 | `rolle session add gcp-impersonate --name N --project P --service-account SA [--integration I]` | Impersonate a service account |
 | `rolle session profile <session> [name]` | Set the AWS profile name. Omit the name to restore `default` |
 | `rolle session fix-profile <session>` | Remove the static keys in `~/.aws/credentials` that shadow the session's profile |

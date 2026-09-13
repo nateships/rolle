@@ -152,15 +152,19 @@ describe("Dashboard", () => {
   });
 
   it("leaves hidden sessions out of the sidebar counts", () => {
-    // deployer is a manual favorite; hidden, it leaves both lists and both counts.
-    Object.assign(
-      workspace.sessions.find((s) => s.name === "deployer")!,
-      { hidden: true },
-    );
+    // deployer is a favorite and personal is the only IAM user; hidden, each
+    // leaves its list and its count. Users has nothing left, so it goes.
+    for (const name of ["deployer", "personal"]) {
+      Object.assign(
+        workspace.sessions.find((s) => s.name === name)!,
+        { hidden: true },
+      );
+    }
     renderDashboard();
     const sidebar = within(screen.getByRole("complementary"));
     expect(sidebar.getByRole("button", { name: /^Favorites/ })).toHaveTextContent("Favorites1");
-    expect(sidebar.getByRole("button", { name: /^Manual/ })).toHaveTextContent("Manual2");
+    expect(sidebar.queryByRole("button", { name: /^Users/ })).not.toBeInTheDocument();
+    expect(sidebar.getByRole("button", { name: /^Assumed roles/ })).toHaveTextContent("Assumed roles1");
   });
 
   it("filters to one integration", async () => {
@@ -482,7 +486,8 @@ describe("Dashboard", () => {
       workspace = { ...workspace, sessions: [], integrations: [] } as Workspace;
       renderDashboard();
       expect(screen.getByRole("heading", { name: "No sessions yet" })).toBeInTheDocument();
-      expect(screen.getAllByText("None yet")).toHaveLength(3);
+      // Identity Center, AWS IAM, Azure, and Google Cloud each say so.
+      expect(screen.getAllByText("None yet")).toHaveLength(4);
       expect(screen.getByText("0 active")).toBeInTheDocument();
       // The sidebar hides filters that have nothing to show.
       expect(screen.queryByRole("button", { name: /^Active/ })).not.toBeInTheDocument();

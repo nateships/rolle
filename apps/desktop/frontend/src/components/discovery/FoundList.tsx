@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Import, Loader2 } from "lucide-react";
+import { ChevronDown, Import, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,29 +17,48 @@ export type FoundPortal = {
 };
 export type FoundTenant = { tenantId: string; account: string; source: string };
 export type FoundLeapp = { iamUsers: { name: string }[]; chainedRoles: { name: string }[]; ssoRoles: number };
+/** An access key in ~/.aws/credentials. The secret stays in the file. */
+export type FoundIAMUser = {
+  profile: string;
+  accessKeyId: string;
+  region: string;
+  mfaDevice: string;
+  imported: boolean;
+};
 export type Found = {
   awsPortals: FoundPortal[];
   azureTenants: FoundTenant[];
+  iamUsers: FoundIAMUser[];
   gcp: { account: string } | null;
   leapp: FoundLeapp | null;
 };
 
-const EMPTY: Found = { awsPortals: [], azureTenants: [], gcp: null, leapp: null };
+const EMPTY: Found = { awsPortals: [], azureTenants: [], iamUsers: [], gcp: null, leapp: null };
 
 const SOURCE_LABEL: Record<string, string> = { "aws-cli": "AWS CLI", granted: "Granted", leapp: "Leapp", az: "az CLI" };
 
-/** Scan the machine once and filter out identities the workspace already has. */
+/** Scan the machine and filter out identities the workspace already has. */
 export function useDiscovery(workspace: Workspace, enabled = true) {
   const [found, setFound] = useState<Found | null>(null);
+  // Scan again bumps this; the effect below scans once per value.
+  const [scan, setScan] = useState(0);
+  // A scan reads local files only, so it runs again each time the caller
+  // enables it and each time the workspace changes; the credentials file
+  // watcher raises that event too. The last result stays on screen while
+  // the new scan runs, so an import does not unmount the list mid-way.
+  /* oxlint-disable react/exhaustive-effect-dependencies */
   useEffect(() => {
-    if (!enabled || found) return;
+    if (!enabled) return;
+    let stale = false;
     // Go nil slices arrive as null; normalise every list before anything calls .filter or .length.
     api
       .Discover()
       .then((r) => {
+        if (stale) return;
         const raw = (r ?? {}) as Partial<{
           awsPortals: Partial<FoundPortal>[] | null;
           azureTenants: Partial<FoundTenant>[] | null;
+          iamUsers: Partial<FoundIAMUser>[] | null;
           gcp: { account: string } | null;
           leapp: Partial<{
             iamUsers: { name: string }[] | null;
@@ -61,6 +80,13 @@ export function useDiscovery(workspace: Workspace, enabled = true) {
             account: t.account ?? "",
             source: t.source ?? "az",
           })),
+          iamUsers: (raw.iamUsers ?? []).map((u) => ({
+            profile: u.profile ?? "",
+            accessKeyId: u.accessKeyId ?? "",
+            region: u.region ?? "",
+            mfaDevice: u.mfaDevice ?? "",
+            imported: !!u.imported,
+          })),
           gcp: raw.gcp ?? null,
           leapp: raw.leapp
             ? {
@@ -72,11 +98,16 @@ export function useDiscovery(workspace: Workspace, enabled = true) {
         });
       })
       .catch((e) => {
+        if (stale) return;
         // A failed scan is not an empty one; say so instead of "nothing new".
         toast.error("Scan failed", { description: errorMessage(e) });
         setFound(EMPTY);
       });
-  }, [enabled, found]);
+    return () => {
+      stale = true;
+    };
+  }, [enabled, workspace, scan]);
+  /* oxlint-enable react/exhaustive-effect-dependencies */
 
   const trim = (u: string) => u.replace(/\/$/, "");
   const portals = (found?.awsPortals ?? []).filter(
@@ -86,6 +117,10 @@ export function useDiscovery(workspace: Workspace, enabled = true) {
     (t) => !workspace.integrations.some((i) => i.azure?.tenantId === t.tenantId),
   );
   const gcp = found?.gcp && !workspace.integrations.some((i) => i.gcp) ? found.gcp : null;
+  // Keys a session already holds, and profiles whose name a session took, are not offered.
+  const iamUsers = (found?.iamUsers ?? []).filter(
+    (u) => !u.imported && !workspace.sessions.some((s) => s.name === u.profile),
+  );
   // Leapp sessions worth importing: users and chained roles not already present by name.
   const leapp =
     found?.leapp &&
@@ -100,8 +135,12 @@ export function useDiscovery(workspace: Workspace, enabled = true) {
     tenants,
     gcp,
     leapp,
-    count: portals.length + tenants.length + (gcp ? 1 : 0) + (leapp ? 1 : 0),
-    rescan: () => setFound(null),
+    iamUsers,
+    count: portals.length + tenants.length + iamUsers.length + (gcp ? 1 : 0) + (leapp ? 1 : 0),
+    rescan: () => {
+      setFound(null);
+      setScan((n) => n + 1);
+    },
   };
 }
 
@@ -110,25 +149,52 @@ export function FoundList({
   tenants,
   gcp,
   leapp,
+  iamUsers = [],
   importing,
   disabled,
   onAWS,
   onAzure,
   onGCP,
   onLeapp,
+  onImportedUsers,
 }: {
   portals: FoundPortal[];
   tenants: FoundTenant[];
   gcp: { account: string } | null;
   leapp?: FoundLeapp | null;
+  iamUsers?: FoundIAMUser[];
   importing: string | null;
   disabled: boolean;
   onAWS: (p: FoundPortal) => void;
   onAzure: (t: FoundTenant) => void;
   onGCP: () => void;
   onLeapp?: () => void;
+  /** IAM users were imported; the parent offers to remove their keys from the file. */
+  onImportedUsers?: (profiles: string[]) => void;
 }) {
   const leappCount = leapp ? leapp.iamUsers.length + leapp.chainedRoles.length : 0;
+  // An IAM user imports here: the key moves into rolle, then the parent offers to remove it from the file.
+  const [importingUser, setImportingUser] = useState<string | null>(null);
+  // The IAM users start folded, so a long credentials file leaves room for the rest of the step.
+  const [usersOpen, setUsersOpen] = useState(false);
+  // importUsers moves each key into rolle in turn, then offers to remove
+  // the imported ones from the file together. "*" marks an import of all.
+  async function importUsers(users: FoundIAMUser[]) {
+    setImportingUser(users.length === 1 ? users[0].profile : "*");
+    const done: string[] = [];
+    try {
+      for (const u of users) {
+        await api.ImportIAMUser(u.profile);
+        done.push(u.profile);
+      }
+      toast.success("Imported", { description: done.length === 1 ? done[0] : `${done.length} IAM users` });
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setImportingUser(null);
+    }
+    if (done.length > 0) onImportedUsers?.(done);
+  }
   return (
     <ul className="space-y-2">
       {portals.map((p) => (
@@ -189,6 +255,55 @@ export function FoundList({
           onImport={onLeapp}
         />
       )}
+      {iamUsers.length > 0 && (
+        <li className="flex items-center gap-3 rounded-lg border bg-background/60 px-3 py-2.5">
+          <CloudGlyph cloud="aws" />
+          <button
+            type="button"
+            className="flex min-w-0 flex-1 items-center gap-2 text-left"
+            aria-expanded={usersOpen}
+            onClick={() => setUsersOpen((o) => !o)}
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <p className="truncate text-sm font-medium">IAM users in the credentials file</p>
+                <Badge variant="outline" className="h-5 px-1.5 text-[10px] font-normal text-muted-foreground">
+                  {iamUsers.length}
+                </Badge>
+              </div>
+              <p className="truncate text-[11px] text-muted-foreground">Static keys. Import moves them into rolle.</p>
+            </div>
+            <ChevronDown
+              className={cn("size-4 shrink-0 text-muted-foreground transition-transform", !usersOpen && "-rotate-90")}
+            />
+          </button>
+          <Button
+            size="sm"
+            variant="secondary"
+            className="gap-1.5"
+            disabled={disabled || importingUser !== null}
+            onClick={() => void importUsers(iamUsers)}
+          >
+            {importingUser === "*" ? <Loader2 className="size-3.5 animate-spin" /> : <Import className="size-3.5" />}
+            {iamUsers.length === 1 ? "Import" : `Import all ${iamUsers.length}`}
+          </Button>
+        </li>
+      )}
+      {usersOpen &&
+        iamUsers.map((u) => (
+          <FoundRow
+            key={u.profile}
+            cloud="aws"
+            title={u.profile}
+            subtitle={[`${u.accessKeyId.slice(0, 4)}…`, u.region].filter(Boolean).join(" · ")}
+            badge={u.mfaDevice ? "MFA" : undefined}
+            badgeOk
+            compact
+            busy={importingUser === u.profile || importingUser === "*"}
+            disabled={disabled || importingUser !== null}
+            onImport={() => void importUsers([u])}
+          />
+        ))}
     </ul>
   );
 }
@@ -199,6 +314,7 @@ function FoundRow({
   subtitle,
   badge,
   badgeOk,
+  compact,
   busy,
   disabled,
   onImport,
@@ -206,31 +322,43 @@ function FoundRow({
   cloud: "aws" | "azure" | "gcp";
   title: string;
   subtitle: string;
-  badge: string;
+  badge?: string;
   badgeOk?: boolean;
+  /** One line: the subtitle sits after the title, and the row is shorter. */
+  compact?: boolean;
   busy: boolean;
   disabled: boolean;
   onImport: () => void;
 }) {
   return (
-    <li className="flex items-center gap-3 rounded-lg border bg-background/60 px-3 py-2.5">
-      <CloudGlyph cloud={cloud} />
-      <div className="min-w-0 flex-1">
+    <li
+      className={cn("flex items-center gap-3 rounded-lg border bg-background/60 px-3", compact ? "py-1.5" : "py-2.5")}
+    >
+      <CloudGlyph cloud={cloud} className={compact ? "size-6" : undefined} />
+      <div className={cn("min-w-0 flex-1", compact && "flex items-center gap-2")}>
         <div className="flex items-center gap-2">
           <p className="truncate text-sm font-medium">{title}</p>
-          <Badge
-            variant="outline"
-            className={cn(
-              "h-5 px-1.5 text-[10px] font-normal",
-              badgeOk ? "border-brand-green/40 bg-brand-green/10 text-brand-green-text" : "text-muted-foreground",
-            )}
-          >
-            {badge}
-          </Badge>
+          {badge && (
+            <Badge
+              variant="outline"
+              className={cn(
+                "h-5 px-1.5 text-[10px] font-normal",
+                badgeOk ? "border-brand-green/40 bg-brand-green/10 text-brand-green-text" : "text-muted-foreground",
+              )}
+            >
+              {badge}
+            </Badge>
+          )}
         </div>
-        <p className="truncate font-mono text-[11px] text-muted-foreground">{subtitle}</p>
+        {subtitle && <p className="truncate font-mono text-[11px] text-muted-foreground">{subtitle}</p>}
       </div>
-      <Button size="sm" variant="secondary" className="gap-1.5" onClick={onImport} disabled={disabled}>
+      <Button
+        size="sm"
+        variant="secondary"
+        className={cn("gap-1.5", compact && "h-7")}
+        onClick={onImport}
+        disabled={disabled}
+      >
         {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Import className="size-3.5" />} Import
       </Button>
     </li>
