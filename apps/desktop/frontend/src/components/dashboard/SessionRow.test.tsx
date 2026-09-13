@@ -315,7 +315,7 @@ describe("SessionRow actions", () => {
     await user.click(screen.getByRole("button", { name: "Copy profile command" }));
 
     await waitFor(() =>
-      expect(success).toHaveBeenCalledWith("Copied", expect.objectContaining({ description: "aws --profile default" })),
+      expect(success).toHaveBeenCalledWith("Copied", expect.objectContaining({ description: "aws --profile work" })),
     );
     expect(await navigator.clipboard.readText()).toBe("aws --profile work");
   });
