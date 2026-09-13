@@ -132,7 +132,7 @@ export function RenameDialog({ target, onClose }: { target: RenameTarget | null;
                   className={cn("h-7 shrink-0", REMOVE_KEYS_BUTTON)}
                   onClick={() => target.onFix?.(name.trim())}
                 >
-                  Remove…
+                  Remove
                 </Button>
               )}
             </div>

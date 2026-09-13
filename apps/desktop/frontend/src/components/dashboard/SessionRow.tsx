@@ -72,14 +72,29 @@ export function SessionRow({
   const profileName = isAWSKind(s.kind) ? s.aws?.profile || "default" : "";
   // Static keys under the same profile name win over this session.
   const shadowedBy = isAWSKind(s.kind) ? shadows?.[profileName] : undefined;
-  const shadowNote = shadowedBy ? `${shadowedBy} has static keys for this profile. Click to fix.` : "";
+  const shadowNote = shadowedBy ? `A profile with this name in ${shadowedBy} wins. Click to fix.` : "";
   const tags = workspace.tags ?? [];
   const active = s.status === Status.StatusActive;
   const needsMFA = s.kind === Kind.KindAWSIAMUser && !!s.aws?.mfaDevice;
   const source = s.aws?.sourceSessionId ? workspace.sessions.find((x) => x.id === s.aws?.sourceSessionId) : undefined;
 
-  async function start(mfaCode = "") {
+  // shadowToast names the file and offers the fix, which starts the session after.
+  function shadowToast() {
+    toast.error("Local profile conflict", {
+      description: `${profileName} in ${shadowedBy ?? "~/.aws/credentials"}`,
+      action: { label: "Fix", onClick: () => setRemoving({ profiles: [profileName], thenStart: true }) },
+    });
+  }
+
+  // start runs the session. A profile that static keys already shadow cannot
+  // start, so the toast comes at once; afterFix skips that check, since the
+  // shadow map refreshes with the next workspace event.
+  async function start(mfaCode = "", afterFix = false) {
     if (busy) return;
+    if (shadowedBy && !afterFix) {
+      shadowToast();
+      return;
+    }
     setBusy(true);
     // Start first; the backend may renew the portal token silently. A "login
     // required" error is the one signal that the browser is needed.
@@ -88,23 +103,18 @@ export function SessionRow({
       await api.Start(s.id, mfaCode);
       const first = !workspace.sessions.some((x) => x.status === Status.StatusActive);
       if (first) celebrate("small");
-      toast.success(`${s.name} started`, {
-        description: isAWS ? `AWS profile ${profileName} is ready.` : "Credentials are ready for your shell.",
-        action: { label: "Copy env", onClick: () => void copy("env") },
+      // An AWS session is a profile; the shell needs nothing more. The
+      // others need their tokens, so the toast offers them.
+      toast.success("Started", {
+        description: isAWS ? `${s.name} · profile ${profileName}` : s.name,
+        action: isAWS ? undefined : { label: "Copy env", onClick: () => void copy("env") },
       });
     } catch (e) {
       const msg = errorMessage(e);
       if (/login required/i.test(msg) && integration && onNeedsLogin) {
         onNeedsLogin(integration, s.id);
       } else if (/static keys/i.test(msg)) {
-        // The keys can go and the start can run again.
-        toast.error(`Static keys in ${shadowedBy ?? "~/.aws/credentials"}`, {
-          action: {
-            label: "Fix…",
-            onClick: () =>
-              setRemoving({ path: shadowedBy ?? "~/.aws/credentials", profiles: [profileName], thenStart: true }),
-          },
-        });
+        shadowToast();
       } else {
         toast.error(msg);
       }
@@ -133,9 +143,7 @@ export function SessionRow({
     try {
       const text = kind === "profile" ? `aws --profile ${profileName}` : await api.EnvText(s.id);
       await copyText(text);
-      toast.success(kind === "profile" ? "Profile command copied" : "Credentials copied", {
-        description: kind === "env" ? "Paste into a shell. They expire on their own." : undefined,
-      });
+      toast.success("Copied", { description: kind === "profile" ? text : "Credentials for your shell" });
     } catch (e) {
       toast.error(errorMessage(e));
     }
@@ -373,15 +381,11 @@ export function SessionRow({
                     save: (n) => api.SetProfile(s.id, n),
                     check: async (n) => {
                       const path = await api.ProfileShadow(n || "default");
-                      return path ? `${path} has static keys for this profile.` : "";
+                      return path ? `${path} has a profile with this name.` : "";
                     },
                     onFix: (n) => {
                       setEditing(null);
-                      setRemoving({
-                        path: shadowedBy ?? "~/.aws/credentials",
-                        profiles: [n || "default"],
-                        thenStart: false,
-                      });
+                      setRemoving({ profiles: [n || "default"], thenStart: false });
                     },
                   })
                 }
@@ -485,7 +489,7 @@ export function SessionRow({
             <RemoveKeysDialog
               target={removing}
               onClose={() => setRemoving(null)}
-              onDone={() => removing?.thenStart && void start()}
+              onDone={() => removing?.thenStart && void start("", true)}
             />
             <RegionDialog session={regionOpen ? s : null} onClose={() => setRegionOpen(false)} />
           </TableCell>

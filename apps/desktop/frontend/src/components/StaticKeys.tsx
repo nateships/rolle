@@ -20,7 +20,7 @@ export function StaticKeysCard({ className }: { className?: string }) {
   const refresh = () =>
     void api
       .StaticProfiles()
-      .then((k) => setKeys({ path: k.path, profiles: k.profiles ?? [] }))
+      .then((k) => setKeys({ path: k.path, profiles: (k.profiles ?? []).map((p) => p.name) }))
       .catch((e) => toast.error(errorMessage(e)));
   useEffect(refresh, []);
 
@@ -31,7 +31,7 @@ export function StaticKeysCard({ className }: { className?: string }) {
       size="sm"
       variant="outline"
       className={cn("h-7", REMOVE_KEYS_BUTTON)}
-      onClick={() => setRemoving({ path: keys.path, profiles })}
+      onClick={() => setRemoving({ profiles })}
     >
       {label}
     </Button>
@@ -42,20 +42,18 @@ export function StaticKeysCard({ className }: { className?: string }) {
       <div className="flex items-start gap-3">
         <KeyRound className="mt-0.5 size-4 shrink-0 text-amber-500" />
         <div className="min-w-0 flex-1">
-          <p className="font-medium">Static keys in {keys.path}</p>
-          <p className="mt-0.5 text-xs text-muted-foreground">
-            Tools read these before a rolle profile with the same name.
-          </p>
+          <p className="font-medium">Profiles in {keys.path}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">These hold static keys. Tools read them before rolle.</p>
           <ul className="mt-3 max-h-40 space-y-1 overflow-y-auto pr-1">
             {keys.profiles.map((p) => (
               <li key={p} className="flex items-center justify-between gap-3">
                 <code className="font-mono text-xs">{p}</code>
-                {removeButton("Remove…", [p])}
+                {removeButton("Remove", [p])}
               </li>
             ))}
           </ul>
           {keys.profiles.length > 1 && (
-            <div className="mt-2 flex justify-end">{removeButton("Remove all…", keys.profiles)}</div>
+            <div className="mt-2 flex justify-end">{removeButton("Remove all", keys.profiles)}</div>
           )}
         </div>
       </div>

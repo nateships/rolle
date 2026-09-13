@@ -817,7 +817,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
             pendingStart.current = null;
             api
               .Start(id, "")
-              .then(() => toast.success("Session started"))
+              .then(() => toast.success("Started"))
               .catch((e) => toast.error(errorMessage(e)));
           }
         }}

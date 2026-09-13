@@ -38,18 +38,18 @@ func (s *Service) ShadowedProfiles(w *core.Workspace) map[string]string {
 
 // StaticKeys describes the shared credentials file's static keys.
 type StaticKeys struct {
-	// Path is the shared credentials file.
+	// Path is the shared credentials file, in display form.
 	Path string `json:"path"`
-	// Profiles are the sections that hold static keys, in file order.
-	Profiles []string `json:"profiles"`
+	// Profiles hold static keys, in file order, with the values masked.
+	Profiles []awsconfig.StaticProfile `json:"profiles"`
 }
 
-// StaticProfiles lists the sections of the shared credentials file that hold
+// StaticProfiles lists the profiles of the shared credentials file that hold
 // static keys. Tools read those before any rolle profile of the same name.
 func (s *Service) StaticProfiles() StaticKeys {
 	profiles, path := awsconfig.StaticProfiles(s.AWSConfigPath)
 	if profiles == nil {
-		profiles = []string{}
+		profiles = []awsconfig.StaticProfile{}
 	}
 	return StaticKeys{Path: awsconfig.Display(path), Profiles: profiles}
 }
@@ -60,7 +60,12 @@ func (s *Service) RemoveStaticProfile(name string) error {
 	if name == "" {
 		return fmt.Errorf("profile name is empty")
 	}
-	return awsconfig.RemoveStaticKeys(s.AWSConfigPath, name)
+	if err := awsconfig.RemoveStaticKeys(s.AWSConfigPath, name); err != nil {
+		return err
+	}
+	// The workspace file did not change, but what the window shows did.
+	s.notify()
+	return nil
 }
 
 // FixProfile removes the static keys that shadow the session's profile from

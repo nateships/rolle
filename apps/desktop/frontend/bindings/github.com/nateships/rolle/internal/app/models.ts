@@ -3,6 +3,9 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as awsconfig$0 from "../awsconfig/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as core$0 from "../core/models.js";
 
 /**
@@ -57,12 +60,12 @@ export interface LeappImportResult {
  */
 export interface StaticKeys {
     /**
-     * Path is the shared credentials file.
+     * Path is the shared credentials file, in display form.
      */
     "path": string;
 
     /**
-     * Profiles are the sections that hold static keys, in file order.
+     * Profiles hold static keys, in file order, with the values masked.
      */
-    "profiles": string[] | null;
+    "profiles": awsconfig$0.StaticProfile[] | null;
 }

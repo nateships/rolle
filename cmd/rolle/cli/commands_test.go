@@ -160,7 +160,7 @@ func TestIntegrationLoginDeviceFlowDiscoversRoles(t *testing.T) {
 		t.Fatal(err)
 	}
 	var cleanup map[string]any
-	if err := json.Unmarshal([]byte(mustRun(t, "cleanup", "--json")), &cleanup); err != nil || fmt.Sprint(cleanup["profiles"]) != "[a b]" {
+	if err := json.Unmarshal([]byte(mustRun(t, "cleanup", "--json")), &cleanup); err != nil || !strings.Contains(fmt.Sprint(cleanup["profiles"]), "name:a]") || !strings.Contains(fmt.Sprint(cleanup["profiles"]), "preview:…") {
 		t.Fatalf("cleanup --json = %v, %v", cleanup, err)
 	}
 	mustRun(t, "cleanup", "--all")

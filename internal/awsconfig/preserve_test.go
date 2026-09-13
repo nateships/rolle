@@ -332,4 +332,12 @@ func TestShadowedAndRemoveStaticKeys(t *testing.T) {
 	if err := RemoveStaticKeys(config, "missing"); err != nil {
 		t.Fatal(err)
 	}
+	// The listing masks values: an access key ID keeps its type prefix.
+	if err := os.WriteFile(credPath, []byte("[p]\naws_access_key_id = AKIAEXAMPLE\naws_secret_access_key = topsecret\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	list, _ := StaticProfiles(config)
+	if len(list) != 1 || list[0].Name != "p" || len(list[0].Keys) != 2 || list[0].Keys[0].Preview != "AKIA…" || list[0].Keys[1].Preview != "…" {
+		t.Fatalf("static profiles = %+v", list)
+	}
 }

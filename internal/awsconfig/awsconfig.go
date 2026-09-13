@@ -135,27 +135,54 @@ func checkShadow(configPath, profile string) error {
 	return nil
 }
 
-// StaticProfiles lists the sections of the shared credentials file that hold
+// StaticProfile is a profile of the shared credentials file that holds
+// static keys.
+type StaticProfile struct {
+	Name string `json:"name"`
+	// Keys are the static key lines, with values masked for display.
+	Keys []StaticKey `json:"keys"`
+}
+
+// StaticKey is one masked key line of a profile.
+type StaticKey struct {
+	Name string `json:"name"`
+	// Preview shows the start of an access key ID and nothing of a secret.
+	Preview string `json:"preview"`
+}
+
+// StaticProfiles lists the profiles of the shared credentials file that hold
 // static keys, in file order. The file's path comes second.
-func StaticProfiles(configPath string) ([]string, string) {
+func StaticProfiles(configPath string) ([]StaticProfile, string) {
 	credPath := CredentialsPath(configPath)
 	f, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, credPath)
 	if err != nil {
 		return nil, credPath
 	}
-	var out []string
+	var out []StaticProfile
 	for _, sec := range f.Sections() {
 		if sec.Name() == ini.DefaultSection {
 			continue
 		}
+		var keys []StaticKey
 		for _, k := range staticKeys {
 			if sec.HasKey(k) {
-				out = append(out, sec.Name())
-				break
+				keys = append(keys, StaticKey{Name: k, Preview: preview(k, sec.Key(k).String())})
 			}
+		}
+		if len(keys) > 0 {
+			out = append(out, StaticProfile{Name: sec.Name(), Keys: keys})
 		}
 	}
 	return out, credPath
+}
+
+// preview masks a key value. An access key ID keeps its first four
+// characters, which name the key type; a secret or token shows nothing.
+func preview(key, value string) string {
+	if key == "aws_access_key_id" && len(value) > 4 {
+		return value[:4] + "…"
+	}
+	return "…"
 }
 
 // RemoveStaticKeys deletes the static credential keys of profile from the

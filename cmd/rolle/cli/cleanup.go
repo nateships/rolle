@@ -12,9 +12,9 @@ func cleanupCmd() *cobra.Command {
 	var all bool
 	cmd := &cobra.Command{
 		Use:   "cleanup [profile ...]",
-		Short: "List or remove static keys in ~/.aws/credentials",
-		Long: "List the sections of the shared credentials file that hold static keys. " +
-			"Name the sections to remove their keys, or pass --all. Tools read static keys before any rolle profile of the same name.",
+		Short: "List or remove profiles with static keys in ~/.aws/credentials",
+		Long: "List the profiles of the shared credentials file that hold static keys. " +
+			"Name the profiles to remove their keys, or pass --all. Tools read static keys before any rolle profile of the same name.",
 		RunE: func(_ *cobra.Command, args []string) error {
 			st := svc.StaticProfiles()
 			if len(args) == 0 && !all {
@@ -25,16 +25,19 @@ func cleanupCmd() *cobra.Command {
 					fmt.Printf("no static keys in %s\n", st.Path)
 					return nil
 				}
-				fmt.Printf("static keys in %s:\n", st.Path)
+				fmt.Printf("profiles with static keys in %s:\n", st.Path)
 				for _, p := range st.Profiles {
-					fmt.Printf("  %s\n", p)
+					fmt.Printf("  %s\n", p.Name)
 				}
 				fmt.Println("rolle cleanup <profile> removes a section's keys; --all removes every one.")
 				return nil
 			}
 			names := args
 			if all {
-				names = st.Profiles
+				names = names[:0]
+				for _, p := range st.Profiles {
+					names = append(names, p.Name)
+				}
 			}
 			for _, n := range names {
 				if err := svc.RemoveStaticProfile(n); err != nil {

@@ -218,7 +218,7 @@ function AccountRow({ row, open, onToggle }: { row: Row & { group: true }; open:
       icon: <Copy />,
       onSelect: () =>
         void copyText(row.accountId)
-          .then(() => toast.success("Account ID copied"))
+          .then(() => toast.success("Copied", { description: row.accountId }))
           .catch((e) => toast.error(errorMessage(e))),
     },
     {
