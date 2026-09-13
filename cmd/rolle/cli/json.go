@@ -51,6 +51,8 @@ type sessionJSON struct {
 	Favorite    bool       `json:"favorite,omitempty"`
 	Hidden      bool       `json:"hidden,omitempty"`
 	Tags        []string   `json:"tags,omitempty"`
+	// ShadowedBy is the file whose keys tools read instead of this profile.
+	ShadowedBy string `json:"shadowedBy,omitempty"`
 }
 
 func sessionOut(w *core.Workspace, s core.Session) sessionJSON {
@@ -60,6 +62,9 @@ func sessionOut(w *core.Workspace, s core.Session) sessionJSON {
 	}
 	if s.Kind.Cloud() == core.CloudAWS {
 		out.Profile = app.ProfileName(&s)
+		if sh := svc.ProfileShadow(out.Profile); sh != nil {
+			out.ShadowedBy = sh.Path
+		}
 	}
 	if s.AWS != nil {
 		out.AccountID, out.RoleName = s.AWS.AccountID, s.AWS.RoleName

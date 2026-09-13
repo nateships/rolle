@@ -133,6 +133,46 @@ func TestIntegrationLoginDeviceFlowDiscoversRoles(t *testing.T) {
 	if out := mustRun(t, "integration", "sync", "acme"); strings.TrimSpace(out) != "0 new session(s)" {
 		t.Fatalf("sync output = %q", out)
 	}
+	// Static keys in the credentials file shadow the profile: start refuses
+	// and names the fix, the listing shows the file, and fix-profile clears it.
+	credPath := filepath.Join(t.TempDir(), "credentials")
+	t.Setenv("AWS_SHARED_CREDENTIALS_FILE", credPath)
+	if err := os.WriteFile(credPath, []byte("[default]\naws_access_key_id = AKIA\naws_secret_access_key = x\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := run(t, "start", "Acme/Admin"); err == nil || !strings.Contains(err.Error(), "static keys") || !strings.Contains(err.Error(), "fix-profile") {
+		t.Fatalf("start with shadowing keys: %v", err)
+	}
+	var shadowed []map[string]any
+	if err := json.Unmarshal([]byte(mustRun(t, "session", "list", "--json")), &shadowed); err != nil || shadowed[0]["shadowedBy"] != credPath {
+		t.Fatalf("shadowedBy = %v, %v", shadowed[0]["shadowedBy"], err)
+	}
+	if out := mustRun(t, "cleanup"); !strings.Contains(out, credPath) || !strings.Contains(out, "  default\n") {
+		t.Fatalf("cleanup list: %q", out)
+	}
+	if out := mustRun(t, "session", "fix-profile", "Acme/Admin"); !strings.Contains(out, "removed the static keys of profile default") {
+		t.Fatalf("fix-profile output: %q", out)
+	}
+	if out := mustRun(t, "session", "fix-profile", "Acme/Admin"); !strings.Contains(out, "not shadowed") {
+		t.Fatalf("second fix-profile output: %q", out)
+	}
+	if err := os.WriteFile(credPath, []byte("[a]\naws_access_key_id = A\naws_secret_access_key = B\n[b]\naws_access_key_id = C\naws_secret_access_key = D\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var cleanup map[string]any
+	if err := json.Unmarshal([]byte(mustRun(t, "cleanup", "--json")), &cleanup); err != nil || !strings.Contains(fmt.Sprint(cleanup["profiles"]), "name:a]") || !strings.Contains(fmt.Sprint(cleanup["profiles"]), "preview:…") {
+		t.Fatalf("cleanup --json = %v, %v", cleanup, err)
+	}
+	if _, err := run(t, "cleanup", "nosuch"); err == nil || !strings.Contains(err.Error(), `no static keys for profile "nosuch"`) {
+		t.Fatalf("cleanup of a missing section: %v", err)
+	}
+	if _, err := run(t, "cleanup", "a", "--all"); err == nil || !strings.Contains(err.Error(), "--all takes no profile names") {
+		t.Fatalf("cleanup with names and --all: %v", err)
+	}
+	mustRun(t, "cleanup", "--all")
+	if out := mustRun(t, "cleanup"); !strings.Contains(out, "no static keys") {
+		t.Fatalf("cleanup after --all: %q", out)
+	}
 	out = mustRun(t, "start", "Acme/Admin")
 	if !strings.HasPrefix(out, "Acme/Admin active until ") || !strings.Contains(out, "AWS profile: default\n") {
 		t.Fatalf("start output:\n%s", out)

@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CommandLineInstall } from "@/components/CommandLine";
+import { StaticKeysCard } from "@/components/StaticKeys";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { CloudGlyph, GopherLockup, GopherMark } from "@/components/Brand";
@@ -757,6 +758,7 @@ function Done({ count, onFinish }: { count: number; onFinish: () => void }) {
           : "Your workspace is ready. Add clouds and sessions from the dashboard."}
       </p>
       <CommandLineInstall className="mt-6" />
+      <StaticKeysCard className="mt-6 w-full" />
       <Button size="lg" className="mt-8 gap-2" onClick={onFinish}>
         Open dashboard <ArrowRight className="size-4" />
       </Button>

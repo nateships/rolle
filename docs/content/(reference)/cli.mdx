@@ -8,7 +8,7 @@ The CLI and the desktop app share one workspace, so a session started in one is 
 ```
 rolle [command] [flags]
   --debug        verbose diagnostics (same as ROLLE_DEBUG=1)
-  --json         machine-readable output for the list, status, start, and kube commands
+  --json         machine-readable output for the list, status, start, kube, and cleanup commands
   -v, --version  print the version
 ```
 
@@ -42,6 +42,7 @@ Exit codes: `0` success, `1` error, `3` a sign-in is needed (run `rolle integrat
 | `rolle session add iam-user --name N --access-key-id ID --region R [--secret-access-key K] [--mfa-device M] [--profile P]` | Add an IAM user |
 | `rolle session add gcp-impersonate --name N --project P --service-account SA [--integration I]` | Impersonate a service account |
 | `rolle session profile <session> [name]` | Set the AWS profile name. Omit the name to restore `default` |
+| `rolle session fix-profile <session>` | Remove the static keys in `~/.aws/credentials` that shadow the session's profile |
 | `rolle session region <session> <region>` | Change the region of an AWS session |
 | `rolle session remove <session>` | Remove a session |
 
@@ -75,6 +76,7 @@ Exit codes: `0` success, `1` error, `3` a sign-in is needed (run `rolle integrat
 | `rolle start <session> [--mfa-code C]` | Start a session |
 | `rolle stop <session>` | Stop a session |
 | `rolle status` | Show active sessions |
+| `rolle cleanup [profile ...] [--all]` | List the sections of `~/.aws/credentials` that hold static keys, or remove their keys |
 | `rolle env <session> [--powershell]` | Print credentials as shell exports |
 | `rolle token <session>` | Print the bearer token of an Azure or Google Cloud session |
 | `rolle shell <session>` | Open a terminal window with the credentials ready |

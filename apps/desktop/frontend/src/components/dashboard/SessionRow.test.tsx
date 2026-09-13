@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
 import { describe, expect, it, vi } from "vitest";
@@ -18,6 +18,7 @@ function renderRow(
     tags?: Tag[];
     onNeedsLogin?: (i: Integration, id?: string) => void;
     onTagClick?: (tag: string) => void;
+    shadows?: Record<string, string | undefined>;
   } = {},
 ) {
   const ws = {
@@ -31,7 +32,13 @@ function renderRow(
     <TooltipProvider>
       <table>
         <tbody>
-          <SessionRow session={s} workspace={ws} onNeedsLogin={opts.onNeedsLogin} onTagClick={opts.onTagClick} />
+          <SessionRow
+            session={s}
+            workspace={ws}
+            onNeedsLogin={opts.onNeedsLogin}
+            onTagClick={opts.onTagClick}
+            shadows={opts.shadows}
+          />
         </tbody>
       </table>
     </TooltipProvider>,
@@ -144,10 +151,7 @@ describe("SessionRow actions", () => {
     await user.click(screen.getByRole("button", { name: "Start" }));
 
     await waitFor(() => expect(start).toHaveBeenCalledWith(s.id, ""));
-    expect(success).toHaveBeenCalledWith(
-      "personal started",
-      expect.objectContaining({ description: "AWS profile default is ready." }),
-    );
+    expect(success).toHaveBeenCalledWith("personal", expect.objectContaining({ action: expect.anything() }));
     // The first active session gets a small celebration.
     expect(celebrate).toHaveBeenCalledWith("small");
   });
@@ -290,7 +294,12 @@ describe("SessionRow actions", () => {
 
     await user.click(screen.getByRole("button", { name: "Copy credentials as env" }));
 
-    await waitFor(() => expect(success).toHaveBeenCalledWith("Credentials copied", expect.anything()));
+    await waitFor(() =>
+      expect(success).toHaveBeenCalledWith(
+        "Copied",
+        expect.objectContaining({ description: "Credentials for your shell" }),
+      ),
+    );
     expect(env).toHaveBeenCalledWith(s.id);
     expect(await navigator.clipboard.readText()).toBe("export AWS_ACCESS_KEY_ID=X\n");
   });
@@ -302,7 +311,9 @@ describe("SessionRow actions", () => {
 
     await user.click(screen.getByRole("button", { name: "Copy profile command" }));
 
-    await waitFor(() => expect(success).toHaveBeenCalledWith("Profile command copied", expect.anything()));
+    await waitFor(() =>
+      expect(success).toHaveBeenCalledWith("Copied", expect.objectContaining({ description: "aws --profile work" })),
+    );
     expect(await navigator.clipboard.readText()).toBe("aws --profile work");
   });
 
@@ -465,6 +476,82 @@ describe("SessionRow actions", () => {
 
     await waitFor(() => expect(setAlias).toHaveBeenCalledWith("role", "AWSAdministratorAccess", "Admin"));
     expect(rename).not.toHaveBeenCalled();
+  });
+
+  it("marks a shadowed profile and removes the keys before a retry", async () => {
+    const user = userEvent.setup();
+    const s = session({ name: "personal", kind: Kind.KindAWSIAMUser });
+    const start = vi.spyOn(api, "Start").mockResolvedValue({} as never);
+    vi.spyOn(api, "StaticProfiles").mockResolvedValue({
+      path: "~/.aws/credentials",
+      profiles: [{ name: "default", keys: [{ name: "aws_access_key_id", preview: "AKIA…" }] }],
+    });
+    renderRow(s, { shadows: { default: "~/.aws/credentials" } });
+    // The profile cell carries the mark and the reason.
+    expect(screen.getByLabelText("Profile is shadowed")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /default/ })).toHaveAttribute(
+      "title",
+      "A profile with this name in ~/.aws/credentials wins. Click to fix.",
+    );
+    // Start does not try; the toast offers the fix, and the confirmation removes the keys and then starts.
+    const remove = vi.spyOn(api, "RemoveStaticProfile").mockResolvedValue();
+    const error = vi.spyOn(toast, "error");
+    await user.click(screen.getByRole("button", { name: /^start$/i }));
+    await waitFor(() => expect(error).toHaveBeenCalled());
+    expect(error.mock.calls[0][0]).toBe("Local profile conflict");
+    const opts = error.mock.calls[0][1] as { action?: { label: string; onClick: () => void } };
+    expect(opts.action?.label).toBe("Fix");
+    act(() => opts.action!.onClick());
+    const confirm = await screen.findByRole("dialog", { name: "Remove profile from the credentials file?" });
+    expect(confirm).toHaveTextContent("Cannot be undone.");
+    expect(confirm).toHaveTextContent("aws_access_key_id = AKIA…");
+    await user.click(within(confirm).getByRole("button", { name: "Remove" }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith("default"));
+    await waitFor(() => expect(start).toHaveBeenCalledTimes(1));
+  });
+
+  it("shows the conflict before the MFA prompt, and the prompt after the fix", async () => {
+    const user = userEvent.setup();
+    const s = session({ name: "personal", kind: Kind.KindAWSIAMUser, aws: { mfaDevice: "arn:aws:iam::1:mfa/me" } });
+    const start = vi.spyOn(api, "Start").mockResolvedValue({} as never);
+    vi.spyOn(api, "StaticProfiles").mockResolvedValue({
+      path: "~/.aws/credentials",
+      profiles: [{ name: "default", keys: [{ name: "aws_access_key_id", preview: "AKIA…" }] }],
+    });
+    vi.spyOn(api, "RemoveStaticProfile").mockResolvedValue();
+    const error = vi.spyOn(toast, "error");
+    renderRow(s, { shadows: { default: "~/.aws/credentials" } });
+    await user.click(screen.getByRole("button", { name: /^start$/i }));
+    await waitFor(() => expect(error).toHaveBeenCalledWith("Local profile conflict", expect.anything()));
+    expect(screen.queryByRole("dialog", { name: "MFA code" })).not.toBeInTheDocument();
+    const opts = error.mock.calls[0][1] as { action?: { onClick: () => void } };
+    act(() => opts.action!.onClick());
+    const confirm = await screen.findByRole("dialog", { name: "Remove profile from the credentials file?" });
+    await user.click(within(confirm).getByRole("button", { name: "Remove" }));
+    // The code is still needed; nothing starts without it.
+    expect(await screen.findByRole("dialog", { name: "MFA code" })).toBeInTheDocument();
+    expect(start).not.toHaveBeenCalled();
+  });
+
+  it("warns in the profile dialog when the typed name is shadowed", async () => {
+    const user = userEvent.setup();
+    const s = session({ name: "personal", kind: Kind.KindAWSIAMUser });
+    vi.spyOn(api, "StaticProfiles").mockResolvedValue({
+      path: "/h/.aws/credentials",
+      profiles: [{ name: "work", keys: [{ name: "aws_access_key_id", preview: "AKIA…" }] }],
+    });
+    vi.spyOn(api, "ProfileShadow").mockImplementation(((n: string) =>
+      Promise.resolve(n === "work" ? "/h/.aws/credentials" : "")) as never);
+    renderRow(s);
+    await user.click(screen.getByRole("button", { name: /default/ }));
+    await screen.findByRole("dialog", { name: "AWS profile name" });
+    await user.type(screen.getByPlaceholderText("default"), "work");
+    expect(await screen.findByRole("alert")).toHaveTextContent("/h/.aws/credentials has a profile with this name.");
+    // The warning's button opens the confirmation for that name.
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    expect(await screen.findByRole("dialog", { name: "Remove profile from the credentials file?" })).toHaveTextContent(
+      "[work]",
+    );
   });
 
   it("sets the AWS profile name from the profile cell", async () => {

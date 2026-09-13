@@ -70,7 +70,7 @@ describe("Dashboard inside Wails", () => {
     expect(await screen.findByRole("dialog", { name: /sign in to acme-eu/i })).toBeInTheDocument();
     finish([]);
     await waitFor(() => expect(start).toHaveBeenCalledWith(session.id, ""));
-    await waitFor(() => expect(success).toHaveBeenCalledWith("Session started"));
+    await waitFor(() => expect(success).toHaveBeenCalledWith("Started"));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
@@ -92,7 +92,7 @@ describe("Dashboard inside Wails", () => {
     const success = vi.spyOn(toast, "success");
     const session = workspace.sessions.find((s) => s.name === "data-platform")!;
     emit(START_NEEDS_LOGIN, { sessionId: session.id, integrationId: "gcp" });
-    await waitFor(() => expect(success).toHaveBeenCalledWith("Session started"));
+    await waitFor(() => expect(success).toHaveBeenCalledWith("Started"));
     expect(sync).toHaveBeenCalledWith("gcp");
     expect(start).toHaveBeenCalledWith(session.id, "");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

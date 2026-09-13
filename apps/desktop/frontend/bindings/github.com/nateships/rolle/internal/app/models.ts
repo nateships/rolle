@@ -3,6 +3,9 @@
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore: Unused imports
+import * as awsconfig$0 from "../awsconfig/models.js";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore: Unused imports
 import * as core$0 from "../core/models.js";
 
 /**
@@ -50,4 +53,19 @@ export interface LeappImportResult {
      * Skipped lists the sessions the import did not recreate, and the reason.
      */
     "skipped": string[] | null;
+}
+
+/**
+ * StaticKeys describes the shared credentials file's static keys.
+ */
+export interface StaticKeys {
+    /**
+     * Path is the shared credentials file, in display form.
+     */
+    "path": string;
+
+    /**
+     * Profiles hold static keys, in file order, with the values masked.
+     */
+    "profiles": awsconfig$0.StaticProfile[] | null;
 }

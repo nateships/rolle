@@ -242,6 +242,16 @@ export function PendingUpdate(): $CancellablePromise<$models.UpdateInfo | null> 
 }
 
 /**
+ * ProfileShadow returns the file, in display form, whose static keys tools
+ * read instead of a profile of that name, or "". The window offers to remove
+ * those keys, so a profile that another tool configures in the config file
+ * reports "".
+ */
+export function ProfileShadow(name: string): $CancellablePromise<string> {
+    return $Call.ByID(4258961860, name);
+}
+
+/**
  * Relaunch starts a second copy of this app, on fictional data when demo is
  * true and on the real workspace otherwise, then quits this one. Dev builds only.
  */
@@ -261,6 +271,14 @@ export function RemoveIntegration(ref: string): $CancellablePromise<void> {
  */
 export function RemoveSession(ref: string): $CancellablePromise<void> {
     return $Call.ByID(3021866781, ref);
+}
+
+/**
+ * RemoveStaticProfile deletes the static keys of one section of the shared
+ * credentials file.
+ */
+export function RemoveStaticProfile(name: string): $CancellablePromise<void> {
+    return $Call.ByID(2217434922, name);
 }
 
 /**
@@ -375,6 +393,14 @@ export function Start(ref: string, mfaCode: string): $CancellablePromise<core$0.
  */
 export function StartSSOLogin(ref: string): $CancellablePromise<$models.DeviceLogin> {
     return $Call.ByID(3044344761, ref);
+}
+
+/**
+ * StaticProfiles lists the sections of ~/.aws/credentials that hold static
+ * keys, with the file's path.
+ */
+export function StaticProfiles(): $CancellablePromise<app$0.StaticKeys> {
+    return $Call.ByID(3473546599);
 }
 
 /**

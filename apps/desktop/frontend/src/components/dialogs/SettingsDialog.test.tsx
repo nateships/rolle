@@ -71,22 +71,24 @@ describe("SettingsDialog", () => {
     await user.click(screen.getByRole("switch", { name: "Expiry notifications" }));
     await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ notifyOff: true })));
 
-    await user.click(screen.getByRole("switch", { name: "Verbose logging" }));
-    await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ verboseLogging: true })));
-
     await user.click(screen.getByRole("switch", { name: "Automatic updates" }));
     await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ autoUpdateOff: true })));
+
+    await tab(user, "Advanced");
+    await user.click(screen.getByRole("switch", { name: "Verbose logging" }));
+    await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ verboseLogging: true })));
   });
 
   it("writes the duration, terminal, and default region", async () => {
     const user = userEvent.setup();
     await open();
 
-    await pick(user, screen.getByRole("combobox", { name: "Assume role duration" }), "2 hours");
-    await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ assumeRoleMinutes: 120 })));
-
     await pick(user, screen.getByRole("combobox", { name: "Terminal app" }), "Ghostty");
     await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ terminal: "ghostty" })));
+
+    await tab(user, "AWS");
+    await pick(user, screen.getByRole("combobox", { name: "Assume role duration" }), "2 hours");
+    await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ assumeRoleMinutes: 120 })));
 
     await user.click(regionBox());
     await user.click(await screen.findByText("eu-west-1"));

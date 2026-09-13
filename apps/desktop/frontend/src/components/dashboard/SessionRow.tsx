@@ -10,6 +10,7 @@ import {
   Square,
   SquareTerminal,
   Star,
+  TriangleAlert,
   Terminal,
   Trash2,
   Eye,
@@ -30,6 +31,7 @@ import { RegionDialog } from "@/components/dialogs/RegionDialog";
 import { CloudGlyph } from "@/components/Brand";
 import { MFADialog } from "@/components/dialogs/Dialogs";
 import { RenameDialog, type RenameTarget } from "@/components/dialogs/RenameDialog";
+import { RemoveKeysDialog, type RemoveKeysTarget } from "@/components/dialogs/RemoveKeysDialog";
 import { api, errorMessage, Kind, Status, type Integration, type Session, type Workspace } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
 import { copyText } from "@/lib/clipboard";
@@ -50,6 +52,7 @@ export function SessionRow({
   nested,
   onNeedsLogin,
   onTagClick,
+  shadows,
 }: {
   session: Session;
   workspace: Workspace;
@@ -57,17 +60,44 @@ export function SessionRow({
   onNeedsLogin?: (integration: Integration, startSessionId?: string) => void;
   /** The name on a tag chip was clicked. */
   onTagClick?: (tag: string) => void;
+  /** Profile name to the file whose static keys shadow it. */
+  shadows?: Record<string, string | undefined>;
 }) {
   const [busy, setBusy] = useState(false);
   const [mfaOpen, setMfaOpen] = useState(false);
   const [editing, setEditing] = useState<RenameTarget | null>(null);
+  // The static keys to remove from ~/.aws/credentials, and whether to start after.
+  const [removing, setRemoving] = useState<(RemoveKeysTarget & { thenStart: boolean }) | null>(null);
   const [regionOpen, setRegionOpen] = useState(false);
   const profileName = isAWSKind(s.kind) ? s.aws?.profile || "default" : "";
+  // Static keys under the same profile name win over this session.
+  const shadowedBy = isAWSKind(s.kind) ? shadows?.[profileName] : undefined;
+  const shadowNote = shadowedBy ? `A profile with this name in ${shadowedBy} wins. Click to fix.` : "";
   const tags = workspace.tags ?? [];
   const active = s.status === Status.StatusActive;
   const needsMFA = s.kind === Kind.KindAWSIAMUser && !!s.aws?.mfaDevice;
   const source = s.aws?.sourceSessionId ? workspace.sessions.find((x) => x.id === s.aws?.sourceSessionId) : undefined;
 
+  // shadowToast offers the fix, which starts the session after.
+  function shadowToast(description: string) {
+    toast.error("Local profile conflict", {
+      description,
+      action: { label: "Fix", onClick: () => setRemoving({ profiles: [profileName], thenStart: true }) },
+    });
+  }
+
+  // begin starts the session, or asks for the MFA code first. A profile that
+  // static keys shadow cannot start, so the toast comes before either.
+  function begin() {
+    if (shadowedBy) {
+      shadowToast(`${profileName} in ${shadowedBy}`);
+      return;
+    }
+    if (needsMFA) setMfaOpen(true);
+    else void start();
+  }
+
+  // start runs the session.
   async function start(mfaCode = "") {
     if (busy) return;
     setBusy(true);
@@ -78,20 +108,52 @@ export function SessionRow({
       await api.Start(s.id, mfaCode);
       const first = !workspace.sessions.some((x) => x.status === Status.StatusActive);
       if (first) celebrate("small");
-      toast.success(`${s.name} started`, {
-        description: isAWS ? `AWS profile ${profileName} is ready.` : "Credentials are ready for your shell.",
+      // The role is the title; the check mark says it started. The account
+      // of an Identity Center role and the AWS profile follow.
+      const [account, role] =
+        s.kind === Kind.KindAWSSSORole && s.name.includes("/")
+          ? [s.name.split("/")[0], roleLabel(s.name)]
+          : ["", s.name];
+      toast.success(role, {
+        description: (
+          <>
+            {account && <span className="block">Account: {account}</span>}
+            {isAWS && <span className="block">Profile: {profileName}</span>}
+          </>
+        ),
         action: { label: "Copy env", onClick: () => void copy("env") },
       });
     } catch (e) {
       const msg = errorMessage(e);
       if (/login required/i.test(msg) && integration && onNeedsLogin) {
         onNeedsLogin(integration, s.id);
+      } else if (/static keys/i.test(msg)) {
+        shadowToast(msg);
       } else {
         toast.error(msg);
       }
     } finally {
       setBusy(false);
     }
+  }
+
+  // profileTarget opens the profile dialog. It warns when the typed name is
+  // shadowed and offers to remove the keys.
+  function profileTarget(): RenameTarget {
+    return {
+      kind: "profile",
+      id: s.id,
+      name: s.aws?.profile ?? "",
+      save: (n) => api.SetProfile(s.id, n),
+      check: async (n) => {
+        const path = await api.ProfileShadow(n || "default");
+        return path ? `${path} has a profile with this name.` : "";
+      },
+      onFix: (n) => {
+        setEditing(null);
+        setRemoving({ profiles: [n || "default"], thenStart: false });
+      },
+    };
   }
 
   async function stop() {
@@ -114,9 +176,7 @@ export function SessionRow({
     try {
       const text = kind === "profile" ? `aws --profile ${profileName}` : await api.EnvText(s.id);
       await copyText(text);
-      toast.success(kind === "profile" ? "Profile command copied" : "Credentials copied", {
-        description: kind === "env" ? "Paste into a shell. They expire on their own." : undefined,
-      });
+      toast.success("Copied", { description: kind === "profile" ? text : "Credentials for your shell" });
     } catch (e) {
       toast.error(errorMessage(e));
     }
@@ -176,13 +236,7 @@ export function SessionRow({
           {
             label: "Set AWS profile name",
             icon: <Terminal />,
-            onSelect: () =>
-              setEditing({
-                kind: "profile",
-                id: s.id,
-                name: s.aws?.profile ?? "",
-                save: (n) => api.SetProfile(s.id, n),
-              }),
+            onSelect: () => setEditing(profileTarget()),
           },
           { label: "Change region", icon: <Globe />, onSelect: () => setRegionOpen(true) },
           { label: "Copy profile command", icon: <Terminal />, onSelect: () => void copy("profile") },
@@ -200,7 +254,7 @@ export function SessionRow({
     {
       label: active ? "Stop" : "Start",
       icon: active ? <Square /> : <Play />,
-      onSelect: () => (active ? void stop() : needsMFA ? setMfaOpen(true) : void start()),
+      onSelect: () => (active ? void stop() : begin()),
     },
     ...(active
       ? ([
@@ -249,7 +303,7 @@ export function SessionRow({
                 type="button"
                 aria-label={active ? "Stop" : "Start"}
                 disabled={busy}
-                onClick={() => (active ? stop() : needsMFA ? setMfaOpen(true) : start())}
+                onClick={() => (active ? void stop() : begin())}
                 className={cn(
                   "relative inline-flex size-7 items-center justify-center rounded-full border transition-colors disabled:opacity-60",
                   active
@@ -346,17 +400,14 @@ export function SessionRow({
             {isAWS ? (
               <button
                 type="button"
-                title="Change the AWS profile name"
-                onClick={() =>
-                  setEditing({
-                    kind: "profile",
-                    id: s.id,
-                    name: s.aws?.profile ?? "",
-                    save: (n) => api.SetProfile(s.id, n),
-                  })
-                }
-                className="rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+                onClick={() => setEditing(profileTarget())}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-accent hover:text-foreground",
+                  shadowedBy && "text-amber-600 dark:text-amber-400",
+                )}
+                title={shadowNote || "Change the AWS profile name"}
               >
+                {shadowedBy && <TriangleAlert aria-label="Profile is shadowed" className="size-3" />}
                 {profileName}
               </button>
             ) : (
@@ -447,6 +498,11 @@ export function SessionRow({
               }}
             />
             <RenameDialog target={editing} onClose={() => setEditing(null)} />
+            <RemoveKeysDialog
+              target={removing}
+              onClose={() => setRemoving(null)}
+              onDone={() => removing?.thenStart && (needsMFA ? setMfaOpen(true) : void start())}
+            />
             <RegionDialog session={regionOpen ? s : null} onClose={() => setRegionOpen(false)} />
           </TableCell>
         </motion.tr>

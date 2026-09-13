@@ -126,7 +126,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
       setDialog({ kind: "login", integration: integ });
       return;
     }
-    void run(startId ? "Session started" : "Synced", async () => {
+    void run(startId ? "Started" : "Synced", async () => {
       await api.SyncGCP(integ.id);
       if (startId) await api.Start(startId, "");
     });
@@ -772,6 +772,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                       onWidths={setWidths}
                       onNeedsLogin={needsLogin}
                       onTagClick={(tag) => setFilter(`tag:${tag}`)}
+                      shadows={workspace.shadowedProfiles ?? undefined}
                     />
                   </section>
                 </div>
@@ -816,7 +817,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
             pendingStart.current = null;
             api
               .Start(id, "")
-              .then(() => toast.success("Session started"))
+              .then(() => toast.success("Started"))
               .catch((e) => toast.error(errorMessage(e)));
           }
         }}

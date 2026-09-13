@@ -17,6 +17,7 @@ import (
 
 	"github.com/nateships/rolle/cmd/rolle/cli"
 	"github.com/nateships/rolle/internal/app"
+	"github.com/nateships/rolle/internal/awsconfig"
 	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/debug"
 )
@@ -154,14 +155,17 @@ func main() {
 		alerts := newNotifier(notify, tr.onNotification)
 		w, _ := svc.Refresh()
 		alerts.tick(w, currentSettings(svc))
-		seen := modTime(svc.WorkspacePath)
+		// The shared credentials file matters too: the shadow marks in the
+		// table come from it, and the CLI or an editor can change it.
+		credPath := awsconfig.CredentialsPath(svc.AWSConfigPath)
+		seen, seenCred := modTime(svc.WorkspacePath), modTime(credPath)
 		for range time.Tick(30 * time.Second) {
-			if now := modTime(svc.WorkspacePath); !now.Equal(seen) {
+			if now, nowCred := modTime(svc.WorkspacePath), modTime(credPath); !now.Equal(seen) || !nowCred.Equal(seenCred) {
 				svc.OnChange()
 			}
 			w, _ := svc.Refresh()
 			alerts.tick(w, currentSettings(svc))
-			seen = modTime(svc.WorkspacePath)
+			seen, seenCred = modTime(svc.WorkspacePath), modTime(credPath)
 		}
 	}()
 

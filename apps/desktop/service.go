@@ -16,6 +16,7 @@ import (
 
 	"github.com/nateships/rolle/internal/app"
 	"github.com/nateships/rolle/internal/aws"
+	"github.com/nateships/rolle/internal/awsconfig"
 	"github.com/nateships/rolle/internal/browser"
 	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/discover"
@@ -72,7 +73,14 @@ func ctx() (context.Context, context.CancelFunc) {
 // Workspace returns the stored workspace. Renewals run on the background
 // ticker in main.go, which saves and so emits EventWorkspaceChanged; the UI
 // must not wait on the network to paint.
-func (r *RolleService) Workspace() (*core.Workspace, error) { return r.svc.Load() }
+func (r *RolleService) Workspace() (*core.Workspace, error) {
+	w, err := r.svc.Load()
+	if err != nil {
+		return nil, err
+	}
+	w.ShadowedProfiles = r.svc.ShadowedProfiles(w)
+	return w, nil
+}
 
 // CompleteOnboarding marks the walkthrough as done.
 func (r *RolleService) CompleteOnboarding() error {
@@ -426,6 +434,25 @@ func (r *RolleService) SetProfile(ref, profile string) error { return r.svc.SetP
 func (r *RolleService) SetAlias(kind, key, alias string) error {
 	return r.svc.SetAlias(app.AliasKind(kind), key, alias)
 }
+
+// ProfileShadow returns the file, in display form, whose static keys tools
+// read instead of a profile of that name, or "". The window offers to remove
+// those keys, so a profile that another tool configures in the config file
+// reports "".
+func (r *RolleService) ProfileShadow(name string) string {
+	if sh := r.svc.ProfileShadow(name); sh != nil && sh.Fixable {
+		return awsconfig.Display(sh.Path)
+	}
+	return ""
+}
+
+// StaticProfiles lists the sections of ~/.aws/credentials that hold static
+// keys, with the file's path.
+func (r *RolleService) StaticProfiles() app.StaticKeys { return r.svc.StaticProfiles() }
+
+// RemoveStaticProfile deletes the static keys of one section of the shared
+// credentials file.
+func (r *RolleService) RemoveStaticProfile(name string) error { return r.svc.RemoveStaticProfile(name) }
 
 // RenameSession changes a session's name.
 func (r *RolleService) RenameSession(ref, name string) error {
