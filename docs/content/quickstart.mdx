@@ -8,28 +8,28 @@ description: Connect AWS, Azure, or Google Cloud, import what your machine alrea
 
 <Steps>
   <Step title="Open rolle">
-    The first launch runs an onboarding flow. Pick a cloud, sign in, and choose the roles you want. You can connect more clouds at the end, or later from the **Add** menu.
+    The first launch runs onboarding. Pick a cloud, sign in, and choose roles. Connect more clouds at the end, or later from the **Add** menu.
 
     ![Onboarding: identities found on this machine and the three clouds to connect](/screenshots/onboarding-cloud.png)
   </Step>
   <Step title="Import what your machine already has">
-    Onboarding offers **Import from this machine**. It finds AWS Identity Center portals in the AWS CLI and Granted configs, Azure tenants from the az CLI, and gcloud Application Default Credentials. The same import is available later under **Add → Import from this machine**.
+    **Import from this machine** finds Identity Center portals in the AWS CLI and Granted configs, Azure tenants in the az CLI, and gcloud Application Default Credentials. Later, use **Add → Import from this machine**.
   </Step>
   <Step title="Start a session">
-    Press **Start** on a role. If the integration is signed out, rolle signs in first. An active AWS session is a profile you can use right away:
+    Press **Start** on a role. When the integration is signed out, rolle signs in first. An active AWS session is a profile:
 
     ```sh
     aws sts get-caller-identity --profile default
     ```
 
-    Every AWS session uses the profile `default` unless you give it a name. Two sessions can share a name; starting one stops the other.
+    Every AWS session uses the profile `default` unless you give it a name. Two sessions can share a name. Starting one stops the other.
   </Step>
   <Step title="Use the credentials">
-    From the row actions: open a terminal with the session ready, open the cloud console, or copy the credentials as shell exports.
+    The row actions open a terminal with the session ready, open the cloud console, or copy the credentials as shell exports.
   </Step>
 </Steps>
 
-## The same flow in the CLI
+## CLI
 
 ```sh
 rolle integration add aws-sso --alias acme --start-url https://acme.awsapps.com/start --region us-east-1

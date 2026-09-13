@@ -3,9 +3,9 @@ title: Profiles and regions
 description: How rolle writes AWS profiles, and how to rename them or change their region.
 ---
 
-## The profile model
+## Profile model
 
-Every active AWS session is a profile in `~/.aws/config` backed by `credential_process`. The process is the rolle binary. It returns cached credentials and never writes them into the file.
+Every active AWS session is a profile in `~/.aws/config` backed by `credential_process`. The process is the rolle binary. It returns cached credentials and writes none into the file.
 
 ```ini
 [default]
@@ -14,19 +14,21 @@ credential_process = /path/to/rolle creds <session-id>
 rolle_session = <session-id>
 ```
 
-- Every session writes the profile `default` unless you set a name, so `aws` and every SDK work without `--profile`.
+- A session writes the profile `default` unless you set a name. `aws` and the SDKs then work without `--profile`.
 - Two sessions can share a profile name. Starting one stops the other.
-- rolle refuses to overwrite a profile that holds real credential keys, and it restores a plain `[default]` section (region and output) when the session stops.
+- rolle does not overwrite a profile that holds credential keys. When the session stops, rolle restores a plain `[default]` section (region and output).
 
 ## Static keys in ~/.aws/credentials
 
-The AWS credential chain reads static keys in `~/.aws/credentials` before `credential_process` in `~/.aws/config`. A `[default]` section with `aws_access_key_id` there wins over a rolle profile named `default`, and every tool uses the old keys.
+![Settings, AWS tab, with the profiles in the credentials file](/screenshots/settings-aws.png)
 
-rolle refuses to start a session onto such a profile. The profile column shows an amber mark. Click it, and the profile dialog names the file and offers **Remove**. The start error offers **Fix**. Both open one confirmation that names the section and the file and deletes only that section's static keys. `rolle session list --json` carries the file as `shadowedBy`, and `rolle session fix-profile <session>` removes the keys.
+The AWS credential chain reads static keys in `~/.aws/credentials` before `credential_process` in `~/.aws/config`. A `[default]` section with `aws_access_key_id` there shadows a rolle profile named `default`. Every tool then uses the static keys.
 
-The **Profiles in ~/.aws/credentials** card under **Settings → AWS** and the last onboarding step list every profile with static keys and remove the ones you pick. **Import** moves the key into rolle as an IAM user session named after the profile, then offers the removal. The CLI does the same with `rolle cleanup` and `rolle session add iam-user --from-profile`.
+rolle does not start a session onto such a profile. The profile column shows an amber mark. Click it: the profile dialog names the file and offers **Remove**. The start error offers **Fix**. Both open a confirmation that names the section and the file, and delete only that section's static keys. `rolle session list --json` reports the file as `shadowedBy`. `rolle session fix-profile <session>` removes the keys.
 
-A profile that another tool configures in `~/.aws/config`, with `credential_process`, `sso_session`, or `role_arn`, cannot be taken over. Give the session another profile name.
+**Settings → AWS → Profiles in ~/.aws/credentials** and the last onboarding step list every profile with static keys and remove the ones you pick. **Import** moves the key into an IAM user session named after the profile, then offers the removal. The CLI equivalents are `rolle cleanup` and `rolle session add iam-user --from-profile`.
+
+rolle does not take over a profile in `~/.aws/config` that another tool configures with `credential_process`, `sso_session`, or `role_arn`. Give the session another profile name.
 
 ## Rename a profile
 

@@ -3,9 +3,9 @@ title: Import
 description: Bring in what your machine already has.
 ---
 
-**Add → Import from this machine** scans local tool state and lists what it finds. Pick the items to import.
+**Add → Import from this machine** scans local tool state. Pick the items to import.
 
-![Import from this machine dialog](/screenshots/import.png)
+![Import from this machine dialog, with the IAM users group](/screenshots/import.png)
 
 | Source | What rolle reads | Result |
 | --- | --- | --- |
@@ -19,4 +19,6 @@ rolle treats portals that differ only by a trailing slash as one.
 
 ## IAM users
 
-The **IAM users** group lists each profile of `~/.aws/credentials` that holds an access key, with its region and an **MFA** badge when the `~/.aws/config` section sets `mfa_serial`. A key a rolle session already holds is not listed. **Import** stores the key in the OS keychain as an IAM user session named after the profile, with the same profile name, then offers to remove the key from the file. **Import all** does this for every listed key in one pass. Once the key is gone, rolle serves the profile. Decline, and the key stays where it is; the session's profile shows the amber mark until you remove it.
+The **IAM users** group lists each profile of `~/.aws/credentials` that holds an access key, with its region and an **MFA** badge when the `~/.aws/config` section sets `mfa_serial`. A key that a rolle session holds is not listed. **Import** stores the key in the OS keychain as an IAM user session with the profile's name and profile, then offers to remove the key from the file. **Import all** imports every listed key. When the key is removed, rolle serves the profile. When the key stays, the session's profile shows the amber mark until you remove it.
+
+![Onboarding Done step](/screenshots/onboarding-done.png)

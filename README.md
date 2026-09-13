@@ -24,12 +24,12 @@ Assume any role, any cloud.
 
 rolle is a desktop app and a CLI. It hands short-lived AWS, Azure, and Google Cloud credentials to your tools and writes no secret to disk.
 
-- **AWS.** Sign in to IAM Identity Center once and get every account and role you can reach. Chain `AssumeRole` from any session. Add IAM users, with MFA when you want it. Each active session is a profile backed by `credential_process`, so the AWS CLI and every SDK use it with `--profile`.
+- **AWS.** Sign in to IAM Identity Center once and get every account and role you can reach. Chain `AssumeRole` from any session. Add IAM users, with optional MFA. Each active session is a profile backed by `credential_process` for the AWS CLI and the SDKs.
 - **Azure.** Sign in to an Entra ID tenant. Each subscription is a session that yields Resource Manager tokens.
 - **Google Cloud.** Reuse the credentials `gcloud` has. Each project is a session. Impersonate service accounts.
-- **Desktop app.** Live expiry countdowns, favorites, tags, one-click console and terminal, a tray with quick actions, and signed self-updates.
-- **Secrets** live in the OS keychain. Short-lived credentials sit in owner-only files and expire on their own.
-- **No telemetry.** rolle talks to the clouds you sign in to and to GitHub releases for the update check, which you can turn off. Nothing else.
+- **Desktop app.** Expiry countdowns, favorites, tags, one-click console and terminal, a tray menu, and signed self-updates.
+- **Secrets** live in the OS keychain. Short-lived credentials are owner-only files that expire.
+- **No telemetry.** rolle connects only to the clouds you sign in to and to GitHub releases for the update check. The update check can be turned off.
 
 rolle imports what your machine has: Identity Center portals from the AWS CLI and Granted, tenants from the az CLI, gcloud credentials, and a [Leapp](https://github.com/Noovolari/leapp) workspace.
 
@@ -50,7 +50,7 @@ rolle start "Acme Prod/AdministratorAccess"
 aws sts get-caller-identity --profile default
 ```
 
-`--json` and stable exit codes make it scriptable. See the [CLI reference](https://getrolle.com/cli) and [Agents and scripts](https://getrolle.com/agents).
+`--json` and stable exit codes support scripts. See the [CLI reference](https://getrolle.com/cli) and [Agents and scripts](https://getrolle.com/agents).
 
 ## Support
 

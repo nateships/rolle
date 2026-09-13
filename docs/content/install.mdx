@@ -12,29 +12,29 @@ description: Install the rolle desktop app with Homebrew, a signed DMG, the Wind
     brew install --cask nateships/tap/rolle
     ```
 
-    The cask installs the desktop app and puts the `rolle` command on your `PATH`. The command ships inside the app bundle, so app updates carry it along.
+    The cask installs the desktop app and puts the `rolle` command on your `PATH`. The command ships inside the app bundle and updates with the app.
 
-    Or download `rolle.dmg` from the [releases page](https://github.com/nateships/rolle/releases). The app is signed and notarized. It runs on macOS 12 or newer on Apple silicon and Intel. The `rolle` command ships inside the app; the last onboarding step and **Settings → General** offer **Install command**, which links it into `/usr/local/bin`.
+    Or download `rolle.dmg` from the [releases page](https://github.com/nateships/rolle/releases). The app is signed and notarized. It needs macOS 12 or later, on Apple silicon or Intel. **Install command**, in the last onboarding step and in **Settings → General**, links the `rolle` command into `/usr/local/bin`.
   </Tab>
   <Tab title="Windows">
-    Download `rolle-installer.exe` from the [releases page](https://github.com/nateships/rolle/releases). One installer covers x64 and Arm64. It installs for the current user under `%LOCALAPPDATA%\Programs\rolle`, so it needs no administrator, and neither do updates.
+    Download `rolle-installer.exe` from the [releases page](https://github.com/nateships/rolle/releases). One installer covers x64 and Arm64. It installs for the current user under `%LOCALAPPDATA%\Programs\rolle`. Installation and updates need no administrator.
 
-    The app carries the `rolle` command. The last onboarding step and **Settings → General** offer **Install command**, which writes it to `%LOCALAPPDATA%\rolle\bin` and adds that folder to your user `PATH`. Open a new terminal afterwards. The app keeps the command at its own version after each update.
+    **Install command**, in the last onboarding step and in **Settings → General**, writes the `rolle` command to `%LOCALAPPDATA%\rolle\bin` and adds that folder to your user `PATH`. Open a new terminal afterwards. Each app update updates the command.
 
     The Windows build is not code signed. SmartScreen shows a warning on first launch.
   </Tab>
   <Tab title="Linux">
     Download `rolle-linux-amd64.AppImage` or the `.deb` package from the [releases page](https://github.com/nateships/rolle/releases). The app needs GTK 4 and WebKitGTK 6.0.
 
-    The deb installs the `rolle` command in `/usr/local/bin`. The AppImage carries it: **Install command** in the last onboarding step and in **Settings → General** writes it to `~/.local/bin`, and the app keeps it at its own version after each update. The CLI also ships on its own as `rolle-cli_<version>_linux_<arch>.tar.gz` for machines without the app.
+    The deb installs the `rolle` command in `/usr/local/bin`. With the AppImage, **Install command** in the last onboarding step and in **Settings → General** writes it to `~/.local/bin`. Each app update updates the command. For machines without the app, the CLI ships as `rolle-cli_<version>_linux_<arch>.tar.gz`.
   </Tab>
 </Tabs>
 
 ## CLI archives
 
-Every release ships `rolle-cli_<version>_<os>_<arch>.tar.gz` (zip on Windows) for `darwin`, `linux`, and `windows` on `amd64` and `arm64`, with a `checksums.txt`. The `rolle-update-*` zips next to them are what the desktop app installs when it updates itself; they are not meant for download. Put the `rolle` binary on your `PATH`.
+Every release ships `rolle-cli_<version>_<os>_<arch>.tar.gz` (zip on Windows) for `darwin`, `linux`, and `windows` on `amd64` and `arm64`, with a `checksums.txt`. Put the `rolle` binary on your `PATH`. The `rolle-update-*` zips are for the desktop app's self-update, not for download.
 
-`checksums.txt` carries a keyless [Sigstore](https://www.sigstore.dev/) signature made by the release workflow. To verify an archive, download `checksums.txt` and `checksums.txt.sigstore.json` next to it and run:
+`checksums.txt` carries a keyless [Sigstore](https://www.sigstore.dev/) signature from the release workflow. To verify a download, put `checksums.txt` and `checksums.txt.sigstore.json` next to it and run:
 
 ```sh
 cosign verify-blob checksums.txt \
@@ -44,7 +44,7 @@ cosign verify-blob checksums.txt \
 sha256sum --check --ignore-missing checksums.txt
 ```
 
-`checksums.txt` also lists `rolle.dmg`, the Windows installer, the AppImage, the deb, and `manifest.json`, so the same check covers a desktop download. Every file in it has a [build provenance attestation](/security#build-provenance):
+`checksums.txt` also lists `rolle.dmg`, the Windows installer, the AppImage, the deb, and `manifest.json`. Every file in it has a [build provenance attestation](/security#build-provenance):
 
 ```sh
 gh attestation verify rolle.dmg --repo nateships/rolle
@@ -52,6 +52,6 @@ gh attestation verify rolle.dmg --repo nateships/rolle
 
 ## Updates
 
-Release notes are on the [changelog](/changelog), which also has an [RSS feed](/changelog/rss.xml).
+The [changelog](/changelog) has the release notes and an [RSS feed](/changelog/rss.xml).
 
-The desktop app checks for a signed update shortly after launch and every six hours. When a newer version is available, an **Update** button appears at the bottom of the sidebar. It opens the release notes and installs when you confirm. Turn this off in **Settings → General → Automatic updates**. With Homebrew, `brew upgrade --greedy rolle` updates the app and the command together. A plain `brew upgrade` skips the app because the app updates itself.
+The desktop app checks for a signed update after launch and every six hours. When one exists, an **Update** button appears at the bottom of the sidebar. It opens the release notes and installs when you confirm. **Settings → General → Automatic updates** turns the check off. With Homebrew, `brew upgrade --greedy rolle` updates the app and the command. A plain `brew upgrade` skips the app.

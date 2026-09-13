@@ -3,7 +3,7 @@ title: Projects
 description: Reuse gcloud credentials and get a session per project.
 ---
 
-A Google Cloud integration reuses the Application Default Credentials that `gcloud` already holds. Every project you can reach becomes a session.
+A Google Cloud integration reuses the Application Default Credentials of `gcloud`. Every project you can reach is a session.
 
 ```sh
 gcloud auth application-default login
@@ -13,6 +13,6 @@ rolle start my-project
 eval "$(rolle env my-project)"
 ```
 
-The desktop app runs the `gcloud` sign-in for you and shows the command to copy when `gcloud` is not installed. Install the SDK with Homebrew, the official installer, or [mise](https://mise.jdx.dev) (`mise use -g gcloud`).
+The desktop app runs the `gcloud` sign-in. When `gcloud` is not installed, it shows the command to copy. Install the SDK with Homebrew, the official installer, or [mise](https://mise.jdx.dev) (`mise use -g gcloud`).
 
 To act as a service account, add an [impersonation session](/gcp/impersonation).
