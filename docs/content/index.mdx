@@ -39,7 +39,7 @@ rolle is a desktop app and CLI that hands short-lived cloud credentials to your 
 
 - **Integrations** are identity sources: an AWS IAM Identity Center portal, an Entra ID tenant, or your gcloud credentials. rolle signs in once and discovers what you can reach.
 - **Sessions** are the roles, subscriptions, and projects you can start. A started session yields credentials until they expire, then rolle renews or stops it.
-- **Delivery** never puts a long-lived secret in a file. AWS sessions are profiles backed by `credential_process`. Azure and Google Cloud sessions export tokens into a shell or a terminal window.
+- **Delivery** keeps long-lived secrets out of files, with one exception: an active Google Cloud impersonation session writes an ADC file that embeds your gcloud refresh token. AWS sessions are profiles backed by `credential_process`. Azure and Google Cloud sessions export tokens into a shell or a terminal window.
 
 ## Storage
 
@@ -48,6 +48,7 @@ rolle is a desktop app and CLI that hands short-lived cloud credentials to your 
 | Workspace (integrations, sessions, settings) | `workspace.json` in the config directory | Owner-only file |
 | Refresh tokens and access keys | OS keychain, service `rolle` | Keychain access control |
 | Short-lived credentials | `credentials/` in the cache directory | Owner-only files that expire |
+| Impersonated ADC files, which embed the gcloud refresh token | `credentials/gcp/` in the cache directory | Owner-only files, removed when the session stops |
 
 rolle picks the config directory in this order:
 

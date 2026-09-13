@@ -11,34 +11,38 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"sync"
+	"sync/atomic"
 
 	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/debug"
 )
 
 var (
-	mu   sync.Mutex
 	base = http.DefaultTransport.(*http.Transport).Clone()
+	// current is the transport Apply last built. Readers load it without a
+	// lock, so http.DefaultTransport itself never changes after init.
+	current atomic.Pointer[http.Transport]
 )
 
 func init() {
 	// Every client in the process, the SDKs included, rides on the default
 	// transport. Wrap it from the start so the host log misses nothing.
-	http.DefaultTransport = logged{base.Clone()}
+	current.Store(base.Clone())
+	http.DefaultTransport = logged{}
 }
 
 // logged records the host of every request in the diagnostic log, so a user
 // who runs with --debug sees each place the process talks to. Only the method
-// and the host are logged: no path, no query, no header.
-type logged struct{ rt http.RoundTripper }
+// and the host are logged: no path, no query, no header. Requests go to the
+// current transport.
+type logged struct{}
 
-func (l logged) RoundTrip(req *http.Request) (*http.Response, error) {
+func (logged) RoundTrip(req *http.Request) (*http.Response, error) {
 	debug.Logf("net", "%s %s", req.Method, req.URL.Host)
-	return l.rt.RoundTrip(req)
+	return current.Load().RoundTrip(req)
 }
 
-// Apply rebuilds the default transport from the settings. An unreadable
+// Apply rebuilds the current transport from the settings. An unreadable
 // bundle or a malformed proxy URL is an error and leaves the transport as is.
 func Apply(s core.Settings) error {
 	t := base.Clone()
@@ -56,17 +60,13 @@ func Apply(s core.Settings) error {
 		}
 		t.Proxy = http.ProxyURL(u)
 	}
-	mu.Lock()
-	defer mu.Unlock()
-	http.DefaultTransport = logged{t}
+	current.Store(t)
 	return nil
 }
 
-// Client returns a client on the current default transport. Pass it to SDKs
-// that build their own client, so they follow the same proxy and trust settings.
+// Client returns a client on the default transport. Pass it to SDKs that
+// build their own client, so they follow the same proxy and trust settings.
 func Client() *http.Client {
-	mu.Lock()
-	defer mu.Unlock()
 	return &http.Client{Transport: http.DefaultTransport}
 }
 

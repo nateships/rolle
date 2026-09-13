@@ -28,19 +28,32 @@ var ErrNoADC = errors.New("gcp: no application default credentials; run `gcloud 
 // LoginCommand is what the user runs to create Application Default Credentials.
 const LoginCommand = "gcloud auth application-default login"
 
-// ADCPath returns the gcloud Application Default Credentials file location.
-func ADCPath() (string, error) {
-	if p := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"); p != "" {
+// ConfigDir returns the gcloud configuration directory: CLOUDSDK_CONFIG when
+// set, else %APPDATA%\gcloud on Windows and ~/.config/gcloud elsewhere.
+func ConfigDir() (string, error) {
+	if p := os.Getenv("CLOUDSDK_CONFIG"); p != "" {
 		return p, nil
 	}
 	if runtime.GOOS == "windows" {
-		return filepath.Join(os.Getenv("APPDATA"), "gcloud", "application_default_credentials.json"), nil
+		return filepath.Join(os.Getenv("APPDATA"), "gcloud"), nil
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".config", "gcloud", "application_default_credentials.json"), nil
+	return filepath.Join(home, ".config", "gcloud"), nil
+}
+
+// ADCPath returns the gcloud Application Default Credentials file location.
+func ADCPath() (string, error) {
+	if p := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"); p != "" {
+		return p, nil
+	}
+	dir, err := ConfigDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "application_default_credentials.json"), nil
 }
 
 // adc is the subset of the ADC file rolle reads.

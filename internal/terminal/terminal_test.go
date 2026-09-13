@@ -25,3 +25,13 @@ func TestQuoting(t *testing.T) {
 		t.Fatalf("powershell exports = %q", got)
 	}
 }
+
+func TestEvalExportsUnsetsEmptyValues(t *testing.T) {
+	env := [][2]string{{"AWS_ACCESS_KEY_ID", "A"}, {"AWS_SESSION_TOKEN", ""}}
+	if got := EvalExports(env, false); got != "export AWS_ACCESS_KEY_ID='A'\nunset AWS_SESSION_TOKEN\n" {
+		t.Fatalf("posix eval exports = %q", got)
+	}
+	if got := EvalExports(env, true); got != "$env:AWS_ACCESS_KEY_ID = 'A'\nRemove-Item Env:AWS_SESSION_TOKEN -ErrorAction SilentlyContinue\n" {
+		t.Fatalf("powershell eval exports = %q", got)
+	}
+}

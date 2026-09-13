@@ -52,6 +52,7 @@ func fakeHome(t *testing.T) string {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
+	t.Setenv("APPDATA", filepath.Join(home, "AppData"))
 	t.Setenv("AZURE_CONFIG_DIR", "")
 	t.Setenv("CLOUDSDK_CONFIG", "")
 	t.Setenv("PATH", t.TempDir())
@@ -109,8 +110,12 @@ func TestCloudToolsReportsProfilesAndWithholdsADC(t *testing.T) {
 
 func TestCloudToolsDefaultsToHomeDirectories(t *testing.T) {
 	home := fakeHome(t)
+	gcDir := filepath.Join(home, ".config", "gcloud")
+	if runtime.GOOS == "windows" {
+		gcDir = filepath.Join(home, "AppData", "gcloud")
+	}
 	writeFile(t, filepath.Join(home, ".azure", "config"), "[core]\ncollect_telemetry = no\n")
-	writeFile(t, filepath.Join(home, ".config", "gcloud", "active_config"), "default")
+	writeFile(t, filepath.Join(gcDir, "active_config"), "default")
 	bin := t.TempDir()
 	az := filepath.Join(bin, "az")
 	if runtime.GOOS == "windows" {
@@ -123,12 +128,12 @@ func TestCloudToolsDefaultsToHomeDirectories(t *testing.T) {
 	t.Setenv("PATH", bin)
 
 	out := cloudTools()
-	adc := filepath.Join(home, ".config", "gcloud", "application_default_credentials.json")
+	adc := filepath.Join(gcDir, "application_default_credentials.json")
 	for _, want := range []string{
 		"az: " + az + "\n",
 		"gcloud: not on PATH\n",
 		"collect_telemetry = no",
-		"--- " + filepath.Join(home, ".config", "gcloud", "active_config") + " ---\ndefault\n",
+		"--- " + filepath.Join(gcDir, "active_config") + " ---\ndefault\n",
 		adc + ": absent\n",
 	} {
 		if !strings.Contains(out, want) {
@@ -260,13 +265,15 @@ func TestWriteRedactsAWSConfigAndSkipsMissingOne(t *testing.T) {
 
 func TestRedactSecretsAfterSeparators(t *testing.T) {
 	cases := map[string]string{
-		"client_secret=abc123":       "client_secret=<redacted>",
-		"Password: hunter2":          "Password: <redacted>",
-		"refresh token : xyz.123":    "refresh token : <redacted>",
-		"tokenExpires: 2026-01-01":   "tokenExpires: <redacted>",
-		"role/Admin stays":           "role/Admin stays",
-		"key ASIAABCDEFGHIJKLMNOP x": "key <access-key-id> x",
-		"arn:aws:iam::12345678901:x": "arn:aws:iam::12345678901:x",
+		"client_secret=abc123":                       "client_secret=<redacted>",
+		"Password: hunter2":                          "Password: <redacted>",
+		"refresh token : xyz.123":                    "refresh token : <redacted>",
+		"tokenExpires: 2026-01-01":                   "tokenExpires: <redacted>",
+		"role/Admin stays":                           "role/Admin stays",
+		"key ASIAABCDEFGHIJKLMNOP x":                 "key <access-key-id> x",
+		"proxy http://nate:hunter2@proxy.corp:3128/": "proxy http://<redacted>@proxy.corp:3128/",
+		"socks5://proxy.corp:1080 stays":             "socks5://proxy.corp:1080 stays",
+		"arn:aws:iam::12345678901:x":                 "arn:aws:iam::12345678901:x",
 	}
 	for in, want := range cases {
 		if got := Redact(in); got != want {

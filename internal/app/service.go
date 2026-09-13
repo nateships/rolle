@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -342,12 +343,22 @@ func (s *Service) SSOLogout(ref string) error {
 		return err
 	}
 	in.AWSSSO.TokenExpires = nil
+	// Cleanup failures are reported after the save, as in RemoveIntegration.
+	var cleanup []error
 	for i := range w.Sessions {
 		if w.Sessions[i].IntegrationID == in.ID {
-			_ = s.deactivate(&w.Sessions[i])
+			if err := s.deactivate(&w.Sessions[i]); err != nil {
+				cleanup = append(cleanup, err)
+			}
 		}
 	}
-	return s.Save(w)
+	if err := s.Save(w); err != nil {
+		return err
+	}
+	if len(cleanup) > 0 {
+		return fmt.Errorf("%s signed out, but cleanup failed: %w", in.Alias, errors.Join(cleanup...))
+	}
+	return nil
 }
 
 // SyncSSO discovers accounts and roles and adds a session for each new role.
@@ -529,14 +540,22 @@ func (s *Service) RemoveSession(ref string) error {
 			return fmt.Errorf("session %q is the source of %q; remove that first", sess.Name, other.Name)
 		}
 	}
-	_ = s.deactivate(sess)
+	// Cleanup failures are reported after the save, as in RemoveIntegration.
+	name := sess.Name
+	cleanup := s.deactivate(sess)
 	if sess.Kind == core.KindAWSIAMUser {
 		_ = aws.DeleteAccessKey(s.Secrets, sess.ID)
 	}
 	if err := w.RemoveSession(sess.ID); err != nil {
 		return err
 	}
-	return s.Save(w)
+	if err := s.Save(w); err != nil {
+		return err
+	}
+	if cleanup != nil {
+		return fmt.Errorf("%s removed, but cleanup failed: %w", name, cleanup)
+	}
+	return nil
 }
 
 // ProfileName returns the AWS profile a session writes. Sessions share the
@@ -904,11 +923,16 @@ func (s *Service) ConsoleURL(ctx context.Context, ref string) (string, error) {
 // silent refresh (Identity Center roles, role chains, Azure, GCP). Sessions
 // that cannot be renewed without user input are marked inactive.
 func (s *Service) Refresh() (*core.Workspace, error) {
+	return s.RefreshContext(context.Background())
+}
+
+// RefreshContext is Refresh bound to ctx, so a CLI command stops on Ctrl-C.
+func (s *Service) RefreshContext(ctx context.Context) (*core.Workspace, error) {
 	w, err := s.Load()
 	if err != nil {
 		return nil, err
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 	// Renewals take network time. Collect the results first, then apply them
 	// to a fresh copy of the workspace so a concurrent change is not lost.
@@ -1104,7 +1128,13 @@ func (s *Service) UpdateSettings(in core.Settings) (core.Settings, error) {
 		return core.Settings{}, err
 	}
 	debug.Set(n.VerboseLogging)
-	debug.Logf("settings", "updated: %+v", n)
+	// The proxy URL can carry a password. Log it without the user info.
+	shown := n
+	if u, err := url.Parse(shown.ProxyURL); err == nil && u.User != nil {
+		u.User = nil
+		shown.ProxyURL = u.String()
+	}
+	debug.Logf("settings", "updated: %+v", shown)
 	return n, nil
 }
 

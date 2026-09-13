@@ -32,6 +32,20 @@ func TestAddAzureAndImpersonationSessions(t *testing.T) {
 	if sess.Kind != core.KindGCP || sess.GCP.ServiceAccount != "sa@p.iam.gserviceaccount.com" {
 		t.Fatalf("session = %+v", sess)
 	}
+	rejected := map[string]AddGCPImpersonationInput{
+		"duplicate name":  {Name: "deployer", IntegrationRef: "gcp", ProjectID: "p", ServiceAccount: "sa@p.iam.gserviceaccount.com"},
+		"empty name":      {Name: " ", IntegrationRef: "gcp", ProjectID: "p", ServiceAccount: "sa@p.iam.gserviceaccount.com"},
+		"empty project":   {Name: "other", IntegrationRef: "gcp", ServiceAccount: "sa@p.iam.gserviceaccount.com"},
+		"empty principal": {Name: "other", IntegrationRef: "gcp", ProjectID: "p"},
+	}
+	for name, in := range rejected {
+		if _, err := s.AddGCPImpersonation(in); err == nil {
+			t.Errorf("%s: accepted", name)
+		}
+	}
+	if w, _ := s.Load(); len(w.Sessions) != 1 {
+		t.Fatalf("rejected input must not add sessions: %+v", w.Sessions)
+	}
 }
 
 func TestEnvVarsPerCloud(t *testing.T) {

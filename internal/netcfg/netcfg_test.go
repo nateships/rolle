@@ -16,8 +16,8 @@ import (
 
 func restore(t *testing.T) {
 	t.Helper()
-	prev := http.DefaultTransport
-	t.Cleanup(func() { http.DefaultTransport = prev })
+	prev := current.Load()
+	t.Cleanup(func() { current.Store(prev) })
 }
 
 func TestApplyTrustsExtraBundle(t *testing.T) {
@@ -46,14 +46,14 @@ func TestApplyTrustsExtraBundle(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = resp.Body.Close()
-	if tc := http.DefaultTransport.(logged).rt.(*http.Transport).TLSClientConfig; tc == nil || tc.MinVersion != tls.VersionTLS12 {
+	if tc := current.Load().TLSClientConfig; tc == nil || tc.MinVersion != tls.VersionTLS12 {
 		t.Fatal("TLS config not applied")
 	}
 }
 
 func TestApplyErrors(t *testing.T) {
 	restore(t)
-	before := http.DefaultTransport
+	before := current.Load()
 	cases := map[string]core.Settings{
 		"missing bundle": {CABundle: filepath.Join(t.TempDir(), "nope.pem")},
 		"not pem":        {CABundle: writeTemp(t, "hello")},
@@ -65,7 +65,7 @@ func TestApplyErrors(t *testing.T) {
 			t.Errorf("%s: accepted", name)
 		}
 	}
-	if http.DefaultTransport != before {
+	if current.Load() != before {
 		t.Fatal("a failed Apply replaced the transport")
 	}
 }
@@ -76,14 +76,14 @@ func TestApplyProxy(t *testing.T) {
 		t.Fatal(err)
 	}
 	req, _ := http.NewRequest(http.MethodGet, "https://example.com/", nil)
-	u, err := http.DefaultTransport.(logged).rt.(*http.Transport).Proxy(req)
+	u, err := current.Load().Proxy(req)
 	if err != nil || u == nil || u.Host != "proxy.corp:3128" {
 		t.Fatalf("proxy = %v, %v", u, err)
 	}
 	if err := Apply(core.Settings{}); err != nil {
 		t.Fatal(err)
 	}
-	if u, _ := http.DefaultTransport.(logged).rt.(*http.Transport).Proxy(req); u != nil && strings.Contains(u.Host, "proxy.corp") {
+	if u, _ := current.Load().Proxy(req); u != nil && strings.Contains(u.Host, "proxy.corp") {
 		t.Fatal("clearing the setting kept the proxy")
 	}
 }

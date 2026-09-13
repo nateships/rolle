@@ -3,6 +3,7 @@ package awsconfig
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -41,6 +42,36 @@ func TestWriteThenRemoveKeepsForeignProfiles(t *testing.T) {
 	data, _ = os.ReadFile(path)
 	if strings.Contains(string(data), "prod") || !strings.Contains(string(data), "[profile mine]") {
 		t.Fatalf("after remove:\n%s", data)
+	}
+}
+
+func TestWriteKeepsSymlinkedConfig(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlinks need privileges on Windows")
+	}
+	target := filepath.Join(t.TempDir(), "dotfiles", "aws-config")
+	if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(target, []byte("[default]\nregion = eu-west-1\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(t.TempDir(), "config")
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatal(err)
+	}
+	if err := Write(link, Profile{Name: "prod", SessionID: "abc", Executable: "/usr/local/bin/rolle"}); err != nil {
+		t.Fatal(err)
+	}
+	if fi, err := os.Lstat(link); err != nil || fi.Mode()&os.ModeSymlink == 0 {
+		t.Fatalf("config is no longer a symlink: %v, %v", fi, err)
+	}
+	data, _ := os.ReadFile(target)
+	if !strings.Contains(string(data), "[profile prod]") || !strings.Contains(string(data), "region = eu-west-1") {
+		t.Fatalf("target not updated:\n%s", data)
+	}
+	if fi, err := os.Stat(target); err != nil || fi.Mode().Perm() != 0o600 {
+		t.Fatalf("target mode = %v, %v", fi.Mode(), err)
 	}
 }
 

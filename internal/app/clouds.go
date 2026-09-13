@@ -188,12 +188,22 @@ func (s *Service) AzureLogout(ctx context.Context, ref string) error {
 		return err
 	}
 	in.Azure.Account = ""
+	// Cleanup failures are reported after the save, as in RemoveIntegration.
+	var cleanup []error
 	for i := range w.Sessions {
 		if w.Sessions[i].IntegrationID == in.ID {
-			_ = s.deactivate(&w.Sessions[i])
+			if err := s.deactivate(&w.Sessions[i]); err != nil {
+				cleanup = append(cleanup, err)
+			}
 		}
 	}
-	return s.Save(w)
+	if err := s.Save(w); err != nil {
+		return err
+	}
+	if len(cleanup) > 0 {
+		return fmt.Errorf("%s signed out, but cleanup failed: %w", in.Alias, errors.Join(cleanup...))
+	}
+	return nil
 }
 
 // SyncAzure discovers subscriptions and adds a session per new one.
@@ -286,20 +296,29 @@ func (s *Service) SyncGCP(ctx context.Context, ref string) ([]core.Session, erro
 	if err != nil {
 		return nil, err
 	}
-	in, err := gcpIntegration(w, ref)
-	if err != nil {
+	if _, err := gcpIntegration(w, ref); err != nil {
 		return nil, err
 	}
 	tok, err := gcp.SourceToken(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if acct, err := gcp.DetectAccount(ctx); err == nil && acct.Email != "" {
-		in.GCP.Account = acct.Email
-	}
+	acct, _ := gcp.DetectAccount(ctx)
 	projects, err := gcp.ListProjects(ctx, nil, tok.AccessToken)
 	if err != nil {
 		return nil, err
+	}
+	// Apply the result to a fresh copy of the workspace so a change made
+	// during the network calls is not lost.
+	if w, err = s.Load(); err != nil {
+		return nil, err
+	}
+	in, err := gcpIntegration(w, ref)
+	if err != nil {
+		return nil, err
+	}
+	if acct.Email != "" {
+		in.GCP.Account = acct.Email
 	}
 	var added []core.Session
 	for _, p := range projects {
@@ -339,6 +358,12 @@ func (s *Service) AddGCPImpersonation(in AddGCPImpersonationInput) (core.Session
 	w, err := s.Load()
 	if err != nil {
 		return core.Session{}, err
+	}
+	if err := checkSessionName(w, in.Name, ""); err != nil {
+		return core.Session{}, err
+	}
+	if in.ProjectID == "" || in.ServiceAccount == "" {
+		return core.Session{}, errors.New("project ID and service account are required")
 	}
 	integ, err := gcpIntegration(w, in.IntegrationRef)
 	if err != nil {

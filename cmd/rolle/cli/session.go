@@ -25,8 +25,8 @@ func sessionListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List sessions",
-		RunE: func(_ *cobra.Command, _ []string) error {
-			w, err := svc.Refresh()
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			w, err := svc.RefreshContext(cmd.Context())
 			if err != nil {
 				return err
 			}
@@ -79,10 +79,12 @@ func sessionHideCmd(hide bool) *cobra.Command {
 			for _, in := range w.Integrations {
 				if err := svc.SetAccountHidden(in.ID, args[0], hide); err == nil {
 					n++
+				} else if !errors.Is(err, core.ErrNotFound) {
+					return err
 				}
 			}
 			if n == 0 {
-				return fmt.Errorf("no Identity Center roles in account %s", args[0])
+				return fmt.Errorf("no Identity Center roles in account %s: %w", args[0], core.ErrNotFound)
 			}
 			return nil
 		},

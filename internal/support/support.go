@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/nateships/rolle/internal/core"
+	"github.com/nateships/rolle/internal/gcp"
 )
 
 // Inputs is everything the bundle needs from the caller.
@@ -32,19 +33,21 @@ type Inputs struct {
 }
 
 var (
-	reAccount = regexp.MustCompile(`\b\d{12}\b`)
-	reEmail   = regexp.MustCompile(`[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}`)
-	reGUID    = regexp.MustCompile(`\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b`)
-	reAWSApps = regexp.MustCompile(`https://[A-Za-z0-9.-]+\.awsapps\.com`)
-	reKeyID   = regexp.MustCompile(`\b(AKIA|ASIA)[A-Z0-9]{16}\b`)
-	reSecret  = regexp.MustCompile(`(?i)(secret|token|password)([^\n=:]*[=:]\s*)\S+`)
+	reAccount  = regexp.MustCompile(`\b\d{12}\b`)
+	reEmail    = regexp.MustCompile(`[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}`)
+	reGUID     = regexp.MustCompile(`\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b`)
+	reAWSApps  = regexp.MustCompile(`https://[A-Za-z0-9.-]+\.awsapps\.com`)
+	reKeyID    = regexp.MustCompile(`\b(AKIA|ASIA)[A-Z0-9]{16}\b`)
+	reSecret   = regexp.MustCompile(`(?i)(secret|token|password)([^\n=:]*[=:]\s*)\S+`)
+	reUserinfo = regexp.MustCompile(`://[^/\s@]+@`)
 )
 
 // Redact replaces the values that identify an organisation or a person:
 // account ids, emails, GUIDs, Identity Center portal hosts, access key ids,
-// and anything that follows secret, token, or password.
+// URL user info, and anything that follows secret, token, or password.
 func Redact(s string) string {
 	s = reSecret.ReplaceAllString(s, "${1}${2}<redacted>")
+	s = reUserinfo.ReplaceAllString(s, "://<redacted>@")
 	s = reKeyID.ReplaceAllString(s, "<access-key-id>")
 	s = reAccount.ReplaceAllString(s, "<account>")
 	s = reEmail.ReplaceAllString(s, "<email>")
@@ -133,6 +136,7 @@ func Write(w io.Writer, in Inputs) error {
 func cloudTools() string {
 	var b strings.Builder
 	home, _ := os.UserHomeDir()
+	gcDir, _ := gcp.ConfigDir()
 	for _, tool := range []string{"az", "gcloud", "aws"} {
 		if p, err := exec.LookPath(tool); err == nil {
 			fmt.Fprintf(&b, "%s: %s\n", tool, p)
@@ -143,10 +147,6 @@ func cloudTools() string {
 	azDir := os.Getenv("AZURE_CONFIG_DIR")
 	if azDir == "" {
 		azDir = filepath.Join(home, ".azure")
-	}
-	gcDir := os.Getenv("CLOUDSDK_CONFIG")
-	if gcDir == "" {
-		gcDir = filepath.Join(home, ".config", "gcloud")
 	}
 	files := []string{filepath.Join(azDir, "azureProfile.json"), filepath.Join(azDir, "config"), filepath.Join(gcDir, "active_config")}
 	if name, err := os.ReadFile(filepath.Join(gcDir, "active_config")); err == nil {

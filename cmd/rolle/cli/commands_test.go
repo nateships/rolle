@@ -232,8 +232,8 @@ func TestIntegrationLoginDeviceFlowDiscoversRoles(t *testing.T) {
 	if _, err := run(t, "session", "unhide"); err == nil {
 		t.Fatal("unhide without a target must fail")
 	}
-	if _, err := run(t, "session", "hide", "--account", "000000000000"); err == nil {
-		t.Fatal("hiding an unknown account must fail")
+	if _, err := run(t, "session", "hide", "--account", "000000000000"); !errors.Is(err, core.ErrNotFound) {
+		t.Fatalf("hiding an unknown account = %v, want not found", err)
 	}
 
 	mustRun(t, "integration", "logout", "acme")
