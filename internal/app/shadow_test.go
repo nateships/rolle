@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"github.com/nateships/rolle/internal/awsconfig"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,6 +16,8 @@ func TestShadowedProfilesNamesTheFileWithStaticKeys(t *testing.T) {
 	home := fakeHome(t)
 	s := testService(t)
 	credPath := filepath.Join(home, ".aws", "credentials")
+	// Display shortens the path with the OS separator, so Windows shows backslashes.
+	shown := awsconfig.Display(credPath)
 	writeFile(t, credPath, "[default]\naws_access_key_id = AKIA1\naws_secret_access_key = s1\n\n[work]\naws_access_key_id = AKIA2\naws_secret_access_key = s2\n")
 	// A profile another tool configures in the config file is a conflict
 	// too, but not one rolle can clear.
@@ -38,7 +41,7 @@ func TestShadowedProfilesNamesTheFileWithStaticKeys(t *testing.T) {
 	// Only AWS profiles with static keys of the same name are in the map,
 	// with the file in display form.
 	got := s.ShadowedProfiles(w)
-	if len(got) != 2 || got["default"] != "~/.aws/credentials" || got["work"] != "~/.aws/credentials" {
+	if len(got) != 2 || got["default"] != shown || got["work"] != shown {
 		t.Fatalf("shadowed = %v", got)
 	}
 	if sh := s.ProfileShadow("default"); sh == nil || !sh.Fixable || sh.Path != credPath {
@@ -56,6 +59,8 @@ func TestRemoveStaticProfileClearsOneSectionAndNotifies(t *testing.T) {
 	home := fakeHome(t)
 	s := testService(t)
 	credPath := filepath.Join(home, ".aws", "credentials")
+	// Display shortens the path with the OS separator, so Windows shows backslashes.
+	shown := awsconfig.Display(credPath)
 	writeFile(t, credPath, "[default]\naws_access_key_id = AKIA1\naws_secret_access_key = s1\nregion = us-east-1\n\n[work]\naws_access_key_id = AKIA2\naws_secret_access_key = s2\n")
 	notified := 0
 	s.OnChange = func() { notified++ }
@@ -79,7 +84,7 @@ func TestRemoveStaticProfileClearsOneSectionAndNotifies(t *testing.T) {
 		t.Fatalf("still shadowed: %+v", sh)
 	}
 	st := s.StaticProfiles()
-	if len(st.Profiles) != 1 || st.Profiles[0].Name != "work" || st.Path != "~/.aws/credentials" {
+	if len(st.Profiles) != 1 || st.Profiles[0].Name != "work" || st.Path != shown {
 		t.Fatalf("static profiles = %+v", st)
 	}
 	// A section that is already gone is not an error; the window still
@@ -90,7 +95,7 @@ func TestRemoveStaticProfileClearsOneSectionAndNotifies(t *testing.T) {
 	if err := s.RemoveStaticProfile("work"); err != nil {
 		t.Fatal(err)
 	}
-	if st := s.StaticProfiles(); len(st.Profiles) != 0 || st.Path != "~/.aws/credentials" {
+	if st := s.StaticProfiles(); len(st.Profiles) != 0 || st.Path != shown {
 		t.Fatalf("static profiles after clearing = %+v", st)
 	}
 }

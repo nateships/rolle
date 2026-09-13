@@ -36,6 +36,12 @@ export interface AWSSession {
     "accountName"?: string;
 
     /**
+     * AccessKeyID names the IAM user's key. Not a secret; the secret stays
+     * in the keychain. Import uses it to tell a stored key from a new one.
+     */
+    "accessKeyId"?: string;
+
+    /**
      * RoleARN is the role to assume. Set for KindAWSAssumeRole.
      */
     "roleArn"?: string;
