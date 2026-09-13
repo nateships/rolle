@@ -1,8 +1,6 @@
 ---
 title: Agents and scripts
 description: Drive rolle from a script or a coding agent without handling credentials.
-sidebar:
-  order: 9
 ---
 
 rolle works from a script or an agent the same way it works from a terminal. The rule that keeps this safe: **ask rolle for a profile name, never for keys.** The AWS SDK inside your tool fetches credentials through `credential_process` when it needs them, so they never pass through the agent's context or its transcript.
