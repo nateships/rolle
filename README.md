@@ -58,15 +58,7 @@ Open an [issue](https://github.com/nateships/rolle/issues/new/choose). In the ap
 
 ## Contributing
 
-```sh
-mise install
-mise run setup     # frontend deps and git hooks
-mise run check     # go vet, lint, tests
-mise run desktop   # the desktop app in dev mode
-mise run cli -- session list
-```
-
-[CONTRIBUTING.md](CONTRIBUTING.md) covers the rest: every task, the commit convention, releases, and the repository layout.
+[CONTRIBUTING.md](CONTRIBUTING.md): setup, tasks, the commit convention, releases, and the repository layout.
 
 ## License
 
