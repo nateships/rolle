@@ -90,4 +90,20 @@ describe("CommandLineInstall", () => {
     await user.click(await screen.findByRole("button", { name: /install command/i }));
     await waitFor(() => expect(error).toHaveBeenCalledWith("permission denied"));
   });
+
+  it("reports a status read failure and shows nothing", async () => {
+    vi.spyOn(api, "CLIStatus").mockRejectedValue(new Error("bundle unreadable"));
+    const error = vi.spyOn(toast, "error");
+    const { container } = render(<CommandLineInstall />);
+    await waitFor(() => expect(error).toHaveBeenCalledWith("bundle unreadable"));
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("offers the update in the compact view too", async () => {
+    vi.spyOn(api, "CLIStatus").mockResolvedValue({ ...linked, reason: "outdated" });
+    render(<CommandLineInstall compact />);
+    // An outdated command is not "Installed": the button reads Update.
+    expect(await screen.findByRole("button", { name: /update command/i })).toBeEnabled();
+    expect(screen.queryByText("Installed")).not.toBeInTheDocument();
+  });
 });

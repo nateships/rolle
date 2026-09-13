@@ -298,4 +298,79 @@ describe("SettingsDialog", () => {
     await waitFor(() => expect(error).toHaveBeenCalledWith("corrupt file"));
     expect(screen.queryByRole("tab")).not.toBeInTheDocument();
   });
+
+  it("shows every section switch on and turns a hidden one back on", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "Settings").mockResolvedValue({ ...base, hiddenSections: ["azure", "gcp"] } as Settings);
+    await open();
+    await tab(user, "Appearance");
+    const azure = screen.getByRole("switch", { name: "Azure tenants" });
+    expect(azure).not.toBeChecked();
+    expect(screen.getByRole("switch", { name: "AWS Identity Center" })).toBeChecked();
+    await user.click(azure);
+    // Only that key leaves the list; the other hidden section stays hidden.
+    await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ hiddenSections: ["gcp"] })));
+    expect(screen.getByRole("switch", { name: "Azure tenants" })).toBeChecked();
+  });
+
+  it("keeps a toggle made while an earlier save is still running", async () => {
+    const user = userEvent.setup();
+    let finish!: (s: Settings) => void;
+    update.mockImplementationOnce(((s: Settings) => new Promise((res) => (finish = (v) => res(v ?? s)))) as never);
+    await open();
+
+    await user.click(screen.getByRole("switch", { name: "Keep running in the tray" }));
+    await user.click(screen.getByRole("switch", { name: "Expiry notifications" }));
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(2));
+    // The first save answers late and without the second change; that change stays.
+    act(() => finish({ ...base, hideOnClose: false }));
+    await waitFor(() => expect(screen.getByText("Saved")).toBeInTheDocument());
+    expect(screen.getByRole("switch", { name: "Keep running in the tray" })).not.toBeChecked();
+    expect(screen.getByRole("switch", { name: "Expiry notifications" })).not.toBeChecked();
+  });
+
+  it("reverts the theme when its save fails", async () => {
+    const user = userEvent.setup();
+    update.mockRejectedValue(new Error("read-only"));
+    const error = vi.spyOn(toast, "error");
+    await open();
+    await tab(user, "Appearance");
+    await user.click(screen.getByRole("button", { name: "Dark" }));
+    await waitFor(() => expect(error).toHaveBeenCalledWith("read-only"));
+    expect(document.documentElement).not.toHaveClass("dark");
+  });
+
+  it("reports a failed bundle export, install, and copy", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "ExportSupportBundle").mockRejectedValue(new Error("no disk"));
+    vi.spyOn(api, "Info").mockRejectedValue(new Error("no info"));
+    vi.spyOn(api, "CheckForUpdates").mockResolvedValue({
+      enabled: true,
+      currentVersion: "0.1.0",
+      available: true,
+      version: "0.2.0",
+      notes: "",
+      state: "idle",
+    });
+    const install = vi.spyOn(api, "InstallUpdate").mockRejectedValueOnce(new Error("cancelled"));
+    const error = vi.spyOn(toast, "error");
+    await open();
+    await tab(user, "About");
+
+    // A failed app info read does not keep the dialog from opening.
+    expect(screen.getByRole("tab", { name: "About" })).toHaveAttribute("aria-selected", "true");
+    await user.click(screen.getByRole("button", { name: /support bundle/i }));
+    await waitFor(() => expect(error).toHaveBeenCalledWith("no disk"));
+
+    await user.click(screen.getByRole("button", { name: /check for updates/i }));
+    const installButton = await screen.findByRole("button", { name: /install/i });
+    // A declined prompt is quiet; any other failure is shown.
+    await user.click(installButton);
+    await waitFor(() => expect(install).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole("button", { name: /install/i })).toBeEnabled());
+    expect(error).toHaveBeenCalledTimes(1);
+    install.mockRejectedValueOnce(new Error("bad signature"));
+    await user.click(screen.getByRole("button", { name: /install/i }));
+    await waitFor(() => expect(error).toHaveBeenCalledWith("bad signature"));
+  });
 });

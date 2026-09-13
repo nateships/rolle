@@ -582,4 +582,45 @@ describe("SessionRow actions", () => {
 
     await waitFor(() => expect(setRegion).toHaveBeenCalledWith(s.id, "eu-west-1"));
   });
+
+  it("turns the backend's static keys refusal into the same fixable conflict", async () => {
+    const user = userEvent.setup();
+    const s = session({ name: "personal", kind: Kind.KindAWSIAMUser, aws: { profile: "work" } });
+    // The file changed after the last scan, so the row carries no mark and
+    // Start goes to the backend, which refuses.
+    vi.spyOn(api, "Start").mockRejectedValue(new Error("static keys in ~/.aws/credentials shadow profile work"));
+    vi.spyOn(api, "StaticProfiles").mockResolvedValue({
+      path: "~/.aws/credentials",
+      profiles: [{ name: "work", keys: [{ name: "aws_access_key_id", preview: "AKIA…" }], imported: false }],
+    });
+    const error = vi.spyOn(toast, "error");
+    renderRow(s);
+    await user.click(screen.getByRole("button", { name: /^start$/i }));
+    await waitFor(() => expect(error).toHaveBeenCalled());
+    expect(error.mock.calls[0][0]).toBe("Local profile conflict");
+    const opts = error.mock.calls[0][1] as { description: string; action?: { label: string; onClick: () => void } };
+    expect(opts.description).toBe("static keys in ~/.aws/credentials shadow profile work");
+    act(() => opts.action!.onClick());
+    // The fix targets the session's own profile, not default.
+    const confirm = await screen.findByRole("dialog", { name: "Remove profile from the credentials file?" });
+    expect(confirm).toHaveTextContent("[work]");
+  });
+
+  it("reports a failed favorite, hide, or tag toggle as a toast", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "SetFavorite").mockRejectedValue(new Error("favorite failed"));
+    vi.spyOn(api, "SetHidden").mockRejectedValue(new Error("hide failed"));
+    vi.spyOn(api, "SetSessionTag").mockRejectedValue(new Error("tag failed"));
+    const error = vi.spyOn(toast, "error");
+    const s = session({ name: "personal", kind: Kind.KindAWSIAMUser, tags: ["prod"] });
+    renderRow(s, { tags: [{ name: "prod", color: "#ff0000", icon: "" }] });
+
+    await user.click(screen.getByRole("button", { name: "Add to favorites" }));
+    await waitFor(() => expect(error).toHaveBeenCalledWith("favorite failed"));
+    await user.click(screen.getByRole("button", { name: "Remove tag prod" }));
+    await waitFor(() => expect(error).toHaveBeenCalledWith("tag failed"));
+    fireEvent.contextMenu(screen.getByText("personal"));
+    await user.click(await screen.findByRole("menuitem", { name: /^hide$/i }));
+    await waitFor(() => expect(error).toHaveBeenCalledWith("hide failed"));
+  });
 });
