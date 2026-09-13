@@ -107,7 +107,6 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     const q = new URLSearchParams(location.search);
     return q.get("settings") ? { kind: "settings" } : q.get("import") ? { kind: "import" } : null;
   });
-  // The tray's Settings entry opens the dialog.
   async function run(label: string, fn: () => Promise<unknown>) {
     try {
       await fn();
@@ -130,6 +129,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     });
   }
 
+  // The tray's Settings entry opens the dialog.
   useEffect(() => {
     if (!inWails) return;
     return Events.On(OPEN_SETTINGS, () => setDialog({ kind: "settings" }));
@@ -173,6 +173,13 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   const [poppedTag, setPoppedTag] = useState<string | null>(null);
   // Where a dragged tag would land: a line above or below the hovered tag.
   const [dropLine, setDropLine] = useState<{ tag: string; side: "before" | "after" } | null>(null);
+  // The tag being dragged; it cannot land on itself.
+  const draggingTag = useRef<string | null>(null);
+  // The pointer's half of the row picks the side of the line.
+  const lineSide = (e: React.DragEvent): "before" | "after" => {
+    const box = e.currentTarget.getBoundingClientRect();
+    return e.clientY < box.top + box.height / 2 ? "before" : "after";
+  };
   const pop = (key: string) => {
     setPoppedTag(key);
     window.setTimeout(() => setPoppedTag((cur) => (cur === key ? null : cur)), 600);
@@ -255,6 +262,14 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     (chosenFilter === "active" && active > 0) ||
     workspace.integrations.some((i) => i.id === chosenFilter);
   const filter = filterExists ? chosenFilter : null;
+  // The list is not remounted between filters, so the scroll box goes back to the top itself.
+  const scrollBox = useRef<HTMLDivElement>(null);
+  const shownFilter = useRef(filter);
+  useEffect(() => {
+    if (shownFilter.current === filter) return;
+    shownFilter.current = filter;
+    if (scrollBox.current) scrollBox.current.scrollTop = 0;
+  }, [filter]);
 
   const sessions = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -369,6 +384,8 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                   onSelect: () => void run(`Tag ${tag} removed`, () => api.RemoveTag(tag)),
                 },
               ];
+              // A dropped session tags itself; a dropped tag reorders the list.
+              const drop = sessionDrop(key, `Tagged ${tag}`, (id) => api.SetSessionTag(id, tag, true));
               return (
                 <ContextMenu key={key}>
                   <ContextMenuTrigger asChild>
@@ -379,46 +396,38 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                       hint={hintFor(key)}
                       count={tagCount(tag)}
                       icon={<TagGlyph tag={t} className="size-3.5" />}
-                      dropping={dropTag === tag}
-                      popped={poppedTag === tag}
+                      {...drop}
                       accent={t.color || undefined}
                       draggable
                       onDragStart={(e) => {
+                        draggingTag.current = tag;
                         e.dataTransfer.setData(TAG_DRAG, tag);
                         e.dataTransfer.effectAllowed = "move";
                       }}
+                      onDragEnd={() => {
+                        draggingTag.current = null;
+                      }}
                       dropLine={dropLine?.tag === tag ? dropLine.side : undefined}
                       onDragOver={(e) => {
-                        const types = Array.from(e.dataTransfer.types);
-                        if (types.includes(TAG_DRAG)) {
-                          e.preventDefault();
-                          // The pointer's half of the row picks the side of the line.
-                          const box = e.currentTarget.getBoundingClientRect();
-                          setDropLine({ tag, side: e.clientY < box.top + box.height / 2 ? "before" : "after" });
-                          return;
-                        }
-                        if (!types.includes(SESSION_DRAG)) return;
+                        if (!Array.from(e.dataTransfer.types).includes(TAG_DRAG)) return drop.onDragOver(e);
+                        if (draggingTag.current === tag) return;
                         e.preventDefault();
-                        setDropTag(tag);
+                        const side = lineSide(e);
+                        // Dragover fires on every pointer move; keep the old state when nothing changed.
+                        setDropLine((cur) => (cur?.tag === tag && cur.side === side ? cur : { tag, side }));
                       }}
                       onDragLeave={() => {
-                        setDropTag((cur) => (cur === tag ? null : cur));
+                        drop.onDragLeave();
                         setDropLine((cur) => (cur?.tag === tag ? null : cur));
                       }}
                       onDrop={(e) => {
-                        e.preventDefault();
-                        setDropTag(null);
                         setDropLine(null);
-                        const sessionId = e.dataTransfer.getData(SESSION_DRAG);
-                        if (sessionId) {
-                          pop(tag);
-                          void run(`Tagged ${tag}`, () => api.SetSessionTag(sessionId, tag, true));
-                          return;
-                        }
                         const moved = e.dataTransfer.getData(TAG_DRAG);
-                        if (!moved || moved === tag) return;
-                        // The tag lands where the line was drawn.
-                        const after = dropLine?.tag === tag && dropLine.side === "after";
+                        if (!moved) return drop.onDrop(e);
+                        e.preventDefault();
+                        if (moved === tag) return;
+                        // The tag lands on the side of the row the pointer is in.
+                        const after = lineSide(e) === "after";
                         // The list shifts once the moved tag leaves its old slot.
                         const from = tags.findIndex((x) => x.name === moved);
                         let to = after ? index + 1 : index;
@@ -707,7 +716,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
             and only rows that change fade, so the header holds still. An empty
             state crossfades in and out; popLayout lifts the old content out of
             the flow so the new content never jumps. */}
-        <div className="relative flex-1 overflow-y-auto">
+        <div ref={scrollBox} className="relative flex-1 overflow-y-auto">
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.div
               key={sessions.length === 0 ? `empty:${filter ?? "all"}` : "list"}
@@ -871,6 +880,10 @@ function SideItem({
   /** A dragged item would land above or below this one; draws the line. */
   dropLine?: "before" | "after";
 } & React.ComponentProps<"div">) {
+  // The count before the drop. The bump waits for the new number instead of
+  // playing on the old one and again when the new one arrives.
+  const [countAtPop, setCountAtPop] = useState(count);
+  if (!popped && countAtPop !== count) setCountAtPop(count);
   return (
     <div
       {...rest}
@@ -907,7 +920,7 @@ function SideItem({
             className={cn(
               "rounded-full px-1.5 py-px text-[10px] tabular-nums",
               active ? "bg-background/70 text-foreground/70" : "bg-muted text-muted-foreground",
-              popped && "count-bump",
+              popped && count !== countAtPop && "count-bump",
             )}
           >
             {count}

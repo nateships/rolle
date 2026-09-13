@@ -308,7 +308,7 @@ export function SessionRow({
                             onClick={() =>
                               void api.SetSessionTag(s.id, name, false).catch((e) => toast.error(errorMessage(e)))
                             }
-                            className="-mr-0.5 hidden rounded-full hover:text-foreground group-hover/chip:inline-flex"
+                            className="-mr-0.5 hidden rounded-full hover:text-foreground group-hover/chip:inline-flex group-focus-within/chip:inline-flex"
                           >
                             <X className="size-2.5" />
                           </button>
