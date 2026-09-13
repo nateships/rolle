@@ -151,7 +151,7 @@ describe("SessionRow actions", () => {
     await user.click(screen.getByRole("button", { name: "Start" }));
 
     await waitFor(() => expect(start).toHaveBeenCalledWith(s.id, ""));
-    expect(success).toHaveBeenCalledWith("Started", expect.objectContaining({ action: expect.anything() }));
+    expect(success).toHaveBeenCalledWith("personal", expect.objectContaining({ action: expect.anything() }));
     // The first active session gets a small celebration.
     expect(celebrate).toHaveBeenCalledWith("small");
   });

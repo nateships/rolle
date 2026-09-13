@@ -103,19 +103,16 @@ export function SessionRow({
       await api.Start(s.id, mfaCode);
       const first = !workspace.sessions.some((x) => x.status === Status.StatusActive);
       if (first) celebrate("small");
-      // One line per fact: the account and role of an Identity Center role,
-      // or the session name, then the AWS profile.
+      // The role is the title; the check mark says it started. The account
+      // of an Identity Center role and the AWS profile follow.
       const [account, role] =
         s.kind === Kind.KindAWSSSORole && s.name.includes("/")
           ? [s.name.split("/")[0], roleLabel(s.name)]
           : ["", s.name];
-      toast.success("Started", {
+      toast.success(role, {
         description: (
           <>
             {account && <span className="block">Account: {account}</span>}
-            <span className="block">
-              {account ? "Role" : "Session"}: {role}
-            </span>
             {isAWS && <span className="block">Profile: {profileName}</span>}
           </>
         ),
