@@ -45,7 +45,7 @@ A template fetches a single value and caches it, which suits an account ID that 
 
 ```toml
 [env]
-AWS_ACCOUNT_ID = "{{ exec(command='rolle session list --json | jq -r \'.[] | select(.name == \"acme-prod-admin\") | .accountId\'', cache_duration='1h') }}"
+AWS_ACCOUNT_ID = """{{ exec(command="rolle session list --json | jq -r '.[] | select(.name == \"acme-prod-admin\") | .accountId'", cache_duration="1h") }}"""
 ```
 
 ## Notes
