@@ -1188,16 +1188,8 @@ func (s *Service) RenameSession(ref, name string) error {
 	if err := checkSessionName(w, name, sess.ID); err != nil {
 		return err
 	}
-	oldProfile := ProfileName(sess)
+	// The AWS profile has its own field, so a rename changes nothing on disk.
 	sess.Name = name
-	if sess.Status == core.StatusActive && sess.Kind.Cloud() == core.CloudAWS && ProfileName(sess) != oldProfile {
-		if err := s.writeCloudFiles(sess); err != nil {
-			return err
-		}
-		if err := awsconfig.Remove(s.AWSConfigPath, oldProfile, sess.ID); err != nil {
-			return err
-		}
-	}
 	return s.Save(w)
 }
 
