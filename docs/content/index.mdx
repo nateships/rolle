@@ -7,7 +7,7 @@ title: Introduction
 description: What rolle does and how it hands credentials to your tools.
 ---
 
-rolle is a desktop app and CLI that hands short-lived cloud credentials to your tools without writing a secret to disk. It covers AWS, Azure, and Google Cloud on macOS, Windows, and Linux.
+rolle is a desktop app and a CLI. It hands short-lived cloud credentials to your tools and writes no secret to disk. It supports AWS, Azure, and Google Cloud on macOS, Windows, and Linux.
 
 <CardGroup cols={3}>
   <Card title="Install" href="/install" icon="download">
@@ -40,13 +40,13 @@ rolle is a desktop app and CLI that hands short-lived cloud credentials to your 
   </Card>
 </CardGroup>
 
-![rolle dashboard with AWS accounts and roles, an Azure subscription, and Google Cloud projects](/screenshots/dashboard-dark.png)
+![rolle dashboard with AWS accounts and roles, tags, the AWS IAM section, an Azure subscription, and Google Cloud projects](/screenshots/dashboard-dark.png)
 
 ## How it works
 
-- **Integrations** are identity sources: an AWS IAM Identity Center portal, an Entra ID tenant, or your gcloud credentials. rolle signs in once and discovers what you can reach.
-- **Sessions** are the roles, subscriptions, and projects you can start. A started session yields credentials until they expire, then rolle renews or stops it.
-- **Delivery** keeps long-lived secrets out of files, with one exception: an active Google Cloud impersonation session writes an ADC file that embeds your gcloud refresh token. AWS sessions are profiles backed by `credential_process`. Azure and Google Cloud sessions export tokens into a shell or a terminal window.
+- **Integrations** are identity sources: an IAM Identity Center portal, an Entra ID tenant, or your gcloud credentials. rolle signs in once and lists what you can reach.
+- **Sessions** are the roles, subscriptions, and projects you can start. An active session yields credentials until they expire. Then rolle renews or stops it.
+- **Delivery**: AWS sessions are profiles backed by `credential_process`. Azure and Google Cloud sessions export tokens into a shell or a terminal window. No long-lived secret enters a file, with one exception: an active Google Cloud impersonation session writes an ADC file that embeds your gcloud refresh token.
 
 ## Storage
 
@@ -57,7 +57,7 @@ rolle is a desktop app and CLI that hands short-lived cloud credentials to your 
 | Short-lived credentials | `credentials/` in the cache directory | Owner-only files that expire |
 | Impersonated ADC files, which embed the gcloud refresh token | `credentials/gcp/` in the cache directory | Owner-only files, removed when the session stops |
 
-rolle picks the config directory in this order:
+The config directory is the first of:
 
 1. `$XDG_CONFIG_HOME/rolle` when the variable is set.
 2. `~/.config/rolle` when it exists.
@@ -67,4 +67,4 @@ The cache directory follows the same order with `XDG_CACHE_HOME`, `~/.cache/roll
 
 ## No telemetry
 
-rolle sends nothing about you or your usage anywhere. The app and the CLI talk only to the cloud providers you sign in to, and to GitHub releases for the update check. **Settings → General → Automatic updates** turns that check off. The app has no analytics, crash reports, or usage pings. This documentation site uses Vercel Web Analytics, which sets no cookies and does not track you across sites.
+rolle has no analytics, crash reports, or usage pings. The app and the CLI connect only to the cloud providers you sign in to, and to GitHub releases for the update check. **Settings → General → Automatic updates** turns that check off. This site uses Vercel Web Analytics, which sets no cookies and does not track you across sites.

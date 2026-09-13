@@ -3,7 +3,7 @@ title: CLI reference
 description: Every rolle command.
 ---
 
-The CLI and the desktop app share one workspace, so a session started in one is active in the other.
+The CLI and the desktop app share one workspace. A session started in one is active in the other.
 
 ```
 rolle [command] [flags]
@@ -12,7 +12,14 @@ rolle [command] [flags]
   -v, --version  print the version
 ```
 
-Exit codes: `0` success, `1` error, `3` a sign-in is needed (run `rolle integration login <alias>`), `4` the session or integration does not exist. [Agents and scripts](/agents) shows how to use them.
+| Exit code | Meaning |
+| --- | --- |
+| `0` | Success |
+| `1` | Error |
+| `3` | Sign-in needed. Run `rolle integration login <alias>` |
+| `4` | The session or integration does not exist |
+
+See [Agents and scripts](/agents).
 
 ## Integrations
 
@@ -24,7 +31,7 @@ Exit codes: `0` success, `1` error, `3` a sign-in is needed (run `rolle integrat
 | `rolle integration list` | List identity sources |
 | `rolle integration login <integration> [--no-browser]` | Sign in and discover roles |
 | `rolle integration logout <integration>` | Sign out and stop its sessions |
-| `rolle integration sync <integration>` | Rediscover accounts, subscriptions, or projects, signing in first if needed |
+| `rolle integration sync <integration>` | Rediscover accounts, subscriptions, or projects. Signs in first when needed |
 | `rolle integration remove <integration>` | Remove an identity source and its sessions |
 
 `int` is an alias for `integration`.
@@ -33,8 +40,8 @@ Exit codes: `0` success, `1` error, `3` a sign-in is needed (run `rolle integrat
 
 | Command | Purpose |
 | --- | --- |
-| `rolle session list [--all]` | List sessions; `--all` includes hidden ones |
-| `rolle session hide <session>` / `unhide <session>` | Keep a session out of the lists and the tray, or bring it back |
+| `rolle session list [--all]` | List sessions. `--all` includes hidden ones |
+| `rolle session hide <session>` / `unhide <session>` | Hide a session from the lists and the tray, or show it again |
 | `rolle session hide --account <id>` / `unhide --account <id>` | Same for every role of an Identity Center account |
 | `rolle session unhide --all` | Show every hidden session again |
 | `rolle session tag <session> <tag>` / `untag <session> <tag>` | Add a session to a sidebar tag, or take it off |
@@ -54,8 +61,8 @@ Exit codes: `0` success, `1` error, `3` a sign-in is needed (run `rolle integrat
 | Command | Purpose |
 | --- | --- |
 | `rolle tag list` | List tags in sidebar order |
-| `rolle tag add <name> [--color #rrggbb] [--icon <name>]` | Create a tag; the icon is a [Lucide](https://lucide.dev/icons) name such as `shield` |
-| `rolle tag set <name> [--name N] [--color C] [--icon I]` | Change a tag; a new name follows through to every session |
+| `rolle tag add <name> [--color #rrggbb] [--icon <name>]` | Create a tag. The icon is a [Lucide](https://lucide.dev/icons) name such as `shield` |
+| `rolle tag set <name> [--name N] [--color C] [--icon I]` | Change a tag. A new name applies to every session |
 | `rolle tag move <name> <index>` | Put a tag at a position in the sidebar, counting from 0 |
 | `rolle tag remove <name>` | Delete a tag and take it off every session |
 
@@ -66,9 +73,9 @@ Exit codes: `0` success, `1` error, `3` a sign-in is needed (run `rolle integrat
 | `rolle kube list <session> [--region R]` | List the EKS, AKS, or GKE clusters a started session can reach |
 | `rolle kube add <session> [cluster ...] [--all] [--region R] [--kubeconfig PATH] [--context NAME] [--use]` | Write a kubeconfig context per cluster that authenticates through the session |
 | `rolle kube attach <session> <context> [--kubeconfig PATH]` | Make an existing context authenticate through the session |
-| `rolle kube token <session>` | Print an `ExecCredential` for kubectl; the contexts `kube add` writes for AKS and GKE run this |
+| `rolle kube token <session>` | Print an `ExecCredential` for kubectl. The AKS and GKE contexts from `kube add` run this |
 
-[Kubernetes](/integrations/kubernetes) explains how each cloud authenticates.
+[Kubernetes](/integrations/kubernetes) covers authentication per cloud.
 
 ## Credentials
 

@@ -1,15 +1,15 @@
 ---
 title: mise
-description: Tie a repository to a rolle session with mise, so the right credentials follow you into the directory.
+description: Tie a repository to a rolle session with mise.
 ---
 
-[mise](https://mise.jdx.dev) sets environment variables per directory and runs hooks when you enter one. rolle's profiles and `rolle env` slot into that, so a `cd` into a repository is enough to work as the right role.
+[mise](https://mise.jdx.dev) sets environment variables per directory and runs hooks when you enter one. With rolle's profiles and `rolle env`, a `cd` into a repository selects the role.
 
-The examples use session names as `rolle session list` shows them: `Acme Prod/AdministratorAccess` for an Identity Center role, `Contoso Production` for an Azure subscription, `my-project` for a Google Cloud project.
+The examples use session names from `rolle session list`: `Acme Prod/AdministratorAccess` (Identity Center role), `Contoso Production` (Azure subscription), `my-project` (Google Cloud project).
 
 ## AWS
 
-An AWS session is a profile backed by `credential_process`, so the directory only has to name it. No credential touches the file.
+An AWS session is a profile backed by `credential_process`. The directory names the profile. No credential enters the file.
 
 ```toml
 [env]
@@ -19,11 +19,11 @@ AWS_PROFILE = "acme-prod"
 enter = "rolle start 'Acme Prod/AdministratorAccess'"
 ```
 
-`AWS_PROFILE` is the session's profile, the **Profile** column in the app and in `rolle session list`. The hook takes the session name. It starts the session when you enter the directory, and signs you in first when the portal token is gone. Every AWS tool in that shell reads the profile and fetches fresh credentials through rolle when it needs them.
+`AWS_PROFILE` is the session's profile: the **Profile** column in the app and in `rolle session list`. The hook takes the session name. It starts the session when you enter the directory, and signs in first when the portal token is expired. Every AWS tool in that shell reads the profile and fetches credentials through rolle.
 
 ## Azure and Google Cloud
 
-Azure and Google Cloud sessions export short-lived tokens. `rolle token` prints one, and a template puts it in a variable. Later entries can copy an earlier one, so the token is fetched once. The redaction keeps it out of `mise env` output and logs.
+Azure and Google Cloud sessions export short-lived tokens. `rolle token` prints one. A template puts it in a variable. Later entries copy the first, so rolle runs once. `redactions` keeps the token out of `mise env` output and logs.
 
 ```toml
 redactions = ["CLOUDSDK_AUTH_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN"]
@@ -34,9 +34,9 @@ CLOUDSDK_AUTH_ACCESS_TOKEN = "{{ exec(command='rolle token my-project') }}"
 GOOGLE_OAUTH_ACCESS_TOKEN = "{{ env.CLOUDSDK_AUTH_ACCESS_TOKEN }}"
 ```
 
-mise runs the command each time it builds the directory's environment. rolle answers from its credential cache, so this is fast, and no token is written to mise's cache. When the session needs a sign-in, the command exits with code 3 and names the command to run.
+mise runs the command each time it builds the directory's environment. rolle answers from its credential cache. No token enters mise's cache. When the session needs a sign-in, the command exits with code 3 and names the command to run.
 
-To export every variable a session carries, source a script instead:
+To export every variable of a session, source a script:
 
 ```toml
 redactions = ["AZURE_ACCESS_TOKEN", "CLOUDSDK_AUTH_ACCESS_TOKEN", "GOOGLE_OAUTH_ACCESS_TOKEN"]
@@ -50,11 +50,11 @@ _.source = ".rolle.sh"
 eval "$(rolle env 'Contoso Production')"
 ```
 
-`rolle env` covers every variable a session carries: the token, and the tenant, subscription, or project it belongs to.
+`rolle env` prints the token and the tenant, subscription, or project.
 
 ## One variable at a time
 
-A template fetches a single value and caches it, which suits an account ID that changes rarely.
+A template fetches one value and caches it:
 
 ```toml
 [env]
@@ -63,6 +63,6 @@ AWS_ACCOUNT_ID = """{{ exec(command="rolle session list --json | jq -r '.[] | se
 
 ## Notes
 
-- `rolle start` is safe to run on an active session. It reports the session and its expiry and changes nothing.
-- The desktop app shows the session as active the moment the hook starts it, since the CLI and the app share one workspace.
-- Commit the `mise.toml`. Team members with the same session names get the same setup. Keep `.rolle.sh` too; it holds no secret.
+- `rolle start` on an active session reports the session and its expiry and changes nothing.
+- The CLI and the app share one workspace. The desktop app shows the session as active when the hook starts it.
+- Commit `mise.toml` and `.rolle.sh`. Neither holds a secret. Team members with the same session names get the same setup.

@@ -3,9 +3,9 @@ title: Agents and scripts
 description: Drive rolle from a script or a coding agent without handling credentials.
 ---
 
-rolle works from a script or an agent the same way it works from a terminal. The rule that keeps this safe: **ask rolle for a profile name, never for keys.** The AWS SDK inside your tool fetches credentials through `credential_process` when it needs them, so they never pass through the agent's context or its transcript.
+rolle works from a script or an agent as it works from a terminal. The rule: **ask rolle for a profile name, never for keys.** The AWS SDK in your tool fetches credentials through `credential_process`. No credential passes through the agent's context or transcript.
 
-## The loop
+## Loop
 
 ```sh
 rolle session list --json                 # what exists, and what is active
@@ -14,11 +14,11 @@ AWS_PROFILE=default terraform plan        # every AWS tool works from here
 rolle stop "Acme/Admin"
 ```
 
-Azure and Google Cloud sessions have no profile; use `eval "$(rolle env <name>)"` in the shell that runs the tool.
+Azure and Google Cloud sessions have no profile. Use `eval "$(rolle env <name>)"` in the shell that runs the tool.
 
 ## Shapes
 
-`--json` prints an object for `start` and an array for `session list`, `status`, and `integration list`. A session looks like this:
+`--json` prints an object for `start` and an array for `session list`, `status`, and `integration list`. A session:
 
 ```json
 {
@@ -40,18 +40,16 @@ Integrations report `signedIn`, and for AWS the token `expires`. No shape carrie
 
 ## Exit codes
 
-| Code | Meaning | What to do |
+| Code | Meaning | Action |
 | --- | --- | --- |
 | `0` | Done | |
-| `1` | Something else failed; the message is on stderr | Show it to a person |
-| `3` | A sign-in is needed | Stop and ask a person to run `rolle integration login <alias>`; a browser step is involved |
+| `1` | Error. The message is on stderr | Show it to a person |
+| `3` | Sign-in needed | Stop. Ask a person to run `rolle integration login <alias>`. Sign-in opens a browser and needs a person to approve |
 | `4` | The session or integration does not exist | Run `rolle session list --json` and pick from it |
 
-Sign-in is the one step an agent must hand back. It opens a browser and needs a person to approve.
+## Agent instructions
 
-## Give an agent the recipe
-
-Put this in the instructions file your agent reads, for example `AGENTS.md` or `CLAUDE.md`:
+Add this to the instructions file your agent reads, for example `AGENTS.md` or `CLAUDE.md`:
 
 ```text
 Cloud credentials come from rolle. Run `rolle session list --json` to see the
@@ -62,6 +60,6 @@ exits with code 3, stop and ask me to sign in.
 
 ## Notes
 
-- `rolle session list` hides sessions the user hid in the app. Pass `--all` to include them.
-- `--debug` prints the host of every network request, if you want to watch what a script does.
-- Every session an agent starts shows in the desktop app and the tray with its countdown, and it stops when it expires.
+- `rolle session list` omits hidden sessions. `--all` includes them.
+- `--debug` prints the host of every network request.
+- A session an agent starts shows in the desktop app and the tray with its countdown. It stops when it expires.

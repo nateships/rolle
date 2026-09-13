@@ -9,31 +9,31 @@ Set `ROLLE_DEBUG=1`, pass `rolle --debug`, or turn on **Settings → Advanced �
 
 ## `ExpiredToken` or the wrong identity after Start
 
-If `~/.aws/credentials` holds static keys under the same profile name, the AWS credential chain reads those before rolle's `credential_process`. rolle refuses to start a session onto such a profile and marks the profile in the table. Click the mark and choose **Remove**, run `rolle session fix-profile <session>`, or give the session another profile name. [Profiles and regions](/aws/profiles-and-regions#static-keys-in-awscredentials) has the details.
+`~/.aws/credentials` holds static keys under the same profile name, and the AWS credential chain reads those before rolle's `credential_process`. rolle does not start a session onto such a profile and marks the profile in the table. Click the mark and choose **Remove**, run `rolle session fix-profile <session>`, or give the session another profile name. See [Profiles and regions](/aws/profiles-and-regions#static-keys-in-awscredentials).
 
 ## "login required" when a role starts
 
-The Identity Center token for that portal is expired or revoked. **Start** in the desktop app and in the tray menu opens the sign-in first. On the command line, `rolle integration sync <alias>` signs in when it must, and `rolle integration login <alias>` always signs in. The integration's dot in the sidebar turns gray within thirty seconds of the token going bad.
+The Identity Center token for that portal is expired or revoked. **Start** in the desktop app and in the tray menu signs in first. On the command line, `rolle integration sync <alias>` signs in when it must, and `rolle integration login <alias>` always signs in. The integration's dot in the sidebar turns gray within thirty seconds of the token going bad.
 
 ## `gcloud` is not found
 
-rolle looks for `gcloud` on your `PATH`, then in the usual install locations: Homebrew, the Google Cloud SDK installer, and [mise](https://mise.jdx.dev) installs. An app started from the Dock or the Start menu does not get your shell's `PATH`. rolle cannot find a `gcloud` that only your shell can see. Install the SDK with Homebrew, the official installer, or `mise use -g gcloud`. Run the sign-in command on the Google Cloud connect step. Then press **Check again**.
+An app started from the Dock or the Start menu does not get your shell's `PATH`. rolle looks for `gcloud` on its `PATH`, then in the Homebrew, Google Cloud SDK installer, and [mise](https://mise.jdx.dev) install locations. Install the SDK with Homebrew, the official installer, or `mise use -g gcloud`. Run the sign-in command on the Google Cloud connect step, then press **Check again**.
 
 ## TLS errors behind an inspecting proxy
 
-rolle trusts the OS trust store. Install your organisation's root there (Keychain Access on macOS, `certmgr` on Windows, `update-ca-certificates` on Linux). If the root is only available as a file, set **Settings → Advanced → Extra CA bundle** to that PEM. Set **HTTPS proxy** when the app runs without your shell's proxy variables.
+rolle trusts the OS trust store. Install your organization's root there (Keychain Access on macOS, `certmgr` on Windows, `update-ca-certificates` on Linux). For a root in a file, set **Settings → Advanced → Extra CA bundle** to that PEM. Set **HTTPS proxy** when the app runs without your shell's proxy variables.
 
 ## macOS asks for keychain access
 
-rolle stores refresh tokens and access keys in the login keychain under the service `rolle`. Choose **Always Allow** so every start does not prompt.
+rolle stores refresh tokens and access keys in the login keychain under the service `rolle`. Choose **Always Allow** to stop the prompt on every start.
 
 ## The update asks for an administrator password
 
-The updater replaces the app in place. When the folder that holds the app belongs to an administrator, `/Applications` on macOS or `Program Files` on Windows, the app asks for an administrator name and password before it replaces itself. Privilege managers such as BeyondTrust or Jamf Connect can answer that prompt by policy. To avoid the prompt, install where your account has write access: `~/Applications` on macOS, or the Windows installer, which installs under your own profile. Run **Install command** again after a move. If an update still fails, the updater writes a log to `$TMPDIR/wails-update-<pid>.log` on macOS and `%TEMP%\wails-update-<pid>.log` on Windows; attach it to an issue with the support bundle.
+The updater replaces the app in place. When an administrator owns the folder that holds the app (`/Applications` on macOS, `Program Files` on Windows), the app asks for an administrator name and password. Privilege managers such as BeyondTrust or Jamf Connect can answer that prompt by policy. To avoid the prompt, install where your account has write access: `~/Applications` on macOS, or the Windows installer, which installs under your own profile. Run **Install command** again after a move. When an update fails, the updater writes a log to `$TMPDIR/wails-update-<pid>.log` on macOS and `%TEMP%\wails-update-<pid>.log` on Windows. Attach it to an issue with the support bundle.
 
 ## Windows SmartScreen warning
 
-Windows builds are not code signed yet. Choose **More info → Run anyway**.
+Windows builds are not code signed. Choose **More info → Run anyway**.
 
 ## Linux app does not start
 
@@ -43,7 +43,7 @@ The desktop app needs GTK 4 and WebKitGTK 6.0. On Debian and Ubuntu:
 sudo apt-get install libgtk-4-1 libwebkitgtk-6.0-4
 ```
 
-## Start over
+## Reset
 
 ```sh
 rolle reset
@@ -51,8 +51,8 @@ rolle reset
 
 This removes the workspace, every keychain entry, the credential cache, and the AWS profiles rolle wrote. The desktop app runs onboarding again.
 
-## Get help
+## Help
 
 Open an issue at [github.com/nateships/rolle/issues](https://github.com/nateships/rolle/issues/new/choose). **Settings → About → Report a problem** and the tray menu open the bug form with your version and platform filled in.
 
-Attach a support bundle: **Settings → About → Support bundle**, or `rolle support` on the command line. It writes a zip to Downloads with your settings, a redacted copy of the workspace, the AWS config, the az and gcloud profile files and tool locations, and the most recent diagnostic lines from every provider. Account ids, emails, GUIDs, portal hosts, and anything that looks like a secret are replaced with placeholders. Keychain entries and cached credentials are never included.
+Attach a support bundle: **Settings → About → Support bundle**, or `rolle support` on the command line. It writes a zip to Downloads with your settings, a redacted copy of the workspace, the AWS config, the az and gcloud profile files and tool locations, and the most recent diagnostic lines from every provider. Account IDs, emails, GUIDs, portal hosts, and strings that look like secrets are replaced with placeholders. Keychain entries and cached credentials are not included.
