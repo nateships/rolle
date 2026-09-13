@@ -178,41 +178,15 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
         {!settings && <div className="h-[30.5rem]" aria-busy="true" />}
         {settings && (
           <Tabs defaultValue={new URLSearchParams(location.search).get("tab") ?? "general"} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="aws">AWS</TabsTrigger>
               <TabsTrigger value="appearance">Appearance</TabsTrigger>
               <TabsTrigger value="about">About</TabsTrigger>
               <TabsTrigger value="advanced">Advanced</TabsTrigger>
             </TabsList>
 
             <TabsContent value="general" className="mt-4 min-h-[27rem] space-y-4">
-              <Row label="Default AWS region" hint="Pre-filled for new sessions.">
-                <RegionSelect
-                  value={settings.defaultRegion}
-                  onChange={(v) => update({ defaultRegion: v })}
-                  className="w-64 justify-between font-normal"
-                />
-              </Row>
-              <Row
-                label="Assume role duration"
-                hint="For chained assume-role sessions. Identity Center roles use their permission set's session duration."
-              >
-                <Select
-                  value={String(settings.assumeRoleMinutes)}
-                  onValueChange={(v) => update({ assumeRoleMinutes: Number(v) })}
-                >
-                  <SelectTrigger className="w-64" aria-label="Assume role duration">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DURATIONS.map((m) => (
-                      <SelectItem key={m} value={String(m)}>
-                        {m >= 60 ? `${m / 60} hour${m === 60 ? "" : "s"}` : `${m} minutes`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Row>
               <Row label="Terminal app" hint="Used by Open terminal on a session.">
                 <Select value={settings.terminal || "auto"} onValueChange={(v) => update({ terminal: v })}>
                   <SelectTrigger className="w-64" aria-label="Terminal app">
@@ -263,14 +237,6 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                   </Select>
                 </Row>
               )}
-              <StaticKeysCard />
-              <Row label="Verbose logging" hint="Same as ROLLE_DEBUG=1. Prints diagnostics to the app log.">
-                <Switch
-                  aria-label="Verbose logging"
-                  checked={settings.verboseLogging}
-                  onCheckedChange={(v) => update({ verboseLogging: v })}
-                />
-              </Row>
               <Row
                 label="Automatic updates"
                 hint="Check for new releases every few hours. Takes effect on next launch."
@@ -284,6 +250,37 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
               <Row label="Command line" hint="The rolle command ships inside the app. Link it into /usr/local/bin.">
                 <CommandLineInstall compact />
               </Row>
+            </TabsContent>
+
+            <TabsContent value="aws" className="mt-4 min-h-[27rem] space-y-4">
+              <Row label="Default region" hint="Pre-filled for new sessions.">
+                <RegionSelect
+                  value={settings.defaultRegion}
+                  onChange={(v) => update({ defaultRegion: v })}
+                  className="w-64 justify-between font-normal"
+                />
+              </Row>
+              <Row
+                label="Assume role duration"
+                hint="For chained assume-role sessions. Identity Center roles use their permission set's session duration."
+              >
+                <Select
+                  value={String(settings.assumeRoleMinutes)}
+                  onValueChange={(v) => update({ assumeRoleMinutes: Number(v) })}
+                >
+                  <SelectTrigger className="w-64" aria-label="Assume role duration">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DURATIONS.map((m) => (
+                      <SelectItem key={m} value={String(m)}>
+                        {m >= 60 ? `${m / 60} hour${m === 60 ? "" : "s"}` : `${m} minutes`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Row>
+              <StaticKeysCard />
             </TabsContent>
 
             <TabsContent value="appearance" className="mt-4 min-h-[27rem] space-y-4">
@@ -407,6 +404,14 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                   onBlur={(e) =>
                     e.target.value.trim() !== (settings.caBundle ?? "") && update({ caBundle: e.target.value.trim() })
                   }
+                />
+              </Row>
+              <p className="pt-2 text-xs font-medium text-muted-foreground">Diagnostics</p>
+              <Row label="Verbose logging" hint="Same as ROLLE_DEBUG=1. Prints diagnostics to the app log.">
+                <Switch
+                  aria-label="Verbose logging"
+                  checked={settings.verboseLogging}
+                  onCheckedChange={(v) => update({ verboseLogging: v })}
                 />
               </Row>
               <p className="text-xs font-medium text-destructive">Danger zone</p>
