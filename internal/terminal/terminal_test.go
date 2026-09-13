@@ -27,7 +27,8 @@ func TestQuoting(t *testing.T) {
 }
 
 func TestEvalExportsUnsetsEmptyValues(t *testing.T) {
-	env := [][2]string{{"AWS_ACCESS_KEY_ID", "A"}, {"AWS_SESSION_TOKEN", ""}}
+	// An empty region is left to the shell; only the token is cleared.
+	env := [][2]string{{"AWS_ACCESS_KEY_ID", "A"}, {"AWS_SESSION_TOKEN", ""}, {"AWS_REGION", ""}}
 	if got := EvalExports(env, false); got != "export AWS_ACCESS_KEY_ID='A'\nunset AWS_SESSION_TOKEN\n" {
 		t.Fatalf("posix eval exports = %q", got)
 	}
