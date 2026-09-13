@@ -152,7 +152,7 @@ describe("Dashboard", () => {
   });
 
   it("leaves hidden sessions out of the sidebar counts", () => {
-    // deployer is a manual favorite; hidden, it leaves both lists and both counts.
+    // deployer is an IAM user and a favorite; hidden, it leaves both lists and both counts.
     Object.assign(
       workspace.sessions.find((s) => s.name === "deployer")!,
       { hidden: true },
@@ -160,7 +160,8 @@ describe("Dashboard", () => {
     renderDashboard();
     const sidebar = within(screen.getByRole("complementary"));
     expect(sidebar.getByRole("button", { name: /^Favorites/ })).toHaveTextContent("Favorites1");
-    expect(sidebar.getByRole("button", { name: /^Manual/ })).toHaveTextContent("Manual2");
+    expect(sidebar.getByRole("button", { name: /^Users/ })).toHaveTextContent("Users1");
+    expect(sidebar.getByRole("button", { name: /^Assumed roles/ })).toHaveTextContent("Assumed roles1");
   });
 
   it("filters to one integration", async () => {

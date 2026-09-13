@@ -58,6 +58,7 @@ import {
   errorMessage,
   inWails,
   Cloud as CloudKind,
+  Kind,
   Status,
   type Integration,
   type Workspace,
@@ -164,7 +165,13 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
 
   const active = workspace.sessions.filter((s) => s.status === Status.StatusActive).length;
   // Hidden sessions leave every list but Hidden, so the counts skip them too.
-  const manualCount = workspace.sessions.filter((s) => !s.hidden && !s.integrationId).length;
+  // IAM users and assumed roles have no integration; they get their own AWS section.
+  const iamCount = workspace.sessions.filter((s) => !s.hidden && s.kind === Kind.KindAWSIAMUser).length;
+  const roleCount = workspace.sessions.filter((s) => !s.hidden && s.kind === Kind.KindAWSAssumeRole).length;
+  const iamKeys = useMemo(
+    () => [...(iamCount > 0 ? ["iam-users"] : []), ...(roleCount > 0 ? ["assumed-roles"] : [])],
+    [iamCount, roleCount],
+  );
   const favoriteCount = workspace.sessions.filter((s) => !s.hidden && s.favorite).length;
   const hiddenCount = workspace.sessions.filter((s) => s.hidden).length;
   const tags = useMemo(() => workspace.tags ?? [], [workspace.tags]);
@@ -214,12 +221,15 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
       null,
       ...(active > 0 ? ["active"] : []),
       ...(favoriteCount > 0 ? ["favorites"] : []),
-      ...(manualCount > 0 ? ["manual"] : []),
+
       ...tags.map((t) => `tag:${t.name}`),
-      ...CLOUD_SECTIONS.flatMap((sec) => workspace.integrations.filter((i) => i.cloud === sec.cloud).map((i) => i.id)),
+      ...CLOUD_SECTIONS.flatMap((sec) => [
+        ...workspace.integrations.filter((i) => i.cloud === sec.cloud).map((i) => i.id),
+        ...(sec.cloud === CloudKind.CloudAWS ? iamKeys : []),
+      ]),
       ...(hiddenCount > 0 ? ["hidden"] : []),
     ],
-    [active, favoriteCount, manualCount, tags, workspace.integrations, hiddenCount],
+    [active, favoriteCount, iamKeys, tags, workspace.integrations, hiddenCount],
   );
   const hintFor = (key: string | null) => {
     const i = filterKeys.indexOf(key);
@@ -259,7 +269,8 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   // A filter whose sidebar item is gone falls back to "All sessions".
   const filterExists =
     chosenFilter === null ||
-    (chosenFilter === "manual" && manualCount > 0) ||
+    (chosenFilter === "iam-users" && iamCount > 0) ||
+    (chosenFilter === "assumed-roles" && roleCount > 0) ||
     (chosenFilter === "favorites" && favoriteCount > 0) ||
     (chosenFilter === "hidden" && hiddenCount > 0) ||
     (tagFilter !== null && tags.some((t) => t.name === tagFilter)) ||
@@ -285,15 +296,17 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
         .filter((s) =>
           filter === null || filter === "hidden"
             ? true
-            : filter === "manual"
-              ? !s.integrationId
-              : filter === "favorites"
-                ? s.favorite
-                : filter === "active"
-                  ? s.status === Status.StatusActive
-                  : tagFilter !== null
-                    ? (s.tags ?? []).includes(tagFilter)
-                    : s.integrationId === filter,
+            : filter === "iam-users"
+              ? s.kind === Kind.KindAWSIAMUser
+              : filter === "assumed-roles"
+                ? s.kind === Kind.KindAWSAssumeRole
+                : filter === "favorites"
+                  ? s.favorite
+                  : filter === "active"
+                    ? s.status === Status.StatusActive
+                    : tagFilter !== null
+                      ? (s.tags ?? []).includes(tagFilter)
+                      : s.integrationId === filter,
         )
         .filter(
           (s) =>
@@ -340,15 +353,6 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 icon={<Star className="size-3.5 fill-current text-brand-orange" />}
                 accent="var(--color-brand-orange)"
                 {...sessionDrop("favorites", "Added to favorites", (id) => api.SetFavorite(id, true))}
-              />
-            )}
-            {manualCount > 0 && (
-              <SideItem
-                active={filter === "manual"}
-                onClick={() => setFilter("manual")}
-                label="Manual"
-                hint={hintFor("manual")}
-                count={manualCount}
               />
             )}
           </div>
@@ -451,117 +455,157 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
           {CLOUD_SECTIONS.map((sec) => {
             const items = workspace.integrations.filter((i) => i.cloud === sec.cloud);
             return (
-              <div key={sec.cloud}>
-                <div className="flex items-center pr-1">
-                  <p className="flex-1 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                    {sec.title}
-                  </p>
-                  <span className="flex size-6 items-center justify-center">
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      className="text-muted-foreground"
-                      onClick={() => setDialog(sec.addKind)}
-                      title="Add"
-                    >
-                      <Plus className="size-3.5" />
-                    </Button>
-                  </span>
+              <div key={sec.cloud} className="space-y-4">
+                <div>
+                  <div className="flex items-center pr-1">
+                    <p className="flex-1 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                      {sec.title}
+                    </p>
+                    <span className="flex size-6 items-center justify-center">
+                      <Button
+                        variant="ghost"
+                        size="icon-xs"
+                        className="text-muted-foreground"
+                        onClick={() => setDialog(sec.addKind)}
+                        title="Add"
+                      >
+                        <Plus className="size-3.5" />
+                      </Button>
+                    </span>
+                  </div>
+                  {items.length === 0 && <p className="px-2 py-1 text-xs text-muted-foreground/60">None yet</p>}
+                  {items.map((integ) => {
+                    const loggedIn = isLoggedIn(integ);
+                    const sync =
+                      integ.cloud === CloudKind.CloudAzure
+                        ? api.SyncAzure
+                        : integ.cloud === CloudKind.CloudGCP
+                          ? api.SyncGCP
+                          : api.SyncSSO;
+                    const logout = integ.cloud === CloudKind.CloudAzure ? api.AzureLogout : api.SSOLogout;
+                    const actions: Action[] = [
+                      {
+                        label: "Rename",
+                        icon: <Pencil />,
+                        onSelect: () => setDialog({ kind: "rename", integration: integ }),
+                      },
+                      ...(loggedIn
+                        ? ([
+                            {
+                              label: "Sync",
+                              icon: <RefreshCw />,
+                              onSelect: () => void run("Synced", () => sync(integ.id)),
+                            },
+                            ...(integ.cloud !== CloudKind.CloudGCP
+                              ? [
+                                  {
+                                    label: "Sign out",
+                                    icon: <LogOut />,
+                                    onSelect: () => void run("Signed out", () => logout(integ.id)),
+                                  },
+                                ]
+                              : []),
+                          ] as Action[])
+                        : [
+                            {
+                              label: "Sign in",
+                              icon: <LogIn />,
+                              onSelect: () =>
+                                integ.cloud === CloudKind.CloudGCP
+                                  ? void run("Synced", () => api.SyncGCP(integ.id))
+                                  : setDialog({ kind: "login", integration: integ }),
+                            },
+                          ]),
+                      ...(integ.cloud === CloudKind.CloudGCP
+                        ? [
+                            {
+                              label: "Impersonate service account",
+                              icon: <UserCog />,
+                              onSelect: () => setDialog({ kind: "gcp-impersonate" }),
+                            },
+                          ]
+                        : []),
+                      "separator",
+                      {
+                        label: "Remove",
+                        icon: <Trash2 />,
+                        destructive: true,
+                        onSelect: () => void run("Removed", () => api.RemoveIntegration(integ.id)),
+                      },
+                    ];
+                    return (
+                      <ContextMenu key={integ.id}>
+                        <ContextMenuTrigger asChild>
+                          <SideItem
+                            active={filter === integ.id}
+                            onClick={() => setFilter(integ.id)}
+                            label={integ.alias}
+                            hint={hintFor(integ.id)}
+                            dot={loggedIn ? "ok" : "off"}
+                            trailing={
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon-xs"
+                                    className="text-muted-foreground opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
+                                    aria-label={`${integ.alias} options`}
+                                  >
+                                    <MoreHorizontal className="size-3.5" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start" side="right" className="min-w-56">
+                                  <ActionItems actions={actions} menu="dropdown" />
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            }
+                          />
+                        </ContextMenuTrigger>
+                        <ContextMenuContent className="min-w-56">
+                          <ActionItems actions={actions} menu="context" />
+                        </ContextMenuContent>
+                      </ContextMenu>
+                    );
+                  })}
                 </div>
-                {items.length === 0 && <p className="px-2 py-1 text-xs text-muted-foreground/60">None yet</p>}
-                {items.map((integ) => {
-                  const loggedIn = isLoggedIn(integ);
-                  const sync =
-                    integ.cloud === CloudKind.CloudAzure
-                      ? api.SyncAzure
-                      : integ.cloud === CloudKind.CloudGCP
-                        ? api.SyncGCP
-                        : api.SyncSSO;
-                  const logout = integ.cloud === CloudKind.CloudAzure ? api.AzureLogout : api.SSOLogout;
-                  const actions: Action[] = [
-                    {
-                      label: "Rename",
-                      icon: <Pencil />,
-                      onSelect: () => setDialog({ kind: "rename", integration: integ }),
-                    },
-                    ...(loggedIn
-                      ? ([
-                          {
-                            label: "Sync",
-                            icon: <RefreshCw />,
-                            onSelect: () => void run("Synced", () => sync(integ.id)),
-                          },
-                          ...(integ.cloud !== CloudKind.CloudGCP
-                            ? [
-                                {
-                                  label: "Sign out",
-                                  icon: <LogOut />,
-                                  onSelect: () => void run("Signed out", () => logout(integ.id)),
-                                },
-                              ]
-                            : []),
-                        ] as Action[])
-                      : [
-                          {
-                            label: "Sign in",
-                            icon: <LogIn />,
-                            onSelect: () =>
-                              integ.cloud === CloudKind.CloudGCP
-                                ? void run("Synced", () => api.SyncGCP(integ.id))
-                                : setDialog({ kind: "login", integration: integ }),
-                          },
-                        ]),
-                    ...(integ.cloud === CloudKind.CloudGCP
-                      ? [
-                          {
-                            label: "Impersonate service account",
-                            icon: <UserCog />,
-                            onSelect: () => setDialog({ kind: "gcp-impersonate" }),
-                          },
-                        ]
-                      : []),
-                    "separator",
-                    {
-                      label: "Remove",
-                      icon: <Trash2 />,
-                      destructive: true,
-                      onSelect: () => void run("Removed", () => api.RemoveIntegration(integ.id)),
-                    },
-                  ];
-                  return (
-                    <ContextMenu key={integ.id}>
-                      <ContextMenuTrigger asChild>
-                        <SideItem
-                          active={filter === integ.id}
-                          onClick={() => setFilter(integ.id)}
-                          label={integ.alias}
-                          hint={hintFor(integ.id)}
-                          dot={loggedIn ? "ok" : "off"}
-                          trailing={
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon-xs"
-                                  className="text-muted-foreground opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
-                                  aria-label={`${integ.alias} options`}
-                                >
-                                  <MoreHorizontal className="size-3.5" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="start" side="right" className="min-w-56">
-                                <ActionItems actions={actions} menu="dropdown" />
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          }
-                        />
-                      </ContextMenuTrigger>
-                      <ContextMenuContent className="min-w-56">
-                        <ActionItems actions={actions} menu="context" />
-                      </ContextMenuContent>
-                    </ContextMenu>
-                  );
-                })}
+                {sec.cloud === CloudKind.CloudAWS && iamKeys.length > 0 && (
+                  <div>
+                    <div className="flex items-center pr-1">
+                      <p className="flex-1 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                        AWS IAM
+                      </p>
+                      <span className="flex size-6 items-center justify-center">
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          className="text-muted-foreground"
+                          onClick={() => setDialog({ kind: "iam" })}
+                          title="Add an IAM user"
+                        >
+                          <Plus className="size-3.5" />
+                        </Button>
+                      </span>
+                    </div>
+                    {iamCount > 0 && (
+                      <SideItem
+                        active={filter === "iam-users"}
+                        onClick={() => setFilter("iam-users")}
+                        label="Users"
+                        hint={hintFor("iam-users")}
+                        count={iamCount}
+                      />
+                    )}
+                    {roleCount > 0 && (
+                      <SideItem
+                        active={filter === "assumed-roles"}
+                        onClick={() => setFilter("assumed-roles")}
+                        label="Assumed roles"
+                        hint={hintFor("assumed-roles")}
+                        count={roleCount}
+                      />
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
