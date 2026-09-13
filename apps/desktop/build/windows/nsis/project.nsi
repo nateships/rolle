@@ -31,7 +31,7 @@ Unicode true
 ## !define REQUEST_EXECUTION_LEVEL "admin"            # Default "admin"  see also https://nsis.sourceforge.io/Docs/Chapter4.html
 # Per-user install: %LOCALAPPDATA%\Programs\rolle, no UAC at install, and a
 # folder the user owns, so updates need no elevation either.
-!define WAILS_INSTALL_SCOPE "user"
+!define /ifndef WAILS_INSTALL_SCOPE "user"
 ####
 ## Include the wails tools
 ####
@@ -109,7 +109,8 @@ Section "uninstall"
 
     RMDir /r "$AppData\${PRODUCT_EXECUTABLE}" # Remove the WebView2 DataPath
 
-    RMDir /r $INSTDIR
+    # Only what the installer wrote. $INSTDIR is user-chosen, so no /r.
+    Delete "$INSTDIR\${PRODUCT_EXECUTABLE}"
 
     Delete "$SMPROGRAMS\${INFO_PRODUCTNAME}.lnk"
     Delete "$DESKTOP\${INFO_PRODUCTNAME}.lnk"
@@ -118,4 +119,5 @@ Section "uninstall"
     !insertmacro wails.unassociateCustomProtocols
 
     !insertmacro wails.deleteUninstaller
+    RMDir $INSTDIR
 SectionEnd
