@@ -1,14 +1,16 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { toast } from "sonner";
 import { describe, expect, it, vi } from "vitest";
 import {
   FoundList,
   tenantAlias,
+  useDiscovery,
   type FoundIAMUser,
   type FoundPortal,
   type FoundTenant,
 } from "@/components/discovery/FoundList";
-import { api } from "@/lib/api";
+import { api, type Workspace } from "@/lib/api";
 
 const portal = (o: Partial<FoundPortal> = {}): FoundPortal => ({
   alias: "Engineering",
@@ -187,5 +189,130 @@ describe("tenantAlias", () => {
     expect(tenantAlias(tenant({ account: "nate@contoso.com" }))).toBe("contoso");
     expect(tenantAlias(tenant({ account: "Contoso Ltd" }))).toBe("Contoso Ltd");
     expect(tenantAlias(tenant({ account: "" }))).toBe("azure");
+  });
+});
+
+describe("FoundList IAM users", () => {
+  it("folds the users behind a count and unfolds on the heading", async () => {
+    const user = userEvent.setup();
+    render(<FoundList {...base} iamUsers={[iamUser(), iamUser({ profile: "plain" })]} />);
+    const heading = screen.getByRole("button", { name: /IAM users in the credentials file/ });
+    expect(heading).toHaveAttribute("aria-expanded", "false");
+    expect(within(heading).getByText("2")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Import all 2" })).toBeInTheDocument();
+    expect(screen.queryByText("personal")).not.toBeInTheDocument();
+    await user.click(heading);
+    expect(heading).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("personal")).toBeInTheDocument();
+    expect(screen.getByText("plain")).toBeInTheDocument();
+    await user.click(heading);
+    expect(screen.queryByText("personal")).not.toBeInTheDocument();
+  });
+
+  it("stops at the first failed import and still offers to remove the keys that moved", async () => {
+    const user = userEvent.setup();
+    const imp = vi
+      .spyOn(api, "ImportIAMUser")
+      .mockResolvedValueOnce({ id: "s1", name: "personal" } as never)
+      .mockRejectedValueOnce(new Error("session plain already exists"));
+    const error = vi.spyOn(toast, "error");
+    const success = vi.spyOn(toast, "success");
+    const imported = vi.fn();
+    render(<FoundList {...base} iamUsers={[iamUser(), iamUser({ profile: "plain" })]} onImportedUsers={imported} />);
+    await user.click(screen.getByRole("button", { name: "Import all 2" }));
+    await waitFor(() => expect(error).toHaveBeenCalledWith("session plain already exists"));
+    expect(imp).toHaveBeenCalledTimes(2);
+    expect(success).not.toHaveBeenCalled();
+    // The key that moved is still offered for removal.
+    await waitFor(() => expect(imported).toHaveBeenCalledWith(["personal"]));
+    expect(screen.getByRole("button", { name: "Import all 2" })).toBeEnabled();
+  });
+
+  it("does not offer the removal when no key moved", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "ImportIAMUser").mockRejectedValue(new Error("no access key"));
+    const error = vi.spyOn(toast, "error");
+    const imported = vi.fn();
+    render(<FoundList {...base} iamUsers={[iamUser()]} onImportedUsers={imported} />);
+    await user.click(screen.getByRole("button", { name: "Import" }));
+    await waitFor(() => expect(error).toHaveBeenCalledWith("no access key"));
+    expect(imported).not.toHaveBeenCalled();
+  });
+});
+
+describe("useDiscovery", () => {
+  const workspace = (o: Partial<Workspace> = {}): Workspace =>
+    ({ sessions: [], integrations: [], ...o }) as unknown as Workspace;
+  const scan = {
+    awsPortals: [portal(), portal({ alias: "known", startUrl: "https://known.awsapps.com/start/" })],
+    azureTenants: [tenant(), tenant({ tenantId: "t-known" })],
+    iamUsers: [iamUser(), iamUser({ profile: "taken" }), iamUser({ profile: "old", imported: true })],
+    gcp: { account: "nate@example.com" },
+    leapp: { iamUsers: [{ name: "leapp-user" }], chainedRoles: [], ssoRoles: 2 },
+  };
+
+  it("drops what the workspace already has", async () => {
+    vi.spyOn(api, "Discover").mockResolvedValue(scan as never);
+    const w = workspace({
+      integrations: [
+        { id: "i1", alias: "known", cloud: "aws", awsSso: { startUrl: "https://known.awsapps.com/start" } },
+        { id: "i2", alias: "contoso", cloud: "azure", azure: { tenantId: "t-known" } },
+      ] as never,
+      sessions: [{ id: "s1", name: "taken" }] as never,
+    });
+    const { result } = renderHook(() => useDiscovery(w));
+    expect(result.current.loading).toBe(true);
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.portals.map((p) => p.alias)).toEqual(["Engineering"]);
+    expect(result.current.tenants.map((t) => t.tenantId)).toEqual(["t-1"]);
+    // Imported keys and profiles a session took by name are not offered.
+    expect(result.current.iamUsers.map((u) => u.profile)).toEqual(["personal"]);
+    expect(result.current.gcp).toEqual({ account: "nate@example.com" });
+    expect(result.current.leapp).toEqual(scan.leapp);
+    expect(result.current.count).toBe(5);
+  });
+
+  it("hides Google Cloud and Leapp when nothing new is left", async () => {
+    vi.spyOn(api, "Discover").mockResolvedValue(scan as never);
+    const w = workspace({
+      integrations: [{ id: "g", alias: "gcp", cloud: "gcp", gcp: { account: "x" } }] as never,
+      sessions: [{ id: "s1", name: "leapp-user" }] as never,
+    });
+    const { result } = renderHook(() => useDiscovery(w));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.gcp).toBeNull();
+    expect(result.current.leapp).toBeNull();
+  });
+
+  it("treats Go nil slices as empty and a failed scan as a failure", async () => {
+    // A scan can come back with every list null.
+    const discover = vi.spyOn(api, "Discover").mockResolvedValue({ leapp: { ssoRoles: 1 } } as never);
+    // One workspace object for every render: the hook scans again when it changes.
+    const w = workspace();
+    const { result } = renderHook(() => useDiscovery(w));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.count).toBe(0);
+    expect(result.current.leapp).toBeNull();
+
+    // Scan again reads the machine once more.
+    discover.mockRejectedValue(new Error("credentials file unreadable"));
+    const error = vi.spyOn(toast, "error");
+    act(() => result.current.rescan());
+    expect(result.current.loading).toBe(true);
+    await waitFor(() =>
+      expect(error).toHaveBeenCalledWith("Scan failed", { description: "credentials file unreadable" }),
+    );
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.count).toBe(0);
+    expect(discover).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not scan while disabled", () => {
+    const discover = vi.spyOn(api, "Discover").mockResolvedValue(scan as never);
+    const w = workspace();
+    const { result } = renderHook(() => useDiscovery(w, false));
+    expect(discover).not.toHaveBeenCalled();
+    expect(result.current.loading).toBe(true);
+    expect(result.current.count).toBe(0);
   });
 });

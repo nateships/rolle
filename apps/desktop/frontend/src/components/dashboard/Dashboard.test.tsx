@@ -549,4 +549,88 @@ describe("Dashboard", () => {
       expect(screen.getByRole("button", { name: /sync contoso/i })).toBeInTheDocument();
     });
   });
+
+  describe("hidden sections", () => {
+    it("drops hidden sections from the sidebar and from the shortcut order", async () => {
+      const user = userEvent.setup();
+      workspace = {
+        ...workspace,
+        settings: { ...workspace.settings, hiddenSections: ["aws-sso", "azure", "aws-iam"] },
+      } as Workspace;
+      renderDashboard();
+      const sidebar = within(screen.getByRole("complementary"));
+      for (const gone of ["AWS Identity Center", "Azure tenants", "acme", "contoso", "Users"]) {
+        expect(sidebar.queryByText(gone)).not.toBeInTheDocument();
+      }
+      expect(sidebar.getByText("Google Cloud")).toBeInTheDocument();
+      // With five filters ahead of it, the Google Cloud account is Ctrl+6;
+      // in the full sidebar it sits past the ninth slot.
+      await user.keyboard("{Control>}");
+      await sidebar.findByText("Ctrl+6");
+      // The badge sits next to its button, inside the item's wrapper.
+      expect(sidebar.getByRole("button", { name: "gcp" }).parentElement).toHaveTextContent("Ctrl+6");
+      await user.keyboard("6{/Control}");
+      expect(rowNames()).toContain("data-platform");
+      expect(rowNames()).not.toContain("Contoso Production");
+    });
+
+    it("keeps every section and the late shortcut slots when nothing is hidden", async () => {
+      const user = userEvent.setup();
+      renderDashboard();
+      const sidebar = within(screen.getByRole("complementary"));
+      expect(sidebar.getByText("AWS Identity Center")).toBeInTheDocument();
+      expect(sidebar.getByText("Azure tenants")).toBeInTheDocument();
+      await user.keyboard("{Control>}");
+      await sidebar.findByText("Ctrl+6");
+      expect(sidebar.getByRole("button", { name: /^acme$/ }).parentElement).toHaveTextContent("Ctrl+6");
+      expect(sidebar.getByRole("button", { name: "gcp" }).parentElement).not.toHaveTextContent(/Ctrl\+/);
+      await user.keyboard("{/Control}");
+    });
+  });
+
+  describe("tag menus", () => {
+    it("edits and removes a tag from its sidebar menu", async () => {
+      const user = userEvent.setup();
+      const remove = vi.spyOn(api, "RemoveTag").mockResolvedValue();
+      const success = vi.spyOn(toast, "success");
+      renderDashboard();
+      const sidebar = within(screen.getByRole("complementary"));
+      fireEvent.contextMenu(sidebar.getByRole("button", { name: /^Sandbox/ }));
+      await user.click(await screen.findByRole("menuitem", { name: "Edit tag" }));
+      const dialog = await screen.findByRole("dialog");
+      expect(within(dialog).getByDisplayValue("Sandbox")).toBeInTheDocument();
+      await user.keyboard("{Escape}");
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      fireEvent.contextMenu(sidebar.getByRole("button", { name: /^Sandbox/ }));
+      await user.click(await screen.findByRole("menuitem", { name: "Remove tag" }));
+      await waitFor(() => expect(remove).toHaveBeenCalledWith("Sandbox"));
+      expect(success).toHaveBeenCalledWith("Tag Sandbox removed");
+    });
+
+    it("says None yet without tags and adds an IAM user from the AWS section", async () => {
+      const user = userEvent.setup();
+      workspace = { ...workspace, tags: [] } as Workspace;
+      renderDashboard();
+      const sidebar = within(screen.getByRole("complementary"));
+      expect(sidebar.getAllByText("None yet").length).toBeGreaterThan(0);
+      await user.click(sidebar.getByTitle("Add an IAM user"));
+      expect(await screen.findByRole("dialog", { name: "Add IAM user" })).toBeInTheDocument();
+    });
+  });
+
+  it("reports a failed update install, but not a cancelled one", async () => {
+    const user = userEvent.setup();
+    window.history.replaceState({}, "", "/?view=dashboard&update=1");
+    const install = vi.spyOn(api, "InstallUpdate").mockRejectedValueOnce(new Error("cancelled"));
+    const error = vi.spyOn(toast, "error");
+    renderDashboard();
+    const button = await screen.findByRole("button", { name: /update to 0\.2\.0/i }, { timeout: 3000 });
+    await user.click(button);
+    await waitFor(() => expect(install).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(screen.getByRole("button", { name: /update to 0\.2\.0/i })).toBeEnabled());
+    expect(error).not.toHaveBeenCalled();
+    install.mockRejectedValueOnce(new Error("signature mismatch"));
+    await user.click(screen.getByRole("button", { name: /update to 0\.2\.0/i }));
+    await waitFor(() => expect(error).toHaveBeenCalledWith("signature mismatch"));
+  });
 });

@@ -126,6 +126,42 @@ func TestAliasesCannotClash(t *testing.T) {
 	}
 }
 
+func TestAliasRefusedWhenItRebuildsAHandPickedName(t *testing.T) {
+	s := seedAliasWorkspace(t)
+	// The user gave a dev role the name an account alias would build for
+	// the prod role. The alias is refused rather than making two sessions
+	// share a name.
+	if err := s.RenameSession("acme-dev/AWSAdministratorAccess", "Prod/AWSAdministratorAccess"); err != nil {
+		t.Fatal(err)
+	}
+	err := s.SetAlias(AliasAccount, "111111111111", "Prod")
+	if err == nil || !strings.Contains(err.Error(), "makes two sessions named") {
+		t.Fatalf("clashing alias: %v", err)
+	}
+	if got := names(t, s); got["111111111111/AWSAdministratorAccess"] != "acme-prod/AWSAdministratorAccess" {
+		t.Fatalf("refused alias changed a name: %v", got)
+	}
+}
+
+func TestResolveAliasKeyRefusesToGuessBetweenAccounts(t *testing.T) {
+	s := seedAliasWorkspace(t)
+	w := mustLoad(t, s)
+	// Two accounts with the same Identity Center name: the name alone
+	// cannot pick one, the ID can.
+	addSession(t, s, core.Session{ID: "333333333333/ReadOnly", Name: "acme-prod/ReadOnly (2)", Kind: core.KindAWSSSORole, IntegrationID: w.Integrations[0].ID, Status: core.StatusInactive,
+		AWS: &core.AWSSession{AccountID: "333333333333", AccountName: "acme-prod", RoleName: "ReadOnly"}})
+	w = mustLoad(t, s)
+	if _, err := resolveAliasKey(w, AliasAccount, "acme-prod"); !errors.Is(err, ErrAmbiguous) {
+		t.Fatalf("ambiguous account name: %v", err)
+	}
+	if key, err := resolveAliasKey(w, AliasAccount, " 333333333333 "); err != nil || key != "333333333333" {
+		t.Fatalf("account by ID = %q, %v", key, err)
+	}
+	if err := s.SetAlias(AliasAccount, "acme-prod", "Prod"); !errors.Is(err, ErrAmbiguous) {
+		t.Fatalf("SetAlias on an ambiguous name: %v", err)
+	}
+}
+
 func mustLoad(t *testing.T, s *Service) *core.Workspace {
 	t.Helper()
 	w, err := s.Load()

@@ -104,6 +104,39 @@ func TestRemoveSourceSessionRefused(t *testing.T) {
 	}
 }
 
+func TestRenameActiveSessionKeepsItsProfile(t *testing.T) {
+	s := testService(t)
+	if _, err := s.AddIAMUser(AddIAMUserInput{Name: "dev", Region: "us-east-1", Key: aws.AccessKey{AccessKeyID: "A", SecretAccessKey: "B"}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AddIAMUser(AddIAMUserInput{Name: "other", Region: "us-east-1", Profile: "work", Key: aws.AccessKey{AccessKeyID: "C", SecretAccessKey: "D"}}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Start(context.Background(), "other", StartOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	// The profile is the session's own setting, not its name, so a rename
+	// while active leaves `aws --profile work` working.
+	if err := s.RenameSession("other", "team"); err != nil {
+		t.Fatal(err)
+	}
+	cfg, _ := os.ReadFile(s.AWSConfigPath)
+	if !strings.Contains(string(cfg), "[profile work]") || strings.Contains(string(cfg), "[profile team]") {
+		t.Fatalf("aws config after rename:\n%s", cfg)
+	}
+	w, _ := s.Load()
+	if got, _ := FindSession(w, "team"); got == nil || got.Status != core.StatusActive || ProfileName(got) != "work" {
+		t.Fatalf("renamed session = %+v", got)
+	}
+	// A name another session holds is refused; blank too.
+	if err := s.RenameSession("team", "dev"); err == nil {
+		t.Fatal("duplicate name accepted")
+	}
+	if err := s.RenameSession("team", "  "); err == nil {
+		t.Fatal("blank name accepted")
+	}
+}
+
 func TestFindSessionPrefixAndAmbiguity(t *testing.T) {
 	w := &core.Workspace{Sessions: []core.Session{{ID: "abc123", Name: "one"}, {ID: "abx456", Name: "two"}}}
 	if s, err := FindSession(w, "abc"); err != nil || s.Name != "one" {
