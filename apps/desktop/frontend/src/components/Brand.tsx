@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { GopherRig } from "@/components/GopherRig";
+import { GopherRig, type Autoplay } from "@/components/GopherRig";
 import wordmarkCharcoal from "@/assets/brand/wordmark-charcoal.svg";
 import wordmarkIvory from "@/assets/brand/wordmark-ivory.svg";
 import awsLogoDark from "@/assets/vendors/aws-dark.svg";
@@ -11,7 +11,7 @@ import gcpLogo from "@/assets/vendors/gcp.svg";
  * The gopher artwork at full size. On light surfaces a blurred gray halo sits behind it so the
  * ivory body stays visible. The halo scales with the artwork and fades into the background.
  */
-export function GopherMark({ className, autoplay }: { className?: string; autoplay?: boolean }) {
+export function GopherMark({ className, autoplay }: { className?: string; autoplay?: Autoplay }) {
   return (
     <span
       className={cn(

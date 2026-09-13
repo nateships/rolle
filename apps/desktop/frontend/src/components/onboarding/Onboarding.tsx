@@ -354,7 +354,8 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                 transition={{ type: "spring", stiffness: 180, damping: 16 }}
                 className="mb-8"
               >
-                <GopherMark className="size-28" />
+                {/* The gopher greets with a dance once it has landed. */}
+                <GopherMark className="size-28" autoplay="dance" />
               </motion.div>
               <h1 className="text-4xl font-semibold tracking-tight">
                 Assume any <span className="text-brand-orange">role</span>, any{" "}
