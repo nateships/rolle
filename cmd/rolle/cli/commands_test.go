@@ -658,6 +658,10 @@ func TestSessionAddIAMUserFromProfile(t *testing.T) {
 	if _, err := run(t, "session", "add", "iam-user", "--from-profile", "personal", "--access-key-id", "AKIA"); err == nil || !strings.Contains(err.Error(), "none of the others can be") {
 		t.Fatalf("conflict = %v", err)
 	}
+	// The file holds the secret; a flag for it would be dropped, so it is refused.
+	if _, err := run(t, "session", "add", "iam-user", "--from-profile", "personal", "--secret-access-key", "s"); err == nil || !strings.Contains(err.Error(), "none of the others can be") {
+		t.Fatalf("secret conflict = %v", err)
+	}
 	if _, err := run(t, "session", "add", "iam-user", "--name", "x", "--region", "r"); err == nil || !strings.Contains(err.Error(), "at least one of the flags") {
 		t.Fatalf("neither flag = %v", err)
 	}

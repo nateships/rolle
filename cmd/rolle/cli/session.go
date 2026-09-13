@@ -191,6 +191,7 @@ func sessionAddCmd() *cobra.Command {
 	iam.Flags().StringVar(&fromProfile, "from-profile", "", "read the key of this profile in ~/.aws/credentials")
 	iam.MarkFlagsOneRequired("access-key-id", "from-profile")
 	iam.MarkFlagsMutuallyExclusive("access-key-id", "from-profile")
+	iam.MarkFlagsMutuallyExclusive("secret-access-key", "from-profile")
 
 	add.AddCommand(assume, iam, sessionAddGCPImpersonateCmd())
 	return add

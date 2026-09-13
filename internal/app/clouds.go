@@ -45,7 +45,7 @@ func (s *Service) storedAccessKeyIDs() map[string]bool {
 		if sess.Kind != core.KindAWSIAMUser {
 			continue
 		}
-		if key, err := aws.LoadAccessKey(s.Secrets, sess.ID); err == nil {
+		if key, err := aws.LoadAccessKey(s.Secrets, sess.ID); err == nil && key.AccessKeyID != "" {
 			out[key.AccessKeyID] = true
 		}
 	}
@@ -54,12 +54,22 @@ func (s *Service) storedAccessKeyIDs() map[string]bool {
 
 // IAMUserFromProfile builds the input for an IAM user session from the access
 // key of a profile in the shared credentials file. The session and its
-// profile take the profile's name.
+// profile take the profile's name. A profile without a region gets the
+// default region from Settings; STS needs one for the MFA session token.
 func (s *Service) IAMUserFromProfile(profile string) (AddIAMUserInput, error) {
 	for _, k := range awsconfig.IAMUserKeys(s.AWSConfigPath) {
-		if k.Profile == profile {
-			return AddIAMUserInput{Name: profile, Region: k.Region, MFADevice: k.MFADevice, Profile: profile, Key: aws.AccessKey{AccessKeyID: k.AccessKeyID, SecretAccessKey: k.SecretAccessKey}}, nil
+		if k.Profile != profile {
+			continue
 		}
+		in := AddIAMUserInput{Name: profile, Region: k.Region, MFADevice: k.MFADevice, Profile: profile, Key: aws.AccessKey{AccessKeyID: k.AccessKeyID, SecretAccessKey: k.SecretAccessKey}}
+		if in.Region == "" {
+			w, err := s.Load()
+			if err != nil {
+				return AddIAMUserInput{}, err
+			}
+			in.Region = w.EffectiveSettings().DefaultRegion
+		}
+		return in, nil
 	}
 	return AddIAMUserInput{}, fmt.Errorf("no access key for profile %q in %s", profile, awsconfig.Display(awsconfig.CredentialsPath(s.AWSConfigPath)))
 }
@@ -73,19 +83,6 @@ func (s *Service) ImportIAMUser(profile string) (core.Session, error) {
 		return core.Session{}, err
 	}
 	return s.AddIAMUser(in)
-}
-
-// ImportIAMUsers imports several profiles and stops at the first error.
-func (s *Service) ImportIAMUsers(profiles []string) ([]core.Session, error) {
-	var out []core.Session
-	for _, p := range profiles {
-		sess, err := s.ImportIAMUser(p)
-		if err != nil {
-			return out, err
-		}
-		out = append(out, sess)
-	}
-	return out, nil
 }
 
 // ImportResult describes an imported Identity Center portal.

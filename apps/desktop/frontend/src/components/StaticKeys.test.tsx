@@ -6,7 +6,10 @@ import { api } from "@/lib/api";
 
 const prof = (name: string, imported = false) => ({
   name,
-  keys: [{ name: "aws_access_key_id", preview: "AKIA…" }],
+  keys: [
+    { name: "aws_access_key_id", preview: "AKIA…" },
+    { name: "aws_secret_access_key", preview: "…" },
+  ],
   imported,
 });
 
@@ -46,13 +49,14 @@ describe("StaticKeysCard", () => {
 
   it("imports a key into rolle, then offers the removal", async () => {
     const user = userEvent.setup();
-    const listing = { path: "~/.aws/credentials", profiles: [prof("personal"), prof("old", true)] };
+    const token = { name: "token", keys: [{ name: "aws_session_token", preview: "…" }], imported: false };
+    const listing = { path: "~/.aws/credentials", profiles: [prof("personal"), prof("old", true), token] };
     vi.spyOn(api, "StaticProfiles").mockResolvedValue(listing);
     const imp = vi.spyOn(api, "ImportIAMUser").mockResolvedValue({ id: "s1", name: "personal" } as never);
     const remove = vi.spyOn(api, "RemoveStaticProfile").mockResolvedValue();
     render(<StaticKeysCard />);
     expect(await screen.findByText("Import moves a key into rolle. Remove deletes it.")).toBeInTheDocument();
-    // A key a session already holds has no Import button.
+    // A key a session already holds, or a section without the whole pair, has no Import button.
     expect(screen.getAllByRole("button", { name: "Import" })).toHaveLength(1);
     await user.click(screen.getByRole("button", { name: "Import" }));
     await waitFor(() => expect(imp).toHaveBeenCalledWith("personal"));

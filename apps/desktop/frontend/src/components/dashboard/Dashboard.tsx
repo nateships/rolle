@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowUpCircle,
   Cloud,
@@ -229,7 +229,6 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
       null,
       ...(active > 0 ? ["active"] : []),
       ...(favoriteCount > 0 ? ["favorites"] : []),
-
       ...tags.map((t) => `tag:${t.name}`),
       ...CLOUD_SECTIONS.flatMap((sec) => [
         ...(hiddenSections.includes(sec.key)
@@ -276,16 +275,9 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [filterKeys]);
   const visibleCount = workspace.sessions.length - hiddenCount;
-  // A filter whose sidebar item is gone falls back to "All sessions".
-  const filterExists =
-    chosenFilter === null ||
-    (chosenFilter === "iam-users" && iamCount > 0) ||
-    (chosenFilter === "assumed-roles" && roleCount > 0) ||
-    (chosenFilter === "favorites" && favoriteCount > 0) ||
-    (chosenFilter === "hidden" && hiddenCount > 0) ||
-    (tagFilter !== null && tags.some((t) => t.name === tagFilter)) ||
-    (chosenFilter === "active" && active > 0) ||
-    workspace.integrations.some((i) => i.id === chosenFilter);
+  // A filter whose sidebar item is gone, or whose section is hidden, falls
+  // back to "All sessions". filterKeys holds exactly the items on show.
+  const filterExists = filterKeys.includes(chosenFilter);
   const filter = filterExists ? chosenFilter : null;
   // The list is not remounted between filters, so the scroll box goes back to the top itself.
   const scrollBox = useRef<HTMLDivElement>(null);
@@ -465,7 +457,9 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
           {CLOUD_SECTIONS.map((sec) => {
             const items = workspace.integrations.filter((i) => i.cloud === sec.cloud);
             return (
-              <div key={sec.cloud} className="space-y-4">
+              // A fragment: a hidden section must not leave an empty box that
+              // still takes the nav's spacing.
+              <Fragment key={sec.cloud}>
                 {showSection(sec.key) && (
                   <div>
                     <div className="flex items-center pr-1">
@@ -623,7 +617,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                     )}
                   </div>
                 )}
-              </div>
+              </Fragment>
             );
           })}
           {/* Hidden sits last: out of the way, like its sessions. */}

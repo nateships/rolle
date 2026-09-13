@@ -153,4 +153,11 @@ func TestIAMUserKeysReadsPairsAndConfigSections(t *testing.T) {
 	if got := IAMUserKeys(config); len(got) != 3 || got[0].Region != "" || got[0].MFADevice != "" {
 		t.Fatalf("keys without config = %+v", got)
 	}
+	// A config file that does not load, here a directory, costs only the region and MFA device.
+	if err := os.Mkdir(config, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if got := IAMUserKeys(config); len(got) != 3 || got[1].AccessKeyID != "AKIA2" || got[1].Region != "" {
+		t.Fatalf("keys with unreadable config = %+v", got)
+	}
 }

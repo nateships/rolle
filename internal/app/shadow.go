@@ -53,13 +53,9 @@ func (s *Service) StaticProfiles() StaticKeys {
 	if len(profiles) == 0 {
 		return StaticKeys{Path: awsconfig.Display(path), Profiles: []awsconfig.StaticProfile{}}
 	}
-	ids := map[string]string{}
-	for _, k := range awsconfig.IAMUserKeys(s.AWSConfigPath) {
-		ids[k.Profile] = k.AccessKeyID
-	}
 	have := s.storedAccessKeyIDs()
 	for i := range profiles {
-		profiles[i].Imported = have[ids[profiles[i].Name]]
+		profiles[i].Imported = have[profiles[i].AccessKeyID]
 	}
 	return StaticKeys{Path: awsconfig.Display(path), Profiles: profiles}
 }

@@ -37,23 +37,24 @@ const EMPTY: Found = { awsPortals: [], azureTenants: [], iamUsers: [], gcp: null
 
 const SOURCE_LABEL: Record<string, string> = { "aws-cli": "AWS CLI", granted: "Granted", leapp: "Leapp", az: "az CLI" };
 
-/** Scan the machine once and filter out identities the workspace already has. */
+/** Scan the machine and filter out identities the workspace already has. */
 export function useDiscovery(workspace: Workspace, enabled = true) {
   const [found, setFound] = useState<Found | null>(null);
+  // Scan again bumps this; the effect below scans once per value.
+  const [scan, setScan] = useState(0);
   // A scan reads local files only, so it runs again each time the caller
   // enables it and each time the workspace changes; the credentials file
-  // watcher raises that event too.
+  // watcher raises that event too. The last result stays on screen while
+  // the new scan runs, so an import does not unmount the list mid-way.
   /* oxlint-disable react/exhaustive-effect-dependencies */
   useEffect(() => {
-    setFound(null);
-  }, [enabled, workspace]);
-  /* oxlint-enable react/exhaustive-effect-dependencies */
-  useEffect(() => {
-    if (!enabled || found) return;
+    if (!enabled) return;
+    let stale = false;
     // Go nil slices arrive as null; normalise every list before anything calls .filter or .length.
     api
       .Discover()
       .then((r) => {
+        if (stale) return;
         const raw = (r ?? {}) as Partial<{
           awsPortals: Partial<FoundPortal>[] | null;
           azureTenants: Partial<FoundTenant>[] | null;
@@ -97,11 +98,16 @@ export function useDiscovery(workspace: Workspace, enabled = true) {
         });
       })
       .catch((e) => {
+        if (stale) return;
         // A failed scan is not an empty one; say so instead of "nothing new".
         toast.error("Scan failed", { description: errorMessage(e) });
         setFound(EMPTY);
       });
-  }, [enabled, found]);
+    return () => {
+      stale = true;
+    };
+  }, [enabled, workspace, scan]);
+  /* oxlint-enable react/exhaustive-effect-dependencies */
 
   const trim = (u: string) => u.replace(/\/$/, "");
   const portals = (found?.awsPortals ?? []).filter(
@@ -131,7 +137,10 @@ export function useDiscovery(workspace: Workspace, enabled = true) {
     leapp,
     iamUsers,
     count: portals.length + tenants.length + iamUsers.length + (gcp ? 1 : 0) + (leapp ? 1 : 0),
-    rescan: () => setFound(null),
+    rescan: () => {
+      setFound(null);
+      setScan((n) => n + 1);
+    },
   };
 }
 
@@ -187,8 +196,6 @@ export function FoundList({
     if (done.length > 0) onImportedUsers?.(done);
   }
   return (
-    // The list scrolls inside a cap, so a long credentials file does not
-    // push the rest of the step off the screen.
     <ul className="space-y-2">
       {portals.map((p) => (
         <FoundRow
@@ -328,7 +335,7 @@ function FoundRow({
       className={cn("flex items-center gap-3 rounded-lg border bg-background/60 px-3", compact ? "py-1.5" : "py-2.5")}
     >
       <CloudGlyph cloud={cloud} className={compact ? "size-6" : undefined} />
-      <div className="min-w-0 flex-1">
+      <div className={cn("min-w-0 flex-1", compact && "flex items-center gap-2")}>
         <div className="flex items-center gap-2">
           <p className="truncate text-sm font-medium">{title}</p>
           {badge && (
@@ -342,9 +349,8 @@ function FoundRow({
               {badge}
             </Badge>
           )}
-          {compact && subtitle && <p className="truncate font-mono text-[11px] text-muted-foreground">{subtitle}</p>}
         </div>
-        {!compact && <p className="truncate font-mono text-[11px] text-muted-foreground">{subtitle}</p>}
+        {subtitle && <p className="truncate font-mono text-[11px] text-muted-foreground">{subtitle}</p>}
       </div>
       <Button
         size="sm"

@@ -144,6 +144,9 @@ type StaticProfile struct {
 	// Imported is true when a rolle session holds the same access key. The
 	// app layer sets it; StaticProfiles leaves it false.
 	Imported bool `json:"imported"`
+	// AccessKeyID is the unmasked aws_access_key_id, for the app layer to
+	// match against stored keys. It never leaves the process.
+	AccessKeyID string `json:"-"`
 }
 
 // StaticKey is one masked key line of a profile.
@@ -173,7 +176,7 @@ func StaticProfiles(configPath string) ([]StaticProfile, string) {
 			}
 		}
 		if len(keys) > 0 {
-			out = append(out, StaticProfile{Name: sec.Name(), Keys: keys})
+			out = append(out, StaticProfile{Name: sec.Name(), Keys: keys, AccessKeyID: sec.Key("aws_access_key_id").String()})
 		}
 	}
 	return out, credPath
@@ -202,9 +205,10 @@ func IAMUserKeys(configPath string) []IAMUserKey {
 	if err != nil {
 		return nil
 	}
+	// A config file that does not load costs only the region and MFA device.
 	cfg, err := load(configPath)
 	if err != nil {
-		return nil
+		cfg = ini.Empty()
 	}
 	var out []IAMUserKey
 	for _, sec := range f.Sections() {

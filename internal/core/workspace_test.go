@@ -185,7 +185,7 @@ func TestCredentialsExpiredAtBoundary(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := (Credentials{Expiration: tc.exp}).Expired(now, tc.skew); !reflect.DeepEqual(got, tc.want) {
+			if got := (Credentials{Expiration: tc.exp}).Expired(now, tc.skew); got != tc.want {
 				t.Fatalf("Expired = %v, want %v", got, tc.want)
 			}
 		})

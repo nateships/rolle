@@ -6,7 +6,7 @@ import { REMOVE_KEYS_BUTTON, RemoveKeysDialog, type RemoveKeysTarget } from "@/c
 import { api, errorMessage } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-type Keys = { path: string; profiles: { name: string; imported: boolean }[] };
+type Keys = { path: string; profiles: { name: string; imported: boolean; importable: boolean }[] };
 
 /**
  * The sections of ~/.aws/credentials that hold static keys. Tools read those
@@ -22,7 +22,17 @@ export function StaticKeysCard({ className }: { className?: string }) {
     void api
       .StaticProfiles()
       .then((k) =>
-        setKeys({ path: k.path, profiles: (k.profiles ?? []).map((p) => ({ name: p.name, imported: !!p.imported })) }),
+        setKeys({
+          path: k.path,
+          profiles: (k.profiles ?? []).map((p) => ({
+            name: p.name,
+            imported: !!p.imported,
+            // The import needs the whole pair; a token or a lone key ID cannot move.
+            importable: ["aws_access_key_id", "aws_secret_access_key"].every((n) =>
+              (p.keys ?? []).some((key) => key.name === n),
+            ),
+          })),
+        }),
       )
       .catch((e) => toast.error(errorMessage(e)));
   useEffect(refresh, []);
@@ -67,7 +77,7 @@ export function StaticKeysCard({ className }: { className?: string }) {
               <li key={p.name} className="flex items-center justify-between gap-3">
                 <code className="font-mono text-xs">{p.name}</code>
                 <div className="flex gap-1.5">
-                  {!p.imported && (
+                  {p.importable && !p.imported && (
                     <Button
                       size="sm"
                       variant="secondary"

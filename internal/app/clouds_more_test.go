@@ -597,9 +597,8 @@ func TestImportIAMUserFromCredentialsFile(t *testing.T) {
 	if len(st.Profiles) != 2 || st.Profiles[0].Imported || !st.Profiles[1].Imported {
 		t.Fatalf("static profiles = %+v", st.Profiles)
 	}
-	// ImportIAMUsers stops at the first error and keeps what it made.
-	got, err := s.ImportIAMUsers([]string{"default", "nosuch"})
-	if err == nil || len(got) != 1 || got[0].Name != "default" || got[0].AWS.Profile != "default" {
-		t.Fatalf("import many = %+v, %v", got, err)
+	// A profile without a config section takes the default region.
+	if got, err := s.ImportIAMUser("default"); err != nil || got.Region != core.DefaultSettings().DefaultRegion || got.AWS.Profile != "default" {
+		t.Fatalf("default profile = %+v, %v", got, err)
 	}
 }

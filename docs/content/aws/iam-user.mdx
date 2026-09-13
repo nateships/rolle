@@ -23,7 +23,7 @@ rolle start personal --mfa-code 123456
 
 ## From the credentials file
 
-`--from-profile` reads the access key of a profile in `~/.aws/credentials` and names the session and its profile after it. The region and `mfa_serial` of the matching `~/.aws/config` section come along. `--name`, `--region`, `--mfa-device`, and `--profile` override them. The key stays in the file; `rolle cleanup <profile>` removes it, and rolle then serves the profile.
+`--from-profile` reads the access key of a profile in `~/.aws/credentials` and names the session and its profile after it. The region and `mfa_serial` of the matching `~/.aws/config` section come along; without a region, the session takes the default region from Settings. `--name`, `--region`, `--mfa-device`, and `--profile` override them. The key stays in the file; `rolle cleanup <profile>` removes it, and rolle then serves the profile.
 
 ```sh
 rolle session add iam-user --from-profile personal
