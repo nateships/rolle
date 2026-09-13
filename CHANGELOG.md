@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.1.10](https://github.com/nateships/rolle/compare/v0.1.9...v0.1.10) (2026-09-13)
+
+
+### Bug Fixes
+
+* **app:** AppImage self-update, cancellable SSO wait, safer macOS swap, CLI install edge cases ([#48](https://github.com/nateships/rolle/issues/48)) ([1a86a2c](https://github.com/nateships/rolle/commit/1a86a2cee3e9e5e038281e2a99d43616939d8c18))
+* CLI Ctrl-C, GCP session validation, stale env tokens, proxy password redaction, and other review findings ([#50](https://github.com/nateships/rolle/issues/50)) ([d17013c](https://github.com/nateships/rolle/commit/d17013cf6d034359815ea2f66e6a686c61714055))
+* hidden sessions leave the sidebar counts, sign-in completion starts the pending session, and review follow-ups ([#49](https://github.com/nateships/rolle/issues/49)) ([82a4529](https://github.com/nateships/rolle/commit/82a452939c442ff2f1934feaa00e7b8d470f4d73))
+
 ## [0.1.9](https://github.com/nateships/rolle/compare/v0.1.8...v0.1.9) (2026-09-12)
 
 
