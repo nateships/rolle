@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/nateships/rolle/compare/v0.2.0...v0.2.1) (2026-09-13)
+
+
+### Bug Fixes
+
+* **app:** an integration without a portal token no longer crashes the expiry tick ([#65](https://github.com/nateships/rolle/issues/65)) ([2f3189f](https://github.com/nateships/rolle/commit/2f3189faa4b0780e1c721469e3936de2b5e91602))
+
 ## [0.2.0](https://github.com/nateships/rolle/compare/v0.1.10...v0.2.0) (2026-09-13)
 
 
