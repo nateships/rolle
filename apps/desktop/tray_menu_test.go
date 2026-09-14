@@ -2,6 +2,7 @@ package main
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -122,6 +123,41 @@ func TestProviderMenusGroupAWSRolesByAccount(t *testing.T) {
 	(&tray{}).addProviderMenus(m, w, sessions[3:5])
 	if got, want := menuLabels(submenu(t, m, "AWS · 2")), []string{"chained", "personal"}; !reflect.DeepEqual(got, want) {
 		t.Fatalf("standalone only = %v, want %v", got, want)
+	}
+}
+
+func TestTagMenusListTaggedSessionsInSidebarOrder(t *testing.T) {
+	exp := time.Now().Add(30 * time.Minute)
+	active := []core.Session{
+		{ID: "admin", Name: "Acme Prod/AdministratorAccess", Kind: core.KindAWSSSORole, Status: core.StatusActive, Expires: &exp, Tags: []string{"Production"}, AWS: &core.AWSSession{Profile: "prod"}},
+	}
+	inactive := []core.Session{
+		{ID: "ro", Name: "Acme Prod/ReadOnlyAccess", Kind: core.KindAWSSSORole, Tags: []string{"Production", "Audit"}, AWS: &core.AWSSession{}},
+		{ID: "gcp", Name: "alpha", Kind: core.KindGCP, GCP: &core.GCPSession{}},
+	}
+	w := &core.Workspace{Tags: []core.Tag{{Name: "Production"}, {Name: "Sandbox"}, {Name: "Audit"}}}
+	m := application.NewMenu()
+	(&tray{}).addTagMenus(m, w, active, inactive)
+
+	// Sidebar order, no empty tag, one separator after the block.
+	if got, want := menuLabels(m), []string{"Tags (off)", "Production · 2", "Audit · 1", "---"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("top level = %v, want %v", got, want)
+	}
+	prod := submenu(t, m, "Production · 2")
+	got := menuLabels(prod)
+	if len(got) != 2 || !strings.HasPrefix(got[0], "Acme Prod/AdministratorAccess · ") || got[1] != "Acme Prod/ReadOnlyAccess" {
+		t.Fatalf("production = %v", got)
+	}
+	// The active session keeps its actions; the inactive one is a start item.
+	if !prod.ItemAt(0).IsSubmenu() || prod.ItemAt(1).IsSubmenu() {
+		t.Fatalf("active session has no submenu or inactive one has: %v", got)
+	}
+
+	// No tagged session, no block at all.
+	m = application.NewMenu()
+	(&tray{}).addTagMenus(m, w, nil, inactive[1:])
+	if got := menuLabels(m); len(got) != 0 {
+		t.Fatalf("menu without tagged sessions = %v", got)
 	}
 }
 
