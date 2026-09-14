@@ -15,7 +15,7 @@ export function GopherMark({ className, autoplay }: { className?: string; autopl
   return (
     <span
       className={cn(
-        "no-drag @container relative isolate inline-block aspect-[385/310] h-16 shrink-0 select-none before:absolute before:inset-[6%] before:-z-10 before:rounded-[20%] before:bg-[#8b9099] before:blur-[9cqw] dark:before:hidden",
+        "no-drag @container relative isolate inline-block aspect-[385/330] h-16 shrink-0 select-none before:absolute before:inset-[6%] before:-z-10 before:rounded-[20%] before:bg-[#8b9099] before:blur-[9cqw] dark:before:hidden",
         className,
       )}
     >
