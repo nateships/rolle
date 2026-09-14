@@ -12,6 +12,12 @@ export interface AWSSSOIntegration {
      * TokenExpires is when the cached access token stops working. Nil when logged out.
      */
     "tokenExpires"?: string | null;
+
+    /**
+     * Renews is true when the portal issued a refresh token, so the login
+     * outlives TokenExpires without the browser.
+     */
+    "renews"?: boolean;
 }
 
 /**

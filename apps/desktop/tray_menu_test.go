@@ -126,6 +126,31 @@ func TestProviderMenusGroupAWSRolesByAccount(t *testing.T) {
 	}
 }
 
+func TestPortalWarningsNameTheExpiringSignIn(t *testing.T) {
+	now := time.Now()
+	soon := now.Add(12 * time.Minute)
+	later := now.Add(3 * time.Hour)
+	w := &core.Workspace{
+		Integrations: []core.Integration{
+			{ID: "acme", Alias: "acme", AWSSSO: &core.AWSSSOIntegration{TokenExpires: &soon}},
+			{ID: "globex", Alias: "globex", AWSSSO: &core.AWSSSOIntegration{TokenExpires: &later}},
+			{ID: "idle", Alias: "idle", AWSSSO: &core.AWSSSOIntegration{TokenExpires: &soon}},
+		},
+		Sessions: []core.Session{
+			{ID: "a", IntegrationID: "acme", Status: core.StatusActive},
+			{ID: "g", IntegrationID: "globex", Status: core.StatusActive},
+			{ID: "i", IntegrationID: "idle"},
+		},
+	}
+	m := application.NewMenu()
+	(&tray{}).addPortalWarnings(m, w, now)
+	// Only the portal that is due and still has an active session.
+	got := menuLabels(m)
+	if len(got) != 1 || !strings.HasPrefix(got[0], "acme sign-in expires in 1") || !strings.HasSuffix(got[0], " · Sign in again") {
+		t.Fatalf("warnings = %v", got)
+	}
+}
+
 func TestFavoritesListActiveAndInactive(t *testing.T) {
 	exp := time.Now().Add(30 * time.Minute)
 	active := []core.Session{

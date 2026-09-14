@@ -148,6 +148,7 @@ func (t *tray) rebuild() {
 	sort.Slice(active, func(i, j int) bool { return active[i].Name < active[j].Name })
 
 	menu.Add(fmt.Sprintf("rolle · %s", countLabel(len(active)))).SetEnabled(false)
+	t.addPortalWarnings(menu, w, time.Now())
 	if len(active) > 0 {
 		menu.Add("Stop all").OnClick(func(*application.Context) {
 			for _, s := range active {
@@ -213,6 +214,24 @@ func splitForMenu(sessions []core.Session) (active, inactive []core.Session) {
 		}
 	}
 	return active, inactive
+}
+
+// addPortalWarnings names each Identity Center sign-in that ends soon while
+// a session under it runs: the reason for the flag on the icon. A click runs
+// the sign-in again.
+func (t *tray) addPortalWarnings(menu *application.Menu, w *core.Workspace, now time.Time) {
+	for _, in := range w.Integrations {
+		left, ok := portalDue(w, in, now)
+		if !ok {
+			continue
+		}
+		id := in.ID
+		menu.Add(fmt.Sprintf("%s sign-in expires in %s · Sign in again", in.Alias, until(now.Add(left)))).
+			OnClick(func(*application.Context) {
+				t.app.Event.Emit(EventStartNeedsLogin, StartRequest{IntegrationID: id})
+				t.showWindow()
+			})
+	}
 }
 
 // addSessionItem adds one session: an active one gets a submenu with its

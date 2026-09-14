@@ -355,6 +355,12 @@ func (s *SSO) TokenExpiry() *time.Time {
 	return nil
 }
 
+// Renews reports whether the stored token carries what a silent refresh needs.
+func (s *SSO) Renews() bool {
+	t, err := s.storedToken()
+	return err == nil && refreshable(t)
+}
+
 // Probe reports whether the stored portal token still works and returns its
 // expiry. A lapsed access token is refreshed, so the call proves the login
 // rather than the record of it. ErrSSOLoginRequired means only a new login

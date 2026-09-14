@@ -74,6 +74,9 @@ type AWSSSOIntegration struct {
 	Region   string `json:"region"`
 	// TokenExpires is when the cached access token stops working. Nil when logged out.
 	TokenExpires *time.Time `json:"tokenExpires,omitempty"`
+	// Renews is true when the portal issued a refresh token, so the login
+	// outlives TokenExpires without the browser.
+	Renews bool `json:"renews,omitempty"`
 }
 
 // AzureIntegration configures an Entra ID tenant.

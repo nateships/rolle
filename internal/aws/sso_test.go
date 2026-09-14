@@ -105,6 +105,26 @@ func TestSSOTokenLifecycle(t *testing.T) {
 	}
 }
 
+func TestRenewsNeedsRefreshTokenAndClient(t *testing.T) {
+	now := ssoNow
+	s := newSSO(&secrets.Memory{}, &now)
+	if s.Renews() {
+		t.Fatal("renews without a token")
+	}
+	if err := s.StoreImportedToken("at", "", "cid", "cs", "", now.Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if s.Renews() {
+		t.Fatal("renews without a refresh token")
+	}
+	if err := s.StoreImportedToken("at", "rt", "cid", "cs", "", now.Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if !s.Renews() {
+		t.Fatal("does not renew with a refresh token and client")
+	}
+}
+
 func TestStoreImportedTokenKeepsExplicitRegion(t *testing.T) {
 	now := ssoNow
 	mem := &secrets.Memory{}
