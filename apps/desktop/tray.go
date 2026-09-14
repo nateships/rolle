@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"fmt"
 	"runtime"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -188,6 +189,8 @@ func (t *tray) rebuild() {
 		menu.AddSeparator()
 	}
 
+	t.addTagMenus(menu, w, active, inactive)
+
 	// Every other inactive session, grouped by provider and AWS account.
 	t.addProviderMenus(menu, w, inactive)
 
@@ -221,6 +224,46 @@ func splitForMenu(sessions []core.Session) (active, inactive []core.Session) {
 		}
 	}
 	return active, inactive
+}
+
+// addTagMenus adds one submenu per tag, in sidebar order, with the sessions
+// that carry it. Active sessions keep their actions; the rest start on click.
+// Tags without a session shown in the menu are left out.
+func (t *tray) addTagMenus(menu *application.Menu, w *core.Workspace, active, inactive []core.Session) {
+	shown := append(append([]core.Session{}, active...), inactive...)
+	sort.Slice(shown, func(i, j int) bool { return shown[i].Name < shown[j].Name })
+	header := false
+	for _, tag := range w.Tags {
+		var tagged []core.Session
+		for _, s := range shown {
+			if slices.Contains(s.Tags, tag.Name) {
+				tagged = append(tagged, s)
+			}
+		}
+		if len(tagged) == 0 {
+			continue
+		}
+		if !header {
+			menu.Add("Tags").SetEnabled(false)
+			header = true
+		}
+		sub := menu.AddSubmenu(fmt.Sprintf("%s · %d", tag.Name, len(tagged)))
+		for _, s := range tagged {
+			sess := s
+			if sess.Status != core.StatusActive {
+				t.addStartItem(sub, sess, sess.Name)
+				continue
+			}
+			label := sess.Name
+			if sess.Expires != nil {
+				label = fmt.Sprintf("%s · %s", sess.Name, until(*sess.Expires))
+			}
+			t.addSessionMenu(sub.AddSubmenu(label), sess)
+		}
+	}
+	if header {
+		menu.AddSeparator()
+	}
 }
 
 // addProviderMenus adds AWS, Azure, and Google Cloud submenus with the inactive sessions.
