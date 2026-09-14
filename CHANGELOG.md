@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.4.0](https://github.com/nateships/rolle/compare/v0.3.0...v0.4.0) (2026-09-14)
+
+
+### Features
+
+* help menu in the sidebar with docs, changelog, and support ([#79](https://github.com/nateships/rolle/issues/79)) ([6269c1e](https://github.com/nateships/rolle/commit/6269c1e65d713b36c7ca6146d57969d754bfc0f8))
+* tag submenus in the tray menu ([#87](https://github.com/nateships/rolle/issues/87)) ([4443034](https://github.com/nateships/rolle/commit/444303460c7de45ae1b4c806778258459d3a1a29))
+
+
+### Bug Fixes
+
+* align sidebar labels in one column ([#88](https://github.com/nateships/rolle/issues/88)) ([b958a49](https://github.com/nateships/rolle/commit/b958a49e0522d93e8f80889af3c9ee27c15ac0d2))
+* drop the ellipsis from the Reset button ([#82](https://github.com/nateships/rolle/issues/82)) ([5ff0f87](https://github.com/nateships/rolle/commit/5ff0f874ae257af8058512fb2a065a9724340265))
+* drop the ellipsis from the tray menu items ([#83](https://github.com/nateships/rolle/issues/83)) ([c47fea7](https://github.com/nateships/rolle/commit/c47fea7a2a419576f4c9999a330d26abb02296a0))
+* headroom for the gopher's dance in the logo ([#84](https://github.com/nateships/rolle/issues/84)) ([86ec886](https://github.com/nateships/rolle/commit/86ec88615998bebf32a10481e76d3abeac9e0539))
+* keep active favorites in the tray's Favorites section ([#89](https://github.com/nateships/rolle/issues/89)) ([1cde082](https://github.com/nateships/rolle/commit/1cde0825ca193b96c4c4b91689117b763d8f23c4))
+* keep the warning color on a hovered profile chip ([#81](https://github.com/nateships/rolle/issues/81)) ([fd89615](https://github.com/nateships/rolle/commit/fd8961528b57fdfc3b78f0d2037a114757df5d64))
+* restore the ellipsis on tray items that open a window ([#86](https://github.com/nateships/rolle/issues/86)) ([326cfeb](https://github.com/nateships/rolle/commit/326cfeb700cd7cedd01b03e8b7978a943ac58479))
+
 ## [0.3.0](https://github.com/nateships/rolle/compare/v0.2.1...v0.3.0) (2026-09-13)
 
 
