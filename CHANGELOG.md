@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.1](https://github.com/nateships/rolle/compare/v0.4.0...v0.4.1) (2026-09-14)
+
+
+### Bug Fixes
+
+* review of the tray and sign-in changes since 0.4.0 ([#92](https://github.com/nateships/rolle/issues/92)) ([709684c](https://github.com/nateships/rolle/commit/709684c1e1da8ea5ab581d96436840fbd8507623))
+* the expiry flag names its sign-in, and only one that needs the browser ([#90](https://github.com/nateships/rolle/issues/90)) ([8ec5ca1](https://github.com/nateships/rolle/commit/8ec5ca1e17e1af907c40f330abb98c07decab7f5))
+
 ## [0.4.0](https://github.com/nateships/rolle/compare/v0.3.0...v0.4.0) (2026-09-14)
 
 
