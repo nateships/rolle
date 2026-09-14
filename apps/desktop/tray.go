@@ -148,22 +148,7 @@ func (t *tray) rebuild() {
 	sort.Slice(active, func(i, j int) bool { return active[i].Name < active[j].Name })
 
 	menu.Add(fmt.Sprintf("rolle · %s", countLabel(len(active)))).SetEnabled(false)
-	menu.AddSeparator()
-
-	if len(w.Sessions) == 0 {
-		menu.Add("No sessions yet").SetEnabled(false)
-	}
-
-	// Active sessions: one submenu each with the session actions.
 	if len(active) > 0 {
-		for _, s := range active {
-			sess := s
-			label := sess.Name
-			if sess.Expires != nil {
-				label = fmt.Sprintf("%s · %s", sess.Name, until(*sess.Expires))
-			}
-			t.addSessionMenu(menu.AddSubmenu(label), sess)
-		}
 		menu.Add("Stop all").OnClick(func(*application.Context) {
 			for _, s := range active {
 				if err := t.svc.Stop(s.ID); err != nil {
@@ -171,24 +156,28 @@ func (t *tray) rebuild() {
 				}
 			}
 		})
-		menu.AddSeparator()
+	}
+	menu.AddSeparator()
+
+	if len(w.Sessions) == 0 {
+		menu.Add("No sessions yet").SetEnabled(false)
 	}
 
-	// Favorites that are not active start with one click.
-	var favs []core.Session
-	for _, s := range inactive {
+	// Active sessions, one submenu each with the session actions. Active
+	// favorites are listed under Favorites instead, so nothing shows twice.
+	running := false
+	for _, s := range active {
 		if s.Favorite {
-			favs = append(favs, s)
+			continue
 		}
+		t.addSessionItem(menu, s)
+		running = true
 	}
-	if len(favs) > 0 {
-		menu.Add("Favorites").SetEnabled(false)
-		for _, s := range favs {
-			t.addStartItem(menu, s, s.Name)
-		}
+	if running {
 		menu.AddSeparator()
 	}
 
+	t.addFavorites(menu, active, inactive)
 	t.addTagMenus(menu, w, active, inactive)
 
 	// Every other inactive session, grouped by provider and AWS account.
@@ -226,12 +215,53 @@ func splitForMenu(sessions []core.Session) (active, inactive []core.Session) {
 	return active, inactive
 }
 
+// addSessionItem adds one session: an active one gets a submenu with its
+// actions and its countdown, the rest start on click.
+func (t *tray) addSessionItem(menu *application.Menu, sess core.Session) {
+	if sess.Status != core.StatusActive {
+		t.addStartItem(menu, sess, sess.Name)
+		return
+	}
+	label := sess.Name
+	if sess.Expires != nil {
+		label = fmt.Sprintf("%s · %s", sess.Name, until(*sess.Expires))
+	}
+	t.addSessionMenu(menu.AddSubmenu(label), sess)
+}
+
+// shownByName is every session the menu shows, sorted by name.
+func shownByName(active, inactive []core.Session) []core.Session {
+	shown := append(append([]core.Session{}, active...), inactive...)
+	sort.Slice(shown, func(i, j int) bool { return shown[i].Name < shown[j].Name })
+	return shown
+}
+
+// addFavorites lists every favorite, so the section matches the sidebar.
+// Active favorites come first with their actions; the rest start on click.
+func (t *tray) addFavorites(menu *application.Menu, active, inactive []core.Session) {
+	var favs []core.Session
+	for _, group := range [][]core.Session{active, inactive} {
+		for _, s := range shownByName(group, nil) {
+			if s.Favorite {
+				favs = append(favs, s)
+			}
+		}
+	}
+	if len(favs) == 0 {
+		return
+	}
+	menu.Add("Favorites").SetEnabled(false)
+	for _, s := range favs {
+		t.addSessionItem(menu, s)
+	}
+	menu.AddSeparator()
+}
+
 // addTagMenus adds one submenu per tag, in sidebar order, with the sessions
 // that carry it. Active sessions keep their actions; the rest start on click.
 // Tags without a session shown in the menu are left out.
 func (t *tray) addTagMenus(menu *application.Menu, w *core.Workspace, active, inactive []core.Session) {
-	shown := append(append([]core.Session{}, active...), inactive...)
-	sort.Slice(shown, func(i, j int) bool { return shown[i].Name < shown[j].Name })
+	shown := shownByName(active, inactive)
 	header := false
 	for _, tag := range w.Tags {
 		var tagged []core.Session
@@ -249,16 +279,7 @@ func (t *tray) addTagMenus(menu *application.Menu, w *core.Workspace, active, in
 		}
 		sub := menu.AddSubmenu(fmt.Sprintf("%s · %d", tag.Name, len(tagged)))
 		for _, s := range tagged {
-			sess := s
-			if sess.Status != core.StatusActive {
-				t.addStartItem(sub, sess, sess.Name)
-				continue
-			}
-			label := sess.Name
-			if sess.Expires != nil {
-				label = fmt.Sprintf("%s · %s", sess.Name, until(*sess.Expires))
-			}
-			t.addSessionMenu(sub.AddSubmenu(label), sess)
+			t.addSessionItem(sub, s)
 		}
 	}
 	if header {
