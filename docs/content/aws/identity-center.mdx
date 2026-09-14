@@ -21,7 +21,7 @@ rolle integration logout acme           # sign out and stop its sessions
 
 ## Sessions from a portal
 
-Roles group under their account in the desktop app. Sync adds roles and removes roles you cannot reach. A started role calls `GetRoleCredentials` and renews while the portal sign-in is valid. Fifteen minutes before that sign-in expires, when the portal has active sessions, the desktop app sends a notification with a **Sign in** button.
+Roles group under their account in the desktop app. Sync adds roles and removes roles you cannot reach. A started role calls `GetRoleCredentials` and renews while the portal sign-in is valid. A sign-in made in rolle carries a refresh token and renews itself for as long as your Identity Center session lasts. When a sign-in cannot renew itself, fifteen minutes before it expires with active sessions under it, the desktop app sends a notification with a **Sign in** button and the tray names it.
 
 The credential lifetime is the permission set's session duration, set by the Identity Center administrator (1 to 12 hours). **Assume role duration** applies only to [chained assume-role sessions](/aws/assume-role).
 

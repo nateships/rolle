@@ -91,6 +91,13 @@ func TestPortalNoticesAndExpiringSoon(t *testing.T) {
 	if !expiringSoon(w, now, core.DefaultNotifyLead) {
 		t.Fatal("portal inside its lead: not flagged")
 	}
+	// A login that renews itself is never the reason for the flag.
+	w.Integrations[1].AWSSSO.TokenExpires = at(5 * time.Minute)
+	w.Integrations[1].AWSSSO.Renews = true
+	if expiringSoon(w, now, core.DefaultNotifyLead) {
+		t.Fatal("renewing login flagged")
+	}
+	w.Integrations[1].AWSSSO.Renews = false
 	w.Integrations[1].AWSSSO.TokenExpires = at(8 * time.Hour)
 	if expiringSoon(w, now, core.DefaultNotifyLead) {
 		t.Fatal("nothing close: flagged")

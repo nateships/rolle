@@ -108,8 +108,9 @@ func portalNotices(w *core.Workspace, now time.Time, warned map[string]time.Time
 
 // portalDue reports whether the Identity Center sign-in of in ends inside
 // portalWarnBefore while a session under it is active, and how long is left.
+// A login with a refresh token renews itself, so it is never due.
 func portalDue(w *core.Workspace, in core.Integration, now time.Time) (time.Duration, bool) {
-	if in.AWSSSO == nil || in.AWSSSO.TokenExpires == nil || !hasActive(w.Sessions, in.ID) {
+	if in.AWSSSO == nil || in.AWSSSO.TokenExpires == nil || in.AWSSSO.Renews || !hasActive(w.Sessions, in.ID) {
 		return 0, false
 	}
 	left := in.AWSSSO.TokenExpires.Sub(now)

@@ -329,11 +329,19 @@ func (s *Service) FinishSSOLogin(ctx context.Context, ref string) ([]core.Sessio
 	if err != nil {
 		return nil, err
 	}
-	in.AWSSSO.TokenExpires = s.sso(*in).TokenExpiry()
+	s.recordLogin(in)
 	if err := s.Save(w); err != nil {
 		return nil, err
 	}
 	return s.SyncSSO(ctx, ref)
+}
+
+// recordLogin copies the portal token state into the integration: when the
+// access token ends, and whether a refresh token renews it without the browser.
+func (s *Service) recordLogin(in *core.Integration) {
+	sso := s.sso(*in)
+	in.AWSSSO.TokenExpires = sso.TokenExpiry()
+	in.AWSSSO.Renews = in.AWSSSO.TokenExpires != nil && sso.Renews()
 }
 
 // SSOLogout drops the token and deactivates the integration's sessions.
@@ -350,6 +358,7 @@ func (s *Service) SSOLogout(ref string) error {
 		return err
 	}
 	in.AWSSSO.TokenExpires = nil
+	in.AWSSSO.Renews = false
 	// Cleanup failures are reported after the save, as in RemoveIntegration.
 	var cleanup []error
 	for i := range w.Sessions {
@@ -649,7 +658,7 @@ func (s *Service) Start(ctx context.Context, ref string, opts StartOptions) (cor
 	// integration's login state in step with the keychain.
 	if sess.Kind == core.KindAWSSSORole {
 		if in, err := w.Integration(sess.IntegrationID); err == nil {
-			in.AWSSSO.TokenExpires = s.sso(*in).TokenExpiry()
+			s.recordLogin(in)
 		}
 	}
 	// Write the profile before anything else changes on disk, so a refused
@@ -711,7 +720,7 @@ func (s *Service) recordSSOToken(integrationID string) {
 	if err != nil || in.AWSSSO == nil {
 		return
 	}
-	in.AWSSSO.TokenExpires = s.sso(*in).TokenExpiry()
+	s.recordLogin(in)
 	_ = s.Save(w)
 }
 
@@ -992,6 +1001,7 @@ func (s *Service) RefreshContext(ctx context.Context) (*core.Workspace, error) {
 	for id, exp := range logins {
 		if in, err := w.Integration(id); err == nil && in.AWSSSO != nil {
 			in.AWSSSO.TokenExpires = exp
+			in.AWSSSO.Renews = exp != nil && s.sso(*in).Renews()
 		}
 	}
 	tokenSeen := map[string]bool{}
@@ -1007,7 +1017,7 @@ func (s *Service) RefreshContext(ctx context.Context) (*core.Workspace, error) {
 			if sess.Kind == core.KindAWSSSORole && !tokenSeen[sess.IntegrationID] {
 				tokenSeen[sess.IntegrationID] = true
 				if in, err := w.Integration(sess.IntegrationID); err == nil {
-					in.AWSSSO.TokenExpires = s.sso(*in).TokenExpiry()
+					s.recordLogin(in)
 				}
 			}
 		}
