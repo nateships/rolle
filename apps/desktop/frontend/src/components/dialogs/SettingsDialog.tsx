@@ -417,7 +417,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                     className="gap-1.5 border-destructive/40 text-destructive hover:bg-destructive/10"
                     onClick={() => setConfirmReset(true)}
                   >
-                    <Trash2 className="size-3.5" /> Reset rolle…
+                    <Trash2 className="size-3.5" /> Reset rolle
                   </Button>
                 )}
               </div>
