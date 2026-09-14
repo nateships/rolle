@@ -966,13 +966,16 @@ function SideItem({
         title={dot ? (dot === "ok" ? "Signed in" : "Signed out") : undefined}
         className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-sm"
       >
-        {icon}
-        {dot && (
-          <span
-            aria-hidden
-            className={cn("size-1.5 shrink-0 rounded-full", dot === "ok" ? "bg-emerald-400" : "bg-muted-foreground/40")}
-          />
-        )}
+        {/* Fixed slot for the icon or the dot keeps every label in one column. */}
+        <span className="flex size-3.5 shrink-0 items-center justify-center">
+          {icon}
+          {dot && (
+            <span
+              aria-hidden
+              className={cn("size-1.5 rounded-full", dot === "ok" ? "bg-emerald-400" : "bg-muted-foreground/40")}
+            />
+          )}
+        </span>
         <span className="truncate">{label}</span>
         {count !== undefined && (
           <span
