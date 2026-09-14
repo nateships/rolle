@@ -186,24 +186,6 @@ describe("SettingsDialog", () => {
     await waitFor(() => expect(error).toHaveBeenCalledWith("offline"));
   });
 
-  it("saves a support bundle and opens the report form", async () => {
-    const user = userEvent.setup();
-    vi.spyOn(api, "ExportSupportBundle").mockResolvedValue("~/Downloads/rolle-support.zip");
-    vi.spyOn(api, "SupportURL").mockResolvedValue("https://github.com/x/issues/new");
-    const openUrl = vi.spyOn(api, "OpenURL").mockResolvedValue();
-    const success = vi.spyOn(toast, "success");
-    await open();
-    await tab(user, "About");
-
-    await user.click(screen.getByRole("button", { name: /support bundle/i }));
-    await waitFor(() =>
-      expect(success).toHaveBeenCalledWith("Support bundle saved", { description: "~/Downloads/rolle-support.zip" }),
-    );
-
-    await user.click(screen.getByRole("button", { name: /report a problem/i }));
-    await waitFor(() => expect(openUrl).toHaveBeenCalledWith("https://github.com/x/issues/new"));
-  });
-
   it("switches the update channel and copies a file path", async () => {
     const user = userEvent.setup();
     const success = vi.spyOn(toast, "success");
@@ -340,9 +322,8 @@ describe("SettingsDialog", () => {
     expect(document.documentElement).not.toHaveClass("dark");
   });
 
-  it("reports a failed bundle export, install, and copy", async () => {
+  it("reports a failed install", async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, "ExportSupportBundle").mockRejectedValue(new Error("no disk"));
     vi.spyOn(api, "Info").mockRejectedValue(new Error("no info"));
     vi.spyOn(api, "CheckForUpdates").mockResolvedValue({
       enabled: true,
@@ -359,16 +340,13 @@ describe("SettingsDialog", () => {
 
     // A failed app info read does not keep the dialog from opening.
     expect(screen.getByRole("tab", { name: "About" })).toHaveAttribute("aria-selected", "true");
-    await user.click(screen.getByRole("button", { name: /support bundle/i }));
-    await waitFor(() => expect(error).toHaveBeenCalledWith("no disk"));
-
     await user.click(screen.getByRole("button", { name: /check for updates/i }));
     const installButton = await screen.findByRole("button", { name: /install/i });
     // A declined prompt is quiet; any other failure is shown.
     await user.click(installButton);
     await waitFor(() => expect(install).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(screen.getByRole("button", { name: /install/i })).toBeEnabled());
-    expect(error).toHaveBeenCalledTimes(1);
+    expect(error).not.toHaveBeenCalled();
     install.mockRejectedValueOnce(new Error("bad signature"));
     await user.click(screen.getByRole("button", { name: /install/i }));
     await waitFor(() => expect(error).toHaveBeenCalledWith("bad signature"));

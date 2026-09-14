@@ -1,18 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Bug,
-  Check,
-  Copy,
-  Download,
-  FileArchive,
-  Loader2,
-  Monitor,
-  Moon,
-  RefreshCw,
-  RotateCcw,
-  Sun,
-  Trash2,
-} from "lucide-react";
+import { Check, Copy, Download, Loader2, Monitor, Moon, RefreshCw, RotateCcw, Sun, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { StaticKeysCard } from "@/components/StaticKeys";
@@ -79,18 +66,6 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
   }, [justSaved]);
   const [confirmReset, setConfirmReset] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
-  const [exporting, setExporting] = useState(false);
-  const exportBundle = async () => {
-    setExporting(true);
-    try {
-      const path = await api.ExportSupportBundle();
-      toast.success("Support bundle saved", { description: path });
-    } catch (e) {
-      toast.error(errorMessage(e));
-    } finally {
-      setExporting(false);
-    }
-  };
   const [checking, setChecking] = useState(false);
   const [installing, setInstalling] = useState(false);
 
@@ -382,25 +357,6 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                   expire on their own.
                 </p>
               </div>
-              <Row
-                label="Help"
-                hint="Report a problem opens the GitHub form with your version and platform filled in. The support bundle is a zip of settings, a redacted workspace, and recent diagnostics; attach it to the report."
-              >
-                <div className="flex shrink-0 gap-2">
-                  <Button size="sm" variant="secondary" className="gap-1.5" onClick={exportBundle} disabled={exporting}>
-                    {exporting ? <Loader2 className="size-3.5 animate-spin" /> : <FileArchive className="size-3.5" />}{" "}
-                    Support bundle
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="secondary"
-                    className="gap-1.5"
-                    onClick={() => void api.SupportURL().then((u) => api.OpenURL(u))}
-                  >
-                    <Bug className="size-3.5" /> Report a problem
-                  </Button>
-                </div>
-              </Row>
             </TabsContent>
 
             <TabsContent value="advanced" className="mt-4 min-h-[27rem] space-y-3">
