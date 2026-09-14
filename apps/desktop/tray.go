@@ -345,12 +345,12 @@ func (t *tray) addSessionMenu(menu *application.Menu, sess core.Session) {
 func (t *tray) addFooter(menu *application.Menu) {
 	menu.AddSeparator()
 	menu.Add("Open rolle").OnClick(func(*application.Context) { t.showWindow() })
-	menu.Add("Report a problem…").OnClick(func(*application.Context) {
+	menu.Add("Report a problem").OnClick(func(*application.Context) {
 		if err := browser.Open(supportURL(version.Version, runtime.GOOS, runtime.GOARCH)); err != nil {
 			debug.Logf("tray", "support: %v", err)
 		}
 	})
-	menu.Add("Settings…").OnClick(func(*application.Context) {
+	menu.Add("Settings").OnClick(func(*application.Context) {
 		t.showWindow()
 		t.app.Event.Emit(EventOpenSettings, struct{}{})
 	})
