@@ -133,14 +133,15 @@ func TestFavoritesListActiveAndInactive(t *testing.T) {
 		{ID: "gcp", Name: "alpha", Kind: core.KindGCP, Status: core.StatusActive, GCP: &core.GCPSession{}},
 	}
 	inactive := []core.Session{
-		{ID: "ro", Name: "Acme Prod/ReadOnlyAccess", Kind: core.KindAWSSSORole, Favorite: true, AWS: &core.AWSSession{}},
+		{ID: "ro", Name: "AAA first by name", Kind: core.KindAWSSSORole, Favorite: true, AWS: &core.AWSSession{}},
 		{ID: "az", Name: "Contoso", Kind: core.KindAzure, Azure: &core.AzureSession{}},
 	}
 	m := application.NewMenu()
 	(&tray{}).addFavorites(m, active, inactive)
 
+	// Active favorites lead, then the rest by name.
 	got := menuLabels(m)
-	if len(got) != 4 || got[0] != "Favorites (off)" || !strings.HasPrefix(got[1], "Acme Prod/AdministratorAccess · ") || got[2] != "Acme Prod/ReadOnlyAccess" || got[3] != "---" {
+	if len(got) != 4 || got[0] != "Favorites (off)" || !strings.HasPrefix(got[1], "Acme Prod/AdministratorAccess · ") || got[2] != "AAA first by name" || got[3] != "---" {
 		t.Fatalf("favorites = %v", got)
 	}
 	// The active favorite keeps its actions; the inactive one is a start item.

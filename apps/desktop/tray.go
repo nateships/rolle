@@ -148,17 +148,7 @@ func (t *tray) rebuild() {
 	sort.Slice(active, func(i, j int) bool { return active[i].Name < active[j].Name })
 
 	menu.Add(fmt.Sprintf("rolle · %s", countLabel(len(active)))).SetEnabled(false)
-	menu.AddSeparator()
-
-	if len(w.Sessions) == 0 {
-		menu.Add("No sessions yet").SetEnabled(false)
-	}
-
-	// Active sessions: one submenu each with the session actions.
 	if len(active) > 0 {
-		for _, s := range active {
-			t.addSessionItem(menu, s)
-		}
 		menu.Add("Stop all").OnClick(func(*application.Context) {
 			for _, s := range active {
 				if err := t.svc.Stop(s.ID); err != nil {
@@ -166,6 +156,24 @@ func (t *tray) rebuild() {
 				}
 			}
 		})
+	}
+	menu.AddSeparator()
+
+	if len(w.Sessions) == 0 {
+		menu.Add("No sessions yet").SetEnabled(false)
+	}
+
+	// Active sessions, one submenu each with the session actions. Active
+	// favorites are listed under Favorites instead, so nothing shows twice.
+	running := false
+	for _, s := range active {
+		if s.Favorite {
+			continue
+		}
+		t.addSessionItem(menu, s)
+		running = true
+	}
+	if running {
 		menu.AddSeparator()
 	}
 
@@ -228,13 +236,15 @@ func shownByName(active, inactive []core.Session) []core.Session {
 	return shown
 }
 
-// addFavorites lists every favorite, active or not, so the section matches
-// the sidebar. An active favorite keeps its actions here too.
+// addFavorites lists every favorite, so the section matches the sidebar.
+// Active favorites come first with their actions; the rest start on click.
 func (t *tray) addFavorites(menu *application.Menu, active, inactive []core.Session) {
 	var favs []core.Session
-	for _, s := range shownByName(active, inactive) {
-		if s.Favorite {
-			favs = append(favs, s)
+	for _, group := range [][]core.Session{active, inactive} {
+		for _, s := range shownByName(group, nil) {
+			if s.Favorite {
+				favs = append(favs, s)
+			}
 		}
 	}
 	if len(favs) == 0 {
