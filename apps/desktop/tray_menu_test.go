@@ -126,6 +126,36 @@ func TestProviderMenusGroupAWSRolesByAccount(t *testing.T) {
 	}
 }
 
+func TestFavoritesListActiveAndInactive(t *testing.T) {
+	exp := time.Now().Add(30 * time.Minute)
+	active := []core.Session{
+		{ID: "admin", Name: "Acme Prod/AdministratorAccess", Kind: core.KindAWSSSORole, Status: core.StatusActive, Expires: &exp, Favorite: true, AWS: &core.AWSSession{Profile: "prod"}},
+		{ID: "gcp", Name: "alpha", Kind: core.KindGCP, Status: core.StatusActive, GCP: &core.GCPSession{}},
+	}
+	inactive := []core.Session{
+		{ID: "ro", Name: "Acme Prod/ReadOnlyAccess", Kind: core.KindAWSSSORole, Favorite: true, AWS: &core.AWSSession{}},
+		{ID: "az", Name: "Contoso", Kind: core.KindAzure, Azure: &core.AzureSession{}},
+	}
+	m := application.NewMenu()
+	(&tray{}).addFavorites(m, active, inactive)
+
+	got := menuLabels(m)
+	if len(got) != 4 || got[0] != "Favorites (off)" || !strings.HasPrefix(got[1], "Acme Prod/AdministratorAccess · ") || got[2] != "Acme Prod/ReadOnlyAccess" || got[3] != "---" {
+		t.Fatalf("favorites = %v", got)
+	}
+	// The active favorite keeps its actions; the inactive one is a start item.
+	if !m.ItemAt(1).IsSubmenu() || m.ItemAt(2).IsSubmenu() {
+		t.Fatalf("active favorite has no submenu or inactive one has: %v", got)
+	}
+
+	// No favorite, no section.
+	m = application.NewMenu()
+	(&tray{}).addFavorites(m, active[1:], inactive[1:])
+	if got := menuLabels(m); len(got) != 0 {
+		t.Fatalf("menu without favorites = %v", got)
+	}
+}
+
 func TestTagMenusListTaggedSessionsInSidebarOrder(t *testing.T) {
 	exp := time.Now().Add(30 * time.Minute)
 	active := []core.Session{
