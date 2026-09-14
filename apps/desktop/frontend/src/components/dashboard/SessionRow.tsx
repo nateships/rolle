@@ -403,7 +403,8 @@ export function SessionRow({
                 onClick={() => setEditing(profileTarget())}
                 className={cn(
                   "inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-accent hover:text-foreground",
-                  shadowedBy && "text-amber-600 dark:text-amber-400",
+                  // The warning color stays on hover; it wins over hover:text-foreground through tailwind-merge.
+                  shadowedBy && "text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300",
                 )}
                 title={shadowNote || "Change the AWS profile name"}
               >

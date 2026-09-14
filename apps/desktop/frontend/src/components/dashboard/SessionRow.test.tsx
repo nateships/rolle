@@ -489,6 +489,10 @@ describe("SessionRow actions", () => {
     renderRow(s, { shadows: { default: "~/.aws/credentials" } });
     // The profile cell carries the mark and the reason.
     expect(screen.getByLabelText("Profile is shadowed")).toBeInTheDocument();
+    // The chip keeps its warning color on hover instead of the default hover:text-foreground.
+    const chip = screen.getByLabelText("Profile is shadowed").closest("button")!;
+    expect(chip.className).toContain("hover:text-amber-700");
+    expect(chip.className).not.toContain("hover:text-foreground");
     expect(screen.getByRole("button", { name: /default/ })).toHaveAttribute(
       "title",
       "A profile with this name in ~/.aws/credentials wins. Click to fix.",
