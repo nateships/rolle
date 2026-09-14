@@ -148,7 +148,8 @@ export function GopherRig({ className, autoplay }: { className?: string; autopla
   }
 
   return (
-    <svg ref={svg} viewBox="0 0 385 310" className={cn("size-full", className)} aria-hidden onClick={() => play()}>
+    // The box starts 20 units above the artwork: the dance lifts the head 14 units and the SVG clips at its edge.
+    <svg ref={svg} viewBox="0 -20 385 330" className={cn("size-full", className)} aria-hidden onClick={() => play()}>
       <defs>
         <mask id={`${uid}-front`} maskUnits="userSpaceOnUse" x="-200" y="-200" width="1000" height="1000">
           <rect x="-200" y="-200" width="1000" height="1000" fill="white" />
