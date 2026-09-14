@@ -38,6 +38,7 @@ import {
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { ActionItems, type Action } from "@/components/ActionMenu";
 import { GopherLockup, GopherMark } from "@/components/Brand";
+import { HelpMenu } from "@/components/dashboard/HelpMenu";
 import { SessionTable, useColumnWidths } from "./SessionTable";
 import { DevTools } from "@/components/DevTools";
 import { SettingsDialog } from "@/components/dialogs/SettingsDialog";
@@ -689,6 +690,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
               </Button>
             )}
             <DevTools />
+            <HelpMenu />
             <span className="relative">
               {held && <Key className="absolute -top-7 right-0 h-5 text-[10px]">{combo("/")}</Key>}
               <Button

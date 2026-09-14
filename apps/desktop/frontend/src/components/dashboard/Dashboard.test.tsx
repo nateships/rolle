@@ -296,6 +296,9 @@ describe("Dashboard", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     await user.click(screen.getByRole("button", { name: "Keyboard shortcuts" }));
     expect(await screen.findByRole("dialog", { name: /keyboard shortcuts/i })).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: "Help" }));
+    expect(await screen.findByRole("menuitem", { name: /documentation/i })).toBeInTheDocument();
   });
 
   describe("integration menus", () => {

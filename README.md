@@ -54,7 +54,7 @@ aws sts get-caller-identity --profile default
 
 ## Support
 
-Open an [issue](https://github.com/nateships/rolle/issues/new/choose). In the app, **Settings → About → Report a problem** fills in your version and platform, and **Support bundle** writes a redacted zip to attach.
+Open an [issue](https://github.com/nateships/rolle/issues/new/choose). In the app, **Help → Report a problem** fills in your version and platform, and **Support bundle** writes a redacted zip to attach.
 
 ## Contributing
 
