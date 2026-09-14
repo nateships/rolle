@@ -143,7 +143,7 @@ func TestSessionMenuOffersProfileCommandForAWSOnly(t *testing.T) {
 func TestFooterKeepsOpenAndQuitReachable(t *testing.T) {
 	m := application.NewMenu()
 	(&tray{}).addFooter(m)
-	want := []string{"---", "Open rolle", "Report a problem", "Settings", "Quit rolle"}
+	want := []string{"---", "Open rolle", "Report a problem…", "Settings…", "Quit rolle"}
 	if got := menuLabels(m); !reflect.DeepEqual(got, want) {
 		t.Fatalf("footer = %v, want %v", got, want)
 	}
