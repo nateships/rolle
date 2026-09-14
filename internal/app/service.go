@@ -339,9 +339,7 @@ func (s *Service) FinishSSOLogin(ctx context.Context, ref string) ([]core.Sessio
 // recordLogin copies the portal token state into the integration: when the
 // access token ends, and whether a refresh token renews it without the browser.
 func (s *Service) recordLogin(in *core.Integration) {
-	sso := s.sso(*in)
-	in.AWSSSO.TokenExpires = sso.TokenExpiry()
-	in.AWSSSO.Renews = in.AWSSSO.TokenExpires != nil && sso.Renews()
+	in.AWSSSO.TokenExpires, in.AWSSSO.Renews = s.sso(*in).LoginState()
 }
 
 // SSOLogout drops the token and deactivates the integration's sessions.
@@ -642,7 +640,7 @@ func (s *Service) Start(ctx context.Context, ref string, opts StartOptions) (cor
 	if err != nil {
 		debug.Logf("session", "start %s failed: %v", sess.Name, err)
 		if sess.Kind == core.KindAWSSSORole && errors.Is(err, aws.ErrSSOLoginRequired) {
-			s.recordSSOToken(sess.IntegrationID)
+			s.clearSSOLogin(sess.IntegrationID)
 		}
 		return core.Credentials{}, err
 	}
@@ -709,9 +707,11 @@ func (s *Service) probeSSOLogins(ctx context.Context, w *core.Workspace) map[str
 	return out
 }
 
-// recordSSOToken writes the portal token state of an integration into the
-// workspace, so the interface shows a login that the portal has refused.
-func (s *Service) recordSSOToken(integrationID string) {
+// clearSSOLogin clears the login of an integration whose portal token was
+// refused, so the interface shows that only a new login can help. The
+// keychain is not read: a refused refresh token is still stored and would
+// still look renewable.
+func (s *Service) clearSSOLogin(integrationID string) {
 	w, err := s.Load()
 	if err != nil {
 		return
@@ -720,7 +720,8 @@ func (s *Service) recordSSOToken(integrationID string) {
 	if err != nil || in.AWSSSO == nil {
 		return
 	}
-	s.recordLogin(in)
+	in.AWSSSO.TokenExpires = nil
+	in.AWSSSO.Renews = false
 	_ = s.Save(w)
 }
 
@@ -998,13 +999,16 @@ func (s *Service) RefreshContext(ctx context.Context) (*core.Workspace, error) {
 	if w, err = s.Load(); err != nil {
 		return nil, err
 	}
+	// A probed login is recorded once; a renewed session under it below
+	// would read the same token again.
+	tokenSeen := map[string]bool{}
 	for id, exp := range logins {
 		if in, err := w.Integration(id); err == nil && in.AWSSSO != nil {
 			in.AWSSSO.TokenExpires = exp
 			in.AWSSSO.Renews = exp != nil && s.sso(*in).Renews()
+			tokenSeen[id] = true
 		}
 	}
-	tokenSeen := map[string]bool{}
 	for i := range w.Sessions {
 		sess := &w.Sessions[i]
 		if sess.Status != core.StatusActive {

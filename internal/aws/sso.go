@@ -341,24 +341,30 @@ func (s *SSO) StoreImportedToken(accessToken, refreshToken, clientID, clientSecr
 // Logout removes the cached token.
 func (s *SSO) Logout() error { return s.Secrets.Delete(ssoTokenKey(s.Integration.ID)) }
 
-// TokenExpiry returns when the access token stops working, or nil when only a
-// new login can produce credentials. A token past its expiry still counts
-// while a refresh token can renew it; the time is then in the past.
-func (s *SSO) TokenExpiry() *time.Time {
+// LoginState reads the stored token once and reports when the access token
+// stops working, and whether a refresh token renews it without the browser.
+// expires is nil when only a new login can produce credentials. A token past
+// its expiry still counts while a refresh token can renew it; the time is
+// then in the past.
+func (s *SSO) LoginState() (expires *time.Time, renews bool) {
 	t, err := s.storedToken()
-	if err != nil {
-		return nil
+	if err != nil || (!s.valid(t) && !refreshable(t)) {
+		return nil, false
 	}
-	if s.valid(t) || refreshable(t) {
-		return &t.Expires
-	}
-	return nil
+	return &t.Expires, refreshable(t)
+}
+
+// TokenExpiry returns when the access token stops working, or nil when only a
+// new login can produce credentials. See LoginState.
+func (s *SSO) TokenExpiry() *time.Time {
+	expires, _ := s.LoginState()
+	return expires
 }
 
 // Renews reports whether the stored token carries what a silent refresh needs.
 func (s *SSO) Renews() bool {
-	t, err := s.storedToken()
-	return err == nil && refreshable(t)
+	_, renews := s.LoginState()
+	return renews
 }
 
 // Probe reports whether the stored portal token still works and returns its
