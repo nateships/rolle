@@ -117,6 +117,12 @@ func TestRenewsNeedsRefreshTokenAndClient(t *testing.T) {
 	if s.Renews() {
 		t.Fatal("renews without a refresh token")
 	}
+	if err := s.StoreImportedToken("at", "rt", "", "", "", now.Add(time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	if s.Renews() {
+		t.Fatal("renews without the client registration")
+	}
 	if err := s.StoreImportedToken("at", "rt", "cid", "cs", "", now.Add(time.Hour)); err != nil {
 		t.Fatal(err)
 	}

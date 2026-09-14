@@ -234,10 +234,34 @@ func TestStartFailureRecordsRefusedPortalToken(t *testing.T) {
 	}
 	calls := 0
 	s.OnChange = func() { calls++ }
-	s.recordSSOToken("missing")
-	s.recordSSOToken(az.ID)
+	s.clearSSOLogin("missing")
+	s.clearSSOLogin(az.ID)
 	if calls != 0 {
-		t.Fatalf("recordSSOToken saved %d times for integrations without a portal", calls)
+		t.Fatalf("clearSSOLogin saved %d times for integrations without a portal", calls)
+	}
+}
+
+// A refused refresh token stays in the keychain and still looks renewable.
+// The workspace must not read it back as a login that renews itself.
+func TestStartFailureClearsRefusedRefreshToken(t *testing.T) {
+	fakeHome(t)
+	portal := startFakeSSO(t, "Admin")
+	portal.tokenStatus = http.StatusBadRequest
+	s := testService(t)
+	in, err := s.AddAWSSSO("acme", portalURL, "us-east-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := s.sso(in).StoreImportedToken("old", "rt", "cid", "csecret", "us-east-1", time.Now().Add(-time.Hour)); err != nil {
+		t.Fatal(err)
+	}
+	addSession(t, s, core.Session{ID: "r1", Name: "Acme/Admin", Kind: core.KindAWSSSORole, IntegrationID: in.ID, Status: core.StatusInactive, AWS: &core.AWSSession{AccountID: "1", RoleName: "Admin"}})
+	if _, err := s.Start(context.Background(), "r1", StartOptions{}); !errors.Is(err, aws.ErrSSOLoginRequired) {
+		t.Fatalf("Start = %v", err)
+	}
+	w, _ := s.Load()
+	if integ, _ := FindIntegration(w, "acme"); integ.AWSSSO.TokenExpires != nil || integ.AWSSSO.Renews {
+		t.Fatalf("login = %v renews=%v, want cleared after the refused refresh", integ.AWSSSO.TokenExpires, integ.AWSSSO.Renews)
 	}
 }
 
@@ -667,12 +691,19 @@ func TestRefreshProbesIdleSSOLogins(t *testing.T) {
 			if err := s.sso(in).StoreImportedToken("old", "rt-1", "cid", "csecret", "us-east-1", past); err != nil {
 				t.Fatal(err)
 			}
-			s.recordSSOToken(in.ID)
-			if w, _ := s.Load(); w.Integrations[0].AWSSSO.TokenExpires == nil {
-				t.Fatal("setup: login must be recorded")
+			w, err := s.Load()
+			if err != nil {
+				t.Fatal(err)
+			}
+			s.recordLogin(&w.Integrations[0])
+			if w.Integrations[0].AWSSSO.TokenExpires == nil || !w.Integrations[0].AWSSSO.Renews {
+				t.Fatalf("setup: login must be recorded as renewing: %+v", w.Integrations[0].AWSSSO)
+			}
+			if err := s.Save(w); err != nil {
+				t.Fatal(err)
 			}
 
-			w, err := s.Refresh()
+			w, err = s.Refresh()
 			if err != nil {
 				t.Fatal(err)
 			}

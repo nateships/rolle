@@ -59,7 +59,7 @@ func demoWorkspace() (*core.Workspace, []core.Session) {
 		Version:   core.WorkspaceVersion,
 		Onboarded: true,
 		Integrations: []core.Integration{
-			{ID: "acme", Alias: "acme", Cloud: core.CloudAWS, AWSSSO: &core.AWSSSOIntegration{StartURL: "https://acme.awsapps.com/start", Region: "us-east-1", TokenExpires: in(6 * time.Hour)}},
+			{ID: "acme", Alias: "acme", Cloud: core.CloudAWS, AWSSSO: &core.AWSSSOIntegration{StartURL: "https://acme.awsapps.com/start", Region: "us-east-1", TokenExpires: in(6 * time.Hour), Renews: true}},
 			{ID: "acme-eu", Alias: "acme-eu", Cloud: core.CloudAWS, AWSSSO: &core.AWSSSOIntegration{StartURL: "https://acme-eu.awsapps.com/start", Region: "eu-west-1"}},
 			{ID: "contoso", Alias: "contoso", Cloud: core.CloudAzure, Azure: &core.AzureIntegration{TenantID: "7a1c2e40-3d5b-4f6a-9b8c-0d1e2f3a4b5c", Account: "nate@contoso.com"}},
 			{ID: "gcp", Alias: "gcp", Cloud: core.CloudGCP, GCP: &core.GCPIntegration{Account: "nate@example.com"}},

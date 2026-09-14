@@ -148,7 +148,12 @@ func (t *tray) rebuild() {
 	sort.Slice(active, func(i, j int) bool { return active[i].Name < active[j].Name })
 
 	menu.Add(fmt.Sprintf("rolle · %s", countLabel(len(active)))).SetEnabled(false)
-	t.addPortalWarnings(menu, w, time.Now())
+	// Expiry notifications off silences the tray flag and the line that
+	// explains it.
+	st := w.EffectiveSettings()
+	if !st.NotifyOff {
+		t.addPortalWarnings(menu, w, time.Now())
+	}
 	if len(active) > 0 {
 		menu.Add("Stop all").OnClick(func(*application.Context) {
 			for _, s := range active {
@@ -190,8 +195,6 @@ func (t *tray) rebuild() {
 	t.mu.Lock()
 	t.active = len(active)
 	t.mu.Unlock()
-	// Expiry notifications off silences the tray flag too.
-	st := w.EffectiveSettings()
 	warn := !st.NotifyOff && expiringSoon(w, time.Now(), st.NotifyLead())
 	t.setIcon(len(active) > 0, warn)
 	t.item.SetTooltip(tooltip(active))
@@ -221,12 +224,11 @@ func splitForMenu(sessions []core.Session) (active, inactive []core.Session) {
 // the sign-in again.
 func (t *tray) addPortalWarnings(menu *application.Menu, w *core.Workspace, now time.Time) {
 	for _, in := range w.Integrations {
-		left, ok := portalDue(w, in, now)
-		if !ok {
+		if _, ok := portalDue(w, in, now); !ok {
 			continue
 		}
 		id := in.ID
-		menu.Add(fmt.Sprintf("%s sign-in expires in %s · Sign in again", in.Alias, until(now.Add(left)))).
+		menu.Add(fmt.Sprintf("%s sign-in expires in %s · Sign in again", in.Alias, until(*in.AWSSSO.TokenExpires))).
 			OnClick(func(*application.Context) {
 				t.app.Event.Emit(EventStartNeedsLogin, StartRequest{IntegrationID: id})
 				t.showWindow()
