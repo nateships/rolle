@@ -28,7 +28,9 @@ func Demo() (*Service, error) {
 		AWSConfigPath: filepath.Join(dir, "aws-config"),
 		Executable:    exe,
 		Secrets:       &secrets.Memory{},
-		Cache:         &credcache.Cache{Dir: filepath.Join(dir, "credentials")},
+		// A short skew keeps the session that expires soon out of renewal,
+		// which has no portal to talk to, until it really ends.
+		Cache: &credcache.Cache{Dir: filepath.Join(dir, "credentials"), Skew: time.Second},
 	}
 	w, active := demoWorkspace()
 	if err := workspace.Save(s.WorkspacePath, w); err != nil {
@@ -66,6 +68,10 @@ func demoWorkspace() (*core.Workspace, []core.Session) {
 		},
 		Sessions: []core.Session{
 			{ID: "s-admin", Name: "Acme Prod/AdministratorAccess", Kind: core.KindAWSSSORole, Region: "us-east-1", IntegrationID: "acme", Status: core.StatusActive, Favorite: true, Expires: in(47 * time.Minute), AWS: &core.AWSSession{AccountID: "123456789012", RoleName: "AdministratorAccess"}},
+			// Expires shortly after launch, just outside the two-minute warning
+			// lead. This shows the warning, the tray flag, and the Dock badge
+			// arrive, and then the deactivation.
+			{ID: "s-staging", Name: "Acme Staging/AdministratorAccess", Kind: core.KindAWSSSORole, Region: "us-east-1", IntegrationID: "acme", Status: core.StatusActive, Expires: in(2*time.Minute + 15*time.Second), AWS: &core.AWSSession{AccountID: "456789012345", RoleName: "AdministratorAccess"}},
 			{ID: "s-ro", Name: "Acme Prod/ReadOnlyAccess", Kind: core.KindAWSSSORole, Region: "us-east-1", IntegrationID: "acme", Status: core.StatusInactive, AWS: &core.AWSSession{AccountID: "123456789012", RoleName: "ReadOnlyAccess"}},
 			{ID: "s-dev", Name: "Acme Dev/PowerUserAccess", Kind: core.KindAWSSSORole, Region: "us-east-1", IntegrationID: "acme", Status: core.StatusInactive, AWS: &core.AWSSession{AccountID: "210987654321", RoleName: "PowerUserAccess"}},
 			{ID: "s-sandbox", Name: "Acme Sandbox/ReadOnlyAccess", Kind: core.KindAWSSSORole, Region: "us-east-1", IntegrationID: "acme", Status: core.StatusInactive, AWS: &core.AWSSession{AccountID: "345678901234", RoleName: "ReadOnlyAccess"}},
