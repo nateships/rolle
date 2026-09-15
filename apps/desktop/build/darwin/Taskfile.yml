@@ -153,6 +153,12 @@ tasks:
       - rm -f "{{.BIN_DIR}}/dev/{{.APP_NAME}}.app/Contents/Resources/Assets.car"
       - cp "{{.BIN_DIR}}/{{.APP_NAME}}" "{{.BIN_DIR}}/dev/{{.APP_NAME}}.app/Contents/MacOS"
       - cp "build/darwin/Info.dev.plist" "{{.BIN_DIR}}/dev/{{.APP_NAME}}.app/Contents/Info.plist"
+      # Not the installed app's id or name. macOS grants Notification Center,
+      # and so the Dock badge, to one bundle per id, the one in /Applications.
+      # Done here, not in Info.dev.plist, which update:build-assets rewrites.
+      - plutil -replace CFBundleIdentifier -string "com.getrolle.dev" "{{.BIN_DIR}}/dev/{{.APP_NAME}}.app/Contents/Info.plist"
+      - plutil -replace CFBundleName -string "{{.APP_NAME}} dev" "{{.BIN_DIR}}/dev/{{.APP_NAME}}.app/Contents/Info.plist"
+      - plutil -replace CFBundleDisplayName -string "{{.APP_NAME}} dev" "{{.BIN_DIR}}/dev/{{.APP_NAME}}.app/Contents/Info.plist"
       - codesign --force --deep --sign - "{{.BIN_DIR}}/dev/{{.APP_NAME}}.app"
       - '"{{.BIN_DIR}}/dev/{{.APP_NAME}}.app/Contents/MacOS/{{.APP_NAME}}"'
 

@@ -176,6 +176,14 @@ type Settings struct {
 	AssumeRoleMinutes int `json:"assumeRoleMinutes"`
 	// HideOnClose keeps the desktop app running in the tray when its window closes.
 	HideOnClose bool `json:"hideOnClose"`
+	// HideDock takes the desktop app out of the macOS Dock; the tray icon
+	// stays. Stored inverted so the default (zero value) shows the icon.
+	HideDock bool `json:"hideDock,omitempty"`
+	// LoginItem opens the desktop app when the user signs in to the computer.
+	LoginItem bool `json:"loginItem,omitempty"`
+	// DockBadgeOff keeps the count of expiring sessions off the Dock icon (the
+	// taskbar button on Windows). Stored inverted so the default shows it.
+	DockBadgeOff bool `json:"dockBadgeOff,omitempty"`
 	// NotifyOff silences the desktop notifications that warn before a session
 	// expires. Stored inverted so the default (zero value) keeps them on.
 	NotifyOff bool `json:"notifyOff,omitempty"`

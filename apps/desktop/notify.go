@@ -50,8 +50,8 @@ func expiryNotices(prev, cur []core.Session, now time.Time, warned map[string]ti
 			warned[s.ID] = *s.Expires
 			out = append(out, notice{
 				ID:       "expiry-" + s.ID,
-				Title:    s.Name + " expires soon",
-				Body:     fmt.Sprintf("About %d minute(s) left. Start it again to keep working.", int(left.Minutes())+1),
+				Title:    s.Name,
+				Body:     fmt.Sprintf("Expires in %d min.", int(left.Minutes())+1),
 				Category: categoryStart,
 				Data:     map[string]any{"sessionId": s.ID},
 			})
@@ -67,8 +67,8 @@ func expiryNotices(prev, cur []core.Session, now time.Time, warned map[string]ti
 			delete(warned, s.ID)
 			out = append(out, notice{
 				ID:       "expired-" + s.ID,
-				Title:    s.Name + " expired",
-				Body:     "The session ended. Start it again when you need it.",
+				Title:    s.Name,
+				Body:     "Expired.",
 				Category: categoryStart,
 				Data:     map[string]any{"sessionId": s.ID},
 			})
@@ -97,8 +97,8 @@ func portalNotices(w *core.Workspace, now time.Time, warned map[string]time.Time
 		warned[key] = exp
 		out = append(out, notice{
 			ID:       key,
-			Title:    in.Alias + " sign-in expires soon",
-			Body:     fmt.Sprintf("About %d minute(s) left. Sign in again to keep its sessions.", int(left.Minutes())+1),
+			Title:    in.Alias + " sign-in",
+			Body:     fmt.Sprintf("Expires in %d min. Its sessions end with it.", int(left.Minutes())+1),
 			Category: categorySignIn,
 			Data:     map[string]any{"integrationId": in.ID},
 		})
@@ -126,21 +126,22 @@ func hasActive(sessions []core.Session, integrationID string) bool {
 	return false
 }
 
-// expiringSoon reports whether anything the tray should flag is close to its
-// end: an active session inside lead, or a portal sign-in inside
-// portalWarnBefore that still has active sessions.
-func expiringSoon(w *core.Workspace, now time.Time, lead time.Duration) bool {
+// expiringCount is the number of items the tray flags: active sessions
+// inside lead, and portal sign-ins inside portalWarnBefore that still have
+// active sessions. The Dock badge shows it.
+func expiringCount(w *core.Workspace, now time.Time, lead time.Duration) int {
+	n := 0
 	for _, s := range w.Sessions {
 		if s.Status == core.StatusActive && s.Expires != nil && s.Expires.After(now) && s.Expires.Sub(now) <= lead {
-			return true
+			n++
 		}
 	}
 	for _, in := range w.Integrations {
 		if _, ok := portalDue(w, in, now); ok {
-			return true
+			n++
 		}
 	}
-	return false
+	return n
 }
 
 // notifier sends expiry notices through the OS notification center.
@@ -158,6 +159,7 @@ type notifier struct {
 func newNotifier(ns *notifications.NotificationService, act func(action string, data map[string]any)) *notifier {
 	n := &notifier{svc: ns, warned: map[string]time.Time{}}
 	if ns == nil {
+		debug.Logf("notify", "no notification center: not running from an app bundle")
 		return n
 	}
 	for _, c := range []notifications.NotificationCategory{
@@ -212,7 +214,9 @@ func (n *notifier) tick(w *core.Workspace, st core.Settings) {
 		opts := notifications.NotificationOptions{ID: msg.ID, Title: msg.Title, Body: msg.Body, CategoryID: msg.Category, Data: msg.Data}
 		if err := n.svc.SendNotificationWithActions(opts); err != nil {
 			debug.Logf("notify", "%s: %v", msg.ID, err)
+			continue
 		}
+		debug.Logf("notify", "sent %s: %s", msg.ID, msg.Title)
 	}
 	n.prev = w.Sessions
 }

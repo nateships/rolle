@@ -18,7 +18,7 @@ func TestDemoSeedsAnIsolatedWorkspace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !w.Onboarded || len(w.Integrations) != 4 || len(w.Sessions) != 9 {
+	if !w.Onboarded || len(w.Integrations) != 4 || len(w.Sessions) != 10 {
 		t.Fatalf("integrations=%d sessions=%d onboarded=%v", len(w.Integrations), len(w.Sessions), w.Onboarded)
 	}
 	active := 0
@@ -31,7 +31,7 @@ func TestDemoSeedsAnIsolatedWorkspace(t *testing.T) {
 			t.Fatalf("%s has no cached credentials: %v", sess.Name, err)
 		}
 	}
-	if active != 2 {
+	if active != 3 {
 		t.Fatalf("active = %d", active)
 	}
 	cfg, err := os.ReadFile(s.AWSConfigPath)

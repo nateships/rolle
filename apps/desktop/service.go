@@ -19,6 +19,7 @@ import (
 	"github.com/nateships/rolle/internal/awsconfig"
 	"github.com/nateships/rolle/internal/browser"
 	"github.com/nateships/rolle/internal/core"
+	"github.com/nateships/rolle/internal/debug"
 	"github.com/nateships/rolle/internal/discover"
 	"github.com/nateships/rolle/internal/gcp"
 	"github.com/nateships/rolle/internal/terminal"
@@ -32,6 +33,10 @@ const EventWorkspaceChanged = "workspace:changed"
 type RolleService struct {
 	svc *app.Service
 	app *application.App
+	// applySettings puts the preferences that live outside the workspace
+	// (Dock icon, login item) into effect before a save. An error keeps the
+	// old settings; a failed save runs it again the other way. Nil in tests.
+	applySettings func(prev, next core.Settings) error
 
 	mu      sync.Mutex
 	pending map[string]*pendingLogin
@@ -328,7 +333,26 @@ func (r *RolleService) Settings() (core.Settings, error) { return r.svc.Settings
 // UpdateSettings stores preferences. The update ticker reads AutoUpdateOff on
 // every tick, so the change applies without a restart.
 func (r *RolleService) UpdateSettings(in core.Settings) (core.Settings, error) {
-	return r.svc.UpdateSettings(in)
+	if r.applySettings == nil {
+		return r.svc.UpdateSettings(in)
+	}
+	prev, err := r.svc.Settings()
+	if err != nil {
+		return core.Settings{}, err
+	}
+	next := in.Normalize()
+	if err := r.applySettings(prev, next); err != nil {
+		return core.Settings{}, err
+	}
+	out, err := r.svc.UpdateSettings(in)
+	if err != nil {
+		// The store kept the old settings. Take the OS back to them too.
+		if uerr := r.applySettings(next, prev); uerr != nil {
+			debug.Logf("settings", "undo after failed save: %v", uerr)
+		}
+		return core.Settings{}, err
+	}
+	return out, nil
 }
 
 // AppInfo describes this build and where it keeps its files.
