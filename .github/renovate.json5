@@ -64,6 +64,11 @@
       "automerge": false,
     },
     {
+      "description": "Finished or slow-moving deps that are not abandoned: uuid has nothing left to release, shellcheck releases about once a year",
+      "matchDepNames": ["github.com/google/uuid", "shellcheck"],
+      "abandonmentThreshold": null,
+    },
+    {
       "description": "Indirect Go deps: skip abandonment flagging (transitive, not ours to replace)",
       "matchManagers": ["gomod"],
       "matchDepTypes": ["indirect"],
