@@ -3,19 +3,17 @@
 <plist version="1.0">
 	<dict>
 		<key>CFBundleDisplayName</key>
-		<string>rolle dev</string>
+		<string>rolle</string>
 		<key>CFBundleExecutable</key>
 		<string>rolle</string>
 		<key>CFBundleGetInfoString</key>
 		<string>Cloud credential and role manager</string>
 		<key>CFBundleIconFile</key>
 		<string>icons</string>
-		<!-- A dev build gets its own id. macOS grants Notification Center, and
-		     with it the Dock badge, to one bundle per id: the one in /Applications. -->
 		<key>CFBundleIdentifier</key>
-		<string>com.getrolle.dev</string>
+		<string>com.getrolle.app</string>
 		<key>CFBundleName</key>
-		<string>rolle dev</string>
+		<string>rolle</string>
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
 		<key>CFBundleShortVersionString</key>
