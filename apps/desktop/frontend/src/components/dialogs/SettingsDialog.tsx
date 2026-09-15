@@ -160,7 +160,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
         </DialogHeader>
         {!settings && <div className="h-[30.5rem]" aria-busy="true" />}
         {settings && (
-          <Tabs defaultValue={new URLSearchParams(location.search).get("tab") ?? "general"} className="w-full">
+          <Tabs defaultValue={new URLSearchParams(location.search).get("tab") ?? "general"} className="w-full min-w-0">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="aws">AWS</TabsTrigger>
@@ -191,9 +191,16 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                   onCheckedChange={(v) => update({ hideOnClose: v })}
                 />
               </Row>
+              <Row label="Start at login" hint="Open rolle when you sign in to this computer.">
+                <Switch
+                  aria-label="Start at login"
+                  checked={!!settings.loginItem}
+                  onCheckedChange={(v) => update({ loginItem: v })}
+                />
+              </Row>
               <Row
                 label="Expiry notifications"
-                hint="A system notification before a session expires, when it does, and before an Identity Center sign-in with active sessions runs out."
+                hint={`Warns before a session or sign-in expires.${IS_MAC ? " Needs macOS permission (System Settings → Notifications)." : ""}`}
               >
                 <Switch
                   aria-label="Expiry notifications"
@@ -292,6 +299,27 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
                   ))}
                 </div>
               </Row>
+              {IS_MAC && (
+                <Row label="Dock icon" hint="Show rolle in the Dock. The tray icon stays either way.">
+                  <Switch
+                    aria-label="Dock icon"
+                    checked={!settings.hideDock}
+                    onCheckedChange={(v) => update({ hideDock: !v })}
+                  />
+                </Row>
+              )}
+              {(IS_MAC || IS_WIN) && (
+                <Row
+                  label={IS_MAC ? "Dock badge" : "Taskbar badge"}
+                  hint="The number of sessions and sign-ins about to expire, on the app icon."
+                >
+                  <Switch
+                    aria-label={IS_MAC ? "Dock badge" : "Taskbar badge"}
+                    checked={!settings.dockBadgeOff}
+                    onCheckedChange={(v) => update({ dockBadgeOff: !v })}
+                  />
+                </Row>
+              )}
               <p className="pt-2 text-xs font-medium text-muted-foreground">Sidebar sections</p>
               {SIDEBAR_SECTIONS.map(([key, label]) => (
                 <Row key={key} label={label}>
@@ -449,7 +477,7 @@ function PathRow({ label, value, copy }: { label: string; value: string; copy?: 
   return (
     <div className="flex items-center gap-2">
       <span className="w-28 shrink-0 text-muted-foreground">{label}</span>
-      <code className="min-w-0 flex-1 truncate font-mono text-[11px]" title={value}>
+      <code className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap py-1 font-mono text-[11px] [scrollbar-width:thin]">
         {value}
       </code>
       {copy && (

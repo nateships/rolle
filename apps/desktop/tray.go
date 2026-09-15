@@ -7,11 +7,14 @@ import (
 	"runtime"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/wailsapp/wails/v3/pkg/application"
+	"github.com/wailsapp/wails/v3/pkg/events"
+	"github.com/wailsapp/wails/v3/pkg/services/dock"
 
 	"github.com/nateships/rolle/internal/app"
 	"github.com/nateships/rolle/internal/browser"
@@ -65,18 +68,27 @@ type tray struct {
 	svc    *app.Service
 	window *application.WebviewWindow
 	item   *application.SystemTray
+	dock   *dock.DockService
 	mu     sync.Mutex
 	active int
+	// badge is the count last put on the Dock icon. Minus one means the
+	// icon was hidden, which clears its badge. badgeMu serializes the calls.
+	badgeMu sync.Mutex
+	badge   int
 }
 
-func newTray(a *application.App, svc *app.Service, window *application.WebviewWindow) *tray {
-	t := &tray{app: a, svc: svc, window: window}
+func newTray(a *application.App, svc *app.Service, window *application.WebviewWindow, dockIcon *dock.DockService) *tray {
+	t := &tray{app: a, svc: svc, window: window, dock: dockIcon}
 	t.item = a.SystemTray.New()
 	t.setIcon(false, false)
 	t.item.SetTooltip("rolle")
 	t.rebuild()
 	a.Event.On(EventWorkspaceChanged, func(*application.CustomEvent) { t.rebuild() })
+	// The first rebuild runs before the app has launched, when macOS refuses
+	// a Dock badge. This one puts it on.
+	a.Event.OnApplicationEvent(events.Common.ApplicationStarted, func(*application.ApplicationEvent) { t.rebuild() })
 	// Countdowns in the menu refresh once a minute while something is active.
+	// The flag and the badge also refresh from the expiry loop in main.
 	go func() {
 		for range time.Tick(time.Minute) {
 			t.mu.Lock()
@@ -151,8 +163,13 @@ func (t *tray) rebuild() {
 	// Expiry notifications off silences the tray flag and the line that
 	// explains it.
 	st := w.EffectiveSettings()
+	now := time.Now()
+	// lead marks the active sessions this close to expiry in the menu. Zero
+	// while expiry notifications are off.
+	var lead time.Duration
 	if !st.NotifyOff {
-		t.addPortalWarnings(menu, w, time.Now())
+		lead = st.NotifyLead()
+		t.addPortalWarnings(menu, w, now)
 	}
 	if len(active) > 0 {
 		menu.Add("Stop all").OnClick(func(*application.Context) {
@@ -176,15 +193,15 @@ func (t *tray) rebuild() {
 		if s.Favorite {
 			continue
 		}
-		t.addSessionItem(menu, s)
+		t.addSessionItem(menu, s, lead)
 		running = true
 	}
 	if running {
 		menu.AddSeparator()
 	}
 
-	t.addFavorites(menu, active, inactive)
-	t.addTagMenus(menu, w, active, inactive)
+	t.addFavorites(menu, active, inactive, lead)
+	t.addTagMenus(menu, w, active, inactive, lead)
 
 	// Every other inactive session, grouped by provider and AWS account.
 	t.addProviderMenus(menu, w, inactive)
@@ -195,12 +212,50 @@ func (t *tray) rebuild() {
 	t.mu.Lock()
 	t.active = len(active)
 	t.mu.Unlock()
-	warn := !st.NotifyOff && expiringSoon(w, time.Now(), st.NotifyLead())
+	expiring := expiringCount(w, now, st.NotifyLead())
+	warn := !st.NotifyOff && expiring > 0
 	t.setIcon(len(active) > 0, warn)
 	t.item.SetTooltip(tooltip(active))
 	if runtime.GOOS == "darwin" {
 		t.item.SetLabel(trayLabel(len(active), warn))
 	}
+	// The badge has its own switch and ignores the notifications one. It
+	// waits on the main thread, which rebuild may be on.
+	badge := 0
+	if !st.DockBadgeOff {
+		badge = expiring
+	}
+	if st.HideDock {
+		// macOS drops the badge with the icon. Put it back when the icon returns.
+		t.badgeMu.Lock()
+		t.badge = -1
+		t.badgeMu.Unlock()
+		return
+	}
+	go t.setBadge(badge)
+}
+
+// setBadge puts the count of expiring sessions and sign-ins on the Dock
+// icon (the taskbar button on Windows) and clears it at zero. A count that
+// is already on the icon is not sent again.
+func (t *tray) setBadge(expiring int) {
+	t.badgeMu.Lock()
+	defer t.badgeMu.Unlock()
+	if expiring == t.badge {
+		return
+	}
+	var err error
+	if expiring == 0 {
+		err = t.dock.RemoveBadge()
+	} else {
+		err = t.dock.SetBadge(strconv.Itoa(expiring))
+	}
+	if err != nil {
+		debug.Logf("tray", "dock badge: %v", err)
+		return
+	}
+	t.badge = expiring
+	debug.Logf("tray", "dock badge %d", expiring)
 }
 
 // splitForMenu separates the sessions the menu shows: active ones first,
@@ -237,17 +292,28 @@ func (t *tray) addPortalWarnings(menu *application.Menu, w *core.Workspace, now 
 }
 
 // addSessionItem adds one session: an active one gets a submenu with its
-// actions and its countdown, the rest start on click.
-func (t *tray) addSessionItem(menu *application.Menu, sess core.Session) {
+// actions and its countdown, the rest start on click. lead marks an active
+// session this close to expiry; zero marks none.
+func (t *tray) addSessionItem(menu *application.Menu, sess core.Session, lead time.Duration) {
 	if sess.Status != core.StatusActive {
 		t.addStartItem(menu, sess, sess.Name)
 		return
 	}
-	label := sess.Name
-	if sess.Expires != nil {
-		label = fmt.Sprintf("%s · %s", sess.Name, until(*sess.Expires))
+	t.addSessionMenu(menu.AddSubmenu(activeLabel(sess, time.Now(), lead)), sess)
+}
+
+// activeLabel is the menu line of an active session: its name, its countdown,
+// and a warning mark once it is inside lead, so the one that needs action
+// stands out among several.
+func activeLabel(sess core.Session, now time.Time, lead time.Duration) string {
+	if sess.Expires == nil {
+		return sess.Name
 	}
-	t.addSessionMenu(menu.AddSubmenu(label), sess)
+	label := fmt.Sprintf("%s · %s", sess.Name, until(*sess.Expires))
+	if left := sess.Expires.Sub(now); lead > 0 && left > 0 && left <= lead {
+		return "⚠︎ " + label
+	}
+	return label
 }
 
 // shownByName is every session the menu shows, sorted by name.
@@ -259,7 +325,7 @@ func shownByName(active, inactive []core.Session) []core.Session {
 
 // addFavorites lists every favorite, so the section matches the sidebar.
 // Active favorites come first with their actions; the rest start on click.
-func (t *tray) addFavorites(menu *application.Menu, active, inactive []core.Session) {
+func (t *tray) addFavorites(menu *application.Menu, active, inactive []core.Session, lead time.Duration) {
 	var favs []core.Session
 	for _, group := range [][]core.Session{active, inactive} {
 		for _, s := range shownByName(group, nil) {
@@ -273,7 +339,7 @@ func (t *tray) addFavorites(menu *application.Menu, active, inactive []core.Sess
 	}
 	menu.Add("Favorites").SetEnabled(false)
 	for _, s := range favs {
-		t.addSessionItem(menu, s)
+		t.addSessionItem(menu, s, lead)
 	}
 	menu.AddSeparator()
 }
@@ -281,7 +347,7 @@ func (t *tray) addFavorites(menu *application.Menu, active, inactive []core.Sess
 // addTagMenus adds one submenu per tag, in sidebar order, with the sessions
 // that carry it. Active sessions keep their actions; the rest start on click.
 // Tags without a session shown in the menu are left out.
-func (t *tray) addTagMenus(menu *application.Menu, w *core.Workspace, active, inactive []core.Session) {
+func (t *tray) addTagMenus(menu *application.Menu, w *core.Workspace, active, inactive []core.Session, lead time.Duration) {
 	shown := shownByName(active, inactive)
 	header := false
 	for _, tag := range w.Tags {
@@ -300,7 +366,7 @@ func (t *tray) addTagMenus(menu *application.Menu, w *core.Workspace, active, in
 		}
 		sub := menu.AddSubmenu(fmt.Sprintf("%s · %d", tag.Name, len(tagged)))
 		for _, s := range tagged {
-			t.addSessionItem(sub, s)
+			t.addSessionItem(sub, s, lead)
 		}
 	}
 	if header {

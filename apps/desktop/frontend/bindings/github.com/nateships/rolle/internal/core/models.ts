@@ -259,6 +259,23 @@ export interface Settings {
     "hideOnClose": boolean;
 
     /**
+     * HideDock takes the desktop app out of the macOS Dock; the tray icon
+     * stays. Stored inverted so the default (zero value) shows the icon.
+     */
+    "hideDock"?: boolean;
+
+    /**
+     * LoginItem opens the desktop app when the user signs in to the computer.
+     */
+    "loginItem"?: boolean;
+
+    /**
+     * DockBadgeOff keeps the count of expiring sessions off the Dock icon (the
+     * taskbar button on Windows). Stored inverted so the default shows it.
+     */
+    "dockBadgeOff"?: boolean;
+
+    /**
      * NotifyOff silences the desktop notifications that warn before a session
      * expires. Stored inverted so the default (zero value) keeps them on.
      */

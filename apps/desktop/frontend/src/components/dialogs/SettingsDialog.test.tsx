@@ -116,6 +116,37 @@ describe("SettingsDialog", () => {
     expect(screen.getByRole("switch", { name: "Keep running in the tray" })).toBeChecked();
   });
 
+  it("saves the login item from the general tab", async () => {
+    const user = userEvent.setup();
+    await open();
+    const item = screen.getByRole("switch", { name: "Start at login" });
+    expect(item).not.toBeChecked();
+    await user.click(item);
+    await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ loginItem: true })));
+    expect(screen.getByRole("switch", { name: "Start at login" })).toBeChecked();
+  });
+
+  it("stores the dock switch inverted, shown by default", async () => {
+    const user = userEvent.setup();
+    await open();
+    await tab(user, "Appearance");
+    const dock = screen.getByRole("switch", { name: "Dock icon" });
+    expect(dock).toBeChecked();
+    await user.click(dock);
+    await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ hideDock: true })));
+    expect(screen.getByRole("switch", { name: "Dock icon" })).not.toBeChecked();
+  });
+
+  it("stores the dock badge switch inverted, shown by default", async () => {
+    const user = userEvent.setup();
+    await open();
+    await tab(user, "Appearance");
+    const badge = screen.getByRole("switch", { name: "Dock badge" });
+    expect(badge).toBeChecked();
+    await user.click(badge);
+    await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ dockBadgeOff: true })));
+  });
+
   it("applies and saves the theme", async () => {
     const user = userEvent.setup();
     await open();

@@ -73,6 +73,21 @@ func TestCountLabelAndTooltipWithoutExpiry(t *testing.T) {
 	if countLabel(0) != "no active sessions" || countLabel(3) != "3 active sessions" {
 		t.Fatal(countLabel(0), countLabel(3))
 	}
+	// The menu marks the session inside the lead and only that one.
+	now := time.Now()
+	soon, later := now.Add(90*time.Second), now.Add(40*time.Minute+time.Second)
+	if got := activeLabel(core.Session{Name: "a", Expires: &soon}, now, core.DefaultNotifyLead); got != "⚠︎ a · 1m" {
+		t.Errorf("inside lead = %q", got)
+	}
+	if got := activeLabel(core.Session{Name: "b", Expires: &later}, now, core.DefaultNotifyLead); got != "b · 40m" {
+		t.Errorf("outside lead = %q", got)
+	}
+	if got := activeLabel(core.Session{Name: "a", Expires: &soon}, now, 0); got != "a · 1m" {
+		t.Errorf("notifications off = %q", got)
+	}
+	if got := activeLabel(core.Session{Name: "c"}, now, core.DefaultNotifyLead); got != "c" {
+		t.Errorf("no expiry = %q", got)
+	}
 	if got := tooltip([]core.Session{{Name: "a"}}); got != "rolle · 1 active session" {
 		t.Fatal(got)
 	}
@@ -162,7 +177,7 @@ func TestFavoritesListActiveAndInactive(t *testing.T) {
 		{ID: "az", Name: "Contoso", Kind: core.KindAzure, Azure: &core.AzureSession{}},
 	}
 	m := application.NewMenu()
-	(&tray{}).addFavorites(m, active, inactive)
+	(&tray{}).addFavorites(m, active, inactive, 0)
 
 	// Active favorites lead, then the rest by name.
 	got := menuLabels(m)
@@ -176,7 +191,7 @@ func TestFavoritesListActiveAndInactive(t *testing.T) {
 
 	// No favorite, no section.
 	m = application.NewMenu()
-	(&tray{}).addFavorites(m, active[1:], inactive[1:])
+	(&tray{}).addFavorites(m, active[1:], inactive[1:], 0)
 	if got := menuLabels(m); len(got) != 0 {
 		t.Fatalf("menu without favorites = %v", got)
 	}
@@ -193,7 +208,7 @@ func TestTagMenusListTaggedSessionsInSidebarOrder(t *testing.T) {
 	}
 	w := &core.Workspace{Tags: []core.Tag{{Name: "Production"}, {Name: "Sandbox"}, {Name: "Audit"}}}
 	m := application.NewMenu()
-	(&tray{}).addTagMenus(m, w, active, inactive)
+	(&tray{}).addTagMenus(m, w, active, inactive, 0)
 
 	// Sidebar order, no empty tag, one separator after the block.
 	if got, want := menuLabels(m), []string{"Tags (off)", "Production · 2", "Audit · 1", "---"}; !reflect.DeepEqual(got, want) {
@@ -211,7 +226,7 @@ func TestTagMenusListTaggedSessionsInSidebarOrder(t *testing.T) {
 
 	// No tagged session, no block at all.
 	m = application.NewMenu()
-	(&tray{}).addTagMenus(m, w, nil, inactive[1:])
+	(&tray{}).addTagMenus(m, w, nil, inactive[1:], 0)
 	if got := menuLabels(m); len(got) != 0 {
 		t.Fatalf("menu without tagged sessions = %v", got)
 	}

@@ -88,21 +88,30 @@ func TestPortalNoticesAndExpiringSoon(t *testing.T) {
 	}
 
 	// The tray flag follows the same rules, with the session lead from settings.
-	if !expiringSoon(w, now, core.DefaultNotifyLead) {
+	if expiringCount(w, now, core.DefaultNotifyLead) == 0 {
 		t.Fatal("portal inside its lead: not flagged")
 	}
 	// A login that renews itself is never the reason for the flag.
 	w.Integrations[1].AWSSSO.Renews = true
-	if expiringSoon(w, now, core.DefaultNotifyLead) {
+	if expiringCount(w, now, core.DefaultNotifyLead) > 0 {
 		t.Fatal("renewing login flagged")
 	}
 	w.Integrations[1].AWSSSO.Renews = false
 	w.Integrations[1].AWSSSO.TokenExpires = at(8 * time.Hour)
-	if expiringSoon(w, now, core.DefaultNotifyLead) {
+	if expiringCount(w, now, core.DefaultNotifyLead) > 0 {
 		t.Fatal("nothing close: flagged")
 	}
-	if !expiringSoon(w, now, time.Hour) {
+	if expiringCount(w, now, time.Hour) == 0 {
 		t.Fatal("session inside a one hour lead: not flagged")
+	}
+	// The Dock badge counts every flagged item: both active sessions and,
+	// once its sign-in is close again, the portal.
+	if got := expiringCount(w, now, time.Hour); got != 2 {
+		t.Fatalf("expiring count = %d, want 2", got)
+	}
+	w.Integrations[1].AWSSSO.TokenExpires = at(5 * time.Minute)
+	if got := expiringCount(w, now, time.Hour); got != 3 {
+		t.Fatalf("expiring count with portal = %d, want 3", got)
 	}
 	if trayLabel(2, true) != "2!" || trayLabel(2, false) != "2" || trayLabel(0, true) != "" {
 		t.Fatal("tray label")

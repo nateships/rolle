@@ -13,6 +13,7 @@ import (
 
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/events"
+	"github.com/wailsapp/wails/v3/pkg/services/dock"
 	"github.com/wailsapp/wails/v3/pkg/services/notifications"
 
 	"github.com/nateships/rolle/cmd/rolle/cli"
@@ -67,13 +68,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Read the stored preference first. ROLLE_DEBUG overrides it when set.
+	// Read the stored preferences first. ROLLE_DEBUG overrides the logging one when set.
+	st := currentSettings(svc)
+	debug.Set(st.VerboseLogging)
 	background := application.NewRGB(0x10, 0x11, 0x14)
-	if st, err := svc.Settings(); err == nil {
-		debug.Set(st.VerboseLogging)
-		if st.Theme == "light" {
-			background = application.NewRGB(0xF4, 0xF0, 0xE8)
-		}
+	if st.Theme == "light" {
+		background = application.NewRGB(0xF4, 0xF0, 0xE8)
 	}
 
 	// ROLLE_DEBUG=1 also raises the Wails runtime log level.
@@ -84,7 +84,10 @@ func main() {
 	}
 
 	rolle := NewRolleService(svc)
-	services := []application.Service{application.NewService(rolle)}
+	// The Dock service shows the expiring count as a badge; Windows needs
+	// its startup for the taskbar.
+	dockIcon := dock.New()
+	services := []application.Service{application.NewService(rolle), application.NewService(dockIcon)}
 	// macOS delivers notifications only from an app bundle; a bare binary aborts on init.
 	var notify *notifications.NotificationService
 	if inBundle() {
@@ -102,6 +105,7 @@ func main() {
 		Mac: application.MacOptions{
 			// The app keeps running in the tray; Quit lives in the tray menu.
 			ApplicationShouldTerminateAfterLastWindowClosed: false,
+			ActivationPolicy: dockPolicy(st.HideDock),
 		},
 	})
 
@@ -129,12 +133,27 @@ func main() {
 		window.Hide()
 		e.Cancel()
 	})
-	// Every workspace write tells the UI and the tray to reload.
-	svc.OnChange = func() {
+	// Every workspace write tells the UI and the tray to reload, and wakes the
+	// expiry loop so a new lead time or session takes effect at once. The
+	// loop itself only tells the others, so it does not wake itself.
+	changed := func() {
 		debug.Logf("ui", "workspace changed")
 		a.Event.Emit(EventWorkspaceChanged, struct{}{})
 	}
-	tr := newTray(a, svc, window)
+	wake := make(chan struct{}, 1)
+	svc.OnChange = func() {
+		changed()
+		select {
+		case wake <- struct{}{}:
+		default:
+		}
+	}
+	tr := newTray(a, svc, window, dockIcon)
+	// The save that follows rebuilds the tray, which puts the badge back on
+	// a Dock icon that just came back.
+	rolle.applySettings = func(prev, next core.Settings) error {
+		return applyDesktopSettings(a, dockIcon, window, prev, next)
+	}
 	installMouseNav(a)
 	if err := setupUpdater(a, svc); err != nil {
 		log.Println("updater:", err)
@@ -152,26 +171,98 @@ func main() {
 		}
 		// An update replaced the app; bring the app's copy of the command along.
 		refreshCLI()
+		// The app may have moved too. A login item that no longer points at
+		// this binary is written again; one that does is left alone.
+		if st.LoginItem && !loginItemBlocked() {
+			if on, err := a.Autostart.IsEnabled(); err != nil || !on {
+				if err := a.Autostart.Enable(); err != nil {
+					debug.Logf("app", "login item: %v", err)
+				}
+			}
+		}
 		alerts := newNotifier(notify, tr.onNotification)
 		w, _ := svc.Refresh()
-		alerts.tick(w, currentSettings(svc))
+		st := settingsOf(w)
+		alerts.tick(w, st)
 		// The shared credentials file matters too: the shadow marks in the
 		// table come from it, and the CLI or an editor can change it.
 		credPath := awsconfig.CredentialsPath(svc.AWSConfigPath)
 		seen, seenCred := modTime(svc.WorkspacePath), modTime(credPath)
-		for range time.Tick(30 * time.Second) {
-			if now, nowCred := modTime(svc.WorkspacePath), modTime(credPath); !now.Equal(seen) || !nowCred.Equal(seenCred) {
-				svc.OnChange()
+		// The tray flag and the Dock badge follow the same count as the
+		// warnings. A timer set for the next crossing rebuilds the tray on
+		// the mark; a workspace write rebuilds it through OnChange, and the
+		// 30 second poll catches renewals and edits from outside.
+		poll := time.NewTicker(30 * time.Second)
+		next := time.NewTimer(untilNextCrossing(w, st, time.Now()))
+		for {
+			crossed := false
+			select {
+			case <-poll.C:
+			case <-next.C:
+				crossed = true
+			case <-wake:
 			}
-			w, _ := svc.Refresh()
-			alerts.tick(w, currentSettings(svc))
+			if now, nowCred := modTime(svc.WorkspacePath), modTime(credPath); !now.Equal(seen) || !nowCred.Equal(seenCred) {
+				changed()
+			}
+			w, _ = svc.Refresh()
+			st = settingsOf(w)
+			alerts.tick(w, st)
+			if crossed {
+				tr.rebuild()
+			}
 			seen, seenCred = modTime(svc.WorkspacePath), modTime(credPath)
+			next.Reset(untilNextCrossing(w, st, time.Now()))
 		}
 	}()
 
 	if err := a.Run(); err != nil {
 		log.Fatal(err)
 	}
+}
+
+// settingsOf returns the settings in w, or the defaults when w could not be read.
+func settingsOf(w *core.Workspace) core.Settings {
+	if w == nil {
+		return core.DefaultSettings()
+	}
+	return w.EffectiveSettings()
+}
+
+// untilNextCrossing is the wait until something in w changes state: an active
+// session enters the warning lead or expires, or a sign-in with active
+// sessions enters its own lead. A second past the moment keeps the tick on
+// the right side of the boundary. Nothing ahead means a long wait; the poll
+// still runs.
+func untilNextCrossing(w *core.Workspace, st core.Settings, now time.Time) time.Duration {
+	const idle = time.Hour
+	if w == nil {
+		return idle
+	}
+	var next time.Time
+	consider := func(t time.Time) {
+		if t.After(now) && (next.IsZero() || t.Before(next)) {
+			next = t
+		}
+	}
+	for _, s := range w.Sessions {
+		if s.Status != core.StatusActive || s.Expires == nil {
+			continue
+		}
+		consider(s.Expires.Add(-st.NotifyLead()))
+		consider(*s.Expires)
+	}
+	for _, in := range w.Integrations {
+		// portalDue knows which sign-ins the tray watches; zero means none.
+		if left, _ := portalDue(w, in, now); left > 0 {
+			consider(now.Add(left - portalWarnBefore))
+			consider(now.Add(left))
+		}
+	}
+	if next.IsZero() {
+		return idle
+	}
+	return next.Sub(now) + time.Second
 }
 
 // currentSettings reads the settings, falling back to defaults when the
