@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/nateships/rolle/compare/v0.5.0...v0.5.1) (2026-09-15)
+
+
+### Bug Fixes
+
+* **app:** find a rolle command the terminal sees before offering Install ([#96](https://github.com/nateships/rolle/issues/96)) ([c3076a9](https://github.com/nateships/rolle/commit/c3076a9dfdd0ab4d2f51f0d9161eac905e2b3423))
+
 ## [0.5.0](https://github.com/nateships/rolle/compare/v0.4.1...v0.5.0) (2026-09-15)
 
 
