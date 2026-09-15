@@ -53,6 +53,13 @@ jobs:
       - if: runner.os == 'Linux'
         run: mise run check:frontend
       - run: mise run desktop:build
+      # desktop:build regenerates frontend/bindings from the Go services. The
+      # generated files are committed, so a Go change that alters them must
+      # arrive with the regenerated bindings. Output is the same on every OS
+      # and build mode; Linux checks it.
+      - name: Bindings are committed
+        if: runner.os == 'Linux'
+        run: git diff --exit-code -- apps/desktop/frontend/bindings
 
   # Capslock reports which capabilities (network, exec, files, ...) each Go
   # package reaches through its whole dependency graph. The job fails when the
