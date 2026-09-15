@@ -672,6 +672,7 @@ func (s *Service) Start(ctx context.Context, ref string, opts StartOptions) (cor
 	}
 	sess.Status = core.StatusActive
 	sess.Expires = creds.Expiration
+	sess.ExpiredAt = nil
 	return creds, s.Save(w)
 }
 
@@ -801,6 +802,8 @@ func (s *Service) Stop(ref string) error {
 	if err := s.deactivate(sess); err != nil {
 		return err
 	}
+	// A stop by hand is not an expiry worth pointing at.
+	sess.ExpiredAt = nil
 	return s.Save(w)
 }
 
@@ -1027,6 +1030,11 @@ func (s *Service) RefreshContext(ctx context.Context) (*core.Workspace, error) {
 		}
 		if expired[sess.ID] {
 			_ = s.deactivate(sess)
+			now := time.Now()
+			if s.Now != nil {
+				now = s.Now()
+			}
+			sess.ExpiredAt = &now
 		}
 	}
 	return w, s.Save(w)

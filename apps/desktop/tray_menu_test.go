@@ -88,6 +88,11 @@ func TestCountLabelAndTooltipWithoutExpiry(t *testing.T) {
 	if got := activeLabel(core.Session{Name: "c"}, now, core.DefaultNotifyLead); got != "c" {
 		t.Errorf("no expiry = %q", got)
 	}
+	for d, want := range map[time.Duration]string{30 * time.Second: "just now", 3 * time.Minute: "3m ago", 2*time.Hour + 5*time.Minute: "2h 05m ago"} {
+		if got := ago(now.Add(-d - time.Second)); got != want {
+			t.Errorf("ago(-%v) = %q, want %q", d, got, want)
+		}
+	}
 	if got := tooltip([]core.Session{{Name: "a"}}); got != "rolle · 1 active session" {
 		t.Fatal(got)
 	}

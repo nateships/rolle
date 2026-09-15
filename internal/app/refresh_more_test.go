@@ -174,8 +174,19 @@ func TestRefreshDeactivatesSSORoleThatNeedsLogin(t *testing.T) {
 	if got.Status != core.StatusInactive || got.Expires != nil {
 		t.Fatalf("session without a portal token = %+v", got)
 	}
+	// The list points at a session that ended by itself, until a stop by hand.
+	if got.ExpiredAt == nil {
+		t.Fatalf("expired session carries no ExpiredAt: %+v", got)
+	}
 	if cfg := awsConfig(t, s); strings.Contains(cfg, "credential_process") {
 		t.Fatalf("profile of a deactivated session remains:\n%s", cfg)
+	}
+	if err := s.Stop(sess.ID); err != nil {
+		t.Fatal(err)
+	}
+	w, _ = s.Load()
+	if got, _ := FindSession(w, sess.ID); got.ExpiredAt != nil {
+		t.Fatalf("manual stop kept ExpiredAt: %+v", got)
 	}
 }
 

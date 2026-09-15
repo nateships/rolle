@@ -109,6 +109,9 @@ type Session struct {
 	Tags []string `json:"tags,omitempty"`
 	// Expires is when the current credentials stop working. Nil when inactive.
 	Expires *time.Time `json:"expires,omitempty"`
+	// ExpiredAt is when the session last ended by itself, so the list can
+	// point at it. The next start or a manual stop clears it.
+	ExpiredAt *time.Time `json:"expiredAt,omitempty"`
 
 	AWS   *AWSSession   `json:"aws,omitempty"`
 	Azure *AzureSession `json:"azure,omitempty"`

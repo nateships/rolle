@@ -441,6 +441,9 @@ func accountLabel(_ *core.Workspace, s core.Session) string {
 // addStartItem adds an item that starts the session. Sessions that need an
 // MFA code stay disabled; the window collects the code.
 func (t *tray) addStartItem(menu *application.Menu, sess core.Session, label string) {
+	if sess.ExpiredAt != nil {
+		label = fmt.Sprintf("%s · expired %s", label, ago(*sess.ExpiredAt))
+	}
 	item := menu.Add(label)
 	if needsInput(sess) {
 		item.SetLabel(label + " · needs MFA in the app")
@@ -570,6 +573,18 @@ func tooltip(active []core.Session) string {
 		out += " · next expiry in " + until(*next)
 	}
 	return out
+}
+
+// ago says how long since t, in the units of until.
+func ago(t time.Time) string {
+	d := time.Since(t)
+	switch {
+	case d >= time.Hour:
+		return fmt.Sprintf("%dh %02dm ago", int(d.Hours()), int(d.Minutes())%60)
+	case d >= time.Minute:
+		return fmt.Sprintf("%dm ago", int(d.Minutes()))
+	}
+	return "just now"
 }
 
 func until(exp time.Time) string {

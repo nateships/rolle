@@ -61,6 +61,20 @@ describe("SessionRow", () => {
     expect(screen.getByText("Inactive")).toBeInTheDocument();
   });
 
+  it("says when an inactive session ended by itself", () => {
+    renderRow(
+      session({
+        name: "personal",
+        kind: Kind.KindAWSIAMUser,
+        expiredAt: new Date(Date.now() - 3 * 60e3).toISOString(),
+      }),
+    );
+    expect(screen.getByText("Expired")).toBeInTheDocument();
+    expect(screen.getByText("3m ago")).toBeInTheDocument();
+    expect(screen.queryByText("Inactive")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /start/i })).toBeInTheDocument();
+  });
+
   it("offers Stop and a countdown for an active session", () => {
     renderRow(
       session({

@@ -48,6 +48,17 @@ export function remaining(expires: string | null | undefined, now: number): stri
   return `${s}s`;
 }
 
+/** How long ago `at` was, for a session that ended by itself. */
+export function ago(at: string | null | undefined, now: number): string {
+  if (!at) return "";
+  const total = Math.max(0, Math.floor((now - new Date(at).getTime()) / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m ago`;
+  if (m > 0) return `${m}m ago`;
+  return "just now";
+}
+
 export function sessionSubtitle(s: Session): string {
   if (s.azure) return s.azure.subscriptionId;
   if (s.gcp) return s.gcp.serviceAccount ? `${s.gcp.projectId} · ${s.gcp.serviceAccount}` : s.gcp.projectId;
