@@ -5,6 +5,7 @@ import {
   Import,
   Keyboard,
   KeyRound,
+  LayoutList,
   LogIn,
   LogOut,
   MoreHorizontal,
@@ -335,6 +336,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
               label="All sessions"
               hint={hintFor(null)}
               count={visibleCount}
+              icon={<LayoutList className="size-3.5" />}
             />
             {active > 0 && (
               <SideItem
