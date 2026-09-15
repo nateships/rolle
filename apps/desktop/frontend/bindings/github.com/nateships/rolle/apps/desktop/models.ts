@@ -34,7 +34,9 @@ export interface CLIStatus {
     /**
      * Reason is empty when Install can run. "move": the macOS app runs from a
      * disk image or a temporary location. "outdated": the installed command
-     * is from another version. "unsupported": this build has no command.
+     * is from another version. "external": the command on the PATH came from
+     * somewhere else, Homebrew or a package, and is left alone.
+     * "unsupported": this build has no command.
      */
     "reason"?: string;
 
