@@ -72,6 +72,8 @@ func demoWorkspace() (*core.Workspace, []core.Session) {
 			// lead. This shows the warning, the tray flag, and the Dock badge
 			// arrive, and then the deactivation.
 			{ID: "s-staging", Name: "Acme Staging/AdministratorAccess", Kind: core.KindAWSSSORole, Region: "us-east-1", IntegrationID: "acme", Status: core.StatusActive, Expires: in(2*time.Minute + 15*time.Second), AWS: &core.AWSSession{AccountID: "456789012345", RoleName: "AdministratorAccess"}},
+			// Ends 15 seconds after launch: the expired marker, at once.
+			{ID: "s-qa", Name: "Acme QA/ReadOnlyAccess", Kind: core.KindAWSSSORole, Region: "us-east-1", IntegrationID: "acme", Status: core.StatusActive, Expires: in(15 * time.Second), AWS: &core.AWSSession{AccountID: "567890123456", RoleName: "ReadOnlyAccess"}},
 			{ID: "s-ro", Name: "Acme Prod/ReadOnlyAccess", Kind: core.KindAWSSSORole, Region: "us-east-1", IntegrationID: "acme", Status: core.StatusInactive, AWS: &core.AWSSession{AccountID: "123456789012", RoleName: "ReadOnlyAccess"}},
 			{ID: "s-dev", Name: "Acme Dev/PowerUserAccess", Kind: core.KindAWSSSORole, Region: "us-east-1", IntegrationID: "acme", Status: core.StatusInactive, AWS: &core.AWSSession{AccountID: "210987654321", RoleName: "PowerUserAccess"}},
 			{ID: "s-sandbox", Name: "Acme Sandbox/ReadOnlyAccess", Kind: core.KindAWSSSORole, Region: "us-east-1", IntegrationID: "acme", Status: core.StatusInactive, AWS: &core.AWSSession{AccountID: "345678901234", RoleName: "ReadOnlyAccess"}},
