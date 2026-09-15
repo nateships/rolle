@@ -43,6 +43,13 @@ func TestDevBuildSimulatesCLIInstall(t *testing.T) {
 	t.Cleanup(func() { devCLIInstalled = old })
 
 	r := &RolleService{}
+	if p, err := userLookPath("rolle"); err == nil {
+		// This machine has a command from elsewhere; the dev build reports it.
+		if st := r.CLIStatus(); !st.Installed || st.Path != p || st.Reason != "external" {
+			t.Fatalf("with %s on the PATH = %+v", p, st)
+		}
+		return
+	}
 	if st := r.CLIStatus(); st.Installed || st.Target == "" || st.Reason != "" {
 		t.Fatalf("before install = %+v", st)
 	}
@@ -86,10 +93,16 @@ func TestDarwinStatus(t *testing.T) {
 	if st.Installed != (linkErr == nil) {
 		t.Fatalf("installed = %v, link present = %v", st.Installed, linkErr == nil)
 	}
+	// A Homebrew command is installed, but not ours to link or update.
 	env.lookPath = func(string) (string, error) { return "/opt/homebrew/bin/rolle", nil }
-	if st := cliStatusIn(env); !st.Installed || st.Path != "/opt/homebrew/bin/rolle" {
+	if st := cliStatusIn(env); !st.Installed || st.Path != "/opt/homebrew/bin/rolle" || st.Reason != "external" {
 		t.Fatalf("status with rolle on PATH = %+v", st)
 	}
+	env.lookPath = func(string) (string, error) { return cliLink, nil }
+	if st := cliStatusIn(env); !st.Installed || st.Reason != "" {
+		t.Fatalf("status with our link on PATH = %+v", st)
+	}
+	env.lookPath = notFound
 	env.exe = fakeBundle(t, filepath.Join(dir, "Downloads"))
 	if st := cliStatusIn(env); st.Reason != "move" {
 		t.Fatalf("status from Downloads = %+v", st)
@@ -163,16 +176,30 @@ func TestLinuxStatusAndOutdatedCommand(t *testing.T) {
 	if st := cliStatusIn(env); !st.Installed || st.Path != target || st.Reason != "" {
 		t.Fatalf("on PATH = %+v", st)
 	}
-	// A deb-installed command elsewhere counts as installed too.
-	env.lookPath = func(string) (string, error) { return "/usr/local/bin/rolle", nil }
-	if st := cliStatusIn(env); !st.Installed || st.Path != "/usr/local/bin/rolle" {
-		t.Fatalf("system command = %+v", st)
-	}
-	// Another version is flagged, unless this is a dev build with no version.
+	// Another version of our copy is flagged, unless this is a dev build with no version.
 	env.versionOf = func(string) string { return "0.0.9" }
 	st := cliStatusIn(env)
 	if want := version.Version != "0.0.1-dev"; (st.Reason == "outdated") != want {
 		t.Fatalf("outdated = %+v (build version %s)", st, version.Version)
+	}
+	// A deb-installed command elsewhere counts as installed, is not ours, and
+	// is never called outdated.
+	env.lookPath = func(string) (string, error) { return "/usr/local/bin/rolle", nil }
+	if st := cliStatusIn(env); !st.Installed || st.Path != "/usr/local/bin/rolle" || st.Reason != "external" {
+		t.Fatalf("system command = %+v", st)
+	}
+}
+
+func TestUserLookPathAsksTheShell(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the shell lookup is for macOS and Linux")
+	}
+	// sh is on every PATH, so both the direct and the shell route find it.
+	if p, err := userLookPath("sh"); err != nil || !filepath.IsAbs(p) {
+		t.Fatalf("sh = %q, %v", p, err)
+	}
+	if _, err := userLookPath("rolle-no-such-command-xyz"); err == nil {
+		t.Fatal("a missing command was found")
 	}
 }
 

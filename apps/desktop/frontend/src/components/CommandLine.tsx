@@ -38,6 +38,8 @@ export function CommandLineInstall({ compact = false, className }: { compact?: b
   const install = () => run(() => api.InstallCLI(), "rolle command installed");
   const remove = () => run(() => api.UninstallCLI(), "rolle command removed");
   const outdated = status.reason === "outdated";
+  // A command from Homebrew or a package: shown, never replaced or removed.
+  const external = status.reason === "external";
   const actionLabel = outdated ? "Update command" : "Install command";
 
   if (compact) {
@@ -46,9 +48,11 @@ export function CommandLineInstall({ compact = false, className }: { compact?: b
         <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
           <Check className="size-3.5" /> Installed
         </span>
-        <Button size="sm" variant="ghost" className="h-7" onClick={remove} disabled={busy}>
-          Remove
-        </Button>
+        {!external && (
+          <Button size="sm" variant="ghost" className="h-7" onClick={remove} disabled={busy}>
+            Remove
+          </Button>
+        )}
       </div>
     ) : (
       <Button
@@ -78,7 +82,8 @@ export function CommandLineInstall({ compact = false, className }: { compact?: b
           ) : status.installed ? (
             <>
               <code className="rounded bg-muted px-1 py-px font-mono text-[11px]">rolle</code> is on your PATH at{" "}
-              <span className="font-mono text-[11px]">{status.path}</span>.
+              <span className="font-mono text-[11px]">{status.path}</span>
+              {external ? ", installed another way." : "."}
             </>
           ) : status.reason === "move" ? (
             "Move rolle to Applications first."

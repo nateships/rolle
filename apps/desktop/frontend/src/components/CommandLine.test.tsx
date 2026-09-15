@@ -47,6 +47,21 @@ describe("CommandLineInstall", () => {
     expect(screen.getByRole("button", { name: /update command/i })).toBeEnabled();
   });
 
+  it("leaves a command installed another way alone", async () => {
+    const external: CLIStatus = { installed: true, path: "/opt/homebrew/bin/rolle", reason: "external" };
+    vi.spyOn(api, "CLIStatus").mockResolvedValue(external);
+    const { unmount } = render(<CommandLineInstall />);
+    expect(await screen.findByText(/installed another way/)).toBeInTheDocument();
+    expect(screen.getByText("/opt/homebrew/bin/rolle")).toBeInTheDocument();
+    expect(screen.getByText("Installed")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+    unmount();
+
+    render(<CommandLineInstall compact />);
+    expect(await screen.findByText("Installed")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /remove/i })).not.toBeInTheDocument();
+  });
+
   it("passes the platform's note along", async () => {
     vi.spyOn(api, "CLIStatus").mockResolvedValue({ ...linked, note: "Open a new terminal to use it." });
     render(<CommandLineInstall />);
