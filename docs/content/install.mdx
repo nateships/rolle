@@ -14,7 +14,7 @@ description: Install the rolle desktop app with Homebrew, a signed DMG, the Wind
 
     The cask installs the desktop app and puts the `rolle` command on your `PATH`. The command ships inside the app bundle and updates with the app.
 
-    Or download `rolle.dmg` from the [releases page](https://github.com/nateships/rolle/releases). The app is signed and notarized. It needs macOS 12 or later, on Apple silicon or Intel. **Install command**, in the last onboarding step and in **Settings → General**, links the `rolle` command into `/usr/local/bin`.
+    Or download `rolle.dmg` from the [releases page](https://github.com/nateships/rolle/releases). The app is signed and notarized. It needs macOS 12 or later, on Apple silicon or Intel. **Install command**, in the last onboarding step and in **Settings → General**, links the `rolle` command into `/usr/local/bin`. When `rolle` is already on your PATH, from Homebrew for example, the app says so and leaves it alone.
   </Tab>
   <Tab title="Windows">
     Download `rolle-installer.exe` from the [releases page](https://github.com/nateships/rolle/releases). One installer covers x64 and Arm64. It installs for the current user under `%LOCALAPPDATA%\Programs\rolle`. Installation and updates need no administrator.
@@ -26,7 +26,7 @@ description: Install the rolle desktop app with Homebrew, a signed DMG, the Wind
   <Tab title="Linux">
     Download `rolle-linux-amd64.AppImage` or the `.deb` package from the [releases page](https://github.com/nateships/rolle/releases). The app needs GTK 4 and WebKitGTK 6.0.
 
-    The deb installs the `rolle` command in `/usr/local/bin`. With the AppImage, **Install command** in the last onboarding step and in **Settings → General** writes it to `~/.local/bin`. Each app update updates the command. For machines without the app, the CLI ships as `rolle-cli_<version>_linux_<arch>.tar.gz`.
+    The deb installs the `rolle` command in `/usr/local/bin`. With the AppImage, **Install command** in the last onboarding step and in **Settings → General** writes it to `~/.local/bin`, unless a `rolle` from the deb is already on your PATH. Each app update updates the command. For machines without the app, the CLI ships as `rolle-cli_<version>_linux_<arch>.tar.gz`.
   </Tab>
 </Tabs>
 

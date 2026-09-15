@@ -34,6 +34,10 @@ func userPathList() (string, error) {
 	return v, nil
 }
 
+// userLookPath: a Windows app starts with the user's PATH, so the process
+// PATH is the terminal's.
+func userLookPath(file string) (string, error) { return exec.LookPath(file) }
+
 // hideWindow keeps a console command from flashing a window when the app,
 // built for the GUI subsystem, runs it.
 func hideWindow(cmd *exec.Cmd) { cmd.SysProcAttr = &syscall.SysProcAttr{HideWindow: true} }

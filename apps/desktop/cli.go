@@ -33,7 +33,9 @@ type CLIStatus struct {
 	Target string `json:"target,omitempty"`
 	// Reason is empty when Install can run. "move": the macOS app runs from a
 	// disk image or a temporary location. "outdated": the installed command
-	// is from another version. "unsupported": this build has no command.
+	// is from another version. "external": the command on the PATH came from
+	// somewhere else, Homebrew or a package, and is left alone.
+	// "unsupported": this build has no command.
 	Reason string `json:"reason,omitempty"`
 	// Note is a hint for the user, such as opening a new terminal.
 	Note string `json:"note,omitempty"`
@@ -61,7 +63,7 @@ func liveEnv() cliEnv {
 		home:      home,
 		localApp:  os.Getenv("LOCALAPPDATA"),
 		payload:   embeddedCLI(),
-		lookPath:  exec.LookPath,
+		lookPath:  userLookPath,
 		versionOf: commandVersion,
 		userPath:  userPathList,
 	}
@@ -85,6 +87,10 @@ func devSimulated() bool {
 }
 
 func devCLIStatus() CLIStatus {
+	// A command from Homebrew or a package shows for real, even here.
+	if p, err := userLookPath("rolle"); err == nil {
+		return CLIStatus{Installed: true, Path: p, Reason: "external"}
+	}
 	st := CLIStatus{Target: "(dev build: install is simulated)"}
 	if devCLIInstalled {
 		st.Installed, st.Path = true, cliLink
@@ -217,6 +223,9 @@ func darwinStatus(env cliEnv) CLIStatus {
 	}
 	if p, err := env.lookPath("rolle"); err == nil {
 		st.Installed, st.Path = true, p
+		if p != cliLink {
+			st.Reason = "external"
+		}
 	} else if _, err := os.Lstat(cliLink); err == nil {
 		st.Installed, st.Path = true, cliLink
 	}
@@ -233,6 +242,9 @@ func userDirStatus(env cliEnv) CLIStatus {
 	st := CLIStatus{Target: target}
 	if p, err := env.lookPath(cliFileName(env.goos)); err == nil {
 		st.Installed, st.Path = true, p
+		if p != target {
+			st.Reason = "external"
+		}
 	} else if _, err := os.Stat(target); err == nil {
 		// The file is there but this process's PATH does not see it: a fresh
 		// Windows install, or a Linux PATH without ~/.local/bin.
@@ -243,7 +255,8 @@ func userDirStatus(env cliEnv) CLIStatus {
 			st.Note = "Add ~/.local/bin to your PATH."
 		}
 	}
-	if st.Installed && version.Version != "0.0.1-dev" {
+	// Only the app's own copy is held to the app's version.
+	if st.Installed && st.Reason != "external" && version.Version != "0.0.1-dev" {
 		if v := env.versionOf(st.Path); v != "" && v != version.Version {
 			st.Reason = "outdated"
 		}
