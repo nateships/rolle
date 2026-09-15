@@ -229,6 +229,12 @@ export interface Session {
      * Expires is when the current credentials stop working. Nil when inactive.
      */
     "expires"?: string | null;
+
+    /**
+     * ExpiredAt is when the session last ended by itself, so the list can
+     * point at it. The next start or a manual stop clears it.
+     */
+    "expiredAt"?: string | null;
     "aws"?: AWSSession | null;
     "azure"?: AzureSession | null;
     "gcp"?: GCPSession | null;

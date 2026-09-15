@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { Cloud, Kind } from "@/lib/api";
-import { cloudOf, isLoggedIn, kindLabel, remaining, sessionSubtitle } from "@/lib/format";
+import { ago, cloudOf, isLoggedIn, kindLabel, remaining, sessionSubtitle } from "@/lib/format";
 import { integration, session } from "@/test/fixtures";
 
 const NOW = Date.parse("2026-01-01T12:00:00Z");
@@ -31,6 +31,21 @@ describe("remaining", () => {
   it("formats seconds only below one minute", () => {
     expect(remaining(at(42e3), NOW)).toBe("42s");
     expect(remaining(at(999), NOW)).toBe("0s");
+  });
+});
+
+describe("ago", () => {
+  const now = Date.parse("2026-09-15T00:00:00Z");
+  it("returns an empty string without a time", () => {
+    expect(ago(null, now)).toBe("");
+  });
+  it("says just now under a minute, including the future", () => {
+    expect(ago(new Date(now - 30e3).toISOString(), now)).toBe("just now");
+    expect(ago(new Date(now + 30e3).toISOString(), now)).toBe("just now");
+  });
+  it("formats minutes, then hours and minutes", () => {
+    expect(ago(new Date(now - 3 * 60e3).toISOString(), now)).toBe("3m ago");
+    expect(ago(new Date(now - (2 * 3600e3 + 5 * 60e3)).toISOString(), now)).toBe("2h 5m ago");
   });
 });
 

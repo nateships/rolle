@@ -35,7 +35,7 @@ import { RemoveKeysDialog, type RemoveKeysTarget } from "@/components/dialogs/Re
 import { api, errorMessage, Kind, Status, type Integration, type Session, type Workspace } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
 import { copyText } from "@/lib/clipboard";
-import { cloudOf, kindLabel, remaining, sessionSubtitle, useNow } from "@/lib/format";
+import { ago, cloudOf, kindLabel, remaining, sessionSubtitle, useNow } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { SESSION_DRAG, setSessionDragImage } from "@/lib/drag";
 import { TagGlyph } from "@/lib/tags";
@@ -433,13 +433,22 @@ export function SessionRow({
             <span
               className={cn(
                 "flex items-center gap-1.5 font-mono text-xs tabular-nums",
-                active ? "text-emerald-700 dark:text-emerald-300" : "text-muted-foreground/70",
+                active
+                  ? "text-emerald-700 dark:text-emerald-300"
+                  : s.expiredAt
+                    ? "text-amber-700 dark:text-amber-400"
+                    : "text-muted-foreground/70",
               )}
             >
               {active ? (
                 <>
                   <span className="font-sans font-medium">Active</span>
                   <Countdown expires={s.expires} />
+                </>
+              ) : s.expiredAt ? (
+                <>
+                  <span className="font-sans font-medium">Expired</span>
+                  <Ago at={s.expiredAt} />
                 </>
               ) : (
                 <span className="font-sans">Inactive</span>
@@ -532,4 +541,9 @@ function IconBtn({ label, onClick, children }: { label: string; onClick: () => v
 function Countdown({ expires }: { expires: string | null | undefined }) {
   const now = useNow();
   return <span>{remaining(expires, now)}</span>;
+}
+
+function Ago({ at }: { at: string }) {
+  const now = useNow();
+  return <span>{ago(at, now)}</span>;
 }
