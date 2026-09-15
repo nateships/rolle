@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@wailsio/runtime':
-        specifier: 3.0.0-beta.21
-        version: 3.0.0-beta.21
+        specifier: 3.0.0-beta.22
+        version: 3.0.0-beta.22
       canvas-confetti:
         specifier: ^1.9.4
         version: 1.9.4
@@ -1736,8 +1736,8 @@ packages:
   '@vitest/spy@5.0.0':
     resolution: {integrity: sha512-uy+luWBAPw9XfthoHi5AkfHUnuPYEESjl0p/r+meoBnU8bxg5GDQ3Ey8MjcJ6sqahkL4PFyrvfMJJBw7LbU06g==}
 
-  '@wailsio/runtime@3.0.0-beta.21':
-    resolution: {integrity: sha512-5khssqPE98JDCHL82XpVnqOHT5ar9HT1NEJqMyTknNML066lhDc1Zd4sVkR+wx0vO80zlG2svGfzals5a0QsZA==}
+  '@wailsio/runtime@3.0.0-beta.22':
+    resolution: {integrity: sha512-ZtA63ig28tnrV9fZUef0AkgStgCk14/C2iPlWNHy1Lt4+SKjv4IJJpZQ8ceLu/jGi2F4zvexLwZQcu79f+H9oA==}
 
   accepts@2.0.0:
     resolution: {integrity: sha512-5cvg6CtKwfgdmVqY1WIiXKc3Q1bkRqGLi+2W/6ao+6Y7gu/RCwRuAhGEzh5B4KlszSuTLgZYuqFqo5bImjNKng==}
@@ -4957,7 +4957,7 @@ snapshots:
 
   '@vitest/spy@5.0.0': {}
 
-  '@wailsio/runtime@3.0.0-beta.21': {}
+  '@wailsio/runtime@3.0.0-beta.22': {}
 
   accepts@2.0.0:
     dependencies:
