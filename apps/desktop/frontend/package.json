@@ -21,7 +21,7 @@
     "canvas-confetti": "^1.9.4",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
-    "cn": "^0.2.6",
+    "cn": "^0.3.0",
     "lucide-react": "^1.40.0",
     "motion": "^13.2.0",
     "radix-ui": "^1.6.7",
