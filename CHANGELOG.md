@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/nateships/rolle/compare/v0.4.1...v0.5.0) (2026-09-15)
+
+
+### Features
+
+* **app:** Dock icon, login item, Dock badge, and warnings on the mark ([#93](https://github.com/nateships/rolle/issues/93)) ([a293510](https://github.com/nateships/rolle/commit/a293510270d18a17798a44bc92fd2629fd4825bd))
+* **app:** mark a session that ended by itself as expired ([#94](https://github.com/nateships/rolle/issues/94)) ([8a18a85](https://github.com/nateships/rolle/commit/8a18a853dfa85e54f238683e1cd99da2ba412c26))
+
 ## [0.4.1](https://github.com/nateships/rolle/compare/v0.4.0...v0.4.1) (2026-09-14)
 
 
