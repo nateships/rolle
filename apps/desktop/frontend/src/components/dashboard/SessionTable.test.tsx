@@ -1,8 +1,8 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, renderHook, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { SessionTable, type ColumnWidths } from "@/components/dashboard/SessionTable";
+import { SessionTable, useColumnWidths, type ColumnWidths } from "@/components/dashboard/SessionTable";
 import { api, Kind, type Session, type Workspace } from "@/lib/api";
 import { integration, session, ssoRole } from "@/test/fixtures";
 
@@ -108,6 +108,46 @@ describe("SessionTable", () => {
     await user.click(profile);
     expect(screen.getByRole("columnheader", { name: /Profile/ })).toHaveAttribute("aria-sort", "none");
     localStorage.removeItem("rolle.sort");
+  });
+
+  it("drags a divider by trading width between its two columns", () => {
+    const onWidths = vi.fn();
+    renderTable([session({ name: "alpha" })], { onWidths });
+    const between = screen.getByRole("separator", { name: "Resize Profile column" });
+    fireEvent.mouseDown(between, { clientX: 100 });
+    fireEvent.mouseMove(window, { clientX: 120 });
+    fireEvent.mouseUp(window);
+    expect(onWidths).toHaveBeenLastCalledWith({ profile: 170, region: 110, state: 130 });
+    // The Session divider only sets Profile; Session itself is the flexible column.
+    const first = screen.getByRole("separator", { name: "Resize Session column" });
+    fireEvent.mouseDown(first, { clientX: 100 });
+    fireEvent.mouseMove(window, { clientX: 70 });
+    fireEvent.mouseUp(window);
+    expect(onWidths).toHaveBeenLastCalledWith({ profile: 180, region: 130, state: 130 });
+    // Neither column leaves its range: Region stops at its 90px floor, so Profile stops at 190.
+    fireEvent.mouseDown(between, { clientX: 100 });
+    fireEvent.mouseMove(window, { clientX: 400 });
+    fireEvent.mouseUp(window);
+    expect(onWidths).toHaveBeenLastCalledWith({ profile: 190, region: 90, state: 130 });
+    expect(screen.queryByRole("separator", { name: "Resize State column" })).toBeNull();
+  });
+
+  it("keeps the Session column at least 160px wide", () => {
+    const onWidths = vi.fn();
+    renderTable([session({ name: "alpha" })], { onWidths });
+    const first = screen.getByRole("separator", { name: "Resize Session column" });
+    Object.defineProperty(first.parentElement, "clientWidth", { value: 200 });
+    fireEvent.mouseDown(first, { clientX: 100 });
+    fireEvent.mouseMove(window, { clientX: 0 });
+    fireEvent.mouseUp(window);
+    expect(onWidths).toHaveBeenLastCalledWith({ profile: 190, region: 130, state: 130 });
+  });
+
+  it("pulls stored widths from older builds into range", () => {
+    localStorage.setItem("rolle.columns", JSON.stringify({ profile: 400, region: 70, state: 70 }));
+    const { result } = renderHook(() => useColumnWidths());
+    expect(result.current[0]).toEqual({ profile: 320, region: 90, state: 120 });
+    localStorage.removeItem("rolle.columns");
   });
 
   it("takes the Profile and Region column widths from the widths prop", () => {

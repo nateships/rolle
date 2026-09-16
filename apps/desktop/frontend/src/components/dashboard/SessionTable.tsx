@@ -60,8 +60,21 @@ export function groupSessions(sessions: Session[]): Row[] {
 /** Column widths in pixels for the resizable columns. */
 export type ColumnWidths = { profile: number; region: number; state: number };
 const DEFAULT_WIDTHS: ColumnWidths = { profile: 150, region: 130, state: 130 };
+/** A column never leaves this range. Cells clip what does not fit. */
+const MIN_WIDTHS: ColumnWidths = { profile: 70, region: 90, state: 120 };
+const MAX_WIDTH = 320;
+/** The Session column takes the rest of the row. Keep this much of it for a name. */
+const SESSION_MIN = 160;
+const COLUMN_LABELS = { session: "Session", profile: "Profile", region: "Region", state: "State" } as const;
 const WIDTHS_KEY = "rolle.columns";
 const COLLAPSED_KEY = "rolle.collapsed";
+
+const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
+
+function clampWidths(w: ColumnWidths): ColumnWidths {
+  const fit = (k: keyof ColumnWidths) => clamp(w[k], MIN_WIDTHS[k], MAX_WIDTH);
+  return { profile: fit("profile"), region: fit("region"), state: fit("state") };
+}
 
 function readJSON<T>(key: string, fallback: T): T {
   try {
@@ -74,7 +87,8 @@ function readJSON<T>(key: string, fallback: T): T {
 
 /** Column widths shared by every table on the page, kept between launches. */
 export function useColumnWidths() {
-  const [widths, setWidths] = useState<ColumnWidths>(() => readJSON(WIDTHS_KEY, DEFAULT_WIDTHS));
+  // Older builds stored narrower columns. Pull stored widths into range.
+  const [widths, setWidths] = useState<ColumnWidths>(() => clampWidths(readJSON(WIDTHS_KEY, DEFAULT_WIDTHS)));
   useEffect(() => {
     try {
       localStorage.setItem(WIDTHS_KEY, JSON.stringify(widths));
@@ -170,7 +184,7 @@ export function SessionTable({
   const rows = useMemo(() => sortRows(groupSessions(sessions), sort), [sessions, sort]);
 
   // A header click sorts ascending, again descending, a third time clears it.
-  function sortButton(key: NonNullable<Sort>["key"], label: string) {
+  function sortButton(key: NonNullable<Sort>["key"]) {
     const on = sort?.key === key;
     const Arrow = !on ? ChevronsUpDown : sort.dir === "asc" ? ArrowUp : ArrowDown;
     return (
@@ -179,7 +193,7 @@ export function SessionTable({
         onClick={() => setSort(!on ? { key, dir: "asc" } : sort.dir === "asc" ? { key, dir: "desc" } : null)}
         className="group -mx-1 inline-flex items-center gap-1 rounded px-1 hover:text-foreground"
       >
-        {label}
+        {COLUMN_LABELS[key]}
         <Arrow className={cn("size-3", !on && "opacity-0 group-hover:opacity-60")} />
       </button>
     );
@@ -187,23 +201,42 @@ export function SessionTable({
   const ariaSort = (key: NonNullable<Sort>["key"]) =>
     sort?.key === key ? (sort.dir === "asc" ? "ascending" : "descending") : "none";
 
-  // A divider on the header's right edge. Always faintly visible so there is
-  // something to grab; drag to resize, double-click to put it back.
-  function resizer(col: keyof ColumnWidths) {
-    const label = { profile: "Profile", region: "Region", state: "State" }[col];
+  // A divider between two columns. Dragging it moves the boundary under the
+  // pointer. The left column grows by the amount the right column loses, so no
+  // other column moves. Both columns stay in range. The Session column has no
+  // fixed width, so its divider (no `left`) only sets Profile and keeps
+  // SESSION_MIN of Session. Double-click puts both columns back.
+  function resizer(right: keyof ColumnWidths, left?: keyof ColumnWidths) {
     return (
       <span
         role="separator"
         aria-orientation="vertical"
-        aria-label={`Resize ${label} column`}
-        aria-valuenow={widths[col]}
-        onDoubleClick={() => onWidths({ ...widths, [col]: DEFAULT_WIDTHS[col] })}
+        aria-label={`Resize ${COLUMN_LABELS[left ?? "session"]} column`}
+        aria-valuenow={left && widths[left]}
+        onDoubleClick={() =>
+          onWidths({ ...widths, ...(left && { [left]: DEFAULT_WIDTHS[left] }), [right]: DEFAULT_WIDTHS[right] })
+        }
         onMouseDown={(e) => {
           e.preventDefault();
           const startX = e.clientX;
-          const startW = widths[col];
-          const move = (ev: MouseEvent) =>
-            onWidths({ ...widths, [col]: Math.max(70, Math.min(320, startW + ev.clientX - startX)) });
+          const start = widths;
+          // The bounds on dx do not change during a drag. Compute them once.
+          let lo = start[right] - MAX_WIDTH;
+          let hi = start[right] - MIN_WIDTHS[right];
+          if (left) {
+            lo = Math.max(lo, MIN_WIDTHS[left] - start[left]);
+            hi = Math.min(hi, MAX_WIDTH - start[left]);
+          } else {
+            // The header cell is as wide as the Session column. An unmeasured
+            // header (no layout yet) puts no ceiling on Profile. A column that
+            // is already too narrow can still grow, so the floor is at most 0.
+            const session = e.currentTarget.parentElement?.clientWidth || Infinity;
+            lo = Math.max(lo, Math.min(0, SESSION_MIN - session));
+          }
+          const move = (ev: MouseEvent) => {
+            const dx = clamp(ev.clientX - startX, lo, hi);
+            onWidths({ ...start, ...(left && { [left]: start[left] + dx }), [right]: start[right] - dx });
+          };
           const up = () => {
             window.removeEventListener("mousemove", move);
             window.removeEventListener("mouseup", up);
@@ -218,7 +251,8 @@ export function SessionTable({
 
   return (
     <div className="overflow-hidden rounded-lg border bg-card">
-      <Table className="table-fixed">
+      {/* Cells clip what does not fit. `clip` (not `hidden`) keeps a cell from scrolling when a clipped child takes focus. */}
+      <Table className="table-fixed [&_td]:overflow-clip">
         <colgroup>
           <col style={{ width: 84 }} />
           <col />
@@ -230,20 +264,24 @@ export function SessionTable({
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             <TableHead />
-            <TableHead aria-sort={ariaSort("session")}>{sortButton("session", "Session")}</TableHead>
-            <TableHead aria-sort={ariaSort("profile")} className="relative">
-              {sortButton("profile", "Profile")}
+            <TableHead aria-sort={ariaSort("session")} className="relative">
+              {sortButton("session")}
               {resizer("profile")}
             </TableHead>
+            <TableHead aria-sort={ariaSort("profile")} className="relative">
+              {sortButton("profile")}
+              {resizer("region", "profile")}
+            </TableHead>
             <TableHead aria-sort={ariaSort("region")} className="relative">
-              {sortButton("region", "Region")}
-              {resizer("region")}
+              {sortButton("region")}
+              {resizer("state", "region")}
             </TableHead>
             <TableHead aria-sort={ariaSort("state")} className="relative">
-              {sortButton("state", "State")}
-              {resizer("state")}
+              {sortButton("state")}
+              {/* The actions column is pinned to the right edge, so this divider only marks the boundary. */}
+              <span aria-hidden="true" className="absolute inset-y-2 -right-px w-px bg-border/60" />
             </TableHead>
-            <TableHead />
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
