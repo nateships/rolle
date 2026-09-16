@@ -3,5 +3,12 @@
   "installCommand": "mkdir -p .mise && curl -fsSL https://mise.run | LC_ALL=C MISE_INSTALL_PATH=\"$PWD/.mise/mise\" sh && ./.mise/mise x aube@2.2 -- aube ci",
   "buildCommand": "./.mise/mise x aube@2.2 -- aube run build",
   "outputDirectory": "dist",
-  "framework": null
+  "framework": null,
+  "redirects": [
+    {
+      "source": "/docs/changelog",
+      "destination": "/changelog",
+      "permanent": true
+    }
+  ]
 }

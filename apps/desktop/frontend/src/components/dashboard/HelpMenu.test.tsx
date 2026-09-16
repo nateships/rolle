@@ -17,7 +17,7 @@ describe("HelpMenu", () => {
     render(<HelpMenu />);
     await open(user);
     await user.click(screen.getByRole("menuitem", { name: /documentation/i }));
-    expect(openUrl).toHaveBeenCalledWith("https://getrolle.com");
+    expect(openUrl).toHaveBeenCalledWith("https://getrolle.com/docs");
     await open(user);
     await user.click(screen.getByRole("menuitem", { name: /changelog/i }));
     expect(openUrl).toHaveBeenCalledWith("https://getrolle.com/changelog");

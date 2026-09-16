@@ -1,0 +1,6 @@
+---
+// The Changelog tab's href is rebased under basePath to /docs/changelog, but
+// blume writes the generated timeline to /changelog, outside the base. This
+// page fills the gap: a static redirect to the timeline.
+return Astro.redirect("/changelog", 301);
+---
