@@ -467,10 +467,10 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 {showSection(sec.key) && (
                   <div>
                     <div className="flex items-center pr-1">
-                      {/* The mark sits in the rows' icon column, so the title lines up with their labels. */}
-                      <p className="flex flex-1 items-center gap-2 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                        <CloudMark cloud={sec.mark} className="size-3.5" />
+                      {/* The mark trails the title: rows stay indented under it, so the hierarchy reads. */}
+                      <p className="flex flex-1 items-center gap-1.5 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                         {sec.title}
+                        <CloudMark cloud={sec.mark} className="size-3" />
                       </p>
                       <span className="flex size-6 items-center justify-center">
                         <Button
@@ -583,9 +583,9 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 {sec.cloud === CloudKind.CloudAWS && showSection("aws-iam") && (
                   <div>
                     <div className="flex items-center pr-1">
-                      <p className="flex flex-1 items-center gap-2 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                        <CloudMark cloud="aws" className="size-3.5" />
+                      <p className="flex flex-1 items-center gap-1.5 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
                         AWS IAM
+                        <CloudMark cloud="aws" className="size-3" />
                       </p>
                       <span className="flex size-6 items-center justify-center">
                         <Button
