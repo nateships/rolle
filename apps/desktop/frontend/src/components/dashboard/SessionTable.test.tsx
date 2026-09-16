@@ -110,6 +110,28 @@ describe("SessionTable", () => {
     localStorage.removeItem("rolle.sort");
   });
 
+  it("drags a divider by trading width between its two columns", () => {
+    const onWidths = vi.fn();
+    renderTable([session({ name: "alpha" })], { onWidths });
+    const between = screen.getByRole("separator", { name: "Resize Profile column" });
+    fireEvent.mouseDown(between, { clientX: 100 });
+    fireEvent.mouseMove(window, { clientX: 120 });
+    fireEvent.mouseUp(window);
+    expect(onWidths).toHaveBeenLastCalledWith({ profile: 170, region: 110, state: 130 });
+    // The Session divider only sets Profile; Session itself is the flexible column.
+    const first = screen.getByRole("separator", { name: "Resize Session column" });
+    fireEvent.mouseDown(first, { clientX: 100 });
+    fireEvent.mouseMove(window, { clientX: 70 });
+    fireEvent.mouseUp(window);
+    expect(onWidths).toHaveBeenLastCalledWith({ profile: 180, region: 130, state: 130 });
+    // Neither column leaves its range: Region stops at 70, so Profile stops at 210.
+    fireEvent.mouseDown(between, { clientX: 100 });
+    fireEvent.mouseMove(window, { clientX: 400 });
+    fireEvent.mouseUp(window);
+    expect(onWidths).toHaveBeenLastCalledWith({ profile: 210, region: 70, state: 130 });
+    expect(screen.queryByRole("separator", { name: "Resize State column" })).toBeNull();
+  });
+
   it("takes the Profile and Region column widths from the widths prop", () => {
     const { container } = renderTable([iam], { widths: { profile: 210, region: 95, state: 130 } });
     const cols = container.querySelectorAll("col");

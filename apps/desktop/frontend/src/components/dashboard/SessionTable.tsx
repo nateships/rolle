@@ -187,23 +187,42 @@ export function SessionTable({
   const ariaSort = (key: NonNullable<Sort>["key"]) =>
     sort?.key === key ? (sort.dir === "asc" ? "ascending" : "descending") : "none";
 
-  // A divider on the header's right edge. Always faintly visible so there is
-  // something to grab; drag to resize, double-click to put it back.
-  function resizer(col: keyof ColumnWidths) {
-    const label = { profile: "Profile", region: "Region", state: "State" }[col];
+  // A divider between two columns. Dragging it moves the boundary under the
+  // pointer: the column on its left grows by what the column on its right
+  // gives up, so nothing else shifts. The Session column is the flexible one,
+  // so its divider only sets Profile. Double-click puts both columns back.
+  const MIN = 70;
+  const MAX = 320;
+  function resizer(left: keyof ColumnWidths | "session", right: keyof ColumnWidths) {
+    const name = { session: "Session", profile: "Profile", region: "Region", state: "State" };
     return (
       <span
         role="separator"
         aria-orientation="vertical"
-        aria-label={`Resize ${label} column`}
-        aria-valuenow={widths[col]}
-        onDoubleClick={() => onWidths({ ...widths, [col]: DEFAULT_WIDTHS[col] })}
+        aria-label={`Resize ${name[left]} column`}
+        aria-valuenow={left === "session" ? undefined : widths[left]}
+        onDoubleClick={() =>
+          onWidths({
+            ...widths,
+            ...(left !== "session" && { [left]: DEFAULT_WIDTHS[left] }),
+            [right]: DEFAULT_WIDTHS[right],
+          })
+        }
         onMouseDown={(e) => {
           e.preventDefault();
           const startX = e.clientX;
-          const startW = widths[col];
-          const move = (ev: MouseEvent) =>
-            onWidths({ ...widths, [col]: Math.max(70, Math.min(320, startW + ev.clientX - startX)) });
+          const start = { ...widths };
+          const move = (ev: MouseEvent) => {
+            let dx = ev.clientX - startX;
+            // The right column gives what the left one takes; both stay in range.
+            dx = Math.max(start[right] - MAX, Math.min(start[right] - MIN, dx));
+            if (left !== "session") dx = Math.max(MIN - start[left], Math.min(MAX - start[left], dx));
+            onWidths({
+              ...start,
+              ...(left !== "session" && { [left]: start[left] + dx }),
+              [right]: start[right] - dx,
+            });
+          };
           const up = () => {
             window.removeEventListener("mousemove", move);
             window.removeEventListener("mouseup", up);
@@ -230,20 +249,20 @@ export function SessionTable({
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             <TableHead />
-            <TableHead aria-sort={ariaSort("session")}>{sortButton("session", "Session")}</TableHead>
+            <TableHead aria-sort={ariaSort("session")} className="relative">
+              {sortButton("session", "Session")}
+              {resizer("session", "profile")}
+            </TableHead>
             <TableHead aria-sort={ariaSort("profile")} className="relative">
               {sortButton("profile", "Profile")}
-              {resizer("profile")}
+              {resizer("profile", "region")}
             </TableHead>
             <TableHead aria-sort={ariaSort("region")} className="relative">
               {sortButton("region", "Region")}
-              {resizer("region")}
+              {resizer("region", "state")}
             </TableHead>
-            <TableHead aria-sort={ariaSort("state")} className="relative">
-              {sortButton("state", "State")}
-              {resizer("state")}
-            </TableHead>
-            <TableHead />
+            <TableHead aria-sort={ariaSort("state")}>{sortButton("state", "State")}</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
