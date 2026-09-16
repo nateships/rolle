@@ -296,6 +296,14 @@ describe("SettingsDialog", () => {
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it("opens the tab the caller asks for", async () => {
+    await act(async () => {
+      render(<SettingsDialog open tab="about" onClose={vi.fn()} />);
+    });
+    await screen.findByRole("tab", { name: "General" });
+    expect(screen.getByRole("tab", { name: "About" })).toHaveAttribute("aria-selected", "true");
+  });
+
   it("opens the tab named in the query string", async () => {
     window.history.replaceState({}, "", "/?tab=about");
     await open();

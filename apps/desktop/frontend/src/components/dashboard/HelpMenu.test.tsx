@@ -14,7 +14,7 @@ describe("HelpMenu", () => {
   it("opens the docs and the changelog", async () => {
     const user = userEvent.setup();
     const openUrl = vi.spyOn(api, "OpenURL").mockResolvedValue();
-    render(<HelpMenu />);
+    render(<HelpMenu onAbout={vi.fn()} />);
     await open(user);
     await user.click(screen.getByRole("menuitem", { name: /documentation/i }));
     expect(openUrl).toHaveBeenCalledWith("https://getrolle.com/docs");
@@ -23,13 +23,22 @@ describe("HelpMenu", () => {
     expect(openUrl).toHaveBeenCalledWith("https://getrolle.com/changelog");
   });
 
+  it("has an About item", async () => {
+    const user = userEvent.setup();
+    const onAbout = vi.fn();
+    render(<HelpMenu onAbout={onAbout} />);
+    await open(user);
+    await user.click(screen.getByRole("menuitem", { name: /about rolle/i }));
+    expect(onAbout).toHaveBeenCalledTimes(1);
+  });
+
   it("saves a support bundle and opens the report form", async () => {
     const user = userEvent.setup();
     vi.spyOn(api, "ExportSupportBundle").mockResolvedValue("~/Downloads/rolle-support.zip");
     vi.spyOn(api, "SupportURL").mockResolvedValue("https://github.com/x/issues/new");
     const openUrl = vi.spyOn(api, "OpenURL").mockResolvedValue();
     const success = vi.spyOn(toast, "success");
-    render(<HelpMenu />);
+    render(<HelpMenu onAbout={vi.fn()} />);
     await open(user);
     await user.click(screen.getByRole("menuitem", { name: /support bundle/i }));
     await waitFor(() =>
@@ -44,7 +53,7 @@ describe("HelpMenu", () => {
     const user = userEvent.setup();
     vi.spyOn(api, "ExportSupportBundle").mockRejectedValue(new Error("no disk"));
     const error = vi.spyOn(toast, "error");
-    render(<HelpMenu />);
+    render(<HelpMenu onAbout={vi.fn()} />);
     await open(user);
     await user.click(screen.getByRole("menuitem", { name: /support bundle/i }));
     await waitFor(() => expect(error).toHaveBeenCalledWith("no disk"));

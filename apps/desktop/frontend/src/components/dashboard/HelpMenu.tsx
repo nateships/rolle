@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, Bug, CircleHelp, FileArchive, History, Loader2 } from "lucide-react";
+import { BookOpen, Bug, CircleHelp, FileArchive, History, Info, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,8 +14,8 @@ import { api, errorMessage } from "@/lib/api";
 const SITE = "https://getrolle.com";
 const DOCS = `${SITE}/docs`;
 
-/** The help button at the bottom of the sidebar: docs, changelog, bug form, support bundle. */
-export function HelpMenu() {
+/** The help button at the bottom of the sidebar: docs, changelog, bug form, support bundle, about. */
+export function HelpMenu({ onAbout }: { onAbout: () => void }) {
   const [exporting, setExporting] = useState(false);
   const exportBundle = async () => {
     setExporting(true);
@@ -48,6 +48,10 @@ export function HelpMenu() {
         </DropdownMenuItem>
         <DropdownMenuItem disabled={exporting} onClick={() => void exportBundle()}>
           {exporting ? <Loader2 className="animate-spin" /> : <FileArchive />} Support bundle
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onAbout}>
+          <Info /> About rolle
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

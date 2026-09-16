@@ -85,7 +85,7 @@ type Dialog =
   | { kind: "gcp" }
   | { kind: "gcp-impersonate" }
   | { kind: "login"; integration: Integration }
-  | { kind: "settings" }
+  | { kind: "settings"; tab?: string }
   | { kind: "rename"; integration: Integration }
   | { kind: "tag"; target: TagTarget }
   | { kind: "import" }
@@ -728,7 +728,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
               </Button>
             )}
             <DevTools />
-            <HelpMenu />
+            <HelpMenu onAbout={() => setDialog({ kind: "settings", tab: "about" })} />
             <span className="relative">
               {held && <Key className="absolute -top-7 right-0 h-5 text-[10px]">{combo("/")}</Key>}
               <Button
@@ -941,7 +941,11 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
           }
         }}
       />
-      <SettingsDialog open={dialog?.kind === "settings"} onClose={() => setDialog(null)} />
+      <SettingsDialog
+        open={dialog?.kind === "settings"}
+        tab={dialog?.kind === "settings" ? dialog.tab : undefined}
+        onClose={() => setDialog(null)}
+      />
       <ShortcutsDialog open={dialog?.kind === "shortcuts"} onClose={() => setDialog(null)} />
       <ImportDialog
         open={dialog?.kind === "import"}
