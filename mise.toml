@@ -78,7 +78,7 @@ dir = "docs"
 
 [tasks."docs:build"]
 description = "Build the docs site"
-run = ["aube install --frozen-lockfile", "aube run build"]
+run = ["aube ci", "aube run build"]
 dir = "docs"
 
 [tasks.cli]
