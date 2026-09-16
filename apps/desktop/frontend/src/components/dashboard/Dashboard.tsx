@@ -91,6 +91,34 @@ type Dialog =
   | { kind: "import" }
   | { kind: "shortcuts" };
 
+const SIDEBAR_KEY = "rolle.sidebar";
+const SIDEBAR_DEFAULT = 256;
+// The lockup is 48px tall: a 56px mark, a 64px wordmark, and 20px of right
+// padding. The macOS traffic lights end near x=70. This floor keeps the
+// lockup clear of them with a small gap.
+const SIDEBAR_MIN = 228;
+const SIDEBAR_MAX = 420;
+
+/** Sidebar width in pixels, kept between launches. */
+function useSidebarWidth() {
+  const [width, setWidth] = useState(() => {
+    try {
+      const n = Number(localStorage.getItem(SIDEBAR_KEY));
+      return n >= SIDEBAR_MIN && n <= SIDEBAR_MAX ? n : SIDEBAR_DEFAULT;
+    } catch {
+      return SIDEBAR_DEFAULT;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIDEBAR_KEY, String(width));
+    } catch {
+      /* storage is optional */
+    }
+  }, [width]);
+  return [width, setWidth] as const;
+}
+
 // key matches core.SidebarSections; Settings → Appearance hides a section by it.
 const CLOUD_SECTIONS: { key: string; cloud: string; mark: "aws" | "azure" | "gcp"; title: string; addKind: Dialog }[] =
   [
@@ -102,6 +130,7 @@ const CLOUD_SECTIONS: { key: string; cloud: string; mark: "aws" | "azure" | "gcp
 export function Dashboard({ workspace }: { workspace: Workspace }) {
   const [query, setQuery] = useState("");
   const [widths, setWidths] = useColumnWidths();
+  const [sidebarWidth, setSidebarWidth] = useSidebarWidth();
   const [chosenFilter, setFilter] = useState<string | null>(() =>
     !inWails ? new URLSearchParams(location.search).get("filter") : null,
   );
@@ -325,7 +354,10 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
 
   return (
     <div className="flex h-full">
-      <aside className="flex w-64 shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground">
+      <aside
+        style={{ width: sidebarWidth }}
+        className="relative flex shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground"
+      >
         <div className="drag flex h-[4.5rem] items-center justify-end px-5 pt-2">
           <GopherLockup className="h-12" />
         </div>
@@ -721,6 +753,30 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
             </span>
           </div>
         </div>
+        {/* Drag the edge to resize the sidebar; double-click puts it back. */}
+        <span
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize sidebar"
+          aria-valuenow={sidebarWidth}
+          aria-valuemin={SIDEBAR_MIN}
+          aria-valuemax={SIDEBAR_MAX}
+          onDoubleClick={() => setSidebarWidth(SIDEBAR_DEFAULT)}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            const startX = e.clientX;
+            const startW = sidebarWidth;
+            const move = (ev: MouseEvent) =>
+              setSidebarWidth(Math.max(SIDEBAR_MIN, Math.min(SIDEBAR_MAX, startW + ev.clientX - startX)));
+            const up = () => {
+              window.removeEventListener("mousemove", move);
+              window.removeEventListener("mouseup", up);
+            };
+            window.addEventListener("mousemove", move);
+            window.addEventListener("mouseup", up);
+          }}
+          className="no-drag absolute inset-y-0 -right-1 z-10 w-2 cursor-col-resize select-none border-r border-transparent hover:border-border active:border-ring"
+        />
       </aside>
 
       <section className="flex min-w-0 flex-1 flex-col">
