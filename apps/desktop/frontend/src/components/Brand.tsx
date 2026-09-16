@@ -42,17 +42,11 @@ const VENDORS = {
   gcp: { src: gcpLogo, name: "Google Cloud" },
 } as const;
 
-/** Provider mark on a neutral tile. The logo identifies the vendor; state is never encoded here. */
-export function CloudGlyph({ cloud, className }: { cloud: "aws" | "azure" | "gcp"; className?: string }) {
+/** Provider mark alone, sized by the caller. The logo identifies the vendor; state is never encoded here. */
+export function CloudMark({ cloud, className }: { cloud: "aws" | "azure" | "gcp"; className?: string }) {
   const v = VENDORS[cloud];
   return (
-    <span
-      title={v.name}
-      className={cn(
-        "inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-card p-1.5",
-        className,
-      )}
-    >
+    <span title={v.name} className={cn("inline-flex shrink-0", className)}>
       <img
         src={v.src}
         alt={v.name}
@@ -62,6 +56,20 @@ export function CloudGlyph({ cloud, className }: { cloud: "aws" | "azure" | "gcp
       {"dark" in v && (
         <img src={v.dark} alt="" aria-hidden className="hidden size-full object-contain dark:block" draggable={false} />
       )}
+    </span>
+  );
+}
+
+/** Provider mark on a neutral tile. */
+export function CloudGlyph({ cloud, className }: { cloud: "aws" | "azure" | "gcp"; className?: string }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-card p-1.5",
+        className,
+      )}
+    >
+      <CloudMark cloud={cloud} className="size-full" />
     </span>
   );
 }

@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { ActionItems, type Action } from "@/components/ActionMenu";
-import { GopherLockup, GopherMark } from "@/components/Brand";
+import { CloudMark, GopherLockup, GopherMark } from "@/components/Brand";
 import { HelpMenu } from "@/components/dashboard/HelpMenu";
 import { SessionTable, useColumnWidths } from "./SessionTable";
 import { DevTools } from "@/components/DevTools";
@@ -92,11 +92,12 @@ type Dialog =
   | { kind: "shortcuts" };
 
 // key matches core.SidebarSections; Settings → Appearance hides a section by it.
-const CLOUD_SECTIONS: { key: string; cloud: string; title: string; addKind: Dialog }[] = [
-  { key: "aws-sso", cloud: CloudKind.CloudAWS, title: "AWS Identity Center", addKind: { kind: "sso" } },
-  { key: "azure", cloud: CloudKind.CloudAzure, title: "Azure tenants", addKind: { kind: "azure" } },
-  { key: "gcp", cloud: CloudKind.CloudGCP, title: "Google Cloud", addKind: { kind: "gcp" } },
-];
+const CLOUD_SECTIONS: { key: string; cloud: string; mark: "aws" | "azure" | "gcp"; title: string; addKind: Dialog }[] =
+  [
+    { key: "aws-sso", cloud: CloudKind.CloudAWS, mark: "aws", title: "AWS Identity Center", addKind: { kind: "sso" } },
+    { key: "azure", cloud: CloudKind.CloudAzure, mark: "azure", title: "Azure tenants", addKind: { kind: "azure" } },
+    { key: "gcp", cloud: CloudKind.CloudGCP, mark: "gcp", title: "Google Cloud", addKind: { kind: "gcp" } },
+  ];
 
 export function Dashboard({ workspace }: { workspace: Workspace }) {
   const [query, setQuery] = useState("");
@@ -466,7 +467,9 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 {showSection(sec.key) && (
                   <div>
                     <div className="flex items-center pr-1">
-                      <p className="flex-1 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                      {/* The mark sits in the rows' icon column, so the title lines up with their labels. */}
+                      <p className="flex flex-1 items-center gap-2 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                        <CloudMark cloud={sec.mark} className="size-3.5" />
                         {sec.title}
                       </p>
                       <span className="flex size-6 items-center justify-center">
@@ -580,7 +583,8 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 {sec.cloud === CloudKind.CloudAWS && showSection("aws-iam") && (
                   <div>
                     <div className="flex items-center pr-1">
-                      <p className="flex-1 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                      <p className="flex flex-1 items-center gap-2 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                        <CloudMark cloud="aws" className="size-3.5" />
                         AWS IAM
                       </p>
                       <span className="flex size-6 items-center justify-center">
