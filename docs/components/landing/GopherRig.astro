@@ -52,7 +52,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.12em;
-    height: 2.6em;
+    height: 3.6em;
     padding: 0;
     border: 0;
     background: none;
@@ -76,11 +76,8 @@
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
   for (const rig of document.querySelectorAll<HTMLButtonElement>(".rig")) {
     const q = (cls: string) => rig.querySelector<SVGGElement>(`.${cls}`)!;
-    const scene = q("scene");
-    const depth = q("depth");
     const gopher = q("gopher");
     const hands = q("hands");
-    const green = q("card-green");
     const parts = ["arm-l", "arm-r", "foot-l", "foot-r", "pupil-l", "pupil-r"].map(q);
     const [left, right] = [q("hand-l"), q("hand-r")];
     const tr = (el: Element, value: string) => el.setAttribute("transform", value);
@@ -94,9 +91,6 @@
       clearTimeout(timer);
       for (const el of [gopher, hands, ...parts, left, right]) el.removeAttribute("transform");
       hands.removeAttribute("opacity");
-      scene.insertBefore(depth, green);
-      scene.append(hands);
-      depth.setAttribute("mask", "url(#rig-holdout)");
       busy = false;
     };
     const animate = (ms: number, paint: (t: number) => void, done?: () => void) => {
@@ -109,18 +103,19 @@
       };
       frame = requestAnimationFrame(tick);
     };
+    // The app's dance: bounce and sway in place behind the cards, arms and
+    // feet on their pivots, pupils along.
     const dance = (t: number) => {
-      const swing = Math.sin(t * 12 * Math.PI);
-      const damp = Math.sin(t * Math.PI);
-      const value = `translate(${swing * 10 * damp} ${-Math.abs(swing) * 14 * damp}) rotate(${swing * 7 * damp} 246 270)`;
-      tr(gopher, value);
-      tr(hands, value);
-      tr(parts[0], `rotate(${(swing * 24 + 25) * damp} 158 170)`);
-      tr(parts[1], `rotate(${(swing * 24 - 25) * damp} 334 170)`);
-      tr(left, `rotate(${(swing * 24 + 25) * damp} 158 170) translate(${-28 * damp} ${44 * damp})`);
-      tr(right, `rotate(${(swing * 24 - 25) * damp} 334 170) translate(${18 * damp} ${45 * damp})`);
-      tr(parts[2], `rotate(${swing * 20 * damp} 195 263)`);
-      tr(parts[3], `rotate(${-swing * 20 * damp} 301 263)`);
+      const swing = Math.sin(t * 8 * Math.PI);
+      const body = `translate(${swing * 6} ${-Math.abs(swing) * 14}) rotate(${swing * 6} 246 270)`;
+      tr(gopher, body);
+      tr(hands, body);
+      tr(parts[0], `rotate(${swing * 24 + 25} 158 170)`);
+      tr(parts[1], `rotate(${swing * 24 - 25} 334 170)`);
+      tr(left, `rotate(${swing * 24 + 25} 158 170) translate(-28 44)`);
+      tr(right, `rotate(${swing * 24 - 25} 334 170) translate(18 45)`);
+      tr(parts[2], `rotate(${swing * 20} 195 263)`);
+      tr(parts[3], `rotate(${-swing * 20} 301 263)`);
       tr(parts[4], `translate(${swing * 3} 0)`);
       tr(parts[5], `translate(${swing * 3} 0)`);
     };
@@ -133,12 +128,10 @@
       reset();
       busy = true;
       if (Math.random() < 0.5) {
-        depth.removeAttribute("mask");
-        scene.append(depth, hands);
         animate(2400, dance, reset);
       } else {
         animate(
-          600,
+          650,
           (t) => {
             pose(ease(t) * 370);
             hands.setAttribute("opacity", String(Math.max(0, 1 - t * 4)));
