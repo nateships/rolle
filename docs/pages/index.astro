@@ -1,8 +1,48 @@
 ---
-// Landing page shell. Blume mounts this at "/" while the docs live under
-// basePath "/docs". The design pass replaces everything below the frontmatter.
+// Landing page at "/". The docs live under basePath "/docs".
 import data from "blume:data";
 const releases = "https://github.com/nateships/rolle/releases";
+const github = "https://github.com/nateships/rolle";
+const title = "rolle: assume any role, any cloud";
+const description =
+  "Free desktop app and CLI for short-lived AWS, Azure, and Google Cloud credentials. One sign-in per cloud, no secret on disk.";
+const site = data.config.site ?? "https://getrolle.com";
+
+// The miniature dashboard. Built from markup, not a screenshot, so it keeps
+// pace with the app and can move. Group rows have no play button.
+type Row = {
+  id: string;
+  cloud?: "aws" | "azure" | "gcp";
+  name: string;
+  sub?: string;
+  badge?: string;
+  profile?: string;
+  region?: string;
+  group?: boolean;
+  fav?: boolean;
+  tag?: string;
+  active?: number;
+};
+const rows: Row[] = [
+  { id: "acme-dev", group: true, cloud: "aws", name: "Acme Dev", sub: "210987654321 · 1 role" },
+  { id: "poweruser", name: "PowerUser", profile: "default", region: "us-east-1" },
+  { id: "acme-prod", group: true, cloud: "aws", name: "Acme Prod", sub: "123456789012 · 2 roles" },
+  { id: "admin", name: "AdministratorAccess", profile: "default", region: "us-east-1", fav: true, active: 2814 },
+  { id: "readonly", name: "ReadOnlyAccess", profile: "default", region: "us-east-1" },
+  { id: "personal", cloud: "aws", name: "personal", badge: "IAM user", sub: "us-west-2", profile: "personal", region: "us-west-2" },
+  {
+    id: "prod-admin",
+    cloud: "aws",
+    name: "prod-admin",
+    badge: "Assume role",
+    sub: "arn:aws:iam::123456789012:role/Admin",
+    profile: "default",
+    region: "eu-west-1",
+  },
+  { id: "contoso", cloud: "azure", name: "Contoso Production", sub: "0f1e2d3c-4b5a-6978-8a9b-0c1d2e3f4a5b" },
+  { id: "data-platform", cloud: "gcp", name: "data-platform", sub: "data-platform-4821" },
+  { id: "deployer", cloud: "gcp", name: "deployer", tag: "Production", sub: "data-platform-4821 · deployer@data-pl…", fav: true },
+];
 ---
 
 <!doctype html>
@@ -10,34 +50,1291 @@ const releases = "https://github.com/nateships/rolle/releases";
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{data.config.title}: assume any role, any cloud</title>
-    <meta name="description" content={data.config.description} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={site} />
     <link rel="icon" href="/icon.png" />
-    <style>
-      :root { color-scheme: light dark; --fg: #101114; --muted: #5b6069; --bg: #f4f0e8; --accent: #00ce78; }
-      @media (prefers-color-scheme: dark) { :root { --fg: #f4f0e8; --muted: #b4b8c0; --bg: #101114; } }
-      * { box-sizing: border-box; }
-      body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: var(--bg); color: var(--fg); font: 18px/1.5 system-ui, sans-serif; }
-      main { display: grid; gap: 1.5rem; justify-items: center; padding: 2rem; text-align: center; }
-      img { height: 3rem; width: auto; }
-      .dark { display: none; }
-      @media (prefers-color-scheme: dark) { .light { display: none; } .dark { display: block; } }
-      p { max-width: 34rem; color: var(--muted); margin: 0; }
-      nav { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
-      a { color: var(--fg); text-decoration: none; padding: 0.6rem 1.1rem; border: 1px solid var(--muted); border-radius: 999px; }
-      a.primary { background: var(--accent); border-color: var(--accent); color: #101114; }
+    <link rel="apple-touch-icon" href="/apple-icon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={`${site}/og-brand.png`} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preload" as="font" type="font/ttf" crossorigin href="/fonts/MuseoModerno-Variable.ttf" />
+    <style is:global>
+      @font-face {
+        font-family: "MuseoModerno";
+        src: url("/fonts/MuseoModerno-Variable.ttf") format("truetype");
+        font-weight: 100 900;
+        font-display: swap;
+      }
+
+      :root {
+        color-scheme: light dark;
+        --bg: light-dark(#f4f0e8, #101114);
+        --text: light-dark(#101114, #f4f0e8);
+        --muted: light-dark(#5c6067, #b4b8c0);
+        --border: light-dark(#d9d5cc, #3f4248);
+        --control: light-dark(#101114, #e8eaed);
+        --on-control: light-dark(#f4f0e8, #181a1e);
+        --focus: #8ba9ff;
+        /* The miniature app keeps the app's own dark palette in both schemes. */
+        --a-bg: #101114;
+        --a-side: #181a1e;
+        --a-surface: #1e2024;
+        --a-raised: #292c31;
+        --a-border: #3f4248;
+        --a-text: #f4f0e8;
+        --a-muted: #b4b8c0;
+        --a-faint: #7c8189;
+        --a-green: #00ce78;
+        --a-orange: #ff7900;
+        --a-active: #16261f;
+        --display: "MuseoModerno", ui-rounded, system-ui, sans-serif;
+        --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        --gutter: clamp(1.25rem, 4vw, 3rem);
+        --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--bg);
+        color: var(--text);
+        font: 400 1rem/1.5 var(--sans);
+        -webkit-text-size-adjust: 100%;
+      }
+
+      body {
+        margin: 0;
+        height: 100dvh;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        padding-inline: var(--gutter);
+        overflow: hidden;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      :focus-visible {
+        outline: 3px solid var(--focus);
+        outline-offset: 3px;
+        border-radius: 6px;
+      }
+
+      img,
+      svg {
+        display: block;
+      }
+
+      h1,
+      p,
+      ul {
+        margin: 0;
+      }
+
+      /* Header */
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding-block: 0.8rem;
+      }
+
+      header .logo img {
+        height: 2.5rem;
+        width: auto;
+      }
+
+      /* The light lockup carries a halo inside the file, so it is 1.5x taller. */
+      header .logo img.light {
+        height: 3.75rem;
+        margin-block: -0.625rem;
+      }
+
+      header nav {
+        display: flex;
+        gap: 0.25rem;
+      }
+
+      header nav a {
+        text-decoration: none;
+        color: var(--muted);
+        padding: 0.4rem 0.7rem;
+        border-radius: 999px;
+        font-size: 0.9375rem;
+      }
+
+      header nav a:hover {
+        color: var(--text);
+        background: color-mix(in srgb, var(--text) 8%, transparent);
+      }
+
+      /* Main: one row of copy, then the app fills what is left. */
+      main {
+        display: grid;
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: clamp(0.9rem, 2.2vh, 1.75rem);
+        padding-block: clamp(0.25rem, 1.5vh, 1rem) clamp(0.75rem, 2.5vh, 1.5rem);
+        min-height: 0;
+      }
+
+      .lead {
+        display: grid;
+        gap: 1rem 3rem;
+        align-items: end;
+      }
+
+      @media (min-width: 58rem) {
+        .lead {
+          grid-template-columns: minmax(0, 1fr) auto;
+        }
+      }
+
+      h1 {
+        font-family: var(--display);
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        font-size: clamp(2rem, 4.4vw, 3.5rem);
+        line-height: 1;
+        text-wrap: balance;
+      }
+
+      .lede {
+        margin-top: 0.6rem;
+        font-size: clamp(0.9375rem, 1.1vw, 1.125rem);
+        line-height: 1.45;
+        max-width: 62ch;
+        color: var(--muted);
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.6rem;
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      .lead > * {
+        min-width: 0;
+      }
+
+      .button {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.7rem 1.15rem;
+        border-radius: 999px;
+        text-decoration: none;
+        font-weight: 600;
+        border: 1px solid var(--border);
+        white-space: nowrap;
+        transition: transform 0.2s var(--ease);
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+      }
+
+      .button.primary {
+        background: var(--control);
+        color: var(--on-control);
+        border-color: var(--control);
+      }
+
+      .brew {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.3rem 0.3rem 0.3rem 0.85rem;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        color: var(--muted);
+        font-family: var(--mono);
+        font-size: 0.8125rem;
+        white-space: nowrap;
+        max-width: 100%;
+      }
+
+      .brew > span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .brew b {
+        font-weight: 500;
+        color: var(--text);
+      }
+
+      .brew button {
+        font: inherit;
+        font-family: var(--sans);
+        padding: 0.3rem 0.65rem;
+        border-radius: 999px;
+        border: 0;
+        background: color-mix(in srgb, var(--text) 10%, transparent);
+        color: var(--text);
+        cursor: pointer;
+        min-width: 4rem;
+      }
+
+      /* The stage sizes the app to whatever height is left, keeping its ratio. */
+      .stage {
+        container-type: size;
+        min-height: 0;
+        display: grid;
+        place-items: center;
+        perspective: 1800px;
+      }
+
+      .app {
+        --r: 1.62;
+        position: relative;
+        height: min(100cqh, calc(100cqw / var(--r)));
+        aspect-ratio: var(--r);
+        font-size: clamp(9px, 0.8cqw, 14px);
+        display: grid;
+        grid-template-columns: 15.5em 1fr;
+        border-radius: 1em;
+        overflow: hidden;
+        background: var(--a-bg);
+        color: var(--a-text);
+        border: 1px solid var(--a-border);
+        box-shadow:
+          0 40px 90px -30px rgb(0 0 0 / 0.6),
+          0 0 0 1px rgb(255 255 255 / 0.03) inset;
+        transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+        transition: transform 0.5s var(--ease);
+        animation: rise 0.9s var(--ease) both;
+        user-select: none;
+        cursor: default;
+      }
+
+      .app.live {
+        transition: transform 0.1s linear;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(24px) rotateX(5deg);
+        }
+      }
+
+      /* Sidebar */
+      .side {
+        background: var(--a-side);
+        border-right: 1px solid var(--a-border);
+        padding: 1.2em 1em;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
+        gap: 1.4em;
+        font-size: 1.05em;
+        overflow: hidden;
+      }
+
+      .side .brand {
+        display: flex;
+        justify-content: center;
+        padding-top: 0.3em;
+      }
+
+      .side .brand img {
+        height: 2.6em;
+        width: auto;
+      }
+
+      .side ul {
+        list-style: none;
+        padding: 0;
+        display: grid;
+        gap: 0.15em;
+      }
+
+      .side .h {
+        margin: 1.1em 0 0.35em;
+        font-size: 0.72em;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--a-muted);
+        display: flex;
+        justify-content: space-between;
+        padding-inline: 0.6em 0.2em;
+      }
+
+      .side .h::after {
+        content: "+";
+        font-weight: 400;
+        letter-spacing: 0;
+      }
+
+      .side li {
+        display: flex;
+        align-items: center;
+        gap: 0.6em;
+        padding: 0.42em 0.6em;
+        border-radius: 0.5em;
+        color: var(--a-muted);
+        white-space: nowrap;
+        overflow: hidden;
+      }
+
+      .side li.on {
+        background: var(--a-raised);
+        color: var(--a-text);
+      }
+
+      .side li i {
+        flex: none;
+        width: 0.55em;
+        height: 0.55em;
+        border-radius: 50%;
+        background: var(--a-green);
+      }
+
+      .side li i.off {
+        background: var(--a-faint);
+      }
+
+      .side li i.star {
+        width: 0.9em;
+        height: 0.9em;
+        border-radius: 0;
+        background: var(--a-orange);
+        clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+      }
+
+      .side li i.tag {
+        width: 0.8em;
+        height: 0.8em;
+        border-radius: 0.15em 0.15em 0.15em 0.15em;
+        background: none;
+        border: 0.14em solid currentColor;
+        border-left-color: transparent;
+        border-bottom-color: transparent;
+        transform: rotate(45deg) scale(0.8);
+      }
+
+      .side li i.shield {
+        background: #ff5f57;
+      }
+
+      .side li i.sandbox {
+        background: var(--a-green);
+      }
+
+      .side li b {
+        margin-left: auto;
+        font-weight: 500;
+        font-size: 0.72em;
+        padding: 0.05em 0.5em;
+        border-radius: 999px;
+        background: var(--a-raised);
+        color: var(--a-muted);
+      }
+
+      .side .foot {
+        display: flex;
+        align-items: center;
+        gap: 0.6em;
+        color: var(--a-muted);
+        padding-inline: 0.6em;
+        font-size: 0.95em;
+      }
+
+      .side .foot i {
+        width: 0.6em;
+        height: 0.6em;
+        border-radius: 50%;
+        background: var(--a-green);
+        box-shadow: 0 0 0 0.25em rgb(0 206 120 / 0.2);
+      }
+
+      /* Main pane */
+      .pane {
+        position: relative;
+        display: grid;
+        grid-template-rows: auto 1fr;
+        min-width: 0;
+        overflow: hidden;
+      }
+
+      .bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1em;
+        padding: 1.2em 1.6em;
+        border-bottom: 1px solid var(--a-border);
+      }
+
+      .search {
+        flex: 0 1 30em;
+        display: flex;
+        align-items: center;
+        gap: 0.7em;
+        padding: 0.7em 1em;
+        border-radius: 0.6em;
+        border: 1px solid var(--a-border);
+        background: var(--a-surface);
+        color: var(--a-faint);
+        font-size: 1.05em;
+      }
+
+      .search::before {
+        content: "";
+        width: 0.9em;
+        height: 0.9em;
+        border-radius: 50%;
+        border: 0.13em solid currentColor;
+        box-shadow: 0.55em 0.55em 0 -0.35em currentColor;
+      }
+
+      .add {
+        padding: 0.6em 1em;
+        border-radius: 0.55em;
+        background: #e8eaed;
+        color: #181a1e;
+        font-weight: 600;
+        font-size: 1em;
+      }
+
+      .table {
+        margin: 1.2em 1.6em;
+        border: 1px solid var(--a-border);
+        border-radius: 0.8em;
+        overflow: hidden;
+        align-self: start;
+        background: var(--a-bg);
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: 2.6em 1.6em 3em minmax(0, 1fr) 9em 9em 12em auto;
+        align-items: center;
+        gap: 0.4em;
+        height: 3.15em;
+        padding-inline: 0.7em 0.9em;
+        border-top: 1px solid var(--a-border);
+        font-size: 1.05em;
+        transition: background-color 0.25s var(--ease);
+        position: relative;
+      }
+
+      .row:first-child {
+        border-top: 0;
+        height: 3.3em;
+        color: var(--a-text);
+        font-weight: 600;
+      }
+
+      .row:first-child .m {
+        font-family: inherit;
+        font-size: inherit;
+        color: inherit;
+      }
+
+      .row.group {
+        background: var(--a-surface);
+        height: 3.9em;
+      }
+
+      .row.tall {
+        height: 3.9em;
+      }
+
+      .row.active {
+        background: var(--a-active);
+      }
+
+      .row:not(.group):not(:first-child):hover {
+        background: var(--a-surface);
+      }
+
+      .row.active:hover {
+        background: #1a2e25;
+      }
+
+      .play {
+        width: 2.3em;
+        height: 2.3em;
+        border-radius: 50%;
+        border: 1px solid var(--a-border);
+        background: var(--a-surface);
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        padding: 0;
+        color: var(--a-text);
+        transition: transform 0.15s var(--ease), background-color 0.25s, border-color 0.25s;
+      }
+
+      .play::before {
+        content: "";
+        width: 0;
+        height: 0;
+        border-left: 0.8em solid currentColor;
+        border-top: 0.5em solid transparent;
+        border-bottom: 0.5em solid transparent;
+        margin-left: 0.15em;
+        transition: all 0.2s var(--ease);
+      }
+
+      .row.active .play {
+        border-color: rgb(0 206 120 / 0.5);
+        background: rgb(0 206 120 / 0.15);
+        color: var(--a-green);
+      }
+
+      .row.active .play::before {
+        width: 0.8em;
+        height: 0.8em;
+        border: 0;
+        border-radius: 0.15em;
+        background: currentColor;
+        margin: 0;
+      }
+
+      .row .press,
+      .press {
+        transform: scale(0.85);
+      }
+
+      .chev {
+        width: 0.6em;
+        height: 0.6em;
+        border-right: 0.15em solid var(--a-muted);
+        border-bottom: 0.15em solid var(--a-muted);
+        transform: rotate(45deg) translateY(-0.2em);
+        justify-self: center;
+      }
+
+      .fav {
+        justify-self: center;
+        width: 1.1em;
+        height: 1.1em;
+        background: var(--a-orange);
+        clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+      }
+
+      .glyph {
+        width: 2.5em;
+        height: 2.5em;
+        border-radius: 0.5em;
+        border: 1px solid var(--a-border);
+        background: var(--a-surface);
+        display: grid;
+        place-items: center;
+      }
+
+      .glyph img {
+        width: 62%;
+        height: 62%;
+        object-fit: contain;
+      }
+
+      .name {
+        min-width: 0;
+        line-height: 1.2;
+      }
+
+      .name .t {
+        display: flex;
+        align-items: center;
+        gap: 0.6em;
+        white-space: nowrap;
+        overflow: hidden;
+      }
+
+      .name .badge {
+        font-size: 0.72em;
+        padding: 0.15em 0.6em;
+        border-radius: 999px;
+        background: var(--a-raised);
+        color: var(--a-muted);
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35em;
+      }
+
+      .name .badge i {
+        width: 0.7em;
+        height: 0.7em;
+        border-radius: 50%;
+        background: #ff5f57;
+      }
+
+      .name .s {
+        display: block;
+        font-family: var(--mono);
+        font-size: 0.82em;
+        color: var(--a-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        margin-top: 0.15em;
+      }
+
+      .row .m {
+        font-family: var(--mono);
+        font-size: 0.9em;
+        color: var(--a-muted);
+        white-space: nowrap;
+      }
+
+      .row .state {
+        color: var(--a-faint);
+        white-space: nowrap;
+      }
+
+      .row .state b {
+        font-weight: 500;
+        color: var(--a-green);
+      }
+
+      .row .state .clock {
+        font-family: var(--mono);
+        color: var(--a-green);
+        margin-left: 0.5em;
+      }
+
+      .row.expired .state b,
+      .row.expired .state .clock {
+        color: var(--a-orange);
+      }
+
+      .row .acts {
+        display: flex;
+        gap: 0.5em;
+        justify-self: end;
+        opacity: 0;
+        transition: opacity 0.25s;
+      }
+
+      .row.active .acts {
+        opacity: 1;
+      }
+
+      .acts button {
+        width: 2em;
+        height: 2em;
+        border: 0;
+        border-radius: 0.4em;
+        background: none;
+        color: var(--a-muted);
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        padding: 0;
+        transition: background-color 0.2s, color 0.2s, transform 0.15s var(--ease);
+      }
+
+      .acts button:hover {
+        background: var(--a-raised);
+        color: var(--a-text);
+      }
+
+      .acts svg {
+        width: 1.15em;
+        height: 1.15em;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      /* The terminal drawer the terminal button opens. */
+      .term {
+        position: absolute;
+        left: 1.6em;
+        right: 1.6em;
+        bottom: 1.2em;
+        border-radius: 0.8em;
+        border: 1px solid var(--a-border);
+        background: #0b0c0e;
+        color: var(--a-text);
+        font-family: var(--mono);
+        font-size: 1em;
+        line-height: 1.55;
+        padding: 1em 1.2em;
+        margin: 0;
+        white-space: pre;
+        overflow: hidden;
+        transform: translateY(110%);
+        opacity: 0;
+        transition: transform 0.5s var(--ease), opacity 0.4s;
+        box-shadow: 0 -20px 50px -20px rgb(0 0 0 / 0.7);
+      }
+
+      .term.open {
+        transform: none;
+        opacity: 1;
+      }
+
+      .term .p {
+        color: var(--a-faint);
+      }
+
+      .term .o {
+        color: var(--a-muted);
+      }
+
+      .term .g {
+        color: var(--a-green);
+      }
+
+      .term .x {
+        position: absolute;
+        top: 0.6em;
+        right: 0.8em;
+        color: var(--a-faint);
+        font-family: var(--sans);
+        font-size: 1.1em;
+        cursor: pointer;
+      }
+
+      /* The ghost pointer that runs the demo until you take over. */
+      .ghost {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 2em;
+        height: 2em;
+        pointer-events: none;
+        z-index: 5;
+        transform: translate(var(--gx, 60%), var(--gy, 60%));
+        transition: transform 0.75s cubic-bezier(0.3, 0.7, 0.2, 1), opacity 0.3s;
+        filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.5));
+      }
+
+      .ghost svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .ghost.click {
+        animation: press 0.25s var(--ease);
+      }
+
+      .app.yours .ghost {
+        opacity: 0;
+      }
+
+      @keyframes press {
+        50% {
+          transform: translate(var(--gx), var(--gy)) scale(0.8);
+        }
+      }
+
+      /* One line of facts. */
+      footer {
+        border-top: 1px solid var(--border);
+        padding-block: 0.85rem 1rem;
+        font-size: 0.8125rem;
+        color: var(--muted);
+      }
+
+      .facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 2.5rem;
+        padding: 0;
+        list-style: none;
+      }
+
+      .facts b {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        header .logo img.light {
+          display: none;
+        }
+      }
+
+      @media (prefers-color-scheme: light) {
+        header .logo img.dark {
+          display: none;
+        }
+      }
+
+      @media (max-width: 58rem) {
+        body {
+          height: auto;
+          min-height: 100dvh;
+          overflow: auto;
+        }
+
+        .stage {
+          container-type: inline-size;
+        }
+
+        .app {
+          height: auto;
+          aspect-ratio: auto;
+          width: 100%;
+          grid-template-columns: 1fr;
+          font-size: clamp(8px, 2cqw, 12px);
+        }
+
+        .pane {
+          grid-template-rows: auto auto;
+        }
+
+        .table {
+          margin: 1em;
+        }
+
+        .term {
+          left: 1em;
+          right: 1em;
+          bottom: 1em;
+        }
+
+        header nav a {
+          padding-inline: 0.5rem;
+        }
+
+        .side {
+          display: none;
+        }
+
+        .row {
+          grid-template-columns: 2.6em 1.6em 3em minmax(0, 1fr) 10.5em auto;
+          padding-inline: 0.5em 0.6em;
+        }
+
+        .bar {
+          padding: 1em;
+        }
+
+        .row .m {
+          display: none;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .app,
+        .ghost,
+        .term,
+        .row,
+        .play,
+        .button {
+          animation: none;
+          transition: none;
+        }
+      }
     </style>
   </head>
   <body>
-    <main>
-      <img class="light" src="/logo-light.svg" alt="rolle" />
-      <img class="dark" src="/logo-dark.svg" alt="rolle" />
-      <p>{data.config.description}</p>
-      <nav>
-        <a class="primary" href={releases}>Download</a>
+    <header>
+      <a class="logo" href="/" aria-label="rolle">
+        <img class="dark" src="/logo-dark.svg" alt="" width="804" height="294" />
+        <img class="light" src="/logo-light.svg" alt="" width="903" height="441" />
+      </a>
+      <nav aria-label="Site">
         <a href="/docs">Docs</a>
         <a href="/changelog">Changelog</a>
+        <a href={github}>GitHub</a>
       </nav>
+    </header>
+
+    <main>
+      <div class="lead">
+        <div>
+          <h1>Assume any role, any cloud.</h1>
+          <p class="lede">
+            A desktop app and CLI. One sign-in each to AWS, Azure, and Google Cloud, then short-lived credentials for your
+            tools. No long-lived secret touches disk.
+          </p>
+        </div>
+        <div class="actions">
+          <a class="button primary" href={releases}>Download</a>
+          <a class="button" href="/docs/quickstart">Read the docs</a>
+          <span class="brew">
+            <span><b>brew install</b> --cask nateships/tap/rolle</span>
+            <button type="button" id="copy" data-copy="brew install --cask nateships/tap/rolle">Copy</button>
+          </span>
+        </div>
+      </div>
+
+      <div class="stage" id="stage">
+        <div class="app" id="app" aria-label="A working miniature of the rolle dashboard. Start and stop sessions, open a terminal.">
+          <aside class="side" aria-hidden="true">
+            <div class="brand"><img src="/logo-dark.svg" alt="" /></div>
+            <div>
+              <ul>
+                <li class="on">All sessions <b>8</b></li>
+                <li><i></i>Active <b id="side-active">1</b></li>
+                <li><i class="star"></i>Favorites <b>2</b></li>
+              </ul>
+              <p class="h">Tags</p>
+              <ul>
+                <li><i class="shield"></i>Production <b>1</b></li>
+                <li><i class="sandbox"></i>Sandbox <b>0</b></li>
+              </ul>
+              <p class="h">AWS Identity Center</p>
+              <ul>
+                <li><i></i>acme</li>
+                <li><i class="off"></i>acme-eu</li>
+              </ul>
+              <p class="h">AWS IAM</p>
+              <ul>
+                <li>Users <b>1</b></li>
+                <li>Assumed roles <b>1</b></li>
+              </ul>
+              <p class="h">Azure tenants</p>
+              <ul>
+                <li><i></i>contoso</li>
+              </ul>
+              <p class="h">Google Cloud</p>
+              <ul>
+                <li><i></i>gcp</li>
+              </ul>
+            </div>
+            <div class="foot"><i></i><span id="foot-active">1 active</span></div>
+          </aside>
+
+          <section class="pane">
+            <div class="bar" aria-hidden="true">
+              <div class="search">Search sessions</div>
+              <div class="add">+ Add</div>
+            </div>
+            <div class="table" role="list">
+              <div class="row" aria-hidden="true">
+                <span></span><span></span><span></span><span>Session</span><span class="m">Profile</span><span class="m"
+                  >Region</span
+                ><span>State</span><span></span>
+              </div>
+              {
+                rows.map((r) => (
+                  <div
+                    class:list={["row", r.group && "group", (r.sub || r.badge) && !r.group && "tall", r.active && "active"]}
+                    data-id={r.id}
+                    data-secs={r.active ?? ""}
+                    role="listitem"
+                  >
+                    {r.group ? (
+                      <span class="chev" />
+                    ) : (
+                      <button class="play" type="button" aria-label={`Start ${r.name}`} />
+                    )}
+                    {r.fav ? <span class="fav" /> : <span />}
+                    {r.cloud ? (
+                      <span class="glyph">
+                        <img src={r.cloud === "aws" ? "/vendors/aws-dark.svg" : `/vendors/${r.cloud}.svg`} alt="" />
+                      </span>
+                    ) : (
+                      <span />
+                    )}
+                    <span class="name">
+                      <span class="t">
+                        {r.name}
+                        {r.badge && <span class="badge">{r.badge}</span>}
+                        {r.tag && (
+                          <span class="badge">
+                            <i />
+                            {r.tag}
+                          </span>
+                        )}
+                      </span>
+                      {r.sub && <span class="s">{r.sub}</span>}
+                    </span>
+                    <span class="m">{r.profile ?? (r.group ? "" : "—")}</span>
+                    <span class="m">{r.region ?? (r.group ? "" : "—")}</span>
+                    <span class="state">{r.group ? "" : "Inactive"}</span>
+                    <span class="acts">
+                      {!r.group && (
+                        <>
+                          <button type="button" data-act="term" aria-label="Open a terminal">
+                            <svg viewBox="0 0 24 24"><path d="M4 17l6-5-6-5M12 19h8" /></svg>
+                          </button>
+                          <button type="button" data-act="console" aria-label="Open the console">
+                            <svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5" /></svg>
+                          </button>
+                          <button type="button" data-act="copy" aria-label="Copy credentials">
+                            <svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V6a2 2 0 0 1 2-2h8" /></svg>
+                          </button>
+                        </>
+                      )}
+                    </span>
+                  </div>
+                ))
+              }
+            </div>
+            <pre class="term" id="term" aria-live="off"><span class="x" id="term-close">×</span><span id="term-out"></span></pre>
+          </section>
+
+          <div class="ghost" id="ghost" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M5 3l14 8.5-6.5 1.5L9 20z" fill="#f4f0e8" stroke="#101114" stroke-width="1.5" stroke-linejoin="round" /></svg>
+          </div>
+        </div>
+      </div>
     </main>
+
+    <footer>
+      <ul class="facts">
+        <li><b>Nothing long-lived on disk.</b> Refresh tokens live in the OS keychain.</li>
+        <li><b>Your tools, unchanged.</b> AWS profiles, Azure and Google Cloud tokens in your shell.</li>
+        <li><b>No telemetry.</b> Free, open source, macOS, Windows, and Linux.</li>
+      </ul>
+    </footer>
+
+    <script>
+      const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const fine = matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+      // Copy the Homebrew command.
+      const copy = document.getElementById("copy") as HTMLButtonElement | null;
+      copy?.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(copy.dataset.copy ?? "");
+          copy.textContent = "Copied";
+          setTimeout(() => (copy.textContent = "Copy"), 1400);
+        } catch {
+          copy.textContent = "Select it";
+        }
+      });
+
+      // ---- The miniature app -------------------------------------------------
+      const app = document.getElementById("app")!;
+      const stage = document.getElementById("stage")!;
+      const ghost = document.getElementById("ghost")!;
+      const term = document.getElementById("term")!;
+      const termOut = document.getElementById("term-out")!;
+      const rows = [...app.querySelectorAll<HTMLElement>(".row[data-id]")];
+      const byId = (id: string) => rows.find((r) => r.dataset.id === id)!;
+      const secs = new Map<string, number>();
+      const fmt = (s: number) => `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`;
+      const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+      const paintState = (row: HTMLElement) => {
+        if (row.classList.contains("group")) return;
+        const st = row.querySelector(".state")!;
+        const s = secs.get(row.dataset.id!);
+        if (s === undefined) {
+          row.classList.remove("active", "expired");
+          st.textContent = "Inactive";
+        } else if (s <= 0) {
+          row.classList.add("active", "expired");
+          st.innerHTML = "<b>Expired</b><span class=clock>renewing</span>";
+        } else {
+          row.classList.add("active");
+          row.classList.remove("expired");
+          st.innerHTML = `<b>Active</b><span class=clock>${fmt(s)}</span>`;
+        }
+        const n = [...secs.values()].filter((v) => v > 0).length;
+        document.getElementById("side-active")!.textContent = String(n);
+        document.getElementById("foot-active")!.textContent = `${n} active`;
+      };
+
+      const start = (id: string, s = 3599) => {
+        secs.set(id, s);
+        paintState(byId(id));
+      };
+      const stop = (id: string) => {
+        secs.delete(id);
+        paintState(byId(id));
+      };
+
+      rows.forEach((row) => {
+        const id = row.dataset.id!;
+        if (row.dataset.secs) secs.set(id, Number(row.dataset.secs));
+        paintState(row);
+      });
+
+      // Time passes. A session that runs out renews a few seconds later.
+      setInterval(() => {
+        if (document.hidden) return;
+        for (const [id, s] of secs) {
+          const next = s - 1;
+          secs.set(id, next <= -4 ? 3599 : next);
+          paintState(byId(id));
+        }
+      }, 1000);
+
+      const termFor = (id: string) => {
+        const row = byId(id);
+        const name = row.querySelector(".t")!.childNodes[0].textContent!.trim();
+        const profile = row.querySelectorAll(".m")[0].textContent!.trim();
+        if (profile && profile !== "—") {
+          return [
+            `<span class=p>$ </span>aws sts get-caller-identity --profile ${profile}`,
+            `<span class=o>{ "Account": "123456789012",`,
+            `  "Arn": "arn:aws:sts::123456789012:assumed-role/${name}/nate" }</span>`,
+          ];
+        }
+        if (row.querySelector('img[src*="azure"]')) {
+          return [`<span class=p>$ </span>az account show --query name`, `<span class=o>"${name}"</span>`];
+        }
+        return [`<span class=p>$ </span>gcloud config get project`, `<span class=o>${name}-4821</span>`];
+      };
+
+      let termTimer: ReturnType<typeof setTimeout> | undefined;
+      const openTerm = async (id: string) => {
+        clearTimeout(termTimer);
+        const lines = termFor(id);
+        termOut.innerHTML = lines[0];
+        term.classList.add("open");
+        await sleep(reduced ? 0 : 500);
+        termOut.innerHTML = lines.join("\n");
+        term.querySelector(".x")!.addEventListener("click", () => term.classList.remove("open"), { once: true });
+      };
+
+      // Real clicks do real things.
+      app.addEventListener("click", (e) => {
+        const t = e.target as HTMLElement;
+        const row = t.closest<HTMLElement>(".row[data-id]");
+        if (!row) return;
+        const id = row.dataset.id!;
+        if (t.closest(".play")) {
+          secs.has(id) ? stop(id) : start(id);
+        } else if (t.closest("[data-act=term]")) {
+          void openTerm(id);
+        } else if (t.closest("[data-act=copy]")) {
+          const b = t.closest("button")!;
+          b.style.color = "var(--a-green)";
+          setTimeout(() => (b.style.color = ""), 800);
+        }
+      });
+
+      // ---- The ghost runs the workflow until you take over ------------------
+      let yours = false;
+      let run = 0;
+
+      const moveTo = async (el: Element, dx = 0.5, dy = 0.5) => {
+        const a = app.getBoundingClientRect();
+        const b = el.getBoundingClientRect();
+        ghost.style.setProperty("--gx", `${b.left - a.left + b.width * dx}px`);
+        ghost.style.setProperty("--gy", `${b.top - a.top + b.height * dy}px`);
+        await sleep(reduced ? 0 : 800);
+      };
+      const click = async (el: Element) => {
+        ghost.classList.remove("click");
+        void ghost.offsetWidth;
+        ghost.classList.add("click");
+        el.classList.add("press");
+        await sleep(160);
+        el.classList.remove("press");
+      };
+
+      const reset = () => {
+        for (const id of [...secs.keys()]) secs.delete(id);
+        start("admin", 2814);
+        term.classList.remove("open");
+      };
+
+      const demo = async () => {
+        const me = ++run;
+        const alive = () => me === run && !yours;
+        reset();
+        await moveTo(byId("poweruser"), 0.35, 0.5);
+        if (!alive()) return;
+        await sleep(600);
+        const play = byId("prod-admin").querySelector(".play")!;
+        await moveTo(play);
+        if (!alive()) return;
+        await click(play);
+        start("prod-admin", 3599);
+        await sleep(1400);
+        if (!alive()) return;
+        const t = byId("prod-admin").querySelector("[data-act=term]")!;
+        await moveTo(t);
+        if (!alive()) return;
+        await click(t);
+        await openTerm("prod-admin");
+        await sleep(3200);
+        if (!alive()) return;
+        const cplay = byId("contoso").querySelector(".play")!;
+        await moveTo(cplay);
+        if (!alive()) return;
+        await click(cplay);
+        start("contoso", 3599);
+        term.classList.remove("open");
+        await sleep(1200);
+        if (!alive()) return;
+        // Let the first session run out and renew while the pointer rests.
+        secs.set("admin", 4);
+        await moveTo(byId("acme-dev"), 0.9, 0.5);
+        await sleep(7000);
+        if (!alive()) return;
+        const splay = byId("prod-admin").querySelector(".play")!;
+        await moveTo(splay);
+        if (!alive()) return;
+        await click(splay);
+        stop("prod-admin");
+        await sleep(900);
+        if (!alive()) return;
+        await moveTo(byId("contoso").querySelector(".play")!);
+        if (!alive()) return;
+        await click(byId("contoso").querySelector(".play")!);
+        stop("contoso");
+        await sleep(1800);
+        if (alive()) void demo();
+      };
+
+      let resume: ReturnType<typeof setTimeout> | undefined;
+      const takeOver = () => {
+        yours = true;
+        app.classList.add("yours");
+        clearTimeout(resume);
+      };
+      const handBack = () => {
+        clearTimeout(resume);
+        resume = setTimeout(() => {
+          yours = false;
+          app.classList.remove("yours");
+          void demo();
+        }, 6000);
+      };
+
+      if (fine) {
+        app.addEventListener("pointerenter", takeOver);
+        app.addEventListener("pointerleave", handBack);
+      } else {
+        app.addEventListener("pointerdown", takeOver, { once: true });
+      }
+
+      // The window leans toward the pointer.
+      if (fine && !reduced) {
+        let raf = 0;
+        let nx = 0;
+        let ny = 0;
+        const apply = () => {
+          app.style.setProperty("--ry", `${nx * 3}deg`);
+          app.style.setProperty("--rx", `${-ny * 2.5}deg`);
+          raf = 0;
+        };
+        stage.addEventListener("pointerenter", () => app.classList.add("live"));
+        stage.addEventListener("pointermove", (e) => {
+          const r = stage.getBoundingClientRect();
+          nx = ((e.clientX - r.left) / r.width) * 2 - 1;
+          ny = ((e.clientY - r.top) / r.height) * 2 - 1;
+          if (!raf) raf = requestAnimationFrame(apply);
+        });
+        stage.addEventListener("pointerleave", () => {
+          app.classList.remove("live");
+          nx = 0;
+          ny = 0;
+          apply();
+        });
+      }
+
+      if (!reduced) setTimeout(() => void demo(), 1100);
+    </script>
   </body>
 </html>
