@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.6.0](https://github.com/nateships/rolle/compare/v0.5.1...v0.6.0) (2026-09-16)
+
+
+### Features
+
+* **app:** give All sessions an icon in the sidebar ([#110](https://github.com/nateships/rolle/issues/110)) ([89870df](https://github.com/nateships/rolle/commit/89870df03cc833a655cb44c47de0df84a64e70bc))
+
+
+### Bug Fixes
+
+* **deps:** update aws-sdk-go-v2 monorepo ([#103](https://github.com/nateships/rolle/issues/103)) ([4e7039d](https://github.com/nateships/rolle/commit/4e7039de97b179002604534d98281665297b93dd))
+* **deps:** update dependency @wailsio/runtime to v3.0.0-beta.22 ([#104](https://github.com/nateships/rolle/issues/104)) ([01ceb3b](https://github.com/nateships/rolle/commit/01ceb3bd47999f8ac8054e20c56b1a46e25cb20d))
+* **deps:** update dependency cn to ^0.3.0 ([#24](https://github.com/nateships/rolle/issues/24)) ([d48ec69](https://github.com/nateships/rolle/commit/d48ec69609492b0171b0e57c451b2d5535557865))
+* **deps:** update wails to v3.0.0-beta.22 ([#105](https://github.com/nateships/rolle/issues/105)) ([a6a76a1](https://github.com/nateships/rolle/commit/a6a76a12ec51eaddaf69a9447758db56d76736c5))
+* **docs:** go back to aube ci for the docs install ([#118](https://github.com/nateships/rolle/issues/118)) ([13ec68e](https://github.com/nateships/rolle/commit/13ec68ef7df473126df389c535620bda9d410f96))
+
 ## [0.5.1](https://github.com/nateships/rolle/compare/v0.5.0...v0.5.1) (2026-09-15)
 
 
