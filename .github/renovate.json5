@@ -58,8 +58,8 @@
       "groupName": "goreleaser",
     },
     {
-      "description": "Wails runtime and CLI move together",
-      "matchDepNames": ["github.com/wailsapp/wails/v3", "go:github.com/wailsapp/wails/v3/cmd/wails3"],
+      "description": "Wails Go module, CLI, and JS runtime move together",
+      "matchDepNames": ["github.com/wailsapp/wails/v3", "go:github.com/wailsapp/wails/v3/cmd/wails3", "@wailsio/runtime"],
       "groupName": "wails",
       "automerge": false,
     },
