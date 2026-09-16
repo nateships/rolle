@@ -47,6 +47,23 @@
     let nextShuffle: number[] = [];
     type Impulse = { x: number; y: number; born: number };
     let impulses: Impulse[] = [];
+    // Soft radial glows, rendered once per colour and reused as a sprite.
+    const glowSprites = new Map<string, HTMLCanvasElement>();
+    const glowSprite = (color: string) => {
+      let sprite = glowSprites.get(color);
+      if (!sprite) {
+        sprite = document.createElement("canvas");
+        sprite.width = sprite.height = 64;
+        const g = sprite.getContext("2d")!;
+        const fill = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+        fill.addColorStop(0, `rgba(${color},1)`);
+        fill.addColorStop(1, `rgba(${color},0)`);
+        g.fillStyle = fill;
+        g.fillRect(0, 0, 64, 64);
+        glowSprites.set(color, sprite);
+      }
+      return sprite;
+    };
     let width = 0;
     let height = 0;
     let time = 0;
@@ -124,7 +141,7 @@
       quietCtx.fillStyle = "rgba(0,0,0,0.72)";
       quietCtx.shadowColor = "rgba(0,0,0,0.72)";
       quietCtx.shadowBlur = 24;
-      for (const el of document.querySelectorAll("header, h1, .lede, .actions, .facts li")) {
+      for (const el of document.querySelectorAll(".lede, .actions")) {
         const r = el.getBoundingClientRect();
         quietCtx.beginPath();
         quietCtx.roundRect(r.left - 8, r.top - 8, r.width + 16, r.height + 16, 20);
@@ -292,17 +309,17 @@
           const hover = falloff * Math.max(0, 1 - distance / 210) * mouse.strength * (dark ? 0.44 : 0.34);
           const alpha = Math.min(0.75, hover + charge * Math.max(0, 1 - distance / 300) * (dark ? 0.78 : 0.58)) * link.opacity;
           if (alpha < 0.003) continue;
-          const thread = c.createLinearGradient(a.x, a.y, b.x, b.y);
-          thread.addColorStop(0, `rgba(${color},${alpha * 0.4})`);
-          thread.addColorStop(0.5, `rgba(${color},${alpha})`);
-          thread.addColorStop(1, `rgba(${color},${alpha * 0.4})`);
+          // Solid strokes: a per-link gradient object every frame was the cost
+          // of a click, and a link is too short for the fade to read.
           c.beginPath();
           c.moveTo(a.x, a.y);
           c.lineTo(b.x, b.y);
-          c.strokeStyle = `rgba(${color},${alpha * (0.12 + charge * 0.1)})`;
-          c.lineWidth = 3 + charge * 3;
-          c.stroke();
-          c.strokeStyle = thread;
+          if (charge > 0.04) {
+            c.strokeStyle = `rgba(${color},${alpha * (0.12 + charge * 0.1)})`;
+            c.lineWidth = 3 + charge * 3;
+            c.stroke();
+          }
+          c.strokeStyle = `rgba(${color},${alpha * 0.8})`;
           c.lineWidth = 0.7 + charge * 0.65;
           c.stroke();
 
@@ -310,9 +327,14 @@
 
         // Clicks reveal the whole nearby mesh. Light runs through its links
         // as the stars move, with no separate ring or particle explosion.
+        c.lineWidth = 1.4;
         for (const wave of waves) {
           for (const link of links.values()) {
             const a = positions[link.a], b = positions[link.b];
+            // One cheap test first: a link whose midpoint is far from the
+            // impulse cannot be lit by it.
+            const mx = (a.x + b.x) / 2 - wave.x, my = (a.y + b.y) / 2 - wave.y;
+            if (mx * mx + my * my > 260000) continue;
             if (Math.hypot(a.x - b.x, a.y - b.y) > 300) continue;
             const da = Math.hypot(a.x - wave.x, a.y - wave.y);
             const db = Math.hypot(b.x - wave.x, b.y - wave.y);
@@ -320,19 +342,12 @@
             if (progress <= 0 || progress >= 1 || Math.min(da, db) > 360) continue;
             const from = da < db ? a : b, to = da < db ? b : a;
             const tail = Math.max(0, progress - 0.3);
-            const x = from.x + (to.x - from.x) * progress;
-            const y = from.y + (to.y - from.y) * progress;
-            const tx = from.x + (to.x - from.x) * tail;
-            const ty = from.y + (to.y - from.y) * tail;
             const light = Math.sin(progress * Math.PI) * wave.fade * 0.8 * link.opacity;
-            const glow = c.createLinearGradient(tx, ty, x, y);
-            glow.addColorStop(0, `rgba(${color},0)`);
-            glow.addColorStop(1, `rgba(${color},${light})`);
-            c.strokeStyle = glow;
-            c.lineWidth = 1.4;
+            if (light < 0.01) continue;
+            c.strokeStyle = `rgba(${color},${light})`;
             c.beginPath();
-            c.moveTo(tx, ty);
-            c.lineTo(x, y);
+            c.moveTo(from.x + (to.x - from.x) * tail, from.y + (to.y - from.y) * tail);
+            c.lineTo(from.x + (to.x - from.x) * progress, from.y + (to.y - from.y) * progress);
             c.stroke();
           }
         }
@@ -345,11 +360,11 @@
         c.fill();
         if (star.r > 1.25 || pull > 0.35 || charge > 0.08) {
           const radius = star.r * 6 + pull * 8 + charge * 12;
-          const glow = c.createRadialGradient(x, y, 0, x, y, radius);
-          glow.addColorStop(0, `rgba(${color},${alpha * (0.24 + charge * 0.12)})`);
-          glow.addColorStop(1, `rgba(${color},0)`);
-          c.fillStyle = glow;
-          c.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+          // One sprite per colour, drawn scaled, instead of a radial gradient
+          // built for every glowing star on every frame.
+          c.globalAlpha = alpha * (0.24 + charge * 0.12);
+          c.drawImage(glowSprite(color), x - radius, y - radius, radius * 2, radius * 2);
+          c.globalAlpha = 1;
           if (star.r > 1.5) {
             c.strokeStyle = `rgba(${color},${alpha * 0.32})`;
             c.lineWidth = 0.6;

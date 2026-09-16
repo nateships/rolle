@@ -1,0 +1,421 @@
+---
+const downloads = "https://github.com/nateships/rolle/releases/latest/download";
+const command = "brew install --cask nateships/tap/rolle";
+const platforms = [
+  { id: "macos", label: "macOS" },
+  { id: "windows", label: "Windows" },
+  { id: "linux", label: "Linux" },
+];
+---
+
+<section class="install" aria-label="Install rolle">
+  <div role="tablist" aria-label="Operating system" style="--i: 0">
+    <span class="thumb" aria-hidden="true"></span>
+    {platforms.map(({ id, label }, index) => (
+      <button
+        type="button"
+        role="tab"
+        id={`install-tab-${id}`}
+        aria-controls={`install-panel-${id}`}
+        aria-selected={index === 0 ? "true" : "false"}
+        tabindex={index === 0 ? 0 : -1}
+      >{label}</button>
+    ))}
+  </div>
+
+  <div role="tabpanel" id="install-panel-macos" aria-labelledby="install-tab-macos">
+    <div class="primary cmd">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17l6-5-6-5M12 19h8" /></svg>
+      <code><span class="prompt" aria-hidden="true">$ </span>{command}</code>
+      <small>Run in Terminal</small>
+      <button class="copy" type="button" data-copy={command} aria-label="Copy Homebrew install command">
+        <span class="label">Copy</span>
+        <span class="label copied" aria-hidden="true">Copied</span>
+      </button>
+    </div>
+    <div class="alt">
+      <span class="or">or download <a class="package" href={`${downloads}/rolle.dmg`}>rolle.dmg</a></span>
+    </div>
+  </div>
+
+  <div role="tabpanel" id="install-panel-windows" aria-labelledby="install-tab-windows" hidden>
+    <a class="primary" href={`${downloads}/rolle-installer.exe`}>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14" /></svg>
+      Download for Windows
+      <small>x64 and Arm64</small>
+    </a>
+    <div class="alt"><span class="or">No administrator needed</span></div>
+  </div>
+
+  <div role="tabpanel" id="install-panel-linux" aria-labelledby="install-tab-linux" hidden>
+    <a class="primary" href={`${downloads}/rolle-linux-amd64.AppImage`}>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14" /></svg>
+      Download AppImage
+      <small>x64</small>
+    </a>
+    <div class="alt">
+      <span class="or">or the <a class="package" href={`${downloads}/rolle.deb`}>.deb package</a></span>
+    </div>
+  </div>
+
+  <div class="foot">
+    <a href="/docs/install">Other install options</a>
+    <a href="/docs/quickstart">Quickstart</a>
+    <span class="copy-status" role="status" aria-live="polite"></span>
+  </div>
+</section>
+
+<style>
+  /* A translucent grayscale panel. The button is the one solid thing in it. */
+  .install {
+    width: min(100%, 34rem);
+    min-width: 0;
+    padding: 0.7rem;
+    border-radius: 0.9rem;
+    border: 1px solid light-dark(rgb(16 17 20 / 0.1), rgb(244 240 232 / 0.1));
+    background: light-dark(rgb(255 255 255 / 0.45), rgb(244 240 232 / 0.05));
+    backdrop-filter: blur(16px) saturate(0.8);
+    -webkit-backdrop-filter: blur(16px) saturate(0.8);
+    box-shadow: 0 24px 60px -30px rgb(0 0 0 / 0.5);
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  /* Segmented platform switch. */
+  [role="tablist"] {
+    position: relative;
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+    gap: 0.2rem;
+    padding: 0.2rem;
+    border-radius: 0.6rem;
+    background: light-dark(rgb(16 17 20 / 0.06), rgb(244 240 232 / 0.06));
+  }
+
+  /* One highlight slides between the tabs. */
+  .thumb {
+    position: absolute;
+    top: 0.2rem;
+    bottom: 0.2rem;
+    left: 0.2rem;
+    width: calc((100% - 0.8rem) / 3);
+    border-radius: 0.45rem;
+    background: light-dark(rgb(255 255 255 / 0.9), rgb(244 240 232 / 0.12));
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+    transform: translateX(calc(var(--i) * (100% + 0.2rem)));
+    transition: transform 0.28s var(--ease);
+    pointer-events: none;
+  }
+
+  [role="tab"] {
+    position: relative;
+    padding: 0.35rem 0.6rem;
+    border: 0;
+    border-radius: 0.45rem;
+    background: transparent;
+    color: var(--muted);
+    font: 500 0.8125rem/1.3 var(--sans);
+    cursor: pointer;
+    transition: color 0.15s, background-color 0.15s;
+  }
+
+  [role="tab"]:hover {
+    color: var(--text);
+  }
+
+  [role="tab"][aria-selected="true"] {
+    color: var(--text);
+  }
+
+  /* Every panel is as tall as the tallest, so switching never shifts the page. */
+  [role="tabpanel"] {
+    display: grid;
+    gap: 0.5rem;
+    min-height: 6.1rem;
+    align-content: start;
+  }
+
+  [role="tabpanel"][hidden] {
+    display: none;
+  }
+
+  /* The incoming panel fades in. */
+  [role="tabpanel"].enter {
+    animation: fade 0.35s ease-out both;
+  }
+
+  @keyframes fade {
+    from {
+      opacity: 0;
+    }
+  }
+
+  /* The primary action. */
+  .primary {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 0.75rem;
+    align-items: center;
+    padding: 0.7rem 0.9rem;
+    border-radius: 0.65rem;
+    background: var(--control);
+    color: var(--on-control);
+    text-decoration: none;
+    font-family: var(--display);
+    font-size: 1.125rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease);
+    box-shadow: 0 8px 24px -12px rgb(0 0 0 / 0.6);
+  }
+
+  .primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 28px -12px rgb(0 0 0 / 0.65);
+  }
+
+  .primary svg {
+    grid-row: 1 / 3;
+    width: 1.5rem;
+    height: 1.5rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .primary small {
+    font-family: var(--sans);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    opacity: 0.7;
+  }
+
+  /* Homebrew is the macOS primary: the command itself, in the button's clothes. */
+  .primary.cmd {
+    grid-template-columns: auto 1fr auto;
+    cursor: default;
+  }
+
+  .primary.cmd code {
+    grid-column: 2;
+    font: 600 0.9375rem/1.15 var(--mono);
+    color: inherit;
+    letter-spacing: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    user-select: all;
+  }
+
+  .primary.cmd .prompt {
+    opacity: 0.45;
+    font-weight: 500;
+    user-select: none;
+  }
+
+  .primary.cmd small {
+    grid-column: 2;
+  }
+
+  .primary .copy {
+    grid-column: 3;
+    grid-row: 1 / 3;
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-width: 4.25rem;
+    height: 2.25rem;
+    padding: 0 0.75rem;
+    border: 0;
+    border-radius: 0.45rem;
+    background: var(--on-control);
+    color: var(--control);
+    font: 600 0.8125rem/1.3 var(--sans);
+    cursor: pointer;
+    transition: transform 0.15s var(--ease), background-color 0.25s var(--ease);
+  }
+
+  .primary .copy:hover {
+    transform: translateY(-1px);
+  }
+
+  .primary .copy:active {
+    transform: scale(0.94);
+  }
+
+  /* Both labels share the cell; one slides out as the other pops in. */
+  .primary .copy .label {
+    grid-area: 1 / 1;
+    transition: opacity 0.2s var(--ease), transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .primary .copy .copied {
+    opacity: 0;
+    transform: translateY(0.6rem) scale(0.8);
+  }
+
+  /* Confirmed: a step lighter than the resting button, still dark on the ivory block. */
+  .primary .copy.done {
+    background: light-dark(#d9d5cc, #3f4248);
+    color: light-dark(#101114, #f4f0e8);
+  }
+
+  .primary .copy.done .label:not(.copied) {
+    opacity: 0;
+    transform: translateY(-0.6rem) scale(0.8);
+  }
+
+  .primary .copy.done .copied {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* The alternative under a button: a short line or a link. */
+  .alt {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    min-height: 1.75rem;
+    padding-inline: 0.2rem;
+    color: var(--muted);
+    font-size: 0.8125rem;
+  }
+
+  .or {
+    white-space: nowrap;
+  }
+
+  code {
+    flex: 1;
+    min-width: 0;
+    font: 0.8125rem/1.5 var(--mono);
+    color: var(--text);
+    overflow-wrap: anywhere;
+    user-select: all;
+  }
+
+  .alt code {
+    flex: none;
+    font-size: 0.8125rem;
+  }
+
+  .copy {
+    flex: none;
+    min-width: 3.5rem;
+    padding: 0.3rem 0.55rem;
+    border: 1px solid var(--border);
+    border-radius: 0.4rem;
+    background: transparent;
+    color: var(--text);
+    font: 500 0.75rem/1.4 var(--sans);
+    cursor: pointer;
+  }
+
+  .copy:hover {
+    border-color: var(--muted);
+  }
+
+  .package {
+    color: var(--text);
+    text-underline-offset: 0.2em;
+  }
+
+  .foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding-inline: 0.2rem;
+    color: var(--muted);
+    font-size: 0.75rem;
+  }
+
+  .foot a {
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+    text-decoration-color: light-dark(rgb(16 17 20 / 0.35), rgb(244 240 232 / 0.35));
+  }
+
+  .foot a:hover {
+    color: var(--text);
+    text-decoration-color: currentColor;
+  }
+
+  .copy-status {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+</style>
+
+<script>
+  const install = document.querySelector<HTMLElement>(".install")!;
+  const tabs = [...install.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+  const panels = [...install.querySelectorAll<HTMLElement>('[role="tabpanel"]')];
+  const tablist = install.querySelector<HTMLElement>('[role="tablist"]')!;
+  const selectTab = (selected: HTMLButtonElement) => {
+    tablist.style.setProperty("--i", String(tabs.indexOf(selected)));
+    for (const tab of tabs) {
+      const active = tab === selected;
+      tab.setAttribute("aria-selected", String(active));
+      tab.tabIndex = active ? 0 : -1;
+    }
+    for (const panel of panels) {
+      const show = panel.id === selected.getAttribute("aria-controls");
+      if (show && panel.hidden) {
+        panel.hidden = false;
+        panel.classList.remove("enter");
+        void panel.offsetWidth;
+        panel.classList.add("enter");
+      } else if (!show) {
+        panel.hidden = true;
+      }
+    }
+  };
+
+  tabs.forEach((tab, index) => {
+    tab.addEventListener("click", () => selectTab(tab));
+    tab.addEventListener("keydown", (event) => {
+      let next = index;
+      if (event.key === "ArrowRight") next = (index + 1) % tabs.length;
+      else if (event.key === "ArrowLeft") next = (index + tabs.length - 1) % tabs.length;
+      else if (event.key === "Home") next = 0;
+      else if (event.key === "End") next = tabs.length - 1;
+      else return;
+      event.preventDefault();
+      selectTab(tabs[next]);
+      tabs[next].focus();
+    });
+  });
+
+  const copy = install.querySelector<HTMLButtonElement>(".copy")!;
+  const status = install.querySelector<HTMLElement>(".copy-status")!;
+  let reset: ReturnType<typeof setTimeout> | undefined;
+  copy.addEventListener("click", async () => {
+    clearTimeout(reset);
+    try {
+      await navigator.clipboard.writeText(copy.dataset.copy ?? "");
+      copy.classList.add("done");
+      status.textContent = "Command copied";
+    } catch {
+      const selection = getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(install.querySelector("code")!);
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      status.textContent = "Select and copy the command";
+    }
+    reset = setTimeout(() => {
+      copy.classList.remove("done");
+      status.textContent = "";
+    }, 2000);
+  });
+</script>
