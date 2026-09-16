@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.8.0](https://github.com/nateships/rolle/compare/v0.7.0...v0.8.0) (2026-09-16)
+
+
+### Features
+
+* **docs:** landing page rework, install card, galaxy tuning ([#128](https://github.com/nateships/rolle/issues/128)) ([45c492d](https://github.com/nateships/rolle/commit/45c492ddec3c19485366dc4a55b895b4dd8d89a4))
+* **docs:** landing polish: calmer glass, living facts ([#132](https://github.com/nateships/rolle/issues/132)) ([baf61f2](https://github.com/nateships/rolle/commit/baf61f24a2308d5fb76d0f23e7ef67bc1effbc68))
+* **docs:** make the rest of the demo dashboard interactive ([#131](https://github.com/nateships/rolle/issues/131)) ([4fe643a](https://github.com/nateships/rolle/commit/4fe643aea113ba78807d431dcb2fd8a15f38fc6d))
+* **docs:** the demo's gopher dances or peeks on click ([#135](https://github.com/nateships/rolle/issues/135)) ([c852cb9](https://github.com/nateships/rolle/commit/c852cb9ca6904905dcb2d00180fbca633fa42b7d))
+
+
+### Bug Fixes
+
+* **deps:** update wails to v3.0.0-beta.23 ([#134](https://github.com/nateships/rolle/issues/134)) ([5fc4dc7](https://github.com/nateships/rolle/commit/5fc4dc790522e9f1a4069ac4b034541c021efc3c))
+* **desktop:** let the region search take focus inside a dialog ([#142](https://github.com/nateships/rolle/issues/142)) ([2e3926d](https://github.com/nateships/rolle/commit/2e3926d5d6cde3684eb15ae99228319654236819))
+* **docs:** let the macOS install command wrap on narrow screens ([#130](https://github.com/nateships/rolle/issues/130)) ([0e40b8e](https://github.com/nateships/rolle/commit/0e40b8e9eaac436f27cb99e62db5b66f3f840ee3))
+
 ## [0.7.0](https://github.com/nateships/rolle/compare/v0.6.0...v0.7.0) (2026-09-16)
 
 
