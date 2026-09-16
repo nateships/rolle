@@ -53,7 +53,8 @@ const SIDEBAR_SECTIONS: [string, string][] = [
 
 const DURATIONS = [60, 120, 240, 480, 720];
 
-export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+/** `tab` picks the tab that shows first. The URL's `?tab=` does the same in a browser. */
+export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: string; onClose: () => void }) {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [info, setInfo] = useState<AppInfo | null>(null);
   const [saving, setSaving] = useState(false);
@@ -160,7 +161,10 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
         </DialogHeader>
         {!settings && <div className="h-[30.5rem]" aria-busy="true" />}
         {settings && (
-          <Tabs defaultValue={new URLSearchParams(location.search).get("tab") ?? "general"} className="w-full min-w-0">
+          <Tabs
+            defaultValue={tab ?? new URLSearchParams(location.search).get("tab") ?? "general"}
+            className="w-full min-w-0"
+          >
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="aws">AWS</TabsTrigger>
