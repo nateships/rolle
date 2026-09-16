@@ -1,0 +1,126 @@
+---
+import { sessions } from "./demo-sessions";
+import "./dashboard-demo.css";
+---
+
+<div class="stage" id="stage">
+  <div class="stack" id="stack">
+    <div class="app" id="app" aria-label="A working miniature of the rolle dashboard. Start and stop sessions, open a terminal.">
+      <div class="titlebar" aria-hidden="true"><i></i><i></i><i></i><span>rolle</span></div>
+      <aside class="side" aria-hidden="true">
+        <div class="brand"><img src="/logo-dark.svg" alt="" /></div>
+        <div>
+          <ul>
+            <li class="on">All sessions <b>7</b></li>
+            <li><i></i>Active <b id="side-active">1</b></li>
+            <li><i class="star"></i>Favorites <b>2</b></li>
+          </ul>
+          <p class="h">Tags</p>
+          <ul>
+            <li><i class="shield"></i>Production <b>1</b></li>
+            <li><i class="sandbox"></i>Sandbox <b>0</b></li>
+          </ul>
+          <p class="h">AWS Identity Center</p>
+          <ul>
+            <li><i></i>acme</li>
+            <li><i class="off"></i>acme-eu</li>
+          </ul>
+          <p class="h">AWS IAM</p>
+          <ul>
+            <li>Users <b>1</b></li>
+            <li>Assumed roles <b>1</b></li>
+          </ul>
+          <p class="h">Azure tenants</p>
+          <ul>
+            <li><i></i>contoso</li>
+          </ul>
+          <p class="h">Google Cloud</p>
+          <ul>
+            <li><i></i>gcp</li>
+          </ul>
+        </div>
+        <div class="foot"><i></i><span id="foot-active">1 active</span></div>
+      </aside>
+
+      <section class="pane">
+        <div class="bar" aria-hidden="true">
+          <div class="search">Search sessions</div>
+          <div class="add">+ Add</div>
+        </div>
+        <div class="table" role="list">
+          <div class="row" aria-hidden="true">
+            <span></span><span></span><span></span><span>Session</span><span class="m">Profile</span><span class="m"
+              >Region</span
+            ><span>State</span><span></span>
+          </div>
+          {
+            sessions.map((r) => (
+              <div
+                class:list={["row", r.group && "group", (r.sub || r.badge) && !r.group && "tall", r.active && "active"]}
+                data-id={r.id}
+                data-secs={r.active ?? ""}
+                role="listitem"
+              >
+                {r.group ? (
+                  <span class="chev" />
+                ) : (
+                  <button class="play" type="button" aria-label={`Start ${r.name}`} />
+                )}
+                {r.fav ? <span class="fav" /> : <span />}
+                {r.cloud ? (
+                  <span class="glyph">
+                    <img src={r.cloud === "aws" ? "/vendors/aws-dark.svg" : `/vendors/${r.cloud}.svg`} alt="" />
+                  </span>
+                ) : (
+                  <span />
+                )}
+                <span class="name">
+                  <span class="t">
+                    {r.name}
+                    {r.badge && <span class="badge">{r.badge}</span>}
+                    {r.tag && (
+                      <span class="badge">
+                        <i />
+                        {r.tag}
+                      </span>
+                    )}
+                  </span>
+                  {r.sub && <span class="s">{r.sub}</span>}
+                </span>
+                <span class="m">{r.profile ?? (r.group ? "" : "—")}</span>
+                <span class="m">{r.region ?? (r.group ? "" : "—")}</span>
+                <span class="state">{r.group ? "" : "Inactive"}</span>
+                <span class="acts">
+                  {!r.group && (
+                    <>
+                      <button type="button" data-act="term" aria-label="Open a terminal">
+                        <svg viewBox="0 0 24 24"><path d="M4 17l6-5-6-5M12 19h8" /></svg>
+                      </button>
+                      <button type="button" data-act="console" aria-label="Open the console">
+                        <svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5" /></svg>
+                      </button>
+                      <button type="button" data-act="copy" aria-label="Copy credentials">
+                        <svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2" /><path d="M5 15V6a2 2 0 0 1 2-2h8" /></svg>
+                      </button>
+                    </>
+                  )}
+                </span>
+              </div>
+            ))
+          }
+        </div>
+        <div class="toast" id="toast" aria-live="polite"></div>
+        <pre class="term" id="term" aria-live="off"><span class="x" id="term-close">×</span><span id="term-out"></span></pre>
+      </section>
+
+      <div class="ghost" id="ghost" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M5 3l14 8.5-6.5 1.5L9 20z" fill="#f4f0e8" stroke="#101114" stroke-width="1.5" stroke-linejoin="round" /></svg>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  import { initDashboardDemo } from "./dashboard-demo";
+  initDashboardDemo();
+</script>

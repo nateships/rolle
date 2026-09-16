@@ -1,0 +1,99 @@
+@font-face {
+  font-family: "MuseoModerno";
+  src: url("/fonts/MuseoModerno-Variable.ttf") format("truetype");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light dark;
+  --bg: light-dark(#f4f0e8, #101114);
+  --text: light-dark(#101114, #f4f0e8);
+  --muted: light-dark(#5c6067, #b4b8c0);
+  --border: light-dark(#d9d5cc, #3f4248);
+  --control: light-dark(#101114, #e8eaed);
+  --on-control: light-dark(#f4f0e8, #181a1e);
+  --focus: #8ba9ff;
+  --display: "MuseoModerno", ui-rounded, system-ui, sans-serif;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --gutter: clamp(1.25rem, 4vw, 3rem);
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--bg);
+  color: var(--text);
+  font: 400 1rem/1.5 var(--sans);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto 1fr auto;
+  padding-inline: var(--gutter);
+  overflow: hidden;
+}
+
+a {
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+img,
+svg {
+  display: block;
+}
+
+h1,
+p,
+ul {
+  margin: 0;
+}
+
+/* Main: one row of copy, then the app fills what is left. */
+main {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: clamp(0.9rem, 2.2vh, 1.75rem);
+  padding-block: clamp(0.25rem, 1.5vh, 1rem) clamp(0.75rem, 2.5vh, 1.5rem);
+  min-height: 0;
+  min-width: 0;
+}
+
+header,
+main,
+footer {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 58rem) {
+  body {
+    height: auto;
+    min-height: 100dvh;
+    overflow: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,152 @@
+---
+import InstallTabs from "./InstallTabs.astro";
+---
+
+<div class="lead">
+  <div class="hero-copy">
+    <h1><span class="word">Assume</span> <span class="word">any</span> <span class="word"><span class="role">role</span>,</span> <span class="word">any</span> <span class="word"><span class="cloud">cloud</span>.</span></h1>
+    <p class="lede">
+      A desktop app and CLI. One sign-in each to AWS, Azure, and Google Cloud, then short-lived credentials for your
+      tools. No long-lived secret touches disk.
+    </p>
+  </div>
+  <InstallTabs />
+</div>
+
+<style is:global>
+  .lead {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.25rem 3rem;
+    align-items: center;
+  }
+
+  .hero-copy {
+    display: grid;
+    gap: 0.9rem;
+    min-width: 0;
+  }
+
+  /* Two halves: copy left, the install card starting at the midline. */
+  @media (min-width: 64rem) {
+    .lead {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .lead .install {
+      justify-self: start;
+    }
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    font-size: clamp(2rem, 4.4vw, 3.5rem);
+    line-height: 1;
+    text-wrap: balance;
+  }
+
+  .lede {
+    font-size: clamp(0.9375rem, 1.1vw, 1.125rem);
+    line-height: 1.45;
+    max-width: 62ch;
+    color: var(--muted);
+  }
+
+  .lead > * {
+    min-width: 0;
+  }
+
+  h1 .word {
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  /* The tagline's colours from the OG card: the stack's orange and green. */
+  h1 .role {
+    color: #ff7900;
+  }
+
+  h1 .cloud {
+    color: light-dark(#0a9a5c, #00ce78);
+  }
+
+  /* Letters swell with a transform, never with weight: a heavier glyph is
+     wider and would move the line's wrap point under the pointer. */
+  h1 .letter {
+    display: inline-block;
+    transform: translateY(var(--y, 0)) scale(var(--s, 1));
+    transform-origin: 50% 80%;
+    transition: transform 0.18s var(--ease);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    h1 .letter { transform: none; }
+  }
+</style>
+
+<script>
+  const motionPreference = matchMedia("(prefers-reduced-motion: reduce)");
+  let reduced = motionPreference.matches;
+  const fine = matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+  // Letters of the headline swell as the pointer passes. The words and their
+  // colours are in the markup; this only wraps each character in place.
+  const h1 = document.querySelector(".lead h1")!;
+  const letters: HTMLElement[] = [];
+  const wrap = (node: Node) => {
+    for (const child of [...node.childNodes]) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        const frag = document.createDocumentFragment();
+        for (const ch of child.textContent ?? "") {
+          const letter = document.createElement("span");
+          letter.className = "letter";
+          letter.textContent = ch;
+          frag.append(letter);
+          letters.push(letter);
+        }
+        child.replaceWith(frag);
+      } else {
+        wrap(child);
+      }
+    }
+  };
+  if (fine) for (const word of h1.querySelectorAll(".word")) wrap(word);
+
+  let mx = -9999;
+  let my = -9999;
+  const resetLetters = () => {
+    mx = -9999;
+    my = -9999;
+    for (const letter of letters) {
+      letter.style.setProperty("--s", "1");
+      letter.style.setProperty("--y", "0px");
+    }
+  };
+  if (fine) {
+    let frame = 0;
+    const apply = () => {
+      frame = 0;
+      if (reduced) return;
+      for (const letter of letters) {
+        const rect = letter.getBoundingClientRect();
+        const distance = Math.hypot(mx - (rect.left + rect.width / 2), my - (rect.top + rect.height / 2));
+        const proximity = Math.max(0, 1 - distance / 180);
+        letter.style.setProperty("--s", (1 + 0.12 * proximity).toFixed(3));
+        letter.style.setProperty("--y", `${-6 * proximity * proximity}px`);
+      }
+    };
+    document.addEventListener("pointermove", (event) => {
+      if (reduced) return;
+      mx = event.clientX;
+      my = event.clientY;
+      if (!frame) frame = requestAnimationFrame(apply);
+    });
+    document.addEventListener("pointerleave", resetLetters);
+  }
+  motionPreference.addEventListener("change", (event) => {
+    reduced = event.matches;
+    if (reduced) resetLetters();
+  });
+</script>

@@ -1,0 +1,102 @@
+---
+interface Props {
+  github: string;
+}
+const { github } = Astro.props;
+---
+
+<header>
+  <a class="logo" href="/" aria-label="rolle">
+    <img class="dark" src="/logo-dark.svg" alt="" width="804" height="294" />
+    <img class="light" src="/logo-light.svg" alt="" width="903" height="441" />
+  </a>
+  <nav aria-label="Site">
+    <a href="/docs"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5V5a2 2 0 0 1 2-2h14v14H6.5A2.5 2.5 0 0 0 4 19.5Z" /></svg>Docs</a>
+    <a href="/changelog"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5M12 7v5l3 2" /></svg>Changelog</a>
+    <a href={github}><svg class="fill" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.6-1.4-1.4-1.8-1.4-1.8-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1.1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.7 1.7.3 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.2.7.8.6A12 12 0 0 0 12 .5Z" /></svg>GitHub</a>
+  </nav>
+</header>
+
+<style>
+  /* Header */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-block: 0.8rem;
+  }
+
+  header .logo img {
+    height: 2.5rem;
+    width: auto;
+  }
+
+  /* The light lockup carries a halo inside the file, so it is 1.5x taller. */
+  header .logo img.light {
+    height: 3.75rem;
+    margin-block: -0.625rem;
+  }
+
+  header nav {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  header nav a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    text-decoration: none;
+    color: var(--muted);
+    padding: 0.45rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.9375rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    transition: color 0.2s, border-color 0.2s;
+  }
+
+  header nav a svg {
+    width: 1rem;
+    height: 1rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  header nav a svg.fill {
+    fill: currentColor;
+    stroke: none;
+  }
+
+  header nav a:hover {
+    color: var(--text);
+    border-color: var(--muted);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    header .logo img.light {
+      display: none;
+    }
+  }
+
+  @media (prefers-color-scheme: light) {
+    header .logo img.dark {
+      display: none;
+    }
+  }
+
+  @media (max-width: 58rem) {
+    header {
+      flex-wrap: wrap;
+    }
+
+    header nav a {
+      padding-inline: 0.5rem;
+    }
+
+  }
+</style>
