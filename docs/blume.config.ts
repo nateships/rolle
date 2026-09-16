@@ -19,7 +19,7 @@ export default defineConfig({
     // Tabs scope the sidebar: the release entries stay off the docs pages.
     tabs: [
       { label: "Docs", path: "/" },
-      { label: "Changelog", path: "/changelog" },
+      { label: "Changelog", path: "/changelog", href: "/changelog" },
     ],
     actions: [{ href: "https://github.com/nateships/rolle/releases", label: "Download" }],
   },
