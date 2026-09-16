@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { ChevronRight, ChevronsDownUp, ChevronsUpDown, Copy, Eye, EyeOff } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronRight, ChevronsDownUp, ChevronsUpDown, Copy, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { ActionItems, type Action } from "@/components/ActionMenu";
@@ -100,6 +100,47 @@ function useCollapsed() {
   return [collapsed, toggle] as const;
 }
 
+/** A column to sort by and the direction; null keeps the default order. */
+export type Sort = { key: "session" | "profile" | "region" | "state"; dir: "asc" | "desc" } | null;
+const SORT_KEY = "rolle.sort";
+
+function useSort() {
+  const [sort, setSort] = useState<Sort>(() => readJSON<{ sort: Sort }>(SORT_KEY, { sort: null }).sort);
+  useEffect(() => {
+    try {
+      localStorage.setItem(SORT_KEY, JSON.stringify({ sort }));
+    } catch {
+      /* storage is optional */
+    }
+  }, [sort]);
+  return [sort, setSort] as const;
+}
+
+/**
+ * Orders rows by a column. An account row takes the place of its first role in
+ * that order, and its roles follow the same order. Sorting by state puts the
+ * active sessions first, soonest to expire on top, then the rest by name.
+ */
+export function sortRows(rows: Row[], sort: Sort): Row[] {
+  if (!sort) return rows;
+  const dir = sort.dir === "asc" ? 1 : -1;
+  const text = (s: Session) =>
+    sort.key === "profile"
+      ? s.aws
+        ? s.aws.profile || "default"
+        : ""
+      : sort.key === "region"
+        ? (s.region ?? "")
+        : s.name;
+  const due = (s: Session) =>
+    s.status === Status.StatusActive ? Date.parse(s.expires ?? "") || Number.MAX_SAFE_INTEGER : Number.MAX_VALUE;
+  const cmp = (a: Session, b: Session) =>
+    (sort.key === "state" ? due(a) - due(b) : text(a).localeCompare(text(b))) || a.name.localeCompare(b.name);
+  const sorted = rows.map((r) => (r.group ? { ...r, sessions: [...r.sessions].sort((a, b) => cmp(a, b) * dir) } : r));
+  const first = (r: Row) => (r.group ? r.sessions[0] : r.session);
+  return sorted.sort((a, b) => cmp(first(a), first(b)) * dir);
+}
+
 type TableProps = {
   sessions: Session[];
   workspace: Workspace;
@@ -125,7 +166,26 @@ export function SessionTable({
   shadows,
 }: TableProps) {
   const [collapsed, toggle] = useCollapsed();
-  const rows = useMemo(() => groupSessions(sessions), [sessions]);
+  const [sort, setSort] = useSort();
+  const rows = useMemo(() => sortRows(groupSessions(sessions), sort), [sessions, sort]);
+
+  // A header click sorts ascending, again descending, a third time clears it.
+  function sortButton(key: NonNullable<Sort>["key"], label: string) {
+    const on = sort?.key === key;
+    const Arrow = !on ? ChevronsUpDown : sort.dir === "asc" ? ArrowUp : ArrowDown;
+    return (
+      <button
+        type="button"
+        onClick={() => setSort(!on ? { key, dir: "asc" } : sort.dir === "asc" ? { key, dir: "desc" } : null)}
+        className="group -mx-1 inline-flex items-center gap-1 rounded px-1 hover:text-foreground"
+      >
+        {label}
+        <Arrow className={cn("size-3", !on && "opacity-0 group-hover:opacity-60")} />
+      </button>
+    );
+  }
+  const ariaSort = (key: NonNullable<Sort>["key"]) =>
+    sort?.key === key ? (sort.dir === "asc" ? "ascending" : "descending") : "none";
 
   // A divider on the header's right edge. Always faintly visible so there is
   // something to grab; drag to resize, double-click to put it back.
@@ -170,10 +230,19 @@ export function SessionTable({
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             <TableHead />
-            <TableHead>Session</TableHead>
-            <TableHead className="relative">Profile{resizer("profile")}</TableHead>
-            <TableHead className="relative">Region{resizer("region")}</TableHead>
-            <TableHead className="relative">State{resizer("state")}</TableHead>
+            <TableHead aria-sort={ariaSort("session")}>{sortButton("session", "Session")}</TableHead>
+            <TableHead aria-sort={ariaSort("profile")} className="relative">
+              {sortButton("profile", "Profile")}
+              {resizer("profile")}
+            </TableHead>
+            <TableHead aria-sort={ariaSort("region")} className="relative">
+              {sortButton("region", "Region")}
+              {resizer("region")}
+            </TableHead>
+            <TableHead aria-sort={ariaSort("state")} className="relative">
+              {sortButton("state", "State")}
+              {resizer("state")}
+            </TableHead>
             <TableHead />
           </TableRow>
         </TableHeader>
