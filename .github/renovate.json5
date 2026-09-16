@@ -12,8 +12,12 @@
   "internalChecksFilter": "strict",
   "labels": ["renovate"],
   "assignees": ["nateships"],
-  // Frontend and docs lockfiles are pnpm format; aube reads and writes them in place.
-  "postUpdateOptions": ["gomodTidy", "pnpmDedupe"],
+  // Frontend and docs lockfiles are pnpm format; aube reads and writes them in
+  // place. Renovate updates them with pnpm: pin the major aube targets, and skip
+  // the dedupe pass, which aube already does and which is one more step that
+  // can fail in Renovate's runner.
+  "postUpdateOptions": ["gomodTidy"],
+  "constraints": { "pnpm": "^10.0.0" },
   "automerge": true,
   "platformAutomerge": true,
   "customManagers": [
