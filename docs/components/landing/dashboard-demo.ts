@@ -17,6 +17,69 @@ export function initDashboardDemo() {
   const fmt = (s: number) => `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`;
   const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+  // ---- Filters, search, favourites, collapsing ----------------------------
+  // The sidebar filters the list, the search box narrows it, stars mark
+  // favourites, and an account row folds its roles away.
+  const side = app.querySelector<HTMLElement>(".side")!;
+  const search = app.querySelector<HTMLInputElement>("#demo-search")!;
+  const favs = new Set(rows.filter((r) => r.querySelector(".favbtn.on")).map((r) => r.dataset.id!));
+  const collapsed = new Set<string>();
+  let filter = "all";
+  let query = "";
+  const isActive = (id: string) => (secs.get(id) ?? 0) > 0;
+  const isRole = (r: HTMLElement) => !r.classList.contains("group");
+  const nameOf = (id: string) => sessions.find((session) => session.id === id)?.name ?? "";
+  const matches = (row: HTMLElement) => {
+    const id = row.dataset.id!;
+    const session = sessions.find((session) => session.id === id);
+    const text = `${session?.name ?? ""} ${session?.sub ?? ""} ${session?.badge ?? ""}`.toLowerCase();
+    if (query && !text.includes(query)) return false;
+    if (filter === "active") return isActive(id);
+    if (filter === "favorites") return favs.has(id);
+    const [kind, value] = filter.split(":");
+    if (kind === "tag") return row.dataset.tag === value;
+    if (kind === "cloud") return row.dataset.cloud === value;
+    if (kind === "kind") return row.dataset.kind === value;
+    return true;
+  };
+  const applyView = () => {
+    const shown = new Map(rows.filter(isRole).map((r) => [r.dataset.id!, matches(r)] as const));
+    const narrowed = query !== "" || filter !== "all";
+    for (const row of rows) {
+      const id = row.dataset.id!;
+      if (isRole(row)) {
+        const parent = row.dataset.in;
+        row.hidden = !shown.get(id) || (!!parent && collapsed.has(parent) && !narrowed);
+      } else {
+        row.hidden = !rows.some((r) => r.dataset.in === id && shown.get(r.dataset.id!));
+      }
+    }
+    for (const li of side.querySelectorAll<HTMLElement>("[data-filter]")) li.classList.toggle("on", li.dataset.filter === filter);
+    const count = (pred: (r: HTMLElement) => boolean) => rows.filter((r) => isRole(r) && pred(r)).length;
+    const counts: Record<string, number> = {
+      all: count(() => true),
+      active: count((r) => isActive(r.dataset.id!)),
+      favorites: count((r) => favs.has(r.dataset.id!)),
+      "tag:Production": count((r) => r.dataset.tag === "Production"),
+      "tag:Sandbox": count((r) => r.dataset.tag === "Sandbox"),
+    };
+    for (const b of side.querySelectorAll<HTMLElement>("[data-count]")) b.textContent = String(counts[b.dataset.count!] ?? "");
+  };
+  const setFilter = (next: string) => {
+    filter = next;
+    applyView();
+  };
+  search.addEventListener("input", () => {
+    query = search.value.trim().toLowerCase();
+    applyView();
+  });
+  side.addEventListener("keydown", (e) => {
+    const li = (e.target as HTMLElement).closest<HTMLElement>("[data-filter]");
+    if (!li || (e.key !== "Enter" && e.key !== " ")) return;
+    e.preventDefault();
+    setFilter(li.dataset.filter!);
+  });
+
   const paintState = (row: HTMLElement) => {
     if (row.classList.contains("group")) return;
     const st = row.querySelector(".state")!;
@@ -35,6 +98,7 @@ export function initDashboardDemo() {
     const n = [...secs.values()].filter((v) => v > 0).length;
     stage.querySelector("#side-active")!.textContent = String(n);
     stage.querySelector("#foot-active")!.textContent = `${n} active`;
+    applyView();
   };
 
   const start = (id: string, s = 3599) => {
@@ -140,17 +204,35 @@ export function initDashboardDemo() {
   // Real clicks do real things.
   app.addEventListener("click", (e) => {
     const t = e.target as HTMLElement;
+    const li = t.closest<HTMLElement>("[data-filter]");
+    if (li) return setFilter(li.dataset.filter!);
+    if (t.closest(".add")) return say("<b>Add</b> an Identity Center portal, an Entra ID tenant, or your gcloud account.");
     const row = t.closest<HTMLElement>(".row[data-id]");
     if (!row) return;
     const id = row.dataset.id!;
     if (t.closest(".play")) {
       secs.has(id) ? stop(id) : start(id);
+    } else if (t.closest(".chev")) {
+      collapsed.has(id) ? collapsed.delete(id) : collapsed.add(id);
+      row.classList.toggle("collapsed", collapsed.has(id));
+      applyView();
+    } else if (t.closest(".favbtn")) {
+      const b = t.closest<HTMLElement>(".favbtn")!;
+      favs.has(id) ? favs.delete(id) : favs.add(id);
+      b.classList.toggle("on", favs.has(id));
+      b.setAttribute("aria-pressed", String(favs.has(id)));
+      applyView();
+    } else if (t.closest(".badge.tag")) {
+      setFilter(`tag:${t.closest<HTMLElement>(".badge.tag")!.dataset.tag}`);
     } else if (t.closest("[data-act=term]")) {
       void openTerm(id);
+    } else if (t.closest("[data-act=console]")) {
+      say(`<b>Opened</b> the console for ${nameOf(id)} in your browser.`);
     } else if (t.closest("[data-act=copy]")) {
       const b = t.closest("button")!;
       b.style.color = "var(--a-green)";
       setTimeout(() => (b.style.color = ""), 800);
+      say(`<b>Copied</b> credentials for ${nameOf(id)}.`);
     }
   });
 
@@ -208,6 +290,11 @@ export function initDashboardDemo() {
 
   const reset = () => {
     for (const id of [...secs.keys()]) secs.delete(id);
+    filter = "all";
+    query = "";
+    search.value = "";
+    collapsed.clear();
+    rows.forEach((r) => r.classList.remove("collapsed"));
     start("admin", 2814);
     term.classList.remove("open");
   };

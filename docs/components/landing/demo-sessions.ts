@@ -12,11 +12,13 @@ export type DemoSession = {
   fav?: boolean;
   tag?: string;
   active?: number;
+  /** The account row this role sits under. */
+  in?: string;
 };
 export const sessions: DemoSession[] = [
   { id: "acme-prod", group: true, cloud: "aws", name: "Acme Prod", sub: "123456789012 · 2 roles · 1 active" },
-  { id: "admin", name: "AdministratorAccess", profile: "default", region: "us-east-1", fav: true, active: 2814 },
-  { id: "readonly", name: "ReadOnlyAccess", profile: "default", region: "us-east-1" },
+  { id: "admin", in: "acme-prod", name: "AdministratorAccess", profile: "default", region: "us-east-1", fav: true, active: 2814 },
+  { id: "readonly", in: "acme-prod", name: "ReadOnlyAccess", profile: "default", region: "us-east-1" },
   { id: "personal", cloud: "aws", name: "personal", badge: "IAM user", sub: "us-west-2", profile: "personal", region: "us-west-2" },
   {
     id: "prod-admin",
