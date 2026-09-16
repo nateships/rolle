@@ -39,7 +39,7 @@ function matchMedia(query: string): MediaQueryList {
 }
 Object.defineProperty(window, "matchMedia", { writable: true, configurable: true, value: vi.fn(matchMedia) });
 
-// cmdk and Radix use these; jsdom does not implement them.
+// Radix and Base UI use these; jsdom does not implement them.
 class ResizeObserverStub {
   observe() {}
   unobserve() {}
