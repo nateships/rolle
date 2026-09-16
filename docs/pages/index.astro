@@ -1,6 +1,7 @@
 ---
 // Landing page at "/". The docs live under basePath "/docs".
 import data from "blume:data";
+import Galaxy from "../components/Galaxy.astro";
 const releases = "https://github.com/nateships/rolle/releases";
 const github = "https://github.com/nateships/rolle";
 const title = "rolle: assume any role, any cloud";
@@ -1008,16 +1009,6 @@ const rows: Row[] = [
         }
       }
 
-      /* The window's shadow falls away from the pointer. */
-      .field {
-        position: fixed;
-        inset: 0;
-        z-index: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-      }
-
       h1 span {
         display: inline-block;
         font-variation-settings: "wght" var(--w, 700);
@@ -1181,7 +1172,7 @@ const rows: Row[] = [
     </style>
   </head>
   <body>
-    <canvas class="field" id="field" aria-hidden="true"></canvas>
+    <Galaxy />
     <header>
       <a class="logo" href="/" aria-label="rolle">
         <img class="dark" src="/logo-dark.svg" alt="" width="804" height="294" />
@@ -1598,208 +1589,6 @@ const rows: Row[] = [
       let mx = -9999;
       let my = -9999;
 
-      // ---- The background: a signal lattice -----------------------------------
-      // Points sit on a jittered hexagonal grid and breathe in place, so the
-      // field stays geometric. Links exist only between hex neighbours and are
-      // nearly invisible until a pulse travels along them, hopping a few times
-      // and fading. The pointer brightens the lattice around it and sends
-      // pulses out from the nearest point. Under the text the field dims.
-      const canvas = document.getElementById("field") as HTMLCanvasElement;
-      const ctx = canvas.getContext("2d")!;
-      const dark = matchMedia("(prefers-color-scheme: dark)");
-      type P = { hx: number; hy: number; x: number; y: number; ph: number; ph2: number; nb: number[]; dim: number };
-      type Pulse = { a: number; b: number; t0: number; hops: number };
-      let pts: P[] = [];
-      let pulses: Pulse[] = [];
-      let W = 0;
-      let H = 0;
-      let S = 62;
-      let cols = 0;
-      const t0 = performance.now();
-      let lastSpawn = 0;
-      let lastPulseAt = { x: -9999, y: -9999 };
-      const quiet: DOMRect[] = [];
-      const REACH = 260;
-      const HOP = 720;
-
-      const measureQuiet = () => {
-        quiet.length = 0;
-        for (const el of document.querySelectorAll("h1, .lede, .actions, header nav, .facts li")) {
-          const r = el.getBoundingClientRect();
-          quiet.push(new DOMRect(r.left - 14, r.top - 10, r.width + 28, r.height + 20));
-        }
-        for (const p of pts) {
-          p.dim = 1;
-          for (const q of quiet) {
-            if (p.hx > q.left && p.hx < q.right && p.hy > q.top && p.hy < q.bottom) {
-              p.dim = 0.28;
-              break;
-            }
-          }
-        }
-      };
-
-      const build = () => {
-        const dpr = Math.min(2, devicePixelRatio || 1);
-        W = innerWidth;
-        H = innerHeight;
-        canvas.width = W * dpr;
-        canvas.height = H * dpr;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        S = W < 700 ? 48 : 62;
-        const rowH = S * 0.866;
-        cols = Math.ceil(W / S) + 2;
-        const rows = Math.ceil(H / rowH) + 2;
-        pts = [];
-        for (let r = 0; r < rows; r++) {
-          for (let c = 0; c < cols; c++) {
-            const hx = (c - 1) * S + (r % 2 ? S / 2 : 0) + (Math.random() - 0.5) * S * 0.42;
-            const hy = (r - 1) * rowH + (Math.random() - 0.5) * S * 0.42;
-            pts.push({ hx, hy, x: hx, y: hy, ph: Math.random() * 6.28, ph2: Math.random() * 6.28, nb: [], dim: 1 });
-          }
-        }
-        // Hex neighbours: same row left/right, and two in each adjacent row.
-        const at = (r: number, c: number) => (r < 0 || r >= rows || c < 0 || c >= cols ? -1 : r * cols + c);
-        for (let r = 0; r < rows; r++) {
-          for (let c = 0; c < cols; c++) {
-            const i = r * cols + c;
-            const odd = r % 2;
-            for (const [dr, dc] of [
-              [0, 1],
-              [1, 0],
-              [1, odd ? 1 : -1],
-            ]) {
-              const j = at(r + dr, c + dc);
-              if (j >= 0) {
-                pts[i].nb.push(j);
-                pts[j].nb.push(i);
-              }
-            }
-          }
-        }
-        pulses = [];
-        measureQuiet();
-      };
-
-      const spawn = (from: number, hops = 3) => {
-        const p = pts[from];
-        if (!p.nb.length) return;
-        pulses.push({ a: from, b: p.nb[(Math.random() * p.nb.length) | 0], t0: performance.now(), hops });
-      };
-      const nearest = (x: number, y: number) => {
-        let best = 0;
-        let bd = 1e9;
-        for (let i = 0; i < pts.length; i++) {
-          const d = (pts[i].x - x) ** 2 + (pts[i].y - y) ** 2;
-          if (d < bd) {
-            bd = d;
-            best = i;
-          }
-        }
-        return best;
-      };
-
-      const draw = () => {
-        ctx.clearRect(0, 0, W, H);
-        const ink = dark.matches ? "244 240 232" : "16 17 20";
-        const now = performance.now();
-        const t = (now - t0) / 1000;
-        const live = mx > -9000;
-        // Depth: the whole field eases a little toward the pointer.
-        const px = live ? ((mx - W / 2) / W) * 10 : 0;
-        const py = live ? ((my - H / 2) / H) * 10 : 0;
-        for (const p of pts) {
-          p.x = p.hx + Math.cos(t * 0.35 + p.ph) * S * 0.09 + px;
-          p.y = p.hy + Math.sin(t * 0.29 + p.ph2) * S * 0.09 + py;
-        }
-        const prox = (p: P) => {
-          if (!live) return 0;
-          const d = Math.hypot(p.x - mx, p.y - my);
-          return d > REACH ? 0 : (1 - d / REACH) ** 1.5;
-        };
-        // Ambient pulses, from points away from the text.
-        if (!reduced && now - lastSpawn > 520 && pulses.length < 14) {
-          lastSpawn = now;
-          for (let k = 0; k < 6; k++) {
-            const i = (Math.random() * pts.length) | 0;
-            const p = pts[i];
-            if (p.dim === 1 && p.x > 0 && p.x < W && p.y > 0 && p.y < H) {
-              spawn(i);
-              break;
-            }
-          }
-        }
-        // Links: faint, brighter near the pointer.
-        ctx.lineWidth = 0.8;
-        for (let i = 0; i < pts.length; i++) {
-          const a = pts[i];
-          const pa = prox(a);
-          for (const j of a.nb) {
-            if (j < i) continue;
-            const b = pts[j];
-            const g = Math.max(pa, prox(b));
-            const al = (0.035 + g * 0.32) * Math.min(a.dim, b.dim);
-            if (al < 0.012) continue;
-            ctx.strokeStyle = `rgb(${ink} / ${al.toFixed(3)})`;
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
-            ctx.stroke();
-          }
-        }
-        // Pulses: a short bright run along a link, then on to the next.
-        const keep: Pulse[] = [];
-        for (const pl of pulses) {
-          const u = (now - pl.t0) / HOP;
-          const a = pts[pl.a];
-          const b = pts[pl.b];
-          if (u >= 1) {
-            if (pl.hops > 1) {
-              const next = b.nb.filter((k) => k !== pl.a);
-              if (next.length) keep.push({ a: pl.b, b: next[(Math.random() * next.length) | 0], t0: now, hops: pl.hops - 1 });
-            }
-            continue;
-          }
-          keep.push(pl);
-          const e = u < 0.5 ? 2 * u * u : 1 - (-2 * u + 2) ** 2 / 2;
-          const tail = Math.max(0, e - 0.28);
-          const x1 = a.x + (b.x - a.x) * tail;
-          const y1 = a.y + (b.y - a.y) * tail;
-          const x2 = a.x + (b.x - a.x) * e;
-          const y2 = a.y + (b.y - a.y) * e;
-          const fade = Math.min(1, pl.hops / 3) * Math.min(a.dim, b.dim);
-          const grad = ctx.createLinearGradient(x1, y1, x2, y2);
-          grad.addColorStop(0, `rgb(${ink} / 0)`);
-          grad.addColorStop(1, `rgb(${ink} / ${(0.75 * fade).toFixed(3)})`);
-          ctx.strokeStyle = grad;
-          ctx.lineWidth = 1.4;
-          ctx.beginPath();
-          ctx.moveTo(x1, y1);
-          ctx.lineTo(x2, y2);
-          ctx.stroke();
-          ctx.fillStyle = `rgb(${ink} / ${(0.9 * fade).toFixed(3)})`;
-          ctx.beginPath();
-          ctx.arc(x2, y2, 1.8, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        pulses = keep;
-        // Points.
-        for (const p of pts) {
-          const g = prox(p);
-          ctx.fillStyle = `rgb(${ink} / ${((0.22 + g * 0.65) * p.dim).toFixed(3)})`;
-          ctx.beginPath();
-          ctx.arc(p.x, p.y, 1.15 + g * 1.3, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        if (!reduced) requestAnimationFrame(draw);
-      };
-
-      build();
-      addEventListener("resize", build);
-      if (document.fonts?.ready) void document.fonts.ready.then(measureQuiet);
-      setTimeout(measureQuiet, 1200);
-      draw();
-
       if (fine && !reduced) {
         const root = document.documentElement;
         let raf = 0;
@@ -1822,10 +1611,6 @@ const rows: Row[] = [
         document.addEventListener("pointermove", (e) => {
           mx = e.clientX;
           my = e.clientY;
-          if (Math.hypot(mx - lastPulseAt.x, my - lastPulseAt.y) > 70) {
-            lastPulseAt = { x: mx, y: my };
-            spawn(nearest(mx, my), 4);
-          }
           if (!raf) raf = requestAnimationFrame(apply);
         });
         document.addEventListener("pointerleave", () => {

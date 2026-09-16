@@ -1,0 +1,466 @@
+<div class="galaxy" aria-hidden="true">
+  <canvas id="galaxy"></canvas>
+</div>
+
+<style>
+  .galaxy {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse at 92% 18%, light-dark(#4dbaa51a, #0a735724), transparent 48%),
+      radial-gradient(ellipse at 8% 85%, light-dark(#699bc514, #164f7524), transparent 45%);
+  }
+
+  canvas { display: block; width: 100%; height: 100%; }
+</style>
+
+<script>
+  // All expensive cloud/noise work is cached. Each frame only composites the
+  // nebula and moves a bounded set of stars; no shaders or image downloads.
+  function mountGalaxy() {
+    const canvas = document.getElementById("galaxy") as HTMLCanvasElement | null;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+
+    const motion = matchMedia("(prefers-reduced-motion: reduce)");
+    const theme = matchMedia("(prefers-color-scheme: dark)");
+    const pointer = matchMedia("(hover: hover) and (pointer: fine)");
+    const controller = new AbortController();
+    const { signal } = controller;
+    const TAU = Math.PI * 2;
+    const clouds = document.createElement("canvas");
+    const dust = document.createElement("canvas");
+    const quiet = document.createElement("canvas");
+    const cloudCtx = clouds.getContext("2d")!;
+    const dustCtx = dust.getContext("2d")!;
+    const quietCtx = quiet.getContext("2d")!;
+    type Star = { x: number; y: number; z: number; r: number; phase: number; tint: number };
+    let stars: Star[] = [];
+    type Link = { a: number; b: number; opacity: number; active: boolean };
+    const links = new Map<number, Link>();
+    let lastLinkUpdate = -Infinity;
+    let pointerTravel = 0;
+    let connectionSeeds: number[] = [];
+    let nextShuffle: number[] = [];
+    type Impulse = { x: number; y: number; born: number };
+    let impulses: Impulse[] = [];
+    let width = 0;
+    let height = 0;
+    let time = 0;
+    let previous = 0;
+    let frame = 0;
+    let resizeTimer = 0;
+    let disposed = false;
+    const mouse = { x: 0, y: 0, fx: 0, fy: 0, active: false, strength: 0, px: 0, py: 0 };
+
+    // A seeded field stays in place across resizes and color-scheme changes.
+    let seed = 731;
+    const random = () => {
+      seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+      return seed / 4294967296;
+    };
+    const grid = Float32Array.from({ length: 16384 }, random);
+    const noise = (x: number, y: number) => {
+      const cellX = Math.floor(x), cellY = Math.floor(y);
+      const fx = x - cellX, fy = y - cellY;
+      const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+      const at = (dx: number, dy: number) => grid[((cellY + dy) & 127) * 128 + ((cellX + dx) & 127)];
+      return (at(0, 0) * (1 - sx) + at(1, 0) * sx) * (1 - sy)
+        + (at(0, 1) * (1 - sx) + at(1, 1) * sx) * sy;
+    };
+    const fractal = (x: number, y: number) =>
+      noise(x, y) * 0.54 + noise(x * 2.03 + 17, y * 2.03) * 0.27
+      + noise(x * 4.09, y * 4.09 + 31) * 0.13 + noise(x * 8.21, y * 8.21) * 0.06;
+    const band = (x: number) => 0.88 - x * 0.78 + Math.sin(x * 5.4) * 0.13;
+
+    function makeClouds() {
+      // Low-resolution, smoothly upscaled volumetric texture, capped on 4K.
+      clouds.width = Math.min(760, Math.ceil(width / 2));
+      clouds.height = Math.max(1, Math.round(clouds.width * height / width));
+      const pixels = cloudCtx.createImageData(clouds.width, clouds.height);
+      const dark = theme.matches;
+      for (let y = 0; y < clouds.height; y++) {
+        for (let x = 0; x < clouds.width; x++) {
+          const u = x / clouds.width, v = y / clouds.height;
+          const n = fractal(u * 5.2, v * 4.6);
+          const warp = noise(u * 3 + 12, v * 3 + 7);
+          const distance = v - band(u) + (warp - 0.5) * 0.27;
+          const body = Math.exp(-distance * distance / 0.024);
+          const filament = Math.exp(-Math.pow(distance + (n - 0.5) * 0.22, 2) / 0.0024);
+          const wisps = Math.pow(Math.max(0, n - 0.26), 1.7);
+          const density = body * wisps * 1.45 + filament * Math.pow(n, 3) * 0.7;
+          const blue = Math.max(0, Math.min(1, (noise(u * 4 + 41, v * 3) - 0.35) * 2.8));
+          const i = (y * clouds.width + x) * 4;
+          pixels.data[i] = dark ? 28 + blue * 55 : 38 + blue * 40;
+          pixels.data[i + 1] = dark ? 175 - blue * 40 : 140 - blue * 30;
+          pixels.data[i + 2] = dark ? 133 + blue * 105 : 114 + blue * 86;
+          pixels.data[i + 3] = Math.min(dark ? 155 : 82, density * (dark ? 220 : 130));
+        }
+      }
+      cloudCtx.putImageData(pixels, 0, 0);
+
+      dust.width = Math.min(width, 1600);
+      dust.height = Math.round(dust.width * height / width);
+      seed = 912;
+      for (let i = 0; i < 2600; i++) {
+        const x = random();
+        const y = band(x) + (random() + random() + random() - 1.5) * 0.18;
+        const r = 0.2 + random() * 0.65;
+        dustCtx.fillStyle = theme.matches
+          ? `rgba(177,229,220,${0.08 + random() * 0.32})`
+          : `rgba(31,100,92,${0.06 + random() * 0.18})`;
+        dustCtx.beginPath();
+        dustCtx.arc(x * dust.width, y * dust.height, r, 0, TAU);
+        dustCtx.fill();
+      }
+    }
+
+    function measureQuiet() {
+      quiet.width = width;
+      quiet.height = height;
+      quietCtx.fillStyle = "rgba(0,0,0,0.72)";
+      quietCtx.shadowColor = "rgba(0,0,0,0.72)";
+      quietCtx.shadowBlur = 24;
+      for (const el of document.querySelectorAll("header, h1, .lede, .actions, .facts li")) {
+        const r = el.getBoundingClientRect();
+        quietCtx.beginPath();
+        quietCtx.roundRect(r.left - 8, r.top - 8, r.width + 16, r.height + 16, 20);
+        quietCtx.fill();
+      }
+    }
+
+    function build() {
+      width = innerWidth;
+      height = innerHeight;
+      const dpr = Math.min(devicePixelRatio || 1, 1.75);
+      canvas!.width = Math.round(width * dpr);
+      canvas!.height = Math.round(height * dpr);
+      ctx!.setTransform(dpr, 0, 0, dpr, 0, 0);
+      seed = 351;
+      stars = Array.from({ length: Math.min(420, Math.round(width * height / 2800)) }, () => ({
+        x: random(), y: random(), z: random(), r: 0.35 + Math.pow(random(), 3) * 1.3,
+        phase: random() * TAU, tint: random(),
+      }));
+      links.clear();
+      lastLinkUpdate = -Infinity;
+      connectionSeeds = stars.map(() => (Math.random() * 4294967296) >>> 0);
+      nextShuffle = stars.map(() => pointerTravel + 45 + Math.random() * 75);
+      impulses = [];
+      makeClouds();
+      measureQuiet();
+      render();
+    }
+
+    function updateConnections(positions: { x: number; y: number; charge: number }[], dt: number) {
+      // Reconsider neighbours at a modest cadence; fade the links on every
+      // display frame. Spatial buckets keep the search local as stars move.
+      if (time - lastLinkUpdate >= 0.08) {
+        lastLinkUpdate = time;
+        for (const link of links.values()) link.active = false;
+        const reach = 180;
+        const buckets = new Map<string, number[]>();
+        positions.forEach((point, index) => {
+          const key = `${Math.floor(point.x / reach)}:${Math.floor(point.y / reach)}`;
+          const bucket = buckets.get(key);
+          if (bucket) bucket.push(index);
+          else buckets.set(key, [index]);
+        });
+        positions.forEach((point, a) => {
+          const nearPointer = mouse.strength >= 0.01 && Math.hypot(point.x - mouse.fx, point.y - mouse.fy) <= 390;
+          if (point.charge < 0.015 && !nearPointer) return;
+          // Shuffle each star after a different amount of pointer travel.
+          // Revisiting the same area creates new paths, while pausing the
+          // cursor lets the mesh settle instead of randomly flickering.
+          if (nearPointer && mouse.active && pointerTravel >= nextShuffle[a]) {
+            connectionSeeds[a] = (Math.random() * 4294967296) >>> 0;
+            nextShuffle[a] = pointerTravel + 45 + Math.random() * 75;
+          }
+          const col = Math.floor(point.x / reach), row = Math.floor(point.y / reach);
+          const candidates: { b: number; score: number; key: number }[] = [];
+          for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+              for (const b of buckets.get(`${col + dx}:${row + dy}`) ?? []) {
+                if (a === b) continue;
+                const other = positions[b];
+                const distance = Math.hypot(point.x - other.x, point.y - other.y);
+                if (distance > reach) continue;
+                const key = Math.min(a, b) * positions.length + Math.max(a, b);
+                // Hold a random preference until this star's next shuffle.
+                // Distance lightly favours local threads without always
+                // choosing the same three nearest neighbours.
+                let hash = connectionSeeds[a] ^ Math.imul(b + 1, 0x9e3779b1);
+                hash = Math.imul(hash ^ (hash >>> 16), 0x85ebca6b);
+                hash = Math.imul(hash ^ (hash >>> 13), 0xc2b2ae35);
+                const choice = ((hash ^ (hash >>> 16)) >>> 0) / 4294967296;
+                candidates.push({ b, key, score: choice * 0.85 + distance / reach * 0.15 });
+              }
+            }
+          }
+          candidates.sort((a, b) => a.score - b.score);
+          const connectionCount = stars[a].z > 0.75 ? 3 : 2;
+          for (const { b, key } of candidates.slice(0, connectionCount)) {
+            const link = links.get(key);
+            if (link) link.active = true;
+            else links.set(key, { a, b, opacity: 0, active: true });
+          }
+        });
+      }
+      for (const [key, link] of links) {
+        const ease = 1 - Math.exp(-dt * (link.active ? 12 : 7));
+        link.opacity += ((link.active ? 1 : 0) - link.opacity) * ease;
+        if (!link.active && link.opacity < 0.005) links.delete(key);
+      }
+    }
+
+    function render(dt = 0) {
+      const c = ctx!;
+      const dark = theme.matches;
+      c.clearRect(0, 0, width, height);
+      const px = mouse.px, py = mouse.py;
+      const driftX = motion.matches ? 0 : Math.sin(time * 0.065) * 14;
+      const driftY = motion.matches ? 0 : Math.cos(time * 0.05) * 10;
+      c.globalAlpha = 0.88 + Math.sin(time * 0.13) * 0.12;
+      c.drawImage(clouds, -width * 0.045 + driftX + px * 0.4, -height * 0.045 + driftY + py * 0.4, width * 1.09, height * 1.09);
+      c.globalAlpha = 0.75;
+      c.drawImage(dust, -width * 0.025 - driftX * 0.3 + px * 0.7, -height * 0.025 + py * 0.7, width * 1.05, height * 1.05);
+      c.globalAlpha = 1;
+
+      impulses = impulses.filter((impulse) => time - impulse.born < 2.6);
+      const waves = impulses.map((impulse) => {
+        const age = (time - impulse.born) / 2.6;
+        // Ease into the displacement over 80ms instead of jumping the nearby
+        // stars to a nonzero offset on the first frame after a click.
+        const onset = Math.min(1, (time - impulse.born) / 0.08);
+        const attack = onset * onset * (3 - 2 * onset);
+        return { ...impulse, age, attack, radius: 18 + (1 - Math.pow(1 - age, 2)) * 360, fade: Math.pow(1 - age, 1.7) };
+      });
+      // Wrap beyond the viewport so stars drift continuously without popping
+      // at the visible edges. Different headings and depths keep it organic.
+      const wrap = (value: number, size: number) => ((value + 100) % (size + 200) + size + 200) % (size + 200) - 100;
+      const positions = stars.map((star) => {
+        const depth = 0.3 + star.z * 0.7;
+        const speed = 2 + depth * 2.5;
+        let x = wrap(star.x * width + Math.cos(star.phase) * time * speed + Math.sin(time * 0.12 + star.phase) * depth * 12, width) + px * depth;
+        let y = wrap(star.y * height + Math.sin(star.phase) * time * speed + Math.cos(time * 0.1 + star.phase) * depth * 12, height) + py * depth;
+        const dx = x - mouse.fx, dy = y - mouse.fy;
+        const distance = Math.hypot(dx, dy);
+        const pull = Math.pow(Math.max(0, 1 - distance / 220), 2) * mouse.strength;
+        // A gentle lens bends the near stars tangentially around the pointer.
+        x += (-dy * 0.24 - dx * 0.08) * pull;
+        y += (dx * 0.24 - dy * 0.08) * pull;
+        let charge = 0;
+        let offsetX = 0, offsetY = 0;
+        for (const wave of waves) {
+          const dx = x - wave.x, dy = y - wave.y;
+          const distance = Math.hypot(dx, dy);
+          const energy = Math.exp(-Math.pow((distance - wave.radius) / 65, 2)) * wave.fade * wave.attack;
+          const nearby = Math.exp(-Math.pow(distance / 240, 2));
+          // The impulse lives entirely in the stars and their connections.
+          // Broad displacement and elastic recoil restore the field's motion.
+          const recoil = Math.sin(wave.age * TAU * 1.6) * Math.exp(-wave.age * 4) * nearby * wave.attack;
+          const push = (energy * 34 + recoil * 48) / Math.max(1, distance);
+          const curl = recoil * 12 / Math.max(1, distance);
+          offsetX += dx * push - dy * curl;
+          offsetY += dy * push + dx * curl;
+          charge += energy + nearby * wave.fade * Math.min(1, wave.age * 12) * 0.6;
+        }
+        const limit = Math.min(1, 72 / Math.max(1, Math.hypot(offsetX, offsetY)));
+        x += offsetX * limit;
+        y += offsetY * limit;
+        charge = Math.min(1, charge);
+        const twinkle = 0.68 + Math.sin(time * (0.45 + star.z * 0.7) + star.phase) * 0.24;
+        const alpha = Math.min(0.95, (0.22 + star.z * 0.5) * twinkle + pull * 0.55 + charge * 0.8);
+        const color = dark ? (star.tint > 0.82 ? "150,213,239" : "221,237,223") : "36,86,83";
+        return { star, x, y, pull, charge, alpha, color };
+      });
+
+      if (!motion.matches) updateConnections(positions, dt);
+
+      // Soft threads bloom around the eased cursor, then dissolve behind it.
+      // Draw under the stars so every connection terminates in a point of light.
+      if (!motion.matches && (mouse.strength > 0.001 || waves.length > 0)) {
+        const color = dark ? "155,218,205" : "43,111,99";
+        for (const link of links.values()) {
+          const a = positions[link.a], b = positions[link.b];
+          const distance = Math.hypot(a.x - b.x, a.y - b.y);
+          const proximity = Math.hypot((a.x + b.x) / 2 - mouse.fx, (a.y + b.y) / 2 - mouse.fy);
+          const falloff = Math.pow(Math.max(0, 1 - proximity / 310), 1.4);
+          const charge = Math.max(a.charge, b.charge);
+          const hover = falloff * Math.max(0, 1 - distance / 210) * mouse.strength * (dark ? 0.44 : 0.34);
+          const alpha = Math.min(0.75, hover + charge * Math.max(0, 1 - distance / 300) * (dark ? 0.78 : 0.58)) * link.opacity;
+          if (alpha < 0.003) continue;
+          const thread = c.createLinearGradient(a.x, a.y, b.x, b.y);
+          thread.addColorStop(0, `rgba(${color},${alpha * 0.4})`);
+          thread.addColorStop(0.5, `rgba(${color},${alpha})`);
+          thread.addColorStop(1, `rgba(${color},${alpha * 0.4})`);
+          c.beginPath();
+          c.moveTo(a.x, a.y);
+          c.lineTo(b.x, b.y);
+          c.strokeStyle = `rgba(${color},${alpha * (0.12 + charge * 0.1)})`;
+          c.lineWidth = 3 + charge * 3;
+          c.stroke();
+          c.strokeStyle = thread;
+          c.lineWidth = 0.7 + charge * 0.65;
+          c.stroke();
+
+        }
+
+        // Clicks reveal the whole nearby mesh. Light runs through its links
+        // as the stars move, with no separate ring or particle explosion.
+        for (const wave of waves) {
+          for (const link of links.values()) {
+            const a = positions[link.a], b = positions[link.b];
+            if (Math.hypot(a.x - b.x, a.y - b.y) > 300) continue;
+            const da = Math.hypot(a.x - wave.x, a.y - wave.y);
+            const db = Math.hypot(b.x - wave.x, b.y - wave.y);
+            const progress = (wave.age * 2.6 - Math.min(da, db) / 310) / 0.65;
+            if (progress <= 0 || progress >= 1 || Math.min(da, db) > 360) continue;
+            const from = da < db ? a : b, to = da < db ? b : a;
+            const tail = Math.max(0, progress - 0.3);
+            const x = from.x + (to.x - from.x) * progress;
+            const y = from.y + (to.y - from.y) * progress;
+            const tx = from.x + (to.x - from.x) * tail;
+            const ty = from.y + (to.y - from.y) * tail;
+            const light = Math.sin(progress * Math.PI) * wave.fade * 0.8 * link.opacity;
+            const glow = c.createLinearGradient(tx, ty, x, y);
+            glow.addColorStop(0, `rgba(${color},0)`);
+            glow.addColorStop(1, `rgba(${color},${light})`);
+            c.strokeStyle = glow;
+            c.lineWidth = 1.4;
+            c.beginPath();
+            c.moveTo(tx, ty);
+            c.lineTo(x, y);
+            c.stroke();
+          }
+        }
+      }
+
+      for (const { star, x, y, pull, charge, alpha, color } of positions) {
+        c.fillStyle = `rgba(${color},${alpha})`;
+        c.beginPath();
+        c.arc(x, y, star.r + pull * 0.65 + charge * 0.9, 0, TAU);
+        c.fill();
+        if (star.r > 1.25 || pull > 0.35 || charge > 0.08) {
+          const radius = star.r * 6 + pull * 8 + charge * 12;
+          const glow = c.createRadialGradient(x, y, 0, x, y, radius);
+          glow.addColorStop(0, `rgba(${color},${alpha * (0.24 + charge * 0.12)})`);
+          glow.addColorStop(1, `rgba(${color},0)`);
+          c.fillStyle = glow;
+          c.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+          if (star.r > 1.5) {
+            c.strokeStyle = `rgba(${color},${alpha * 0.32})`;
+            c.lineWidth = 0.6;
+            c.beginPath();
+            c.moveTo(x - 4, y); c.lineTo(x + 4, y);
+            c.moveTo(x, y - 4); c.lineTo(x, y + 4);
+            c.stroke();
+          }
+        }
+      }
+
+      // A rare, unhurried meteor crosses the exposed edge of the nebula.
+      const cycle = (time + 7) % 15;
+      if (!motion.matches && cycle < 1.8) {
+        const progress = cycle / 1.8;
+        const alternate = Math.floor((time + 7) / 15) % 2;
+        const x = width * (0.48 + progress * 0.42);
+        const y = height * (alternate ? 0.7 : 0.02) + progress * height * 0.22;
+        const length = Math.min(140, width * 0.13);
+        const opacity = Math.sin(progress * Math.PI) * (dark ? 0.65 : 0.35);
+        const tail = c.createLinearGradient(x - length, y - length * 0.42, x, y);
+        tail.addColorStop(0, "rgba(113,215,193,0)");
+        tail.addColorStop(1, `rgba(${dark ? "207,249,233" : "40,118,104"},${opacity})`);
+        c.strokeStyle = tail;
+        c.lineWidth = 1.2;
+        c.beginPath(); c.moveTo(x - length, y - length * 0.42); c.lineTo(x, y); c.stroke();
+      }
+
+      // A soft cached mask keeps the artwork out of the reading surface.
+      c.globalCompositeOperation = "destination-out";
+      c.drawImage(quiet, 0, 0);
+      c.globalCompositeOperation = "source-over";
+    }
+
+    function tick(now: number) {
+      frame = 0;
+      if (document.hidden || motion.matches || disposed) return;
+      // Follow the display's refresh rate. The former 30fps gate skipped
+      // uneven numbers of frames and made the click movement visibly step.
+      const dt = previous ? Math.min((now - previous) / 1000, 0.05) : 0;
+      previous = now;
+      time += dt;
+      const ease = 1 - Math.exp(-dt * 4);
+      const follow = 1 - Math.exp(-dt * 9);
+      mouse.fx += (mouse.x - mouse.fx) * follow;
+      mouse.fy += (mouse.y - mouse.fy) * follow;
+      mouse.strength += ((mouse.active ? 1 : 0) - mouse.strength) * ease;
+      mouse.px += ((mouse.active ? (mouse.x / width - 0.5) * 22 : 0) - mouse.px) * ease;
+      mouse.py += ((mouse.active ? (mouse.y / height - 0.5) * 22 : 0) - mouse.py) * ease;
+      render(dt);
+      frame = requestAnimationFrame(tick);
+    }
+    function syncMotion() {
+      cancelAnimationFrame(frame);
+      previous = 0;
+      mouse.active = false;
+      mouse.strength = mouse.px = mouse.py = 0;
+      impulses = [];
+      links.clear();
+      lastLinkUpdate = -Infinity;
+      render();
+      if (!motion.matches && !document.hidden) frame = requestAnimationFrame(tick);
+    }
+
+    addEventListener("pointermove", (event) => {
+      if (!pointer.matches || motion.matches) return;
+      pointerTravel += mouse.active
+        ? Math.min(100, Math.hypot(event.clientX - mouse.x, event.clientY - mouse.y))
+        : 100;
+      if (!mouse.active && mouse.strength < 0.01) {
+        mouse.fx = event.clientX;
+        mouse.fy = event.clientY;
+      }
+      mouse.x = event.clientX;
+      mouse.y = event.clientY;
+      mouse.active = true;
+    }, { passive: true, signal });
+    document.addEventListener("pointerleave", () => { mouse.active = false; }, { signal });
+    document.addEventListener("click", (event) => {
+      // Let every link and demo control keep its normal click behaviour.
+      // Ignore keyboard activation and the miniature demo's scripted clicks.
+      if (motion.matches || !event.isTrusted || event.detail === 0 || event.button !== 0) return;
+      impulses.push({ x: event.clientX, y: event.clientY, born: time });
+      impulses = impulses.slice(-4);
+    }, { passive: true, signal });
+    addEventListener("blur", () => { mouse.active = false; }, { signal });
+    addEventListener("resize", () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(build, 120);
+    }, { passive: true, signal });
+    addEventListener("scroll", () => {
+      measureQuiet();
+      if (motion.matches) render();
+    }, { passive: true, signal });
+    theme.addEventListener("change", build, { signal });
+    motion.addEventListener("change", syncMotion, { signal });
+    document.addEventListener("visibilitychange", syncMotion, { signal });
+    document.addEventListener("astro:before-swap", () => {
+      disposed = true;
+      controller.abort();
+      cancelAnimationFrame(frame);
+      clearTimeout(resizeTimer);
+    }, { once: true, signal });
+    void document.fonts.ready.then(() => {
+      if (disposed) return;
+      measureQuiet();
+      if (motion.matches) render();
+    });
+    build();
+    syncMotion();
+  }
+
+  mountGalaxy();
+</script>
