@@ -93,7 +93,10 @@ type Dialog =
 
 const SIDEBAR_KEY = "rolle.sidebar";
 const SIDEBAR_DEFAULT = 256;
-const SIDEBAR_MIN = 200;
+// The lockup is 48px tall: a 56px mark, a 64px wordmark, and 20px of right
+// padding. The macOS traffic lights end near x=70. This floor keeps the
+// lockup clear of them with a small gap.
+const SIDEBAR_MIN = 228;
 const SIDEBAR_MAX = 420;
 
 /** Sidebar width in pixels, kept between launches. */

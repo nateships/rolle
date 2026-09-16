@@ -127,11 +127,17 @@ export function SessionTable({
   const [collapsed, toggle] = useCollapsed();
   const rows = useMemo(() => groupSessions(sessions), [sessions]);
 
+  // A divider on the header's right edge. Always faintly visible so there is
+  // something to grab; drag to resize, double-click to put it back.
   function resizer(col: keyof ColumnWidths) {
+    const label = { profile: "Profile", region: "Region", state: "State" }[col];
     return (
       <span
         role="separator"
         aria-orientation="vertical"
+        aria-label={`Resize ${label} column`}
+        aria-valuenow={widths[col]}
+        onDoubleClick={() => onWidths({ ...widths, [col]: DEFAULT_WIDTHS[col] })}
         onMouseDown={(e) => {
           e.preventDefault();
           const startX = e.clientX;
@@ -145,7 +151,7 @@ export function SessionTable({
           window.addEventListener("mousemove", move);
           window.addEventListener("mouseup", up);
         }}
-        className="absolute inset-y-0 right-0 w-2 cursor-col-resize select-none border-r border-transparent hover:border-border active:border-ring"
+        className="absolute inset-y-2 -right-1.5 w-3 cursor-col-resize select-none before:absolute before:inset-y-0 before:left-1/2 before:w-px before:bg-border/60 before:transition-colors hover:before:w-0.5 hover:before:bg-border active:before:w-0.5 active:before:bg-ring"
       />
     );
   }
