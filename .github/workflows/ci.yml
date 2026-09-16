@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  # The lockfile workflow starts a run after it pushes with the default token.
+  workflow_dispatch:
 
 permissions:
   contents: read

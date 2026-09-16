@@ -1,0 +1,59 @@
+name: Lockfile
+
+# Renovate bumps package.json but its lockfile step sometimes fails in its
+# runner, which leaves the PR failing the frozen install everywhere. This
+# regenerates the pnpm lockfiles with aube on Renovate branches and commits
+# them back. With LOCKFILE_TOKEN set (a fine-grained PAT with contents: write),
+# the push triggers CI like any other; without it, the workflow dispatches CI
+# itself, since pushes made with the default token start no runs.
+
+on:
+  pull_request:
+    paths:
+      - apps/desktop/frontend/package.json
+      - docs/package.json
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  refresh:
+    if: startsWith(github.head_ref, 'renovate/')
+    runs-on: ubuntu-latest
+    env:
+      MISE_DISABLE_TOOLS: go:github.com/wailsapp/wails/v3/cmd/wails3
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.LOCKFILE_TOKEN || github.token }}
+          persist-credentials: true
+      - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      - name: Regenerate lockfiles
+        run: |
+          for dir in apps/desktop/frontend docs; do
+            (cd "$dir" && mise exec -- aube install)
+          done
+      - name: Commit and push when a lockfile changed
+        id: push
+        env:
+          HAS_TOKEN: ${{ secrets.LOCKFILE_TOKEN != '' }}
+        run: |
+          if git diff --quiet -- '**/pnpm-lock.yaml'; then
+            echo "lockfiles already match package.json"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- '**/pnpm-lock.yaml'
+          git commit -m "chore(deps): update lockfile for the dependency bump"
+          git push
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
+          echo "has_token=$HAS_TOKEN" >> "$GITHUB_OUTPUT"
+      - name: Start CI for the new commit
+        if: steps.push.outputs.pushed == 'true' && steps.push.outputs.has_token != 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.head_ref }}
+        run: gh workflow run ci.yml --ref "$BRANCH"
