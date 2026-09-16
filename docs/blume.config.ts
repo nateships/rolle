@@ -5,6 +5,7 @@ export default defineConfig({
   description: "Assume any role, any cloud. Short-lived AWS, Azure, and Google Cloud credentials for your tools, without a secret on disk.",
   // The wordmark is artwork, never typed: the lockup carries the mark and the word.
   logo: { image: { dark: "/logo-dark.svg", light: "/logo-light.svg", alt: "rolle" }, text: "", href: "/" },
+  basePath: "/docs",
   content: {
     sources: [
       { type: "filesystem", root: "content" },
@@ -18,7 +19,7 @@ export default defineConfig({
     // Tabs scope the sidebar: the release entries stay off the docs pages.
     tabs: [
       { label: "Docs", path: "/" },
-      { label: "Changelog", path: "/changelog", href: "/changelog" },
+      { label: "Changelog", path: "/changelog" },
     ],
     actions: [{ href: "https://github.com/nateships/rolle/releases", label: "Download" }],
   },

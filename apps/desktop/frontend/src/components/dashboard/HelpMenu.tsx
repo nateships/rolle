@@ -11,7 +11,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { api, errorMessage } from "@/lib/api";
 
-const DOCS = "https://getrolle.com";
+const SITE = "https://getrolle.com";
+const DOCS = `${SITE}/docs`;
 
 /** The help button at the bottom of the sidebar: docs, changelog, bug form, support bundle. */
 export function HelpMenu() {
@@ -38,7 +39,7 @@ export function HelpMenu() {
         <DropdownMenuItem onClick={() => void api.OpenURL(DOCS)}>
           <BookOpen /> Documentation
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => void api.OpenURL(`${DOCS}/changelog`)}>
+        <DropdownMenuItem onClick={() => void api.OpenURL(`${SITE}/changelog`)}>
           <History /> Changelog
         </DropdownMenuItem>
         <DropdownMenuSeparator />

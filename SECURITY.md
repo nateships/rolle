@@ -18,4 +18,4 @@ In scope: the desktop app, the `rolle` command, the update channel, and the rele
 
 ## What the project does today
 
-See [Security model](https://getrolle.com/security): secrets stay in the OS keychain, releases are signed and carry build provenance, and every network destination is listed and checkable.
+See [Security model](https://getrolle.com/docs/security): secrets stay in the OS keychain, releases are signed and carry build provenance, and every network destination is listed and checkable.

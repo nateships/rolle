@@ -1,0 +1,43 @@
+---
+// Landing page shell. Blume mounts this at "/" while the docs live under
+// basePath "/docs". The design pass replaces everything below the frontmatter.
+import data from "blume:data";
+const releases = "https://github.com/nateships/rolle/releases";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{data.config.title}: assume any role, any cloud</title>
+    <meta name="description" content={data.config.description} />
+    <link rel="icon" href="/icon.png" />
+    <style>
+      :root { color-scheme: light dark; --fg: #101114; --muted: #5b6069; --bg: #f4f0e8; --accent: #00ce78; }
+      @media (prefers-color-scheme: dark) { :root { --fg: #f4f0e8; --muted: #b4b8c0; --bg: #101114; } }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100dvh; display: grid; place-items: center; background: var(--bg); color: var(--fg); font: 18px/1.5 system-ui, sans-serif; }
+      main { display: grid; gap: 1.5rem; justify-items: center; padding: 2rem; text-align: center; }
+      img { height: 3rem; width: auto; }
+      .dark { display: none; }
+      @media (prefers-color-scheme: dark) { .light { display: none; } .dark { display: block; } }
+      p { max-width: 34rem; color: var(--muted); margin: 0; }
+      nav { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+      a { color: var(--fg); text-decoration: none; padding: 0.6rem 1.1rem; border: 1px solid var(--muted); border-radius: 999px; }
+      a.primary { background: var(--accent); border-color: var(--accent); color: #101114; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img class="light" src="/logo-light.svg" alt="rolle" />
+      <img class="dark" src="/logo-dark.svg" alt="rolle" />
+      <p>{data.config.description}</p>
+      <nav>
+        <a class="primary" href={releases}>Download</a>
+        <a href="/docs">Docs</a>
+        <a href="/changelog">Changelog</a>
+      </nav>
+    </main>
+  </body>
+</html>
