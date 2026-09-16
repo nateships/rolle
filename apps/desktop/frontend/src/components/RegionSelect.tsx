@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { Combobox } from "@base-ui/react/combobox";
 import { Check, ChevronsUpDown, Search } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
@@ -28,6 +28,10 @@ export function RegionSelect({
   className?: string;
 }) {
   const selected = useMemo(() => REGIONS.find((r) => r.id === value) ?? null, [value]);
+  // The popup mounts here, next to the trigger, instead of on the body. This picker
+  // opens inside a Radix dialog. The dialog traps focus in its own DOM and pulls it
+  // back from a popup on the body, so the search input never keeps focus there.
+  const container = useRef<HTMLDivElement>(null);
   return (
     <Combobox.Root<Region>
       items={GROUPS}
@@ -49,15 +53,9 @@ export function RegionSelect({
         )}
         <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
       </Combobox.Trigger>
-      <Combobox.Portal>
-        {/* A Radix dialog turns pointer events off on the body while open, inline, and
-            restores them only on its own layer; this popup lives outside it. */}
-        <Combobox.Positioner
-          align="start"
-          sideOffset={4}
-          className="z-50 outline-none"
-          style={{ pointerEvents: "auto" }}
-        >
+      <div ref={container} className="contents" />
+      <Combobox.Portal container={container}>
+        <Combobox.Positioner align="start" sideOffset={4} className="z-50 outline-none">
           <Combobox.Popup
             aria-label="Regions"
             className="flex w-(--anchor-width) max-h-(--available-height) origin-(--transform-origin) flex-col overflow-hidden rounded-xl bg-popover p-1 text-sm text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-hidden transition-[scale,opacity] duration-100 data-starting-style:scale-95 data-starting-style:opacity-0 data-ending-style:scale-95 data-ending-style:opacity-0"

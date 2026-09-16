@@ -27,6 +27,21 @@ describe("RegionDialog", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps the search input focused inside the dialog and filters as you type", async () => {
+    const user = userEvent.setup();
+    const s = session({ name: "personal", kind: Kind.KindAWSIAMUser, region: "us-east-1" });
+    render(<RegionDialog session={s} onClose={vi.fn()} />);
+
+    await user.click(screen.getByRole("combobox"));
+    const search = await screen.findByPlaceholderText("Search regions…");
+    // The dialog traps focus. The popup must live inside it or the trap pulls focus back.
+    await waitFor(() => expect(search).toHaveFocus());
+    await user.keyboard("ohio");
+    expect(search).toHaveValue("ohio");
+    expect(screen.getByText("us-east-2")).toBeInTheDocument();
+    expect(screen.queryByText("us-west-2")).not.toBeInTheDocument();
+  });
+
   it("renders nothing without a session", () => {
     render(<RegionDialog session={null} onClose={vi.fn()} />);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
