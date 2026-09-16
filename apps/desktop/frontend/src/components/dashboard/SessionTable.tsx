@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "motion/react";
 import { ArrowDown, ArrowUp, ChevronRight, ChevronsDownUp, ChevronsUpDown, Copy, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
@@ -167,6 +167,7 @@ export function SessionTable({
 }: TableProps) {
   const [collapsed, toggle] = useCollapsed();
   const [sort, setSort] = useSort();
+  const tableRef = useRef<HTMLTableElement>(null);
   const rows = useMemo(() => sortRows(groupSessions(sessions), sort), [sessions, sort]);
 
   // A header click sorts ascending, again descending, a third time clears it.
@@ -191,8 +192,11 @@ export function SessionTable({
   // pointer: the column on its left grows by what the column on its right
   // gives up, so nothing else shifts. The Session column is the flexible one,
   // so its divider only sets Profile. Double-click puts both columns back.
-  const MIN = 70;
+  // Each column's floor fits its content, so nothing spills into a neighbour.
+  const MIN: ColumnWidths = { profile: 70, region: 90, state: 120 };
   const MAX = 320;
+  const FIXED = 84 + 184;
+  const SESSION_MIN = 160;
   function resizer(left: keyof ColumnWidths | "session", right: keyof ColumnWidths) {
     const name = { session: "Session", profile: "Profile", region: "Region", state: "State" };
     return (
@@ -215,8 +219,15 @@ export function SessionTable({
           const move = (ev: MouseEvent) => {
             let dx = ev.clientX - startX;
             // The right column gives what the left one takes; both stay in range.
-            dx = Math.max(start[right] - MAX, Math.min(start[right] - MIN, dx));
-            if (left !== "session") dx = Math.max(MIN - start[left], Math.min(MAX - start[left], dx));
+            dx = Math.max(start[right] - MAX, Math.min(start[right] - MIN[right], dx));
+            if (left !== "session") {
+              dx = Math.max(MIN[left] - start[left], Math.min(MAX - start[left], dx));
+            } else {
+              // Session is what is left over; keep enough of it for a name.
+              // An unmeasured table (no layout yet) puts no ceiling on Profile.
+              const room = (tableRef.current?.clientWidth || Infinity) - FIXED - start.region - start.state;
+              dx = Math.max(Math.min(0, start[right] - (room - SESSION_MIN)), dx);
+            }
             onWidths({
               ...start,
               ...(left !== "session" && { [left]: start[left] + dx }),
@@ -237,7 +248,7 @@ export function SessionTable({
 
   return (
     <div className="overflow-hidden rounded-lg border bg-card">
-      <Table className="table-fixed">
+      <Table ref={tableRef} className="table-fixed">
         <colgroup>
           <col style={{ width: 84 }} />
           <col />
@@ -261,7 +272,11 @@ export function SessionTable({
               {sortButton("region", "Region")}
               {resizer("region", "state")}
             </TableHead>
-            <TableHead aria-sort={ariaSort("state")}>{sortButton("state", "State")}</TableHead>
+            <TableHead aria-sort={ariaSort("state")} className="relative">
+              {sortButton("state", "State")}
+              {/* The actions column is pinned to the right edge, so this divider only marks the boundary. */}
+              <span aria-hidden="true" className="absolute inset-y-2 -right-px w-px bg-border/60" />
+            </TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>

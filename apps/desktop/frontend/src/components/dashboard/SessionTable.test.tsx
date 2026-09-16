@@ -124,11 +124,11 @@ describe("SessionTable", () => {
     fireEvent.mouseMove(window, { clientX: 70 });
     fireEvent.mouseUp(window);
     expect(onWidths).toHaveBeenLastCalledWith({ profile: 180, region: 130, state: 130 });
-    // Neither column leaves its range: Region stops at 70, so Profile stops at 210.
+    // Neither column leaves its range: Region stops at its 90px floor, so Profile stops at 190.
     fireEvent.mouseDown(between, { clientX: 100 });
     fireEvent.mouseMove(window, { clientX: 400 });
     fireEvent.mouseUp(window);
-    expect(onWidths).toHaveBeenLastCalledWith({ profile: 210, region: 70, state: 130 });
+    expect(onWidths).toHaveBeenLastCalledWith({ profile: 190, region: 90, state: 130 });
     expect(screen.queryByRole("separator", { name: "Resize State column" })).toBeNull();
   });
 
