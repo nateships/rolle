@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.7.0](https://github.com/nateships/rolle/compare/v0.6.0...v0.7.0) (2026-09-16)
+
+
+### Features
+
+* **app:** drag the sidebar edge to resize it ([#125](https://github.com/nateships/rolle/issues/125)) ([5aa15d2](https://github.com/nateships/rolle/commit/5aa15d20330d23eb7f1480dd10ac22846076d91c))
+* **app:** sort the session table by clicking a column header ([#126](https://github.com/nateships/rolle/issues/126)) ([91f8e8f](https://github.com/nateships/rolle/commit/91f8e8f7047cb3563f441683bb9b3f79b1a56b11))
+* **app:** vendor marks on the sidebar's cloud section headings ([#121](https://github.com/nateships/rolle/issues/121)) ([a1c2619](https://github.com/nateships/rolle/commit/a1c26198daca5c0383b3a6ecb09d22743421d4bd))
+* **docs:** landing page at /, docs under /docs ([#123](https://github.com/nateships/rolle/issues/123)) ([d7a0e33](https://github.com/nateships/rolle/commit/d7a0e3356f5a059d9bdd1e889bbef1f1b485a0e5))
+
+
+### Bug Fixes
+
+* **app:** column dividers move under the pointer ([#127](https://github.com/nateships/rolle/issues/127)) ([27d60ce](https://github.com/nateships/rolle/commit/27d60ce1a99dcbec1a67f2cae2b2c9447113898f))
+* **app:** put the vendor mark after the section title ([#124](https://github.com/nateships/rolle/issues/124)) ([0b6d88d](https://github.com/nateships/rolle/commit/0b6d88dfb1da7e02a380fe868baf504f74986aa2))
+
 ## [0.6.0](https://github.com/nateships/rolle/compare/v0.5.1...v0.6.0) (2026-09-16)
 
 
