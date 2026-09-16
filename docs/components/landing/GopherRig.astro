@@ -1,0 +1,158 @@
+---
+// The brand lockup as the app draws it: the gopher rig from docs/brand/animation-kit
+// beside the wordmark. A click plays a short dance or a hide and peek.
+---
+
+<button class="rig" type="button" aria-label="rolle. Play the gopher animation">
+  <svg viewBox="-12 -42 409 356" aria-hidden="true" focusable="false">
+    <defs>
+      <mask id="rig-holdout" maskUnits="userSpaceOnUse" x="-200" y="-200" width="1000" height="1000">
+        <rect x="-200" y="-200" width="1000" height="1000" fill="white" />
+        <path
+          d="M139 127 H157 Q249 148 340 127 H346 Q379 127 379 160 V255 Q379 287 346 287 H140 Q108 287 108 256 V161 Q108 127 139 127 Z"
+          fill="black"
+        />
+        <rect x="-200" y="287" width="1000" height="800" fill="black" />
+      </mask>
+    </defs>
+    <g class="scene">
+      <g class="card-blue"><path fill="#244CFF" d="M40 45 H235 Q252 45 256 62 L260 74 H81 Q45 74 45 112 V220 L32 216 Q7 211 7 186 V78 Q7 45 40 45 Z" /></g>
+      <g class="card-orange"><path fill="#FF7900" d="M89 86 H287 Q304 86 308 103 L312 115 H131 Q95 115 95 154 V259 L80 255 Q57 250 57 225 V119 Q57 86 89 86 Z" /></g>
+      <g class="depth" mask="url(#rig-holdout)">
+        <g class="gopher" fill="#F4F0E8" stroke="#101114" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">
+          <g><path d="M165 32 C145 17 124 31 127 51 C129 66 140 72 151 73 Z" /><ellipse cx="151" cy="51" rx="10" ry="10" fill="#101114" stroke="none" /></g>
+          <g><path d="M325 32 C346 14 368 30 364 50 C362 64 351 70 339 72 Z" /><ellipse cx="341" cy="49" rx="10" ry="10" fill="#101114" stroke="none" /></g>
+          <g class="foot-l"><path d="M180 250 Q174 268 171 276 Q173 283 189 282 L210 280 Q217 276 210 259 Z" /></g>
+          <g class="foot-r"><path d="M284 259 Q279 276 286 280 L309 282 Q326 283 326 275 L316 250 Z" /></g>
+          <g class="arm-l"><path d="M158 158 Q134 151 132 174 Q132 194 153 194 L168 184 Z" /></g>
+          <g class="arm-r"><path d="M332 158 Q356 151 358 174 Q358 194 337 194 L322 184 Z" /></g>
+          <path d="M145 124 C145 44 178 7 240 7 C315 3 345 52 345 122 L345 213 C345 257 326 273 299 274 L192 274 C158 273 145 253 145 214 Z" />
+          <ellipse cx="207" cy="61" rx="32" ry="32" stroke-width="3.5" />
+          <g class="pupil-l"><ellipse cx="193" cy="64" rx="11" ry="12" fill="#101114" stroke="none" /></g>
+          <ellipse cx="287" cy="60" rx="32" ry="32" stroke-width="3.5" />
+          <g class="pupil-r"><ellipse cx="273" cy="63" rx="11" ry="12" fill="#101114" stroke="none" /></g>
+          <path d="M233 107 L233 128 Q233 135 241 135 Q249 135 249 128 L249 107 Z" stroke-width="3.5" />
+          <path d="M249 107 L249 128 Q249 135 257 135 Q265 135 265 128 L265 107 Z" stroke-width="3.5" />
+          <path d="M246 92 C228 93 219 104 224 111 C228 118 240 111 249 110 C258 111 269 118 273 111 C278 102 266 93 253 92 Z" stroke-width="3.5" />
+          <ellipse cx="249" cy="90" rx="14" ry="9" fill="#101114" stroke="none" />
+        </g>
+      </g>
+      <g class="card-green"><path fill="#00CE78" d="M139 127 H157 Q249 148 340 127 H346 Q379 127 379 160 V255 Q379 287 346 287 H238 V235 Q238 211 262 211 H286 Q290 211 290 207 V181 Q290 176 286 176 H251 Q187 176 187 241 V287 H140 Q108 287 108 256 V161 Q108 127 139 127 Z" /></g>
+      <g class="hands" fill="#F4F0E8" stroke="#101114" stroke-width="7" stroke-linejoin="round" stroke-linecap="round">
+        <g class="hand-l"><circle cx="168" cy="135" r="20" /></g>
+        <g class="hand-r"><circle cx="333" cy="134" r="20" /></g>
+      </g>
+    </g>
+  </svg>
+  <img src="/brand/wordmark-ivory.svg" alt="" width="551" height="226" />
+</button>
+
+<style>
+  .rig {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.12em;
+    height: 3.6em;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    color: inherit;
+  }
+
+  .rig svg {
+    height: 100%;
+    width: auto;
+    overflow: visible;
+  }
+
+  .rig img {
+    height: 52%;
+    width: auto;
+  }
+</style>
+
+<script>
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+  for (const rig of document.querySelectorAll<HTMLButtonElement>(".rig")) {
+    const q = (cls: string) => rig.querySelector<SVGGElement>(`.${cls}`)!;
+    const gopher = q("gopher");
+    const hands = q("hands");
+    const parts = ["arm-l", "arm-r", "foot-l", "foot-r", "pupil-l", "pupil-r"].map(q);
+    const [left, right] = [q("hand-l"), q("hand-r")];
+    const tr = (el: Element, value: string) => el.setAttribute("transform", value);
+    const ease = (t: number) => 1 - (1 - t) ** 3;
+    let frame = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let busy = false;
+
+    const reset = () => {
+      cancelAnimationFrame(frame);
+      clearTimeout(timer);
+      for (const el of [gopher, hands, ...parts, left, right]) el.removeAttribute("transform");
+      hands.removeAttribute("opacity");
+      busy = false;
+    };
+    const animate = (ms: number, paint: (t: number) => void, done?: () => void) => {
+      const begin = performance.now();
+      const tick = (now: number) => {
+        const t = Math.min(1, (now - begin) / ms);
+        paint(t);
+        if (t < 1) frame = requestAnimationFrame(tick);
+        else done?.();
+      };
+      frame = requestAnimationFrame(tick);
+    };
+    // The app's dance: bounce and sway in place behind the cards, arms and
+    // feet on their pivots, pupils along.
+    const dance = (t: number) => {
+      const swing = Math.sin(t * 8 * Math.PI);
+      const body = `translate(${swing * 6} ${-Math.abs(swing) * 14}) rotate(${swing * 6} 246 270)`;
+      tr(gopher, body);
+      tr(hands, body);
+      tr(parts[0], `rotate(${swing * 24 + 25} 158 170)`);
+      tr(parts[1], `rotate(${swing * 24 - 25} 334 170)`);
+      tr(left, `rotate(${swing * 24 + 25} 158 170) translate(-28 44)`);
+      tr(right, `rotate(${swing * 24 - 25} 334 170) translate(18 45)`);
+      tr(parts[2], `rotate(${swing * 20} 195 263)`);
+      tr(parts[3], `rotate(${-swing * 20} 301 263)`);
+      tr(parts[4], `translate(${swing * 3} 0)`);
+      tr(parts[5], `translate(${swing * 3} 0)`);
+    };
+    const pose = (dy: number) => {
+      tr(gopher, `translate(0 ${dy})`);
+      tr(hands, `translate(0 ${dy})`);
+    };
+    const play = () => {
+      if (busy || reduced.matches) return;
+      reset();
+      busy = true;
+      if (Math.random() < 0.5) {
+        animate(2400, dance, reset);
+      } else {
+        animate(
+          650,
+          (t) => {
+            pose(ease(t) * 370);
+            hands.setAttribute("opacity", String(Math.max(0, 1 - t * 4)));
+          },
+          () => {
+            timer = setTimeout(() => {
+              animate(
+                900,
+                (t) => {
+                  pose((1 - ease(t)) * 370);
+                  hands.setAttribute("opacity", String(Math.max(0, (t - 0.7) / 0.3)));
+                },
+                reset,
+              );
+            }, 450);
+          },
+        );
+      }
+    };
+    rig.addEventListener("click", play);
+    reduced.addEventListener("change", reset);
+    document.addEventListener("visibilitychange", () => document.hidden && reset());
+  }
+</script>
