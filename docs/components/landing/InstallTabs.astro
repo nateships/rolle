@@ -346,6 +346,30 @@ const platforms = [
     text-decoration-color: currentColor;
   }
 
+  /* Narrow screens: the command wraps and Copy takes its own row. */
+  @media (max-width: 40rem) {
+    .primary.cmd {
+      grid-template-columns: auto 1fr;
+    }
+
+    .primary.cmd code {
+      font-size: 0.8125rem;
+      white-space: normal;
+      overflow: visible;
+      overflow-wrap: anywhere;
+    }
+
+    .primary .copy {
+      grid-column: 1 / -1;
+      grid-row: 3;
+      margin-top: 0.5rem;
+    }
+
+    [role="tabpanel"] {
+      min-height: 0;
+    }
+  }
+
   .copy-status {
     position: absolute;
     width: 1px;
