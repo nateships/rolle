@@ -50,7 +50,7 @@ rolle start "Acme Prod/AdministratorAccess"
 aws sts get-caller-identity --profile default
 ```
 
-`--json` and stable exit codes support scripts. See the [CLI reference](https://getrolle.com/cli) and [Agents and scripts](https://getrolle.com/agents).
+`--json` and stable exit codes support scripts. See the [CLI reference](https://getrolle.com/docs/cli) and [Agents and scripts](https://getrolle.com/docs/agents).
 
 ## Support
 
