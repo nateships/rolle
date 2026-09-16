@@ -89,6 +89,27 @@ describe("SessionTable", () => {
     expect(screen.getByText("ReadOnly")).toBeInTheDocument();
   });
 
+  it("sorts by a column on header click, reverses, then clears", async () => {
+    const user = userEvent.setup();
+    renderTable([
+      session({ name: "alpha", aws: { profile: "zed" } as Session["aws"] }),
+      session({ name: "bravo", aws: { profile: "yak" } as Session["aws"] }),
+      session({ name: "charlie", aws: { profile: "xi" } as Session["aws"] }),
+    ]);
+    const names = () => bodyRows().map((r) => r.querySelector("p")?.textContent);
+    expect(names()).toEqual(["alpha", "bravo", "charlie"]);
+    const profile = screen.getByRole("button", { name: "Profile" });
+    await user.click(profile);
+    expect(names()).toEqual(["charlie", "bravo", "alpha"]);
+    expect(screen.getByRole("columnheader", { name: /Profile/ })).toHaveAttribute("aria-sort", "ascending");
+    await user.click(profile);
+    expect(names()).toEqual(["alpha", "bravo", "charlie"]);
+    expect(JSON.parse(localStorage.getItem("rolle.sort")!)).toEqual({ sort: { key: "profile", dir: "desc" } });
+    await user.click(profile);
+    expect(screen.getByRole("columnheader", { name: /Profile/ })).toHaveAttribute("aria-sort", "none");
+    localStorage.removeItem("rolle.sort");
+  });
+
   it("takes the Profile and Region column widths from the widths prop", () => {
     const { container } = renderTable([iam], { widths: { profile: 210, region: 95, state: 130 } });
     const cols = container.querySelectorAll("col");
