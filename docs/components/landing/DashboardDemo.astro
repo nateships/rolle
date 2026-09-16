@@ -7,45 +7,45 @@ import "./dashboard-demo.css";
   <div class="stack" id="stack">
     <div class="app" id="app" aria-label="A working miniature of the rolle dashboard. Start and stop sessions, open a terminal.">
       <div class="titlebar" aria-hidden="true"><i></i><i></i><i></i><span>rolle</span></div>
-      <aside class="side" aria-hidden="true">
+      <aside class="side" aria-label="Filters">
         <div class="brand"><img src="/logo-dark.svg" alt="" /></div>
         <div>
           <ul>
-            <li class="on">All sessions <b>7</b></li>
-            <li><i></i>Active <b id="side-active">1</b></li>
-            <li><i class="star"></i>Favorites <b>2</b></li>
+            <li class="on" role="button" tabindex="0" data-filter="all">All sessions <b data-count="all">7</b></li>
+            <li role="button" tabindex="0" data-filter="active"><i></i>Active <b id="side-active" data-count="active">1</b></li>
+            <li role="button" tabindex="0" data-filter="favorites"><i class="star"></i>Favorites <b data-count="favorites">2</b></li>
           </ul>
           <p class="h">Tags</p>
           <ul>
-            <li><i class="shield"></i>Production <b>1</b></li>
-            <li><i class="sandbox"></i>Sandbox <b>0</b></li>
+            <li role="button" tabindex="0" data-filter="tag:Production"><i class="shield"></i>Production <b data-count="tag:Production">1</b></li>
+            <li role="button" tabindex="0" data-filter="tag:Sandbox"><i class="sandbox"></i>Sandbox <b data-count="tag:Sandbox">0</b></li>
           </ul>
           <p class="h">AWS Identity Center</p>
           <ul>
-            <li><i></i>acme</li>
-            <li><i class="off"></i>acme-eu</li>
+            <li role="button" tabindex="0" data-filter="cloud:aws"><i></i>acme</li>
+            <li role="button" tabindex="0" data-filter="cloud:none"><i class="off"></i>acme-eu</li>
           </ul>
           <p class="h">AWS IAM</p>
           <ul>
-            <li>Users <b>1</b></li>
-            <li>Assumed roles <b>1</b></li>
+            <li role="button" tabindex="0" data-filter="kind:iam">Users <b>1</b></li>
+            <li role="button" tabindex="0" data-filter="kind:assume">Assumed roles <b>1</b></li>
           </ul>
           <p class="h">Azure tenants</p>
           <ul>
-            <li><i></i>contoso</li>
+            <li role="button" tabindex="0" data-filter="cloud:azure"><i></i>contoso</li>
           </ul>
           <p class="h">Google Cloud</p>
           <ul>
-            <li><i></i>gcp</li>
+            <li role="button" tabindex="0" data-filter="cloud:gcp"><i></i>gcp</li>
           </ul>
         </div>
         <div class="foot"><i></i><span id="foot-active">1 active</span></div>
       </aside>
 
       <section class="pane">
-        <div class="bar" aria-hidden="true">
-          <div class="search">Search sessions</div>
-          <div class="add">+ Add</div>
+        <div class="bar">
+          <label class="search"><input id="demo-search" type="search" placeholder="Search sessions" aria-label="Search sessions" autocomplete="off" /></label>
+          <button type="button" class="add">+ Add</button>
         </div>
         <div class="table" role="list">
           <div class="row" aria-hidden="true">
@@ -59,14 +59,22 @@ import "./dashboard-demo.css";
                 class:list={["row", r.group && "group", (r.sub || r.badge) && !r.group && "tall", r.active && "active"]}
                 data-id={r.id}
                 data-secs={r.active ?? ""}
+                data-in={r.in}
+                data-cloud={r.cloud ?? (r.in ? "aws" : undefined)}
+                data-tag={r.tag}
+                data-kind={r.badge === "IAM user" ? "iam" : r.badge === "Assume role" ? "assume" : undefined}
                 role="listitem"
               >
                 {r.group ? (
-                  <span class="chev" />
+                  <button class="chev" type="button" aria-label={`Collapse ${r.name}`} />
                 ) : (
                   <button class="play" type="button" aria-label={`Start ${r.name}`} />
                 )}
-                {r.fav ? <span class="fav" /> : <span />}
+                {r.group ? (
+                  <span />
+                ) : (
+                  <button type="button" class:list={["favbtn", r.fav && "on"]} aria-label={`Favorite ${r.name}`} aria-pressed={r.fav ? "true" : "false"} />
+                )}
                 {r.cloud ? (
                   <span class="glyph">
                     <img src={r.cloud === "aws" ? "/vendors/aws-dark.svg" : `/vendors/${r.cloud}.svg`} alt="" />
@@ -79,10 +87,10 @@ import "./dashboard-demo.css";
                     {r.name}
                     {r.badge && <span class="badge">{r.badge}</span>}
                     {r.tag && (
-                      <span class="badge">
+                      <button type="button" class="badge tag" data-tag={r.tag}>
                         <i />
                         {r.tag}
-                      </span>
+                      </button>
                     )}
                   </span>
                   {r.sub && <span class="s">{r.sub}</span>}

@@ -212,7 +212,18 @@
   overflow: hidden;
 }
 
-.side li.on {
+.side li[data-filter] {
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.side li[data-filter]:hover {
+  color: var(--a-text);
+  background: var(--a-surface);
+}
+
+.side li.on,
+.side li.on:hover {
   background: var(--a-raised);
   color: var(--a-text);
 }
@@ -314,6 +325,24 @@
   font-size: 1.05em;
 }
 
+.search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--a-text);
+  font: inherit;
+  outline: none;
+}
+
+.search input::placeholder {
+  color: var(--a-faint);
+}
+
+.search:focus-within {
+  border-color: var(--a-muted);
+}
+
 .search::before {
   content: "";
   width: 0.9em;
@@ -325,11 +354,21 @@
 
 .add {
   padding: 0.6em 1em;
+  border: 0;
   border-radius: 0.55em;
   background: #e8eaed;
   color: #181a1e;
+  font: inherit;
   font-weight: 600;
-  font-size: 1em;
+  cursor: pointer;
+}
+
+.add:hover {
+  filter: brightness(0.94);
+}
+
+.row[hidden] {
+  display: none;
 }
 
 .table {
@@ -434,20 +473,78 @@
 }
 
 .chev {
+  position: relative;
+  justify-self: center;
+  width: 1.6em;
+  height: 1.6em;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transition: transform 0.2s var(--ease);
+}
+
+.chev::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
   width: 0.6em;
   height: 0.6em;
   border-right: 0.15em solid var(--a-muted);
   border-bottom: 0.15em solid var(--a-muted);
-  transform: rotate(45deg) translateY(-0.2em);
-  justify-self: center;
+  transform: translate(-50%, -70%) rotate(45deg);
 }
 
-.fav {
+.row.collapsed .chev {
+  transform: rotate(-90deg);
+}
+
+/* The favourite star: faint on hover, orange when set. */
+.favbtn {
+  position: relative;
   justify-self: center;
-  width: 1.1em;
-  height: 1.1em;
-  background: var(--a-orange);
+  width: 1.6em;
+  height: 1.6em;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.favbtn::before {
+  content: "";
+  position: absolute;
+  inset: 0.25em;
+  background: var(--a-faint);
   clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  opacity: 0;
+  transition: opacity 0.15s, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.row:hover .favbtn::before {
+  opacity: 0.45;
+}
+
+.favbtn.on::before,
+.row:hover .favbtn.on::before {
+  background: var(--a-orange);
+  opacity: 1;
+}
+
+.favbtn:active::before {
+  transform: scale(0.8);
+}
+
+.badge.tag {
+  border: 0;
+  font: inherit;
+  font-size: 0.72em;
+  cursor: pointer;
+}
+
+.badge.tag:hover {
+  color: var(--a-text);
 }
 
 .glyph {
