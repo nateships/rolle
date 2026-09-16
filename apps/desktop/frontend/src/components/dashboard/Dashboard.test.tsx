@@ -51,6 +51,20 @@ describe("Dashboard", () => {
     expect(screen.getByText("2 active")).toBeInTheDocument();
   });
 
+  it("resizes the sidebar by dragging its edge and resets on double-click", () => {
+    renderDashboard();
+    const handle = screen.getByRole("separator", { name: "Resize sidebar" });
+    const aside = handle.closest("aside")!;
+    expect(aside.style.width).toBe("256px");
+    fireEvent.mouseDown(handle, { clientX: 256 });
+    fireEvent.mouseMove(window, { clientX: 316 });
+    fireEvent.mouseUp(window);
+    expect(aside.style.width).toBe("316px");
+    expect(localStorage.getItem("rolle.sidebar")).toBe("316");
+    fireEvent.doubleClick(handle);
+    expect(aside.style.width).toBe("256px");
+  });
+
   it("filters to active sessions", async () => {
     const user = userEvent.setup();
     renderDashboard();
