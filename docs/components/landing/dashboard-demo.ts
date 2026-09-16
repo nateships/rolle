@@ -1,3 +1,5 @@
+import { sessions } from "./demo-sessions";
+
 export function initDashboardDemo() {
   const motionPreference = matchMedia("(prefers-reduced-motion: reduce)");
   let reduced = motionPreference.matches;
@@ -60,21 +62,51 @@ export function initDashboardDemo() {
     }
   }, 1000);
 
-  const termFor = (id: string) => {
-    const row = byId(id);
-    const name = row.querySelector(".t")!.childNodes[0].textContent!.trim();
-    const profile = row.querySelectorAll(".m")[0].textContent!.trim();
-    if (profile && profile !== "—") {
-      return [
-        `<span class=p>$ </span>aws sts get-caller-identity --profile ${profile}`,
-        `<span class=o>{ "Account": "123456789012",`,
-        `  "Arn": "arn:aws:sts::123456789012:assumed-role/${name}/nate" }</span>`,
-      ];
+  // Terminal lines come from the demo data, not from the DOM, and render as
+  // text nodes. Nothing user-visible is ever parsed as HTML.
+  type Line = { cls: "p" | "o"; text: string };
+  const termFor = (id: string): { command: Line[]; output: Line[] } => {
+    const session = sessions.find((session) => session.id === id)!;
+    const prompt: Line = { cls: "p", text: "$ " };
+    if (session.profile) {
+      return {
+        command: [prompt, { cls: "o", text: `aws sts get-caller-identity --profile ${session.profile}` }],
+        output: [
+          {
+            cls: "o",
+            text: `{ "Account": "123456789012",\n  "Arn": "arn:aws:sts::123456789012:assumed-role/${session.name}/nate" }`,
+          },
+        ],
+      };
     }
-    if (row.querySelector('img[src*="azure"]')) {
-      return [`<span class=p>$ </span>az account show --query name`, `<span class=o>"${name}"</span>`];
+    if (session.cloud === "azure") {
+      return {
+        command: [prompt, { cls: "o", text: "az account show --query name" }],
+        output: [{ cls: "o", text: `"${session.name}"` }],
+      };
     }
-    return [`<span class=p>$ </span>gcloud config get project`, `<span class=o>${name}-4821</span>`];
+    return {
+      command: [prompt, { cls: "o", text: "gcloud config get project" }],
+      output: [{ cls: "o", text: `${session.name}-4821` }],
+    };
+  };
+  const span = (cls: string, text: string) => {
+    const el = document.createElement("span");
+    el.className = cls;
+    el.textContent = text;
+    return el;
+  };
+  const renderTerm = (lines: { command: Line[]; output: Line[] }, typed?: number, cursor = false) => {
+    termOut.replaceChildren();
+    for (const [i, line] of lines.command.entries()) {
+      const text = typed !== undefined && i === lines.command.length - 1 ? line.text.slice(0, typed) : line.text;
+      termOut.append(span(line.cls, text));
+    }
+    if (cursor) termOut.append(span("cur", "▍"));
+    if (typed === undefined) {
+      termOut.append(document.createTextNode("\n"));
+      for (const line of lines.output) termOut.append(span(line.cls, line.text));
+    }
   };
 
   let typing = 0;
@@ -83,22 +115,22 @@ export function initDashboardDemo() {
     const me = ++typing;
     terminalId = id;
     const lines = termFor(id);
-    const [prompt, cmd] = [lines[0].slice(0, lines[0].indexOf("</span>") + 7), lines[0].slice(lines[0].indexOf("</span>") + 7)];
+    const command = lines.command[lines.command.length - 1].text;
     term.classList.add("open");
     if (reduced) {
-      termOut.innerHTML = lines.join("\n");
+      renderTerm(lines);
       return;
     }
-    termOut.innerHTML = prompt + "<span class=cur>▍</span>";
-    await sleep(reduced ? 0 : 350);
-    for (let i = 1; i <= cmd.length && me === typing; i++) {
-      termOut.innerHTML = prompt + cmd.slice(0, i) + "<span class=cur>▍</span>";
-      await sleep(reduced ? 0 : 22);
+    renderTerm(lines, 0, true);
+    await sleep(350);
+    for (let i = 1; i <= command.length && me === typing; i++) {
+      renderTerm(lines, i, true);
+      await sleep(22);
     }
     if (me !== typing) return;
-    await sleep(reduced ? 0 : 300);
+    await sleep(300);
     if (me !== typing) return;
-    termOut.innerHTML = lines.join("\n");
+    renderTerm(lines);
   };
   term.querySelector(".x")!.addEventListener("click", () => {
     ++typing;
@@ -286,7 +318,7 @@ export function initDashboardDemo() {
     resetShadow();
     ++typing;
     if (terminalId && term.classList.contains("open")) {
-      termOut.innerHTML = termFor(terminalId).join("\n");
+      renderTerm(termFor(terminalId));
     }
   });
 
