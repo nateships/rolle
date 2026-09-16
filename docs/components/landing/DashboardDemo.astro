@@ -1,5 +1,6 @@
 ---
 import { sessions } from "./demo-sessions";
+import GopherRig from "./GopherRig.astro";
 import "./dashboard-demo.css";
 ---
 
@@ -8,7 +9,7 @@ import "./dashboard-demo.css";
     <div class="app" id="app" aria-label="A working miniature of the rolle dashboard. Start and stop sessions, open a terminal.">
       <div class="titlebar" aria-hidden="true"><i></i><i></i><i></i><span>rolle</span></div>
       <aside class="side" aria-label="Filters">
-        <div class="brand"><img src="/logo-dark.svg" alt="" /></div>
+        <div class="brand"><GopherRig /></div>
         <div>
           <ul>
             <li class="on" role="button" tabindex="0" data-filter="all">All sessions <b data-count="all">7</b></li>
