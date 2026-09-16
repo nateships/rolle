@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.0](https://github.com/nateships/rolle/compare/v0.8.0...v0.9.0) (2026-09-16)
+
+
+### Features
+
+* **desktop:** add "About rolle" to the help menu ([#143](https://github.com/nateships/rolle/issues/143)) ([fa77c3f](https://github.com/nateships/rolle/commit/fa77c3fa116bae7031b8adde4dd8f100efcdf095))
+
 ## [0.8.0](https://github.com/nateships/rolle/compare/v0.7.0...v0.8.0) (2026-09-16)
 
 
