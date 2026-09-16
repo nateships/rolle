@@ -1158,15 +1158,25 @@ const rows: Row[] = [
       }
 
       @media (prefers-reduced-motion: reduce) {
-        .stack,
-        .app,
+        *,
+        *::before,
+        *::after {
+          animation: none !important;
+          transition: none !important;
+          scroll-behavior: auto !important;
+        }
+
         .ghost,
-        .term,
-        .row,
-        .play,
-        .button {
-          animation: none;
-          transition: none;
+        .term .cur {
+          display: none;
+        }
+
+        h1 span,
+        .button:hover,
+        .button:active,
+        .play:active,
+        .play.press {
+          transform: none;
         }
       }
     </style>
@@ -1340,7 +1350,8 @@ const rows: Row[] = [
     </footer>
 
     <script>
-      const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const motionPreference = matchMedia("(prefers-reduced-motion: reduce)");
+      let reduced = motionPreference.matches;
       const fine = matchMedia("(hover: hover) and (pointer: fine)").matches;
 
       // Copy the Homebrew command.
@@ -1429,14 +1440,18 @@ const rows: Row[] = [
         return [`<span class=p>$ </span>gcloud config get project`, `<span class=o>${name}-4821</span>`];
       };
 
-      let termTimer: ReturnType<typeof setTimeout> | undefined;
       let typing = 0;
+      let terminalId: string | undefined;
       const openTerm = async (id: string) => {
-        clearTimeout(termTimer);
         const me = ++typing;
+        terminalId = id;
         const lines = termFor(id);
         const [prompt, cmd] = [lines[0].slice(0, lines[0].indexOf("</span>") + 7), lines[0].slice(lines[0].indexOf("</span>") + 7)];
         term.classList.add("open");
+        if (reduced) {
+          termOut.innerHTML = lines.join("\n");
+          return;
+        }
         termOut.innerHTML = prompt + "<span class=cur>▍</span>";
         await sleep(reduced ? 0 : 350);
         for (let i = 1; i <= cmd.length && me === typing; i++) {
@@ -1445,9 +1460,13 @@ const rows: Row[] = [
         }
         if (me !== typing) return;
         await sleep(reduced ? 0 : 300);
+        if (me !== typing) return;
         termOut.innerHTML = lines.join("\n");
-        term.querySelector(".x")!.addEventListener("click", () => term.classList.remove("open"), { once: true });
       };
+      term.querySelector(".x")!.addEventListener("click", () => {
+        ++typing;
+        term.classList.remove("open");
+      });
 
       // Real clicks do real things.
       app.addEventListener("click", (e) => {
@@ -1468,8 +1487,27 @@ const rows: Row[] = [
 
       // ---- The ghost runs the workflow until you take over ------------------
       let run = 0;
+      let takenOver = false;
+      let initialDemo: ReturnType<typeof setTimeout> | undefined;
       const toast = document.getElementById("toast")!;
       let toastTimer: ReturnType<typeof setTimeout> | undefined;
+      const takeOver = () => {
+        if (takenOver) return;
+        takenOver = true;
+        clearTimeout(initialDemo);
+        clearTimeout(toastTimer);
+        ++run;
+        ++typing;
+        ghost.style.opacity = "0";
+        ghost.classList.remove("click");
+        toast.classList.remove("show");
+        app.querySelectorAll(".press, .pulse, .flash").forEach((el) => el.classList.remove("press", "pulse", "flash"));
+      };
+      // Capture takeover before the control's own action runs, including
+      // keyboard activation. The ghost never dispatches these input events.
+      stage.addEventListener("pointerdown", takeOver, { capture: true });
+      stage.addEventListener("keydown", takeOver, { capture: true });
+      stage.addEventListener("click", takeOver, { capture: true });
       const say = (html: string, warn = false) => {
         clearTimeout(toastTimer);
         toast.innerHTML = html;
@@ -1506,16 +1544,19 @@ const rows: Row[] = [
       };
 
       const demo = async () => {
+        if (takenOver || reduced) return;
         const me = ++run;
-        const alive = () => me === run;
+        const alive = () => !takenOver && !reduced && me === run;
         reset();
         await moveTo(byId("readonly"), 0.35, 0.5);
         if (!alive()) return;
         await sleep(600);
+        if (!alive()) return;
         const play = byId("prod-admin").querySelector(".play")!;
         await moveTo(play);
         if (!alive()) return;
         await click(play);
+        if (!alive()) return;
         start("prod-admin", 3599);
         pulse("prod-admin");
         say("<b>Started</b> prod-admin. Credentials ready for the AWS CLI and SDKs.");
@@ -1525,13 +1566,16 @@ const rows: Row[] = [
         await moveTo(t);
         if (!alive()) return;
         await click(t);
+        if (!alive()) return;
         await openTerm("prod-admin");
+        if (!alive()) return;
         await sleep(3200);
         if (!alive()) return;
         const cplay = byId("contoso").querySelector(".play")!;
         await moveTo(cplay);
         if (!alive()) return;
         await click(cplay);
+        if (!alive()) return;
         start("contoso", 3599);
         pulse("contoso");
         say("<b>Started</b> Contoso Production. Azure tokens exported to your shell.");
@@ -1541,6 +1585,7 @@ const rows: Row[] = [
         // Let the first session run out and renew while the pointer rests.
         secs.set("admin", 4);
         await moveTo(byId("data-platform"), 0.9, 0.5);
+        if (!alive()) return;
         await sleep(4200);
         if (!alive()) return;
         pulse("admin", "flash");
@@ -1555,6 +1600,7 @@ const rows: Row[] = [
         await moveTo(splay);
         if (!alive()) return;
         await click(splay);
+        if (!alive()) return;
         stop("prod-admin");
         say("<b>Stopped</b> prod-admin. Its credentials are gone.");
         await sleep(1000);
@@ -1562,6 +1608,7 @@ const rows: Row[] = [
         await moveTo(byId("contoso").querySelector(".play")!);
         if (!alive()) return;
         await click(byId("contoso").querySelector(".play")!);
+        if (!alive()) return;
         stop("contoso");
         await sleep(1800);
         if (alive()) void demo();
@@ -1571,7 +1618,7 @@ const rows: Row[] = [
       // Letters of the headline swell as the pointer passes.
       const h1 = document.querySelector("h1")!;
       const letters: HTMLElement[] = [];
-      if (fine && !reduced) {
+      if (fine) {
         const text = h1.textContent ?? "";
         h1.textContent = "";
         for (const ch of text) {
@@ -1588,11 +1635,22 @@ const rows: Row[] = [
 
       let mx = -9999;
       let my = -9999;
+      const resetPointer = () => {
+        mx = -9999;
+        my = -9999;
+        for (const sp of letters) {
+          sp.style.setProperty("--w", "700");
+          sp.style.setProperty("--y", "0px");
+        }
+        app.style.setProperty("--shx", "0px");
+        app.style.setProperty("--shy", "40px");
+      };
 
-      if (fine && !reduced) {
-        const root = document.documentElement;
+      if (fine) {
         let raf = 0;
         const apply = () => {
+          raf = 0;
+          if (reduced) return;
           // The window's shadow falls away from the light.
           const ar = app.getBoundingClientRect();
           const ax = (mx - (ar.left + ar.width / 2)) / innerWidth;
@@ -1609,23 +1667,26 @@ const rows: Row[] = [
           raf = 0;
         };
         document.addEventListener("pointermove", (e) => {
+          if (reduced) return;
           mx = e.clientX;
           my = e.clientY;
           if (!raf) raf = requestAnimationFrame(apply);
         });
-        document.addEventListener("pointerleave", () => {
-          mx = -9999;
-          my = -9999;
-          for (const sp of letters) {
-            sp.style.setProperty("--w", "700");
-            sp.style.setProperty("--y", "0px");
-          }
-          app.style.setProperty("--shx", "0px");
-          app.style.setProperty("--shy", "40px");
-        });
+        document.addEventListener("pointerleave", resetPointer);
       }
 
-      if (!reduced) setTimeout(() => void demo(), 1100);
+      motionPreference.addEventListener("change", (event) => {
+        reduced = event.matches;
+        if (!reduced) return;
+        takeOver();
+        resetPointer();
+        ++typing;
+        if (terminalId && term.classList.contains("open")) {
+          termOut.innerHTML = termFor(terminalId).join("\n");
+        }
+      });
+
+      if (!reduced) initialDemo = setTimeout(() => void demo(), 1100);
     </script>
   </body>
 </html>
