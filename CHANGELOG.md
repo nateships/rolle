@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/nateships/rolle/compare/v0.6.0...v0.7.0) (2026-09-16)
+
+
+### Features
+
+* **app:** vendor marks on the sidebar's cloud section headings ([#121](https://github.com/nateships/rolle/issues/121)) ([a1c2619](https://github.com/nateships/rolle/commit/a1c26198daca5c0383b3a6ecb09d22743421d4bd))
+
 ## [0.6.0](https://github.com/nateships/rolle/compare/v0.5.1...v0.6.0) (2026-09-16)
 
 
