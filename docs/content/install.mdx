@@ -50,6 +50,23 @@ sha256sum --check --ignore-missing checksums.txt
 gh attestation verify rolle.dmg --repo nateships/rolle
 ```
 
+### mise
+
+[mise](https://mise.jdx.dev) installs the CLI from the release's [packslip](https://packslip.dev), a signed manifest that names each archive's platform, digest, and executable:
+
+```sh
+mise use -g packslip:nateships/rolle
+```
+
+mise checks the manifest's signature against the release workflow's identity and the archive's digest before it unpacks. To check by hand, download `packslip.sigstore.json` and an archive from the release and run:
+
+```sh
+packslip verify packslip.sigstore.json \
+  --identity-prefix https://github.com/nateships/rolle/ \
+  --issuer https://token.actions.githubusercontent.com \
+  --artifact rolle-cli_<version>_linux_amd64.tar.gz
+```
+
 ## Updates
 
 The [changelog](/changelog) has the release notes and an [RSS feed](/changelog/rss.xml).

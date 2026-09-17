@@ -266,6 +266,17 @@ jobs:
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
           subject-checksums: dist/checksums.txt
+      # The packslip is a signed manifest of the CLI archives: platform, digest,
+      # and the executable inside each one. mise installs from it with
+      # `mise use -g packslip:nateships/rolle`. It is signed with the same
+      # workflow identity as checksums.txt. The archives are attested above, so
+      # the packslip links that provenance instead of attesting them twice.
+      - name: Publish the packslip
+        uses: jdx/packslip@441d4d0dc7ac9d8e3b61d6ec74ce81218325e566 # v1.2.0
+        with:
+          artifacts: dist/rolle-cli_*.tar.gz dist/rolle-cli_*.zip
+          bin: rolle
+          attest: link
 
   # Runs after the release is public, so the cask URL resolves as soon as the
   # tap updates. brew bump-cask-pr rewrites version and sha256 in the cask,
