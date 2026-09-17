@@ -115,6 +115,11 @@ const platforms = [
     pointer-events: none;
   }
 
+  /* The first tab is picked for the visitor's OS on load. No slide for that. */
+  .install.settle .thumb {
+    transition: none;
+  }
+
   [role="tab"] {
     position: relative;
     padding: 0.35rem 0.6rem;
@@ -426,6 +431,27 @@ const platforms = [
       tabs[next].focus();
     });
   });
+
+  // Start on the visitor's own OS. The user agent hints name the platform
+  // where they exist; the older platform string is the fallback. Phones and
+  // tablets have no build, so they keep the first tab.
+  const ownPlatform = () => {
+    const hint = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform;
+    const source = (hint || navigator.platform || "").toLowerCase();
+    if (/android|iphone|ipad/.test(navigator.userAgent.toLowerCase())) return undefined;
+    if (source.startsWith("win")) return "windows";
+    if (source.startsWith("mac")) return "macos";
+    if (/linux|x11|cros/.test(source)) return "linux";
+    return undefined;
+  };
+  const own = tabs.find((tab) => tab.id === `install-tab-${ownPlatform()}`);
+  if (own && own.getAttribute("aria-selected") !== "true") {
+    install.classList.add("settle");
+    selectTab(own);
+    for (const panel of panels) panel.classList.remove("enter");
+    void install.offsetWidth;
+    install.classList.remove("settle");
+  }
 
   const copy = install.querySelector<HTMLButtonElement>(".copy")!;
   const status = install.querySelector<HTMLElement>(".copy-status")!;
