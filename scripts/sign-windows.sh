@@ -21,4 +21,11 @@ if [ -z "${CERTUM_OTP:-}" ]; then
   exit 0
 fi
 
-ssign "$path"
+# goreleaser runs the hooks of its builds in parallel. Two logins in the same
+# 30-second window present the same one-time code, and Certum rejects the
+# second. One signature at a time: the second waits, then reuses the session
+# ssign cached from the first login.
+if command -v flock >/dev/null 2>&1; then
+  exec flock "${TMPDIR:-/tmp}/rolle-ssign.lock" ssign "$path"
+fi
+exec ssign "$path"
