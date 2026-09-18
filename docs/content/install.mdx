@@ -21,7 +21,7 @@ description: Install the rolle desktop app with Homebrew, a signed DMG, the Wind
 
     **Install command**, in the last onboarding step and in **Settings → General**, writes the `rolle` command to `%LOCALAPPDATA%\rolle\bin` and adds that folder to your user `PATH`. Open a new terminal afterwards. Each app update updates the command.
 
-    The Windows build is not code signed. SmartScreen shows a warning on first launch.
+    The installer, the app, and the `rolle` command carry an Authenticode signature from a Certum code signing certificate. SmartScreen can still warn on a new release until the certificate has earned a reputation; choose **More info → Run anyway**.
   </Tab>
   <Tab title="Linux">
     Download `rolle-linux-amd64.AppImage` or the `.deb` package from the [releases page](https://github.com/nateships/rolle/releases). The app needs GTK 4 and WebKitGTK 6.0.

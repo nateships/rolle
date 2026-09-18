@@ -111,8 +111,17 @@ jobs:
         working-directory: apps/desktop
         shell: bash
         # Each platform Taskfile has a release task: build, sign, and name the
-        # files the updater and the release expect.
-        run: wails3 task release VERSION="$VERSION"
+        # files the updater and the release expect. On Windows, ssign signs the
+        # executables with the Certum SimplySign certificate when the secrets
+        # are set; SIGN=1 tells the task to call it.
+        env:
+          CERTUM_EMAIL: ${{ runner.os == 'Windows' && secrets.CERTUM_EMAIL || '' }}
+          CERTUM_OTP: ${{ runner.os == 'Windows' && secrets.CERTUM_OTP || '' }}
+        run: |
+          if [ "$RUNNER_OS" = Windows ] && [ -z "$CERTUM_OTP" ]; then
+            echo "CERTUM_OTP is not set; the Windows build ships unsigned."
+          fi
+          wails3 task release VERSION="$VERSION" SIGN="${CERTUM_OTP:+1}"
       - name: Store the package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -259,6 +268,10 @@ jobs:
           # not pick the other one.
           GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # The post-build hook signs the Windows command with ssign when
+          # these are set. See scripts/sign-windows.sh.
+          CERTUM_EMAIL: ${{ secrets.CERTUM_EMAIL }}
+          CERTUM_OTP: ${{ secrets.CERTUM_OTP }}
       # Build provenance for every file in checksums.txt: the CLI archives,
       # the desktop packages, and the manifest. Users verify with
       # gh attestation verify <file> --repo nateships/rolle.

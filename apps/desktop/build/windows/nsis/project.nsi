@@ -69,9 +69,12 @@ ManifestDPIAware true
 
 !insertmacro MUI_LANGUAGE "English" # Set the Language of the installer
 
-## The following two statements can be used to sign the installer and the uninstaller. The path to the binaries are provided in %1
-#!uninstfinalize 'signtool --file "%1"'
-#!finalize 'signtool --file "%1"'
+## The release task passes -DSIGN_CMD when the Certum secrets exist. NSIS then
+## runs that command on the uninstaller and the installer as it writes them.
+!ifdef SIGN_CMD
+    !uninstfinalize '${SIGN_CMD} "%1"'
+    !finalize '${SIGN_CMD} "%1"'
+!endif
 
 Name "${INFO_PRODUCTNAME}"
 OutFile "..\..\..\bin\${INFO_PROJECTNAME}-${ARCH}-installer.exe" # Name of the installer's file.

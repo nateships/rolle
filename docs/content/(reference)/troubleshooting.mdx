@@ -33,7 +33,7 @@ The updater replaces the app in place. When an administrator owns the folder tha
 
 ## Windows SmartScreen warning
 
-Windows builds are not code signed. Choose **More info → Run anyway**.
+Windows builds are signed with a Certum code signing certificate. SmartScreen can still warn on a new release until the certificate has earned a reputation. Right-click the file, open **Properties → Digital Signatures**, and check that the signer is the rolle publisher, then choose **More info → Run anyway**.
 
 ## Linux app does not start
 
