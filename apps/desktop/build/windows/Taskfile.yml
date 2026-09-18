@@ -161,6 +161,11 @@ tasks:
 
   # rolle release packaging: both architectures, one installer that carries
   # both, and one zip per architecture for the updater.
+  #
+  # Signing: the release workflow passes SIGN=1 when the Certum secrets exist.
+  # Each command is signed before the app embeds it, each app before the
+  # installer and the zips take it, and NSIS signs the installer and the
+  # uninstaller as it writes them. Without SIGN, everything ships unsigned.
   release:
     summary: amd64 and arm64 builds, one installer, and updater zips in bin/
     platforms: [windows]
@@ -169,16 +174,32 @@ tasks:
       # builds its command first and the app right after.
       - task: release:cli
         vars: { ARCH: amd64 }
+      - task: sign:file
+        vars: { FILE: build/cli/rolle.exe }
       - task: build
         vars: { ARCH: amd64 }
       - powershell Move-Item -Force "{{.BIN_DIR}}/{{.APP_NAME}}.exe" "{{.BIN_DIR}}/{{.APP_NAME}}-amd64.exe"
+      - task: sign:file
+        vars: { FILE: '{{.BIN_DIR}}/{{.APP_NAME}}-amd64.exe' }
       - task: release:cli
         vars: { ARCH: arm64 }
+      - task: sign:file
+        vars: { FILE: build/cli/rolle.exe }
       - task: build
         vars: { ARCH: arm64 }
       - powershell Move-Item -Force "{{.BIN_DIR}}/{{.APP_NAME}}.exe" "{{.BIN_DIR}}/{{.APP_NAME}}-arm64.exe"
+      - task: sign:file
+        vars: { FILE: '{{.BIN_DIR}}/{{.APP_NAME}}-arm64.exe' }
       - powershell Remove-Item -Force "build/cli/rolle.exe"
       - task: create:nsis:installer:universal
+
+  # Authenticode signature through ssign and the Certum SimplySign cloud
+  # certificate. ssign reads CERTUM_EMAIL and CERTUM_OTP from the environment
+  # and keeps one login for the whole run.
+  sign:file:
+    internal: true
+    cmds:
+      - '{{if .SIGN}}ssign "{{.FILE}}"{{else}}echo "SIGN is unset; {{.FILE}} ships unsigned."{{end}}'
       - task: release:zip
         vars: { ARCH: amd64 }
       - task: release:zip
@@ -200,7 +221,7 @@ tasks:
     dir: build/windows/nsis
     cmds:
       - wails3 generate webview2bootstrapper -dir "{{.ROOT_DIR}}/build/windows/nsis"
-      - makensis -DARG_WAILS_AMD64_BINARY="{{.ROOT_DIR}}\{{.BIN_DIR}}\{{.APP_NAME}}-amd64.exe" -DARG_WAILS_ARM64_BINARY="{{.ROOT_DIR}}\{{.BIN_DIR}}\{{.APP_NAME}}-arm64.exe" project.nsi
+      - makensis {{if .SIGN}}-DSIGN_CMD=ssign {{end}}-DARG_WAILS_AMD64_BINARY="{{.ROOT_DIR}}\{{.BIN_DIR}}\{{.APP_NAME}}-amd64.exe" -DARG_WAILS_ARM64_BINARY="{{.ROOT_DIR}}\{{.BIN_DIR}}\{{.APP_NAME}}-arm64.exe" project.nsi
       - powershell Move-Item -Force "{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}-amd64_arm64-installer.exe" "{{.ROOT_DIR}}/{{.BIN_DIR}}/{{.APP_NAME}}-installer.exe"
 
   release:zip:

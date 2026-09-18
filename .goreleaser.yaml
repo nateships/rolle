@@ -15,6 +15,14 @@ builds:
     goarch: [amd64, arm64]
     ldflags:
       - -s -w -X github.com/nateships/rolle/internal/version.Version={{.Version}}
+    hooks:
+      post:
+        # Authenticode signature on the Windows command, with the Certum
+        # SimplySign certificate through ssign. A run without the Certum
+        # secrets ships it unsigned. The signature changes the bytes, so a
+        # rebuild compares to a Windows binary only with the signature removed.
+        - cmd: sh scripts/sign-windows.sh "{{ .Target }}" "{{ .Path }}"
+          output: true
 
 archives:
   - id: rolle
