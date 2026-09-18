@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.0](https://github.com/nateships/rolle/compare/v0.9.0...v0.10.0) (2026-09-18)
+
+
+### Features
+
+* **docs:** open the install card on the visitor's OS ([#147](https://github.com/nateships/rolle/issues/147)) ([4b67ff4](https://github.com/nateships/rolle/commit/4b67ff452e4c739bd7c3fe7337db04db972b9538))
+
+
+### Bug Fixes
+
+* **release:** put the updater zips back in the Windows release task ([#150](https://github.com/nateships/rolle/issues/150)) ([b5e9cde](https://github.com/nateships/rolle/commit/b5e9cde3a1de881777ebb93f6ed60de9bbc4f245))
+* **release:** sign the Windows commands one at a time ([#151](https://github.com/nateships/rolle/issues/151)) ([2eb5d5b](https://github.com/nateships/rolle/commit/2eb5d5b1e82a08d2c492958b8f805e3be87997d5))
+
 ## [0.9.0](https://github.com/nateships/rolle/compare/v0.8.0...v0.9.0) (2026-09-16)
 
 
