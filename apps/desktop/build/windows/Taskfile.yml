@@ -192,18 +192,21 @@ tasks:
         vars: { FILE: '{{.BIN_DIR}}/{{.APP_NAME}}-arm64.exe' }
       - powershell Remove-Item -Force "build/cli/rolle.exe"
       - task: create:nsis:installer:universal
-
-  # Authenticode signature through ssign and the Certum SimplySign cloud
-  # certificate. ssign reads CERTUM_EMAIL and CERTUM_OTP from the environment
-  # and keeps one login for the whole run.
-  sign:file:
-    internal: true
-    cmds:
-      - '{{if .SIGN}}ssign "{{.FILE}}"{{else}}echo "SIGN is unset; {{.FILE}} ships unsigned."{{end}}'
       - task: release:zip
         vars: { ARCH: amd64 }
       - task: release:zip
         vars: { ARCH: arm64 }
+
+  # Authenticode signature through ssign and the Certum SimplySign cloud
+  # certificate. ssign reads CERTUM_EMAIL and CERTUM_OTP from the environment
+  # and keeps one login for the whole run. `run: always` because the command
+  # is signed twice at the same path, once per architecture, and Task would
+  # otherwise skip the second call as already done.
+  sign:file:
+    internal: true
+    run: always
+    cmds:
+      - '{{if .SIGN}}ssign "{{.FILE}}"{{else}}echo "SIGN is unset; {{.FILE}} ships unsigned."{{end}}'
 
   # The rolle command the app carries and installs into %LOCALAPPDATA%\rolle\bin.
   release:cli:
