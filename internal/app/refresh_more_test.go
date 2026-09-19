@@ -737,3 +737,42 @@ func TestRefreshProbesIdleSSOLogins(t *testing.T) {
 		})
 	}
 }
+
+func TestRefreshDecaysOldExpiredAt(t *testing.T) {
+	s := testService(t)
+	now := time.Now()
+	s.Now = func() time.Time { return now }
+	old := now.Add(-expiredTTL - time.Minute)
+	fresh := now.Add(-expiredTTL + time.Minute)
+	w, _ := s.Load()
+	w.Sessions = []core.Session{
+		{ID: "old", Name: "old", Kind: core.KindAWSIAMUser, Status: core.StatusInactive, ExpiredAt: &old, AWS: &core.AWSSession{}},
+		{ID: "fresh", Name: "fresh", Kind: core.KindAWSIAMUser, Status: core.StatusInactive, ExpiredAt: &fresh, AWS: &core.AWSSession{}},
+	}
+	if err := s.Save(w); err != nil {
+		t.Fatal(err)
+	}
+	calls := 0
+	s.OnChange = func() { calls++ }
+	if _, err := s.Refresh(); err != nil {
+		t.Fatal(err)
+	}
+	// The decay is a workspace change, so it must be saved.
+	if calls != 1 {
+		t.Fatalf("OnChange calls = %d, want 1", calls)
+	}
+	w, _ = s.Load()
+	if got, _ := FindSession(w, "old"); got.ExpiredAt != nil {
+		t.Fatalf("ExpiredAt older than expiredTTL kept: %+v", got)
+	}
+	if got, _ := FindSession(w, "fresh"); got.ExpiredAt == nil {
+		t.Fatalf("ExpiredAt within expiredTTL dropped: %+v", got)
+	}
+	// Nothing left to decay, so a second refresh saves nothing.
+	if _, err := s.Refresh(); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 1 {
+		t.Fatalf("OnChange calls after idle refresh = %d, want 1", calls)
+	}
+}
