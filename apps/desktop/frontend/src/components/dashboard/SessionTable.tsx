@@ -1,13 +1,33 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { ArrowDown, ArrowUp, ChevronRight, ChevronsDownUp, ChevronsUpDown, Copy, Eye, EyeOff } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronRight,
+  ChevronsDownUp,
+  ChevronsUpDown,
+  Columns3,
+  Copy,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ActionItems, type Action } from "@/components/ActionMenu";
 import { copyText } from "@/lib/clipboard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CloudGlyph } from "@/components/Brand";
 import { SessionRow } from "./SessionRow";
+import { COLUMN_KEYS, DEFAULT_COLUMNS, type ColumnKey, type Columns } from "./columns";
 import { api, errorMessage, Kind, Status, type Integration, type Session, type Workspace } from "@/lib/api";
 import { cloudOf } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -19,12 +39,12 @@ type Row =
   | { key: string; label: string; group: true; integrationId: string; accountId: string; sessions: Session[] }
   | { key: string; label: string; group: false; session: Session };
 
-/** SSO roles group under their account; other sessions stand alone. */
-export function groupSessions(sessions: Session[]): Row[] {
+/** SSO roles group under their account; other sessions stand alone. A flat list puts every session alone. */
+export function groupSessions(sessions: Session[], flat = false): Row[] {
   const groups = new Map<string, Row & { group: true }>();
   const rows: Row[] = [];
   for (const s of sessions) {
-    if (s.kind !== Kind.KindAWSSSORole || !s.aws?.accountId) {
+    if (flat || s.kind !== Kind.KindAWSSSORole || !s.aws?.accountId) {
       rows.push({ key: s.id, label: s.name, group: false, session: s });
       continue;
     }
@@ -67,6 +87,7 @@ const MAX_WIDTH = 320;
 const SESSION_MIN = 160;
 const COLUMN_LABELS = { session: "Session", profile: "Profile", region: "Region", state: "State" } as const;
 const WIDTHS_KEY = "rolle.columns";
+const COLUMNS_KEY = "rolle.columns.shown";
 const COLLAPSED_KEY = "rolle.collapsed";
 
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
@@ -97,6 +118,19 @@ export function useColumnWidths() {
     }
   }, [widths]);
   return [widths, setWidths] as const;
+}
+
+/** Which optional columns show, kept between launches. */
+function useColumns() {
+  const [columns, setColumns] = useState<Columns>(() => readJSON(COLUMNS_KEY, DEFAULT_COLUMNS));
+  useEffect(() => {
+    try {
+      localStorage.setItem(COLUMNS_KEY, JSON.stringify(columns));
+    } catch {
+      /* storage is optional */
+    }
+  }, [columns]);
+  return [columns, setColumns] as const;
 }
 
 function useCollapsed() {
@@ -181,7 +215,18 @@ export function SessionTable({
 }: TableProps) {
   const [collapsed, toggle] = useCollapsed();
   const [sort, setSort] = useSort();
-  const rows = useMemo(() => sortRows(groupSessions(sessions), sort), [sessions, sort]);
+  const [columns, setColumns] = useColumns();
+  // Settings → Appearance: one row per role, and one line per row.
+  const flat = !!workspace.settings?.flatList;
+  const compact = !!workspace.settings?.compact;
+  const rows = useMemo(() => sortRows(groupSessions(sessions, flat), sort), [sessions, sort, flat]);
+  // The optional columns on show, in table order.
+  const shown = COLUMN_KEYS.filter((k) => columns[k]);
+  // A hidden column stops sorting the table; the header could not show it.
+  const showColumn = (key: ColumnKey, on: boolean) => {
+    setColumns({ ...columns, [key]: on });
+    if (!on && sort?.key === key) setSort(null);
+  };
 
   // A header click sorts ascending, again descending, a third time clears it.
   function sortButton(key: NonNullable<Sort>["key"]) {
@@ -249,16 +294,19 @@ export function SessionTable({
     );
   }
 
+  // The actions column is pinned to the right edge, so the last divider only marks the boundary.
+  const divider = <span aria-hidden="true" className="absolute inset-y-2 -right-px w-px bg-border/60" />;
+
   return (
     <div className="overflow-hidden rounded-lg border bg-card">
       {/* Cells clip what does not fit. `clip` (not `hidden`) keeps a cell from scrolling when a clipped child takes focus. */}
-      <Table className="table-fixed [&_td]:overflow-clip">
+      <Table className={cn("table-fixed [&_td]:overflow-clip", compact && "[&_td]:py-1")}>
         <colgroup>
           <col style={{ width: 84 }} />
           <col />
-          <col style={{ width: widths.profile }} />
-          <col style={{ width: widths.region }} />
-          <col style={{ width: widths.state }} />
+          {shown.map((k) => (
+            <col key={k} style={{ width: widths[k] }} />
+          ))}
           <col style={{ width: 184 }} />
         </colgroup>
         <TableHeader>
@@ -266,22 +314,46 @@ export function SessionTable({
             <TableHead />
             <TableHead aria-sort={ariaSort("session")} className="relative">
               {sortButton("session")}
-              {resizer("profile")}
+              {shown.length > 0 ? resizer(shown[0]) : divider}
             </TableHead>
-            <TableHead aria-sort={ariaSort("profile")} className="relative">
-              {sortButton("profile")}
-              {resizer("region", "profile")}
+            {shown.map((k, i) => (
+              <TableHead key={k} aria-sort={ariaSort(k)} className="relative">
+                {sortButton(k)}
+                {i + 1 < shown.length ? resizer(shown[i + 1], k) : divider}
+              </TableHead>
+            ))}
+            <TableHead className="text-right">
+              <span className="inline-flex items-center gap-1">
+                Actions
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      className="text-muted-foreground"
+                      aria-label="Choose columns"
+                    >
+                      <Columns3 className="size-3.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="min-w-40">
+                    <DropdownMenuLabel>Columns</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {COLUMN_KEYS.map((k) => (
+                      <DropdownMenuCheckboxItem
+                        key={k}
+                        checked={columns[k]}
+                        onCheckedChange={(on) => showColumn(k, on)}
+                        // The menu stays open, so several columns toggle in one go.
+                        onSelect={(e) => e.preventDefault()}
+                      >
+                        {COLUMN_LABELS[k]}
+                      </DropdownMenuCheckboxItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </span>
             </TableHead>
-            <TableHead aria-sort={ariaSort("region")} className="relative">
-              {sortButton("region")}
-              {resizer("state", "region")}
-            </TableHead>
-            <TableHead aria-sort={ariaSort("state")} className="relative">
-              {sortButton("state")}
-              {/* The actions column is pinned to the right edge, so this divider only marks the boundary. */}
-              <span aria-hidden="true" className="absolute inset-y-2 -right-px w-px bg-border/60" />
-            </TableHead>
-            <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -292,13 +364,23 @@ export function SessionTable({
                   key={r.key}
                   session={r.session}
                   workspace={workspace}
+                  columns={columns}
                   onNeedsLogin={onNeedsLogin}
                   onTagClick={onTagClick}
                   shadows={shadows}
                 />,
               ];
             const open = searching || !collapsed.includes(r.key);
-            const out = [<AccountRow key={r.key} row={r} open={open} onToggle={() => toggle(r.key)} />];
+            const out = [
+              <AccountRow
+                key={r.key}
+                row={r}
+                open={open}
+                compact={compact}
+                span={shown.length + 2}
+                onToggle={() => toggle(r.key)}
+              />,
+            ];
             if (open)
               out.push(
                 ...r.sessions.map((s) => (
@@ -306,6 +388,7 @@ export function SessionTable({
                     key={s.id}
                     session={s}
                     workspace={workspace}
+                    columns={columns}
                     nested
                     onNeedsLogin={onNeedsLogin}
                     onTagClick={onTagClick}
@@ -321,7 +404,21 @@ export function SessionTable({
   );
 }
 
-function AccountRow({ row, open, onToggle }: { row: Row & { group: true }; open: boolean; onToggle: () => void }) {
+function AccountRow({
+  row,
+  open,
+  compact,
+  span,
+  onToggle,
+}: {
+  row: Row & { group: true };
+  open: boolean;
+  /** One line: the name, the account ID, and the role count side by side. */
+  compact: boolean;
+  /** How many columns the label spans: Session, the optional columns, and Actions. */
+  span: number;
+  onToggle: () => void;
+}) {
   const active = row.sessions.filter((s) => s.status === Status.StatusActive).length;
   const allHidden = row.sessions.every((s) => s.hidden);
   const actions: Action[] = [
@@ -371,10 +468,10 @@ function AccountRow({ row, open, onToggle }: { row: Row & { group: true }; open:
               <ChevronRight className={cn("size-4 transition-transform", open && "rotate-90")} />
             </button>
           </TableCell>
-          <TableCell colSpan={5}>
-            <div className="flex items-center gap-2.5">
-              <CloudGlyph cloud="aws" />
-              <div className="min-w-0">
+          <TableCell colSpan={span}>
+            <div className={cn("flex items-center gap-2.5", compact && "gap-2")}>
+              <CloudGlyph cloud="aws" className={compact ? "size-6 p-1" : undefined} />
+              <div className={cn("min-w-0", compact && "flex items-baseline gap-2")}>
                 <p className="truncate text-sm font-medium">{row.label}</p>
                 <p className="truncate font-mono text-[11px] text-muted-foreground">
                   {row.accountId} · {row.sessions.length} {row.sessions.length === 1 ? "role" : "roles"}

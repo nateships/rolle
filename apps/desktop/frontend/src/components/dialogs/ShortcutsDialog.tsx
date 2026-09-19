@@ -15,6 +15,7 @@ export const SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: [MOD, "F"], label: "Search sessions" },
   { keys: [MOD, "I"], label: "Import from this machine" },
   { keys: [MOD, "1…9"], label: "Sidebar filters, top to bottom" },
+  { keys: [MOD, "\\"], label: "Show or hide the sidebar" },
   { keys: ["Esc"], label: "Clear the search, close a dialog" },
   { keys: [MOD, "/"], label: "Keyboard shortcuts" },
 ];

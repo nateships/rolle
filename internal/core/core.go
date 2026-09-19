@@ -210,6 +210,11 @@ type Settings struct {
 	// HiddenSections names the sidebar sections the window leaves out:
 	// aws-sso, aws-iam, azure, gcp. Their sessions still show under All.
 	HiddenSections []string `json:"hiddenSections,omitempty"`
+	// Compact draws each session on one line with less padding.
+	Compact bool `json:"compact,omitempty"`
+	// FlatList puts every AWS Identity Center role on its own row instead of
+	// under an account row.
+	FlatList bool `json:"flatList,omitempty"`
 }
 
 // SidebarSections are the sidebar sections a user can hide.

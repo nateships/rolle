@@ -39,6 +39,7 @@ import { ago, cloudOf, kindLabel, remaining, sessionSubtitle, useNow } from "@/l
 import { cn } from "@/lib/utils";
 import { SESSION_DRAG, setSessionDragImage } from "@/lib/drag";
 import { TagGlyph } from "@/lib/tags";
+import { DEFAULT_COLUMNS, type Columns } from "./columns";
 
 const isAWSKind = (k: string) => cloudOf(k) === "aws";
 
@@ -50,6 +51,7 @@ export function SessionRow({
   session: s,
   workspace,
   nested,
+  columns = DEFAULT_COLUMNS,
   onNeedsLogin,
   onTagClick,
   shadows,
@@ -57,6 +59,8 @@ export function SessionRow({
   session: Session;
   workspace: Workspace;
   nested?: boolean;
+  /** The optional columns on show. Every one by default. */
+  columns?: Columns;
   onNeedsLogin?: (integration: Integration, startSessionId?: string) => void;
   /** The name on a tag chip was clicked. */
   onTagClick?: (tag: string) => void;
@@ -74,6 +78,8 @@ export function SessionRow({
   const shadowedBy = isAWSKind(s.kind) ? shadows?.[profileName] : undefined;
   const shadowNote = shadowedBy ? `A profile with this name in ${shadowedBy} wins. Click to fix.` : "";
   const tags = workspace.tags ?? [];
+  // Settings → Appearance: one line per row.
+  const compact = !!workspace.settings?.compact;
   const active = s.status === Status.StatusActive;
   const needsMFA = s.kind === Kind.KindAWSIAMUser && !!s.aws?.mfaDevice;
   const source = s.aws?.sourceSessionId ? workspace.sessions.find((x) => x.id === s.aws?.sourceSessionId) : undefined;
@@ -306,6 +312,7 @@ export function SessionRow({
                 onClick={() => (active ? void stop() : begin())}
                 className={cn(
                   "relative inline-flex size-7 items-center justify-center rounded-full border transition-colors disabled:opacity-60",
+                  compact && "size-6",
                   active
                     ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-300"
                     : "border-border text-muted-foreground hover:border-foreground/40 hover:bg-accent hover:text-foreground",
@@ -335,8 +342,8 @@ export function SessionRow({
             </div>
           </TableCell>
           <TableCell>
-            <div className={cn("flex items-center gap-2.5", nested && "pl-10")}>
-              {!nested && <CloudGlyph cloud={cloudOf(s.kind)} />}
+            <div className={cn("flex items-center gap-2.5", nested && "pl-10", compact && "gap-2")}>
+              {!nested && <CloudGlyph cloud={cloudOf(s.kind)} className={compact ? "size-6 p-1" : undefined} />}
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="flex items-center gap-1.5 truncate text-sm font-medium">
@@ -387,7 +394,7 @@ export function SessionRow({
                     );
                   })}
                 </div>
-                {!nested && (
+                {!nested && !compact && (
                   <p className="truncate font-mono text-[11px] text-muted-foreground">
                     {sessionSubtitle(s)}
                     {source ? ` · via ${source.name}` : ""}
@@ -396,65 +403,71 @@ export function SessionRow({
               </div>
             </div>
           </TableCell>
-          <TableCell>
-            {isAWS ? (
-              <button
-                type="button"
-                onClick={() => setEditing(profileTarget())}
-                className={cn(
-                  "inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-accent hover:text-foreground",
-                  // The warning color stays on hover; it wins over hover:text-foreground through tailwind-merge.
-                  shadowedBy && "text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300",
-                )}
-                title={shadowNote || "Change the AWS profile name"}
-              >
-                {shadowedBy && <TriangleAlert aria-label="Profile is shadowed" className="size-3" />}
-                {profileName}
-              </button>
-            ) : (
-              <span className="text-xs text-muted-foreground/50">—</span>
-            )}
-          </TableCell>
-          <TableCell>
-            {isAWS ? (
-              <button
-                type="button"
-                title="Change the region"
-                onClick={() => setRegionOpen(true)}
-                className="rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
-              >
-                {s.region || "—"}
-              </button>
-            ) : (
-              <span className="text-xs text-muted-foreground/50">—</span>
-            )}
-          </TableCell>
-          <TableCell>
-            <span
-              className={cn(
-                "flex items-center gap-1.5 font-mono text-xs tabular-nums",
-                active
-                  ? "text-emerald-700 dark:text-emerald-300"
-                  : s.expiredAt
-                    ? "text-amber-700 dark:text-amber-400"
-                    : "text-muted-foreground/70",
-              )}
-            >
-              {active ? (
-                <>
-                  <span className="font-sans font-medium">Active</span>
-                  <Countdown expires={s.expires} />
-                </>
-              ) : s.expiredAt ? (
-                <>
-                  <span className="font-sans font-medium">Expired</span>
-                  <Ago at={s.expiredAt} />
-                </>
+          {columns.profile && (
+            <TableCell>
+              {isAWS ? (
+                <button
+                  type="button"
+                  onClick={() => setEditing(profileTarget())}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-accent hover:text-foreground",
+                    // The warning color stays on hover; it wins over hover:text-foreground through tailwind-merge.
+                    shadowedBy && "text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300",
+                  )}
+                  title={shadowNote || "Change the AWS profile name"}
+                >
+                  {shadowedBy && <TriangleAlert aria-label="Profile is shadowed" className="size-3" />}
+                  {profileName}
+                </button>
               ) : (
-                <span className="font-sans">Inactive</span>
+                <span className="text-xs text-muted-foreground/50">—</span>
               )}
-            </span>
-          </TableCell>
+            </TableCell>
+          )}
+          {columns.region && (
+            <TableCell>
+              {isAWS ? (
+                <button
+                  type="button"
+                  title="Change the region"
+                  onClick={() => setRegionOpen(true)}
+                  className="rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+                >
+                  {s.region || "—"}
+                </button>
+              ) : (
+                <span className="text-xs text-muted-foreground/50">—</span>
+              )}
+            </TableCell>
+          )}
+          {columns.state && (
+            <TableCell>
+              <span
+                className={cn(
+                  "flex items-center gap-1.5 font-mono text-xs tabular-nums",
+                  active
+                    ? "text-emerald-700 dark:text-emerald-300"
+                    : s.expiredAt
+                      ? "text-amber-700 dark:text-amber-400"
+                      : "text-muted-foreground/70",
+                )}
+              >
+                {active ? (
+                  <>
+                    <span className="font-sans font-medium">Active</span>
+                    <Countdown expires={s.expires} />
+                  </>
+                ) : s.expiredAt ? (
+                  <>
+                    <span className="font-sans font-medium">Expired</span>
+                    <Ago at={s.expiredAt} />
+                  </>
+                ) : (
+                  <span className="font-sans">Inactive</span>
+                )}
+              </span>
+            </TableCell>
+          )}
           <TableCell className="text-right">
             <div className="flex items-center justify-end gap-0.5">
               <div

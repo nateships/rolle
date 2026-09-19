@@ -159,3 +159,55 @@ describe("SessionTable", () => {
     expect(cols[4].style.width).toBe("130px");
   });
 });
+
+describe("SessionTable appearance", () => {
+  const roles = [ssoRole("Acme Prod", "111", "ReadOnly"), ssoRole("Acme Prod", "111", "Admin")];
+  const withSettings = (sessions: Session[], settings: Partial<NonNullable<Workspace["settings"]>>) =>
+    ({ ...workspaceWith(sessions), settings }) as Workspace;
+
+  it("hides a column from the picker, drops its sort, and remembers it", async () => {
+    const user = userEvent.setup();
+    localStorage.setItem("rolle.sort", JSON.stringify({ sort: { key: "profile", dir: "asc" } }));
+    const { container } = renderTable([session({ name: "alpha", aws: { profile: "zed" } as Session["aws"] })]);
+    expect(container.querySelectorAll("col")).toHaveLength(6);
+    await user.click(screen.getByRole("button", { name: "Choose columns" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: "Profile" }));
+    // The open menu hides the page from assistive tech; close it before reading the table.
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("columnheader", { name: /Region/ })).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: /Profile/ })).not.toBeInTheDocument();
+    expect(container.querySelectorAll("col")).toHaveLength(5);
+    expect(screen.queryByText("zed")).not.toBeInTheDocument();
+    // The Session divider now sets Region, the first column on show; Profile has none.
+    expect(screen.getByRole("separator", { name: "Resize Session column" })).toBeInTheDocument();
+    expect(screen.queryByRole("separator", { name: "Resize Profile column" })).toBeNull();
+    expect(JSON.parse(localStorage.getItem("rolle.columns.shown")!)).toEqual({
+      profile: false,
+      region: true,
+      state: true,
+    });
+    expect(JSON.parse(localStorage.getItem("rolle.sort")!)).toEqual({ sort: null });
+  });
+
+  it("stretches the account row across every column", () => {
+    renderTable(roles);
+    // Session, three optional columns, and Actions.
+    expect(screen.getByText("Acme Prod").closest("td")).toHaveAttribute("colspan", "5");
+  });
+
+  it("lists every role on its own row when grouping is off", () => {
+    renderTable(roles, { workspace: withSettings(roles, { flatList: true }) });
+    expect(screen.queryByText(/2 roles/)).not.toBeInTheDocument();
+    expect(screen.getByText("Acme Prod/Admin")).toBeInTheDocument();
+    expect(bodyRows()).toHaveLength(2);
+  });
+
+  it("draws one line per row in compact mode", () => {
+    const iam = session({ name: "personal", kind: Kind.KindAWSIAMUser, region: "us-west-2" });
+    renderTable([...roles, iam], { workspace: withSettings([...roles, iam], { compact: true }) });
+    // The standalone row loses its subtitle; the account row keeps its ID next to the name.
+    expect(screen.getByText("personal")).toBeInTheDocument();
+    expect(screen.queryByText("us-west-2", { selector: "p" })).not.toBeInTheDocument();
+    expect(screen.getByText(/111 · 2 roles/)).toBeInTheDocument();
+  });
+});

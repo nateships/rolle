@@ -19,6 +19,7 @@ function renderRow(
     onNeedsLogin?: (i: Integration, id?: string) => void;
     onTagClick?: (tag: string) => void;
     shadows?: Record<string, string | undefined>;
+    columns?: React.ComponentProps<typeof SessionRow>["columns"];
   } = {},
 ) {
   const ws = {
@@ -35,6 +36,7 @@ function renderRow(
           <SessionRow
             session={s}
             workspace={ws}
+            columns={opts.columns}
             onNeedsLogin={opts.onNeedsLogin}
             onTagClick={opts.onTagClick}
             shadows={opts.shadows}
@@ -640,5 +642,18 @@ describe("SessionRow actions", () => {
     fireEvent.contextMenu(screen.getByText("personal"));
     await user.click(await screen.findByRole("menuitem", { name: /^hide$/i }));
     await waitFor(() => expect(error).toHaveBeenCalledWith("hide failed"));
+  });
+});
+
+describe("SessionRow appearance", () => {
+  it("leaves out the cells of hidden columns", () => {
+    renderRow(session({ name: "personal", kind: Kind.KindAWSIAMUser, region: "us-west-2" }), {
+      columns: { profile: false, region: false, state: true },
+    });
+    expect(screen.queryByTitle("Change the AWS profile name")).not.toBeInTheDocument();
+    expect(screen.queryByTitle("Change the region")).not.toBeInTheDocument();
+    expect(screen.getByText("Inactive")).toBeInTheDocument();
+    // Start, Session, State, Actions.
+    expect(screen.getAllByRole("cell")).toHaveLength(4);
   });
 });
