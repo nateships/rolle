@@ -948,6 +948,10 @@ func (s *Service) ConsoleURL(ctx context.Context, ref string) (string, error) {
 	return aws.ConsoleURL(ctx, nil, creds, sess.Region)
 }
 
+// expiredTTL is how long a session that ended by itself reads as Expired
+// before it reads as Inactive again.
+const expiredTTL = time.Hour
+
 // Refresh reconciles session status with the credential cache. Active
 // sessions whose credentials expired are renewed when the provider allows a
 // silent refresh (Identity Center roles, role chains, Azure, GCP). Sessions
@@ -996,7 +1000,19 @@ func (s *Service) RefreshContext(ctx context.Context) (*core.Workspace, error) {
 		renewed[sess.ID] = creds.Expiration
 	}
 	logins := s.probeSSOLogins(ctx, w)
-	if len(renewed) == 0 && len(expired) == 0 && len(logins) == 0 {
+	now := time.Now()
+	if s.Now != nil {
+		now = s.Now()
+	}
+	// An Expired badge older than expiredTTL reads as noise. Let it decay to Inactive.
+	decayed := false
+	for i := range w.Sessions {
+		if at := w.Sessions[i].ExpiredAt; at != nil && now.Sub(*at) > expiredTTL {
+			decayed = true
+			break
+		}
+	}
+	if len(renewed) == 0 && len(expired) == 0 && len(logins) == 0 && !decayed {
 		return w, nil
 	}
 	if w, err = s.Load(); err != nil {
@@ -1014,6 +1030,9 @@ func (s *Service) RefreshContext(ctx context.Context) (*core.Workspace, error) {
 	}
 	for i := range w.Sessions {
 		sess := &w.Sessions[i]
+		if at := sess.ExpiredAt; at != nil && now.Sub(*at) > expiredTTL {
+			sess.ExpiredAt = nil
+		}
 		if sess.Status != core.StatusActive {
 			continue
 		}
@@ -1030,11 +1049,8 @@ func (s *Service) RefreshContext(ctx context.Context) (*core.Workspace, error) {
 		}
 		if expired[sess.ID] {
 			_ = s.deactivate(sess)
-			now := time.Now()
-			if s.Now != nil {
-				now = s.Now()
-			}
-			sess.ExpiredAt = &now
+			at := now
+			sess.ExpiredAt = &at
 		}
 	}
 	return w, s.Save(w)
