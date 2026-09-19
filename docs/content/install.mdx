@@ -3,7 +3,7 @@ seo:
   image: /og-brand.png
   title: "Install rolle: Homebrew, DMG, Windows, Linux"
 title: Install
-description: Install the rolle desktop app with Homebrew, a signed DMG, the Windows installer, or the Linux AppImage, plus the CLI.
+description: Install the rolle desktop app with Homebrew, a signed DMG, the Windows installer, or the Linux AppImage. Every package carries the rolle command.
 ---
 
 <Tabs>
@@ -26,13 +26,13 @@ description: Install the rolle desktop app with Homebrew, a signed DMG, the Wind
   <Tab title="Linux">
     Download `rolle-linux-amd64.AppImage` or the `.deb` package from the [releases page](https://github.com/nateships/rolle/releases). The app needs GTK 4 and WebKitGTK 6.0.
 
-    The deb installs the `rolle` command in `/usr/local/bin`. With the AppImage, **Install command** in the last onboarding step and in **Settings → General** writes it to `~/.local/bin`, unless a `rolle` from the deb is already on your PATH. Each app update updates the command. For machines without the app, the CLI ships as `rolle-cli_<version>_linux_<arch>.tar.gz`.
+    The deb installs the `rolle` command in `/usr/local/bin`. With the AppImage, **Install command** in the last onboarding step and in **Settings → General** writes it to `~/.local/bin`, unless a `rolle` from the deb is already on your PATH. Each app update updates the command. For a machine without the app, `go install github.com/nateships/rolle/cmd/rolle@latest` builds the command alone.
   </Tab>
 </Tabs>
 
-## CLI archives
+## Verify a download
 
-Every release ships `rolle-cli_<version>_<os>_<arch>.tar.gz` (zip on Windows) for `darwin`, `linux`, and `windows` on `amd64` and `arm64`, with a `checksums.txt`. Put the `rolle` binary on your `PATH`. The `rolle-update-*` zips are for the desktop app's self-update, not for download.
+Every release ships a `checksums.txt` that lists `rolle.dmg`, the Windows installer, the AppImage, the deb, and `manifest.json`. The `rolle-update-*` zips are for the desktop app's self-update, not for download.
 
 `checksums.txt` carries a keyless [Sigstore](https://www.sigstore.dev/) signature from the release workflow. To verify a download, put `checksums.txt` and `checksums.txt.sigstore.json` next to it and run:
 
@@ -44,7 +44,7 @@ cosign verify-blob checksums.txt \
 sha256sum --check --ignore-missing checksums.txt
 ```
 
-`checksums.txt` also lists `rolle.dmg`, the Windows installer, the AppImage, the deb, and `manifest.json`. Every file in it has a [build provenance attestation](/security#build-provenance):
+Every file in `checksums.txt` has a [build provenance attestation](/security#build-provenance):
 
 ```sh
 gh attestation verify rolle.dmg --repo nateships/rolle
