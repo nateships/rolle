@@ -141,6 +141,8 @@ func TestSettingsNormalizeTable(t *testing.T) {
 		{"region kept", Settings{DefaultRegion: "eu-west-1"}, Settings{Theme: "system", DefaultRegion: "eu-west-1", AssumeRoleMinutes: 60}},
 		{"flags and terminal untouched", Settings{HideOnClose: true, VerboseLogging: true, AutoUpdateOff: true, Terminal: "iterm"},
 			Settings{Theme: "system", DefaultRegion: "us-east-1", AssumeRoleMinutes: 60, HideOnClose: true, VerboseLogging: true, AutoUpdateOff: true, Terminal: "iterm"}},
+		{"session list flags untouched", Settings{Compact: true, FlatList: true},
+			Settings{Theme: "system", DefaultRegion: "us-east-1", AssumeRoleMinutes: 60, Compact: true, FlatList: true}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

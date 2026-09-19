@@ -6,9 +6,11 @@ import {
   Keyboard,
   KeyRound,
   LayoutList,
+  ListFilter,
   LogIn,
   LogOut,
   MoreHorizontal,
+  PanelLeft,
   Pencil,
   Plus,
   RefreshCw,
@@ -45,7 +47,8 @@ import { DevTools } from "@/components/DevTools";
 import { SettingsDialog } from "@/components/dialogs/SettingsDialog";
 import { RenameDialog } from "@/components/dialogs/RenameDialog";
 import { ImportDialog } from "@/components/dialogs/ImportDialog";
-import { Key, ShortcutsDialog, combo } from "@/components/dialogs/ShortcutsDialog";
+import { Key, ShortcutsDialog, combo, isMac } from "@/components/dialogs/ShortcutsDialog";
+import { EMPTY_REFINE, FilterBar, matchesRefine, refineCount, type Refine } from "./FilterBar";
 import { useModifierHeld } from "@/lib/modifier";
 import {
   AddSSODialog,
@@ -92,6 +95,7 @@ type Dialog =
   | { kind: "shortcuts" };
 
 const SIDEBAR_KEY = "rolle.sidebar";
+const SIDEBAR_HIDDEN_KEY = "rolle.sidebar.hidden";
 const SIDEBAR_DEFAULT = 256;
 // The lockup is 48px tall: a 56px mark, a 64px wordmark, and 20px of right
 // padding. The macOS traffic lights end near x=70. This floor keeps the
@@ -119,6 +123,25 @@ function useSidebarWidth() {
   return [width, setWidth] as const;
 }
 
+/** Whether the sidebar is out of view, kept between launches. */
+function useSidebarHidden() {
+  const [hidden, setHidden] = useState(() => {
+    try {
+      return localStorage.getItem(SIDEBAR_HIDDEN_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(SIDEBAR_HIDDEN_KEY, hidden ? "1" : "0");
+    } catch {
+      /* storage is optional */
+    }
+  }, [hidden]);
+  return [hidden, setHidden] as const;
+}
+
 // key matches core.SidebarSections; Settings → Appearance hides a section by it.
 const CLOUD_SECTIONS: { key: string; cloud: string; mark: "aws" | "azure" | "gcp"; title: string; addKind: Dialog }[] =
   [
@@ -131,6 +154,15 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   const [query, setQuery] = useState("");
   const [widths, setWidths] = useColumnWidths();
   const [sidebarWidth, setSidebarWidth] = useSidebarWidth();
+  const [sidebarHidden, setSidebarHidden] = useSidebarHidden();
+  // The chip row under the header, and the values picked in it. Closing the
+  // row drops the picks, so a hidden filter never narrows the table.
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [refine, setRefine] = useState<Refine>(EMPTY_REFINE);
+  const toggleFilters = () => {
+    if (filtersOpen) setRefine(EMPTY_REFINE);
+    setFiltersOpen((o) => !o);
+  };
   const [chosenFilter, setFilter] = useState<string | null>(() =>
     !inWails ? new URLSearchParams(location.search).get("filter") : null,
   );
@@ -297,6 +329,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
         f: () => searchRef.current?.select(),
         i: () => toggle("import"),
         "/": () => toggle("shortcuts"),
+        "\\": () => setSidebarHidden((h) => !h),
       };
       const action = actions[e.key.toLowerCase()];
       if (!action) return;
@@ -305,7 +338,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [filterKeys]);
+  }, [filterKeys, setSidebarHidden]);
   const visibleCount = workspace.sessions.length - hiddenCount;
   // A filter whose sidebar item is gone, or whose section is hidden, falls
   // back to "All sessions". filterKeys holds exactly the items on show.
@@ -349,438 +382,480 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
               (v ?? "").toLowerCase().includes(q),
             ),
         )
+        .filter((s) => matchesRefine(s, refine))
     );
-  }, [workspace.sessions, query, filter, tagFilter]);
+  }, [workspace.sessions, query, filter, tagFilter, refine]);
+  // The chips offer values from the sessions the sidebar pick lets through, so
+  // no chip names a value that cannot match.
+  const refinable = useMemo(
+    () => workspace.sessions.filter((s) => (filter === "hidden" ? s.hidden : !s.hidden)),
+    [workspace.sessions, filter],
+  );
 
   return (
     <div className="flex h-full">
-      <aside
-        style={{ width: sidebarWidth }}
-        className="relative flex shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground"
-      >
-        <div className="drag flex h-[4.5rem] items-center justify-end px-5 pt-2">
-          <GopherLockup className="h-12" />
-        </div>
-        <nav className="flex-1 space-y-4 overflow-y-auto px-2 py-2">
-          <div>
-            <SideItem
-              active={filter === null}
-              onClick={() => setFilter(null)}
-              label="All sessions"
-              hint={hintFor(null)}
-              count={visibleCount}
-              icon={<LayoutList className="size-3.5" />}
-            />
-            {active > 0 && (
-              <SideItem
-                active={filter === "active"}
-                onClick={() => setFilter("active")}
-                label="Active"
-                hint={hintFor("active")}
-                count={active}
-                dot="ok"
-              />
-            )}
-            {favoriteCount > 0 && (
-              <SideItem
-                active={filter === "favorites"}
-                onClick={() => setFilter("favorites")}
-                label="Favorites"
-                hint={hintFor("favorites")}
-                count={favoriteCount}
-                icon={<Star className="size-3.5 fill-current text-brand-orange" />}
-                accent="var(--color-brand-orange)"
-                {...sessionDrop("favorites", "Added to favorites", (id) => api.SetFavorite(id, true))}
-              />
-            )}
+      {!sidebarHidden && (
+        <aside
+          style={{ width: sidebarWidth }}
+          className="relative flex shrink-0 flex-col border-r bg-sidebar text-sidebar-foreground"
+        >
+          <div className="drag flex h-[4.5rem] items-center justify-end px-5 pt-2">
+            <GopherLockup className="h-12" />
           </div>
-          <div>
-            <div className="flex items-center pr-1">
-              <p className="flex-1 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                Tags
-              </p>
-              <span className="flex size-6 items-center justify-center">
+          <nav className="flex-1 space-y-4 overflow-y-auto px-2 py-2">
+            <div>
+              <SideItem
+                active={filter === null}
+                onClick={() => setFilter(null)}
+                label="All sessions"
+                hint={hintFor(null)}
+                count={visibleCount}
+                icon={<LayoutList className="size-3.5" />}
+              />
+              {active > 0 && (
+                <SideItem
+                  active={filter === "active"}
+                  onClick={() => setFilter("active")}
+                  label="Active"
+                  hint={hintFor("active")}
+                  count={active}
+                  dot="ok"
+                />
+              )}
+              {favoriteCount > 0 && (
+                <SideItem
+                  active={filter === "favorites"}
+                  onClick={() => setFilter("favorites")}
+                  label="Favorites"
+                  hint={hintFor("favorites")}
+                  count={favoriteCount}
+                  icon={<Star className="size-3.5 fill-current text-brand-orange" />}
+                  accent="var(--color-brand-orange)"
+                  {...sessionDrop("favorites", "Added to favorites", (id) => api.SetFavorite(id, true))}
+                />
+              )}
+            </div>
+            <div>
+              <div className="flex items-center pr-1">
+                <p className="flex-1 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                  Tags
+                </p>
+                <span className="flex size-6 items-center justify-center">
+                  <Button
+                    variant="ghost"
+                    size="icon-xs"
+                    className="text-muted-foreground"
+                    onClick={() => setDialog({ kind: "tag", target: { kind: "new" } })}
+                    title="New tag"
+                    aria-label="New tag"
+                  >
+                    <Plus className="size-3.5" />
+                  </Button>
+                </span>
+              </div>
+              {tags.length === 0 && <p className="px-2 py-1 text-xs text-muted-foreground/60">None yet</p>}
+              {tags.map((t, index) => {
+                const tag = t.name;
+                const key = `tag:${tag}`;
+                const actions: Action[] = [
+                  {
+                    label: "Edit tag",
+                    icon: <Pencil />,
+                    onSelect: () => setDialog({ kind: "tag", target: { kind: "edit", tag: t } }),
+                  },
+                  "separator",
+                  {
+                    label: "Remove tag",
+                    icon: <Trash2 />,
+                    destructive: true,
+                    onSelect: () => void run(`Tag ${tag} removed`, () => api.RemoveTag(tag)),
+                  },
+                ];
+                // A dropped session tags itself; a dropped tag reorders the list.
+                const drop = sessionDrop(key, `Tagged ${tag}`, (id) => api.SetSessionTag(id, tag, true));
+                return (
+                  <ContextMenu key={key}>
+                    <ContextMenuTrigger asChild>
+                      <SideItem
+                        active={filter === key}
+                        onClick={() => setFilter(key)}
+                        label={tag}
+                        hint={hintFor(key)}
+                        count={tagCount(tag)}
+                        icon={<TagGlyph tag={t} className="size-3.5" />}
+                        {...drop}
+                        accent={t.color || undefined}
+                        draggable
+                        onDragStart={(e) => {
+                          draggingTag.current = tag;
+                          e.dataTransfer.setData(TAG_DRAG, tag);
+                          e.dataTransfer.effectAllowed = "move";
+                        }}
+                        onDragEnd={() => {
+                          draggingTag.current = null;
+                        }}
+                        dropLine={dropLine?.tag === tag ? dropLine.side : undefined}
+                        onDragOver={(e) => {
+                          if (!Array.from(e.dataTransfer.types).includes(TAG_DRAG)) return drop.onDragOver(e);
+                          if (draggingTag.current === tag) return;
+                          e.preventDefault();
+                          const side = lineSide(e);
+                          // Dragover fires on every pointer move; keep the old state when nothing changed.
+                          setDropLine((cur) => (cur?.tag === tag && cur.side === side ? cur : { tag, side }));
+                        }}
+                        onDragLeave={() => {
+                          drop.onDragLeave();
+                          setDropLine((cur) => (cur?.tag === tag ? null : cur));
+                        }}
+                        onDrop={(e) => {
+                          setDropLine(null);
+                          const moved = e.dataTransfer.getData(TAG_DRAG);
+                          if (!moved) return drop.onDrop(e);
+                          e.preventDefault();
+                          if (moved === tag) return;
+                          // The tag lands on the side of the row the pointer is in.
+                          const after = lineSide(e) === "after";
+                          // The list shifts once the moved tag leaves its old slot.
+                          const from = tags.findIndex((x) => x.name === moved);
+                          let to = after ? index + 1 : index;
+                          if (from >= 0 && from < to) to -= 1;
+                          if (to === from) return;
+                          void api.MoveTag(moved, to).catch((err) => toast.error(errorMessage(err)));
+                        }}
+                      />
+                    </ContextMenuTrigger>
+                    <ContextMenuContent className="min-w-48">
+                      <ActionItems actions={actions} menu="context" />
+                    </ContextMenuContent>
+                  </ContextMenu>
+                );
+              })}
+            </div>
+            {CLOUD_SECTIONS.map((sec) => {
+              const items = workspace.integrations.filter((i) => i.cloud === sec.cloud);
+              return (
+                // A fragment: a hidden section must not leave an empty box that
+                // still takes the nav's spacing.
+                <Fragment key={sec.cloud}>
+                  {showSection(sec.key) && (
+                    <div>
+                      <div className="flex items-center pr-1">
+                        {/* The mark trails the title: rows stay indented under it, so the hierarchy reads. */}
+                        <p className="flex flex-1 items-center gap-1.5 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                          {sec.title}
+                          <CloudMark cloud={sec.mark} className="size-3" />
+                        </p>
+                        <span className="flex size-6 items-center justify-center">
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            className="text-muted-foreground"
+                            onClick={() => setDialog(sec.addKind)}
+                            title="Add"
+                          >
+                            <Plus className="size-3.5" />
+                          </Button>
+                        </span>
+                      </div>
+                      {items.length === 0 && <p className="px-2 py-1 text-xs text-muted-foreground/60">None yet</p>}
+                      {items.map((integ) => {
+                        const loggedIn = isLoggedIn(integ);
+                        const sync =
+                          integ.cloud === CloudKind.CloudAzure
+                            ? api.SyncAzure
+                            : integ.cloud === CloudKind.CloudGCP
+                              ? api.SyncGCP
+                              : api.SyncSSO;
+                        const logout = integ.cloud === CloudKind.CloudAzure ? api.AzureLogout : api.SSOLogout;
+                        const actions: Action[] = [
+                          {
+                            label: "Rename",
+                            icon: <Pencil />,
+                            onSelect: () => setDialog({ kind: "rename", integration: integ }),
+                          },
+                          ...(loggedIn
+                            ? ([
+                                {
+                                  label: "Sync",
+                                  icon: <RefreshCw />,
+                                  onSelect: () => void run("Synced", () => sync(integ.id)),
+                                },
+                                ...(integ.cloud !== CloudKind.CloudGCP
+                                  ? [
+                                      {
+                                        label: "Sign out",
+                                        icon: <LogOut />,
+                                        onSelect: () => void run("Signed out", () => logout(integ.id)),
+                                      },
+                                    ]
+                                  : []),
+                              ] as Action[])
+                            : [
+                                {
+                                  label: "Sign in",
+                                  icon: <LogIn />,
+                                  onSelect: () =>
+                                    integ.cloud === CloudKind.CloudGCP
+                                      ? void run("Synced", () => api.SyncGCP(integ.id))
+                                      : setDialog({ kind: "login", integration: integ }),
+                                },
+                              ]),
+                          ...(integ.cloud === CloudKind.CloudGCP
+                            ? [
+                                {
+                                  label: "Impersonate service account",
+                                  icon: <UserCog />,
+                                  onSelect: () => setDialog({ kind: "gcp-impersonate" }),
+                                },
+                              ]
+                            : []),
+                          "separator",
+                          {
+                            label: "Remove",
+                            icon: <Trash2 />,
+                            destructive: true,
+                            onSelect: () => void run("Removed", () => api.RemoveIntegration(integ.id)),
+                          },
+                        ];
+                        return (
+                          <ContextMenu key={integ.id}>
+                            <ContextMenuTrigger asChild>
+                              <SideItem
+                                active={filter === integ.id}
+                                onClick={() => setFilter(integ.id)}
+                                label={integ.alias}
+                                hint={hintFor(integ.id)}
+                                dot={loggedIn ? "ok" : "off"}
+                                trailing={
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon-xs"
+                                        className="text-muted-foreground opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
+                                        aria-label={`${integ.alias} options`}
+                                      >
+                                        <MoreHorizontal className="size-3.5" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="start" side="right" className="min-w-56">
+                                      <ActionItems actions={actions} menu="dropdown" />
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                }
+                              />
+                            </ContextMenuTrigger>
+                            <ContextMenuContent className="min-w-56">
+                              <ActionItems actions={actions} menu="context" />
+                            </ContextMenuContent>
+                          </ContextMenu>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {sec.cloud === CloudKind.CloudAWS && showSection("aws-iam") && (
+                    <div>
+                      <div className="flex items-center pr-1">
+                        <p className="flex flex-1 items-center gap-1.5 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                          AWS IAM
+                          <CloudMark cloud="aws" className="size-3" />
+                        </p>
+                        <span className="flex size-6 items-center justify-center">
+                          <Button
+                            variant="ghost"
+                            size="icon-xs"
+                            className="text-muted-foreground"
+                            onClick={() => setDialog({ kind: "iam" })}
+                            title="Add an IAM user"
+                          >
+                            <Plus className="size-3.5" />
+                          </Button>
+                        </span>
+                      </div>
+                      {iamCount + roleCount === 0 && (
+                        <p className="px-2 py-1 text-xs text-muted-foreground/60">None yet</p>
+                      )}
+                      {iamCount > 0 && (
+                        <SideItem
+                          active={filter === "iam-users"}
+                          onClick={() => setFilter("iam-users")}
+                          label="Users"
+                          icon={<UserRound className="size-3.5" />}
+                          hint={hintFor("iam-users")}
+                          count={iamCount}
+                        />
+                      )}
+                      {roleCount > 0 && (
+                        <SideItem
+                          active={filter === "assumed-roles"}
+                          onClick={() => setFilter("assumed-roles")}
+                          label="Assumed roles"
+                          icon={<Waypoints className="size-3.5" />}
+                          hint={hintFor("assumed-roles")}
+                          count={roleCount}
+                        />
+                      )}
+                    </div>
+                  )}
+                </Fragment>
+              );
+            })}
+            {/* Hidden sits last: out of the way, like its sessions. */}
+            {hiddenCount > 0 && (
+              <div>
+                <ContextMenu>
+                  <ContextMenuTrigger asChild>
+                    <div>
+                      <SideItem
+                        active={filter === "hidden"}
+                        onClick={() => setFilter("hidden")}
+                        label="Hidden"
+                        hint={hintFor("hidden")}
+                        count={hiddenCount}
+                        icon={<EyeOff className="size-3.5" />}
+                        {...sessionDrop("hidden", "Hidden", (id) => api.SetHidden(id, true))}
+                      />
+                    </div>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="min-w-40">
+                    <ActionItems
+                      menu="context"
+                      actions={[
+                        {
+                          label: "Unhide all",
+                          icon: <Eye />,
+                          onSelect: () => void run("Every session is visible again", () => api.UnhideAll()),
+                        },
+                      ]}
+                    />
+                  </ContextMenuContent>
+                </ContextMenu>
+              </div>
+            )}
+          </nav>
+          <div className="flex items-center justify-between border-t p-3 text-xs text-muted-foreground">
+            <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
+              <span
+                className={cn(
+                  "relative inline-block size-2 rounded-full",
+                  active > 0 ? "bg-emerald-400 text-emerald-400 pulse-ring" : "bg-muted-foreground/40",
+                )}
+              />
+              {active} active
+            </div>
+            <div className="flex items-center gap-1">
+              {update?.available && (
                 <Button
                   variant="ghost"
-                  size="icon-xs"
-                  className="text-muted-foreground"
-                  onClick={() => setDialog({ kind: "tag", target: { kind: "new" } })}
-                  title="New tag"
-                  aria-label="New tag"
+                  size="sm"
+                  className="h-6 gap-1 px-2 text-xs text-brand-blue hover:text-brand-blue"
+                  aria-label={`Update to ${update.version}`}
+                  disabled={installing}
+                  onClick={() => {
+                    // On a standard macOS account the download runs here and an
+                    // administrator prompt follows; the button waits meanwhile.
+                    setInstalling(true);
+                    api
+                      .InstallUpdate()
+                      .catch((e) => {
+                        const msg = errorMessage(e);
+                        if (msg !== "cancelled") toast.error(msg);
+                      })
+                      .finally(() => setInstalling(false));
+                  }}
                 >
-                  <Plus className="size-3.5" />
+                  {installing ? <Loader2 className="size-3.5 animate-spin" /> : <ArrowUpCircle className="size-3.5" />}{" "}
+                  Update
+                </Button>
+              )}
+              <DevTools />
+              <HelpMenu onAbout={() => setDialog({ kind: "settings", tab: "about" })} />
+              <span className="relative">
+                {held && <Key className="absolute -top-7 right-0 h-5 text-[10px]">{combo("/")}</Key>}
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Keyboard shortcuts"
+                  onClick={() => setDialog({ kind: "shortcuts" })}
+                >
+                  <Keyboard className="size-4" />
+                </Button>
+              </span>
+              <span className="relative">
+                {held && <Key className="absolute -top-7 right-0 h-5 text-[10px]">{combo(",")}</Key>}
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Settings"
+                  onClick={() => setDialog({ kind: "settings" })}
+                >
+                  <SettingsIcon className="size-4" />
                 </Button>
               </span>
             </div>
-            {tags.length === 0 && <p className="px-2 py-1 text-xs text-muted-foreground/60">None yet</p>}
-            {tags.map((t, index) => {
-              const tag = t.name;
-              const key = `tag:${tag}`;
-              const actions: Action[] = [
-                {
-                  label: "Edit tag",
-                  icon: <Pencil />,
-                  onSelect: () => setDialog({ kind: "tag", target: { kind: "edit", tag: t } }),
-                },
-                "separator",
-                {
-                  label: "Remove tag",
-                  icon: <Trash2 />,
-                  destructive: true,
-                  onSelect: () => void run(`Tag ${tag} removed`, () => api.RemoveTag(tag)),
-                },
-              ];
-              // A dropped session tags itself; a dropped tag reorders the list.
-              const drop = sessionDrop(key, `Tagged ${tag}`, (id) => api.SetSessionTag(id, tag, true));
-              return (
-                <ContextMenu key={key}>
-                  <ContextMenuTrigger asChild>
-                    <SideItem
-                      active={filter === key}
-                      onClick={() => setFilter(key)}
-                      label={tag}
-                      hint={hintFor(key)}
-                      count={tagCount(tag)}
-                      icon={<TagGlyph tag={t} className="size-3.5" />}
-                      {...drop}
-                      accent={t.color || undefined}
-                      draggable
-                      onDragStart={(e) => {
-                        draggingTag.current = tag;
-                        e.dataTransfer.setData(TAG_DRAG, tag);
-                        e.dataTransfer.effectAllowed = "move";
-                      }}
-                      onDragEnd={() => {
-                        draggingTag.current = null;
-                      }}
-                      dropLine={dropLine?.tag === tag ? dropLine.side : undefined}
-                      onDragOver={(e) => {
-                        if (!Array.from(e.dataTransfer.types).includes(TAG_DRAG)) return drop.onDragOver(e);
-                        if (draggingTag.current === tag) return;
-                        e.preventDefault();
-                        const side = lineSide(e);
-                        // Dragover fires on every pointer move; keep the old state when nothing changed.
-                        setDropLine((cur) => (cur?.tag === tag && cur.side === side ? cur : { tag, side }));
-                      }}
-                      onDragLeave={() => {
-                        drop.onDragLeave();
-                        setDropLine((cur) => (cur?.tag === tag ? null : cur));
-                      }}
-                      onDrop={(e) => {
-                        setDropLine(null);
-                        const moved = e.dataTransfer.getData(TAG_DRAG);
-                        if (!moved) return drop.onDrop(e);
-                        e.preventDefault();
-                        if (moved === tag) return;
-                        // The tag lands on the side of the row the pointer is in.
-                        const after = lineSide(e) === "after";
-                        // The list shifts once the moved tag leaves its old slot.
-                        const from = tags.findIndex((x) => x.name === moved);
-                        let to = after ? index + 1 : index;
-                        if (from >= 0 && from < to) to -= 1;
-                        if (to === from) return;
-                        void api.MoveTag(moved, to).catch((err) => toast.error(errorMessage(err)));
-                      }}
-                    />
-                  </ContextMenuTrigger>
-                  <ContextMenuContent className="min-w-48">
-                    <ActionItems actions={actions} menu="context" />
-                  </ContextMenuContent>
-                </ContextMenu>
-              );
-            })}
           </div>
-          {CLOUD_SECTIONS.map((sec) => {
-            const items = workspace.integrations.filter((i) => i.cloud === sec.cloud);
-            return (
-              // A fragment: a hidden section must not leave an empty box that
-              // still takes the nav's spacing.
-              <Fragment key={sec.cloud}>
-                {showSection(sec.key) && (
-                  <div>
-                    <div className="flex items-center pr-1">
-                      {/* The mark trails the title: rows stay indented under it, so the hierarchy reads. */}
-                      <p className="flex flex-1 items-center gap-1.5 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                        {sec.title}
-                        <CloudMark cloud={sec.mark} className="size-3" />
-                      </p>
-                      <span className="flex size-6 items-center justify-center">
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          className="text-muted-foreground"
-                          onClick={() => setDialog(sec.addKind)}
-                          title="Add"
-                        >
-                          <Plus className="size-3.5" />
-                        </Button>
-                      </span>
-                    </div>
-                    {items.length === 0 && <p className="px-2 py-1 text-xs text-muted-foreground/60">None yet</p>}
-                    {items.map((integ) => {
-                      const loggedIn = isLoggedIn(integ);
-                      const sync =
-                        integ.cloud === CloudKind.CloudAzure
-                          ? api.SyncAzure
-                          : integ.cloud === CloudKind.CloudGCP
-                            ? api.SyncGCP
-                            : api.SyncSSO;
-                      const logout = integ.cloud === CloudKind.CloudAzure ? api.AzureLogout : api.SSOLogout;
-                      const actions: Action[] = [
-                        {
-                          label: "Rename",
-                          icon: <Pencil />,
-                          onSelect: () => setDialog({ kind: "rename", integration: integ }),
-                        },
-                        ...(loggedIn
-                          ? ([
-                              {
-                                label: "Sync",
-                                icon: <RefreshCw />,
-                                onSelect: () => void run("Synced", () => sync(integ.id)),
-                              },
-                              ...(integ.cloud !== CloudKind.CloudGCP
-                                ? [
-                                    {
-                                      label: "Sign out",
-                                      icon: <LogOut />,
-                                      onSelect: () => void run("Signed out", () => logout(integ.id)),
-                                    },
-                                  ]
-                                : []),
-                            ] as Action[])
-                          : [
-                              {
-                                label: "Sign in",
-                                icon: <LogIn />,
-                                onSelect: () =>
-                                  integ.cloud === CloudKind.CloudGCP
-                                    ? void run("Synced", () => api.SyncGCP(integ.id))
-                                    : setDialog({ kind: "login", integration: integ }),
-                              },
-                            ]),
-                        ...(integ.cloud === CloudKind.CloudGCP
-                          ? [
-                              {
-                                label: "Impersonate service account",
-                                icon: <UserCog />,
-                                onSelect: () => setDialog({ kind: "gcp-impersonate" }),
-                              },
-                            ]
-                          : []),
-                        "separator",
-                        {
-                          label: "Remove",
-                          icon: <Trash2 />,
-                          destructive: true,
-                          onSelect: () => void run("Removed", () => api.RemoveIntegration(integ.id)),
-                        },
-                      ];
-                      return (
-                        <ContextMenu key={integ.id}>
-                          <ContextMenuTrigger asChild>
-                            <SideItem
-                              active={filter === integ.id}
-                              onClick={() => setFilter(integ.id)}
-                              label={integ.alias}
-                              hint={hintFor(integ.id)}
-                              dot={loggedIn ? "ok" : "off"}
-                              trailing={
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon-xs"
-                                      className="text-muted-foreground opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
-                                      aria-label={`${integ.alias} options`}
-                                    >
-                                      <MoreHorizontal className="size-3.5" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="start" side="right" className="min-w-56">
-                                    <ActionItems actions={actions} menu="dropdown" />
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              }
-                            />
-                          </ContextMenuTrigger>
-                          <ContextMenuContent className="min-w-56">
-                            <ActionItems actions={actions} menu="context" />
-                          </ContextMenuContent>
-                        </ContextMenu>
-                      );
-                    })}
-                  </div>
-                )}
-                {sec.cloud === CloudKind.CloudAWS && showSection("aws-iam") && (
-                  <div>
-                    <div className="flex items-center pr-1">
-                      <p className="flex flex-1 items-center gap-1.5 px-2 py-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-                        AWS IAM
-                        <CloudMark cloud="aws" className="size-3" />
-                      </p>
-                      <span className="flex size-6 items-center justify-center">
-                        <Button
-                          variant="ghost"
-                          size="icon-xs"
-                          className="text-muted-foreground"
-                          onClick={() => setDialog({ kind: "iam" })}
-                          title="Add an IAM user"
-                        >
-                          <Plus className="size-3.5" />
-                        </Button>
-                      </span>
-                    </div>
-                    {iamCount + roleCount === 0 && (
-                      <p className="px-2 py-1 text-xs text-muted-foreground/60">None yet</p>
-                    )}
-                    {iamCount > 0 && (
-                      <SideItem
-                        active={filter === "iam-users"}
-                        onClick={() => setFilter("iam-users")}
-                        label="Users"
-                        icon={<UserRound className="size-3.5" />}
-                        hint={hintFor("iam-users")}
-                        count={iamCount}
-                      />
-                    )}
-                    {roleCount > 0 && (
-                      <SideItem
-                        active={filter === "assumed-roles"}
-                        onClick={() => setFilter("assumed-roles")}
-                        label="Assumed roles"
-                        icon={<Waypoints className="size-3.5" />}
-                        hint={hintFor("assumed-roles")}
-                        count={roleCount}
-                      />
-                    )}
-                  </div>
-                )}
-              </Fragment>
-            );
-          })}
-          {/* Hidden sits last: out of the way, like its sessions. */}
-          {hiddenCount > 0 && (
-            <div>
-              <ContextMenu>
-                <ContextMenuTrigger asChild>
-                  <div>
-                    <SideItem
-                      active={filter === "hidden"}
-                      onClick={() => setFilter("hidden")}
-                      label="Hidden"
-                      hint={hintFor("hidden")}
-                      count={hiddenCount}
-                      icon={<EyeOff className="size-3.5" />}
-                      {...sessionDrop("hidden", "Hidden", (id) => api.SetHidden(id, true))}
-                    />
-                  </div>
-                </ContextMenuTrigger>
-                <ContextMenuContent className="min-w-40">
-                  <ActionItems
-                    menu="context"
-                    actions={[
-                      {
-                        label: "Unhide all",
-                        icon: <Eye />,
-                        onSelect: () => void run("Every session is visible again", () => api.UnhideAll()),
-                      },
-                    ]}
-                  />
-                </ContextMenuContent>
-              </ContextMenu>
-            </div>
-          )}
-        </nav>
-        <div className="flex items-center justify-between border-t p-3 text-xs text-muted-foreground">
-          <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
-            <span
-              className={cn(
-                "relative inline-block size-2 rounded-full",
-                active > 0 ? "bg-emerald-400 text-emerald-400 pulse-ring" : "bg-muted-foreground/40",
-              )}
-            />
-            {active} active
-          </div>
-          <div className="flex items-center gap-1">
-            {update?.available && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 gap-1 px-2 text-xs text-brand-blue hover:text-brand-blue"
-                aria-label={`Update to ${update.version}`}
-                disabled={installing}
-                onClick={() => {
-                  // On a standard macOS account the download runs here and an
-                  // administrator prompt follows; the button waits meanwhile.
-                  setInstalling(true);
-                  api
-                    .InstallUpdate()
-                    .catch((e) => {
-                      const msg = errorMessage(e);
-                      if (msg !== "cancelled") toast.error(msg);
-                    })
-                    .finally(() => setInstalling(false));
-                }}
-              >
-                {installing ? <Loader2 className="size-3.5 animate-spin" /> : <ArrowUpCircle className="size-3.5" />}{" "}
-                Update
-              </Button>
-            )}
-            <DevTools />
-            <HelpMenu onAbout={() => setDialog({ kind: "settings", tab: "about" })} />
-            <span className="relative">
-              {held && <Key className="absolute -top-7 right-0 h-5 text-[10px]">{combo("/")}</Key>}
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Keyboard shortcuts"
-                onClick={() => setDialog({ kind: "shortcuts" })}
-              >
-                <Keyboard className="size-4" />
-              </Button>
-            </span>
-            <span className="relative">
-              {held && <Key className="absolute -top-7 right-0 h-5 text-[10px]">{combo(",")}</Key>}
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Settings"
-                onClick={() => setDialog({ kind: "settings" })}
-              >
-                <SettingsIcon className="size-4" />
-              </Button>
-            </span>
-          </div>
-        </div>
-        {/* Drag the edge to resize the sidebar; double-click puts it back. */}
-        <span
-          role="separator"
-          aria-orientation="vertical"
-          aria-label="Resize sidebar"
-          aria-valuenow={sidebarWidth}
-          aria-valuemin={SIDEBAR_MIN}
-          aria-valuemax={SIDEBAR_MAX}
-          onDoubleClick={() => setSidebarWidth(SIDEBAR_DEFAULT)}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            const startX = e.clientX;
-            const startW = sidebarWidth;
-            const move = (ev: MouseEvent) =>
-              setSidebarWidth(Math.max(SIDEBAR_MIN, Math.min(SIDEBAR_MAX, startW + ev.clientX - startX)));
-            const up = () => {
-              window.removeEventListener("mousemove", move);
-              window.removeEventListener("mouseup", up);
-            };
-            window.addEventListener("mousemove", move);
-            window.addEventListener("mouseup", up);
-          }}
-          className="no-drag absolute inset-y-0 -right-1 z-10 w-2 cursor-col-resize select-none border-r border-transparent hover:border-border active:border-ring"
-        />
-      </aside>
+          {/* Drag the edge to resize the sidebar; double-click puts it back. */}
+          <span
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize sidebar"
+            aria-valuenow={sidebarWidth}
+            aria-valuemin={SIDEBAR_MIN}
+            aria-valuemax={SIDEBAR_MAX}
+            onDoubleClick={() => setSidebarWidth(SIDEBAR_DEFAULT)}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              const startX = e.clientX;
+              const startW = sidebarWidth;
+              const move = (ev: MouseEvent) =>
+                setSidebarWidth(Math.max(SIDEBAR_MIN, Math.min(SIDEBAR_MAX, startW + ev.clientX - startX)));
+              const up = () => {
+                window.removeEventListener("mousemove", move);
+                window.removeEventListener("mouseup", up);
+              };
+              window.addEventListener("mousemove", move);
+              window.addEventListener("mouseup", up);
+            }}
+            className="no-drag absolute inset-y-0 -right-1 z-10 w-2 cursor-col-resize select-none border-r border-transparent hover:border-border active:border-ring"
+          />
+        </aside>
+      )}
 
       <section className="flex min-w-0 flex-1 flex-col">
-        <header className="drag flex h-14 items-center gap-3 border-b px-5 pt-2">
+        {/* With the sidebar away the header starts under the macOS traffic lights,
+            which end near x=70. The padding clears them with the same gap the
+            toolbar keeps between its own buttons. */}
+        <header
+          className={cn("drag flex h-14 items-center gap-3 border-b px-5 pt-2", sidebarHidden && isMac && "pl-24")}
+        >
+          <span className="no-drag relative">
+            {/* The header meets the window's top edge, so the badge hangs below the button. */}
+            {held && (
+              <Key className="absolute -bottom-6 left-1/2 z-10 h-5 -translate-x-1/2 text-[10px]">{combo("\\")}</Key>
+            )}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label={sidebarHidden ? "Show sidebar" : "Hide sidebar"}
+              aria-pressed={!sidebarHidden}
+              onClick={() => setSidebarHidden((h) => !h)}
+            >
+              <PanelLeft className="size-4" />
+            </Button>
+          </span>
+          <Button
+            variant={filtersOpen ? "secondary" : "ghost"}
+            size="icon-sm"
+            className="no-drag relative"
+            aria-label="Filters"
+            aria-pressed={filtersOpen}
+            onClick={toggleFilters}
+          >
+            <ListFilter className="size-4" />
+            {refineCount(refine) > 0 && (
+              <span aria-hidden className="absolute right-1 top-1 size-1.5 rounded-full bg-brand-blue" />
+            )}
+          </Button>
           <div className="no-drag relative max-w-sm flex-1">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -833,7 +908,28 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          {/* The sidebar footer holds Settings; with the sidebar away the header takes it. */}
+          {sidebarHidden && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="no-drag"
+              aria-label="Settings"
+              onClick={() => setDialog({ kind: "settings" })}
+            >
+              <SettingsIcon className="size-4" />
+            </Button>
+          )}
         </header>
+        {filtersOpen && (
+          <FilterBar
+            sessions={refinable}
+            integrations={workspace.integrations}
+            tags={tags}
+            value={refine}
+            onChange={setRefine}
+          />
+        )}
 
         {/* The scroll box stays put. Between two lists the table stays mounted
             and only rows that change fade, so the header holds still. An empty

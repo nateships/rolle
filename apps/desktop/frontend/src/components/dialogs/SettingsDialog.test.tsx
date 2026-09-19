@@ -147,6 +147,18 @@ describe("SettingsDialog", () => {
     await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ dockBadgeOff: true })));
   });
 
+  it("writes the session list switches, with grouping stored inverted", async () => {
+    const user = userEvent.setup();
+    await open();
+    await tab(user, "Appearance");
+    await user.click(screen.getByRole("switch", { name: "Compact rows" }));
+    await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ compact: true })));
+    const group = screen.getByRole("switch", { name: "Group roles by account" });
+    expect(group).toBeChecked();
+    await user.click(group);
+    await waitFor(() => expect(update).toHaveBeenCalledWith(expect.objectContaining({ flatList: true })));
+  });
+
   it("applies and saves the theme", async () => {
     const user = userEvent.setup();
     await open();

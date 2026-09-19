@@ -324,6 +324,24 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
                   />
                 </Row>
               )}
+              <p className="pt-2 text-xs font-medium text-muted-foreground">Session list</p>
+              <Row label="Compact rows" hint="One line per session, with less padding.">
+                <Switch
+                  aria-label="Compact rows"
+                  checked={!!settings.compact}
+                  onCheckedChange={(v) => update({ compact: v })}
+                />
+              </Row>
+              <Row
+                label="Group roles by account"
+                hint="AWS Identity Center roles sit under an account row. Off lists each role on its own."
+              >
+                <Switch
+                  aria-label="Group roles by account"
+                  checked={!settings.flatList}
+                  onCheckedChange={(v) => update({ flatList: !v })}
+                />
+              </Row>
               <p className="pt-2 text-xs font-medium text-muted-foreground">Sidebar sections</p>
               {SIDEBAR_SECTIONS.map(([key, label]) => (
                 <Row key={key} label={label}>

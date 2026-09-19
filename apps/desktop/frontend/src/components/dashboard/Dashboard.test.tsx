@@ -211,6 +211,46 @@ describe("Dashboard", () => {
     expect(screen.getByText("Nothing matches")).toBeInTheDocument();
   });
 
+  it("hides the sidebar from the header button and the keyboard, and remembers it", async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+    expect(screen.getByRole("separator", { name: "Resize sidebar" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Hide sidebar" }));
+    expect(screen.queryByRole("separator", { name: "Resize sidebar" })).not.toBeInTheDocument();
+    expect(localStorage.getItem("rolle.sidebar.hidden")).toBe("1");
+    // The header takes over Settings while the sidebar footer is away.
+    expect(screen.getByRole("button", { name: "Settings" }).closest("header")).not.toBeNull();
+    fireEvent.keyDown(window, { key: "\\", metaKey: true });
+    expect(screen.getByRole("separator", { name: "Resize sidebar" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Show sidebar" })).not.toBeInTheDocument();
+    expect(localStorage.getItem("rolle.sidebar.hidden")).toBe("0");
+  });
+
+  it("narrows rows with the filter chips and drops the picks when the row closes", async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+    expect(screen.queryByRole("toolbar", { name: "Filters" })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Filters" }));
+    await user.click(screen.getByRole("button", { name: "Filter by region" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: "eu-west-1" }));
+    // The open menu hides the page from assistive tech; close it before reading the table.
+    await user.keyboard("{Escape}");
+    expect(rowNames()).toEqual(["prod-admin"]);
+    // The chip names its one pick.
+    expect(screen.getByRole("button", { name: "Filter by region" })).toHaveTextContent("eu-west-1");
+    await user.click(screen.getByRole("button", { name: "Clear" }));
+    // Eight sessions and two account rows.
+    expect(rowNames()).toHaveLength(10);
+    await user.click(screen.getByRole("button", { name: "Filter by cloud" }));
+    await user.click(await screen.findByRole("menuitemcheckbox", { name: "Google Cloud" }));
+    await user.keyboard("{Escape}");
+    expect(rowNames()).toEqual(["data-platform", "deployer"]);
+    // Closing the row shows every session again.
+    await user.click(screen.getByRole("button", { name: "Filters" }));
+    expect(screen.queryByRole("toolbar", { name: "Filters" })).not.toBeInTheDocument();
+    expect(rowNames()).toHaveLength(10);
+  });
+
   it("reads the initial filter from the query string", async () => {
     window.history.replaceState({}, "", "/?view=dashboard&filter=favorites");
     renderDashboard();

@@ -3,13 +3,17 @@ title: Dashboard
 description: The session table, favorites, filters, and row actions.
 ---
 
-The sidebar filters the table: **All sessions**, **Active**, **Favorites**, one entry per tag, one entry per integration, **Users** and **Assumed roles** under **AWS IAM**, and **Hidden** last. **Settings → Appearance** hides cloud sections. A dot next to an integration shows its sign-in state. Hover it for the label.
+The sidebar filters the table: **All sessions**, **Active**, **Favorites**, one entry per tag, one entry per integration, **Users** and **Assumed roles** under **AWS IAM**, and **Hidden** last. **Settings → Appearance** hides cloud sections. A dot next to an integration shows its sign-in state. Hover it for the label. The panel button at the left of the header, or ⌘\, hides the sidebar and brings it back; the header then holds the Settings button.
+
+## Filters
+
+The filter button next to the search box opens a row of chips: **Cloud**, **Integration**, **Type**, **Region**, **Tag**, and **State**. Each chip lists the values among the sessions the sidebar shows; pick any number. A chip with a pick shows it, or a count. The chips narrow what the sidebar and the search let through. **Clear** drops every pick, and so does closing the row. A chip whose values cannot narrow the table, such as **Region** when every session is in one region, stays out.
 
 ![The session table with account groups, tags, the AWS IAM section, and two active sessions](/screenshots/dashboard-dark.png)
 
 ## Session table
 
-Sessions sort by provider (AWS, Azure, Google Cloud), then by name. Identity Center roles group under their account. Click the account row to collapse or expand it. Drag the edge of the **Profile**, **Region**, or **State** header to resize the column.
+Sessions sort by provider (AWS, Azure, Google Cloud), then by name. Identity Center roles group under their account. Click the account row to collapse or expand it. Drag the edge of the **Profile**, **Region**, or **State** header to resize the column. Right-click the header row to show or hide those three columns. **Settings → Appearance** has **Compact rows** for one line per session and **Group roles by account** to list every role on its own row instead.
 
 Each row shows the profile name and region (click to change), the state with a countdown, and actions. A session that ran out on its own reads **Expired** with the time since, in amber, until you start it again or stop it:
 
@@ -51,5 +55,6 @@ Hold ⌘ (Ctrl on Windows and Linux) to show each shortcut as a badge next to it
 | Search sessions | ⌘F | Ctrl+F |
 | Import from this machine | ⌘I | Ctrl+I |
 | Sidebar filters, top to bottom | ⌘1 to ⌘9 | Ctrl+1 to Ctrl+9 |
+| Show or hide the sidebar | ⌘\ | Ctrl+\ |
 | Clear the search, close a dialog | Esc | Esc |
 | Keyboard shortcuts | ⌘/ | Ctrl+/ |

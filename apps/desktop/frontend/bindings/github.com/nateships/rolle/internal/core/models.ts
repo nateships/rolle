@@ -330,6 +330,17 @@ export interface Settings {
      * aws-sso, aws-iam, azure, gcp. Their sessions still show under All.
      */
     "hiddenSections"?: string[] | null;
+
+    /**
+     * Compact draws each session on one line with less padding.
+     */
+    "compact"?: boolean;
+
+    /**
+     * FlatList puts every AWS Identity Center role on its own row instead of
+     * under an account row.
+     */
+    "flatList"?: boolean;
 }
 
 /**
