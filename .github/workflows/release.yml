@@ -18,8 +18,8 @@ permissions: {}
 # Flow: every desktop runner builds and signs its own package and stores it as
 # a workflow artifact. The manifest job signs the update manifest over those
 # files. The publish job then downloads everything and goreleaser creates the
-# GitHub release in one step, with the CLI archives, the desktop packages, the
-# manifest, and the notes. Nothing is uploaded to GitHub before that point, and
+# GitHub release in one step, with the desktop packages, the manifest, and the
+# notes. Nothing is uploaded to GitHub before that point, and
 # the draft that release-please made stays a draft until goreleaser fills it
 # and publishes it.
 
@@ -221,8 +221,8 @@ jobs:
           if-no-files-found: error
           path: notes.md
 
-  # Builds the CLI archives, then creates the GitHub release with every desktop
-  # package and the manifest attached.
+  # Creates the GitHub release with every desktop package and the manifest
+  # attached.
   publish:
     needs: manifest
     runs-on: ubuntu-latest
@@ -233,7 +233,7 @@ jobs:
       id-token: write
       attestations: write
     env:
-      # goreleaser builds the CLI with plain go; wails3 is not needed here.
+      # goreleaser builds nothing here; wails3 is not needed.
       MISE_DISABLE_TOOLS: go:github.com/wailsapp/wails/v3/cmd/wails3
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -268,12 +268,8 @@ jobs:
           # not pick the other one.
           GORELEASER_CURRENT_TAG: ${{ github.ref_name }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # The post-build hook signs the Windows command with ssign when
-          # these are set. See scripts/sign-windows.sh.
-          CERTUM_EMAIL: ${{ secrets.CERTUM_EMAIL }}
-          CERTUM_OTP: ${{ secrets.CERTUM_OTP }}
-      # Build provenance for every file in checksums.txt: the CLI archives,
-      # the desktop packages, and the manifest. Users verify with
+      # Build provenance for every file in checksums.txt: the desktop
+      # packages and the manifest. Users verify with
       # gh attestation verify <file> --repo nateships/rolle.
       - name: Attest the release assets
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2

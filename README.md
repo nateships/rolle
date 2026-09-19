@@ -39,7 +39,7 @@ rolle imports what your machine has: Identity Center portals from the AWS CLI an
 brew install --cask nateships/tap/rolle
 ```
 
-The cask installs the app and the `rolle` command. Windows and Linux builds and CLI archives are on the [releases page](https://github.com/nateships/rolle/releases). Docs: [getrolle.com](https://getrolle.com).
+The cask installs the app and the `rolle` command. Windows and Linux builds are on the [releases page](https://github.com/nateships/rolle/releases). Docs: [getrolle.com](https://getrolle.com).
 
 ## CLI
 

@@ -37,7 +37,7 @@ rolle verifies TLS against the OS trust store: the macOS Keychain, the Windows c
 
 ## Signed updates
 
-An Ed25519 key signs every release manifest. The desktop app verifies the signature before it installs an update. A Developer ID certificate signs the macOS builds, and Apple notarizes them. A Certum code signing certificate signs the Windows installer, app, and command with an Authenticode signature and an RFC 3161 timestamp; the key stays in Certum's cloud HSM, and the release workflow signs through [ssign](https://github.com/Le-Syl21/ssign). `checksums.txt` lists every release asset, CLI archives and desktop packages, and carries a keyless Sigstore signature from the release workflow. [Install](/install#cli-archives) shows the check.
+An Ed25519 key signs every release manifest. The desktop app verifies the signature before it installs an update. A Developer ID certificate signs the macOS builds, and Apple notarizes them. A Certum code signing certificate signs the Windows installer, app, and command with an Authenticode signature and an RFC 3161 timestamp; the key stays in Certum's cloud HSM, and the release workflow signs through [ssign](https://github.com/Le-Syl21/ssign). `checksums.txt` lists every release asset and carries a keyless Sigstore signature from the release workflow. [Install](/install#verify-a-download) shows the check.
 
 ## Build provenance
 
@@ -51,14 +51,14 @@ A pass means `.github/workflows/release.yml` in this repository built the file a
 
 ## Reproducible builds
 
-The CLI archives are built with `-trimpath -buildvcs=false` and without cgo. The same source, toolchain, and flags give a byte-identical binary. The copy inside the desktop app is built the same way. To check a release: clone the tag, use the Go version that `go version -m rolle` prints for the released binary, and build.
+The `rolle` command inside every desktop package is built with `-trimpath -buildvcs=false` and without cgo. The same source, toolchain, and flags give a byte-identical binary. To check a release: install the app, clone the tag, use the Go version that `go version -m rolle` prints for the installed command, and build.
 
 ```sh
 git clone --branch v<version> https://github.com/nateships/rolle && cd rolle
 CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false \
   -ldflags "-s -w -X github.com/nateships/rolle/internal/version.Version=<version>" \
   -o rolle-rebuilt ./cmd/rolle
-sha256sum rolle-rebuilt rolle   # rolle from the release archive
+sha256sum rolle-rebuilt rolle   # rolle from the desktop package
 ```
 
 The two hashes match. The Windows command carries an Authenticode signature, which changes its bytes: strip it first with `osslsigncode remove-signature -in rolle.exe -out rolle-unsigned.exe`, then compare. The desktop packages are signed, and on macOS notarized. They do not compare byte for byte. For those, the provenance attestation links to the source.

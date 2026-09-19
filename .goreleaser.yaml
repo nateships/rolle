@@ -1,44 +1,17 @@
 version: 2
 project_name: rolle
 
+# goreleaser builds nothing here. The desktop packages carry the rolle
+# command, and the release workflow builds them on their own runners. This
+# file exists for the checksum file, its signature, and the release itself.
 builds:
-  - id: rolle
-    main: ./cmd/rolle
-    binary: rolle
-    env: [CGO_ENABLED=0]
-    # -trimpath keeps the builder's paths out of the binary and -buildvcs=false
-    # keeps the checkout state out, so a build of the same tag with the same
-    # toolchain is byte for byte identical, and the same as the command the
-    # desktop app carries. The docs security page gives the recipe.
-    flags: [-trimpath, -buildvcs=false]
-    goos: [darwin, linux, windows]
-    goarch: [amd64, arm64]
-    ldflags:
-      - -s -w -X github.com/nateships/rolle/internal/version.Version={{.Version}}
-    hooks:
-      post:
-        # Authenticode signature on the Windows command, with the Certum
-        # SimplySign certificate through ssign. A run without the Certum
-        # secrets ships it unsigned. The signature changes the bytes, so a
-        # rebuild compares to a Windows binary only with the signature removed.
-        - cmd: sh scripts/sign-windows.sh "{{ .Target }}" "{{ .Path }}"
-          output: true
-
-archives:
-  - id: rolle
-    formats: [tar.gz]
-    format_overrides:
-      - goos: windows
-        formats: [zip]
-    # rolle-cli_ marks these as the command alone; the app payloads the
-    # updater installs are the rolle-update-* zips.
-    name_template: "{{ .ProjectName }}-cli_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+  - skip: true
 
 checksum:
   name_template: checksums.txt
-  # The desktop packages and the update manifest join the CLI archives in
-  # the checksum file, so one signature and one provenance attestation over
-  # checksums.txt cover every release asset.
+  # The desktop packages and the update manifest are the release assets, so
+  # one signature and one provenance attestation over checksums.txt cover
+  # every one of them.
   extra_files:
     - glob: release-assets/*
 
