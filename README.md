@@ -54,11 +54,52 @@ aws sts get-caller-identity --profile default
 
 ## Support
 
-Open an [issue](https://github.com/nateships/rolle/issues/new/choose). In the app, **Help → Report a problem** fills in your version and platform, and **Support bundle** writes a redacted zip to attach.
+Open an [issue](https://github.com/nateships/rolle/issues/new/choose). In the app, **Help → Report a problem** fills in your version and platform, and **Support bundle** writes a redacted zip to attach. It redacts account ids, emails, hosts, and secrets.
+
+For a security problem, do not open an issue. Use [private vulnerability reporting](https://github.com/nateships/rolle/security/advisories/new). The [security policy](https://github.com/nateships/.github/blob/main/SECURITY.md) says what to include and what to expect. [Security model](https://getrolle.com/docs/security) describes what the project does today.
 
 ## Contributing
 
-[CONTRIBUTING.md](CONTRIBUTING.md): setup, tasks, the commit convention, releases, and the repository layout.
+The [contributing guide](https://github.com/nateships/.github/blob/main/CONTRIBUTING.md) covers the commit convention, pull requests, and releases. The rest is specific to this repository.
+
+### Setup
+
+```sh
+mise install
+mise run setup          # frontend deps and git hooks
+```
+
+Tools come from [mise](https://mise.jdx.dev). Frontend and docs packages use [aube](https://aube.sh).
+
+### Tasks
+
+```sh
+mise run check              # go vet, lint, tests
+mise run check:frontend     # typecheck, lint, format, tests
+mise run hooks              # every pre-commit hook on the whole tree
+mise run desktop            # the desktop app in dev mode
+mise run desktop:demo       # the same, on fictional data
+mise run cli -- <args>      # the CLI from source, for example: mise run cli -- integration list
+mise run capabilities:check # compare the Go capability graph with capslock.json; mise run capabilities rewrites it
+mise run docs               # serve the docs site
+mise run reset              # wipe the local workspace, secrets, cache, and AWS profiles
+```
+
+`ROLLE_DEBUG=1`, or `rolle --debug`, prints verbose diagnostics.
+
+### Layout
+
+- `internal/core`: domain model (integrations, sessions, credentials, workspace)
+- `internal/app`: application layer shared by the CLI and the desktop app
+- `internal/aws`, `internal/azure`, `internal/gcp`: cloud providers
+- `internal/discover`: import sources (AWS CLI, Granted, az CLI, gcloud, Leapp)
+- `internal/awsconfig`, `internal/credcache`, `internal/secrets`, `internal/workspace`: storage
+- `internal/terminal`: opens a terminal with a session's environment
+- `cmd/rolle`: CLI
+- `apps/desktop`: Wails v3 desktop app (React, Tailwind v4, shadcn/ui)
+- `docs`: the docs site for getrolle.com (Blume); `docs/brand` holds the brand kit
+
+Read [docs/brand/README.md](docs/brand/README.md) before you change logos, app icons, typography, or brand colors.
 
 ## License
 
