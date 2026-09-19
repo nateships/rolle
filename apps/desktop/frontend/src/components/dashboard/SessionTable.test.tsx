@@ -170,7 +170,7 @@ describe("SessionTable appearance", () => {
     localStorage.setItem("rolle.sort", JSON.stringify({ sort: { key: "profile", dir: "asc" } }));
     const { container } = renderTable([session({ name: "alpha", aws: { profile: "zed" } as Session["aws"] })]);
     expect(container.querySelectorAll("col")).toHaveLength(6);
-    await user.click(screen.getByRole("button", { name: "Choose columns" }));
+    fireEvent.contextMenu(screen.getByRole("columnheader", { name: /Session/ }));
     await user.click(await screen.findByRole("menuitemcheckbox", { name: "Profile" }));
     // The open menu hides the page from assistive tech; close it before reading the table.
     await user.keyboard("{Escape}");

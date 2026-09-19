@@ -1,27 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import {
-  ArrowDown,
-  ArrowUp,
-  ChevronRight,
-  ChevronsDownUp,
-  ChevronsUpDown,
-  Columns3,
-  Copy,
-  Eye,
-  EyeOff,
-} from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronRight, ChevronsDownUp, ChevronsUpDown, Copy, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  ContextMenu,
+  ContextMenuCheckboxItem,
+  ContextMenuContent,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { ActionItems, type Action } from "@/components/ActionMenu";
 import { copyText } from "@/lib/clipboard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -310,51 +298,40 @@ export function SessionTable({
           <col style={{ width: 184 }} />
         </colgroup>
         <TableHeader>
-          <TableRow className="hover:bg-transparent">
-            <TableHead />
-            <TableHead aria-sort={ariaSort("session")} className="relative">
-              {sortButton("session")}
-              {shown.length > 0 ? resizer(shown[0]) : divider}
-            </TableHead>
-            {shown.map((k, i) => (
-              <TableHead key={k} aria-sort={ariaSort(k)} className="relative">
-                {sortButton(k)}
-                {i + 1 < shown.length ? resizer(shown[i + 1], k) : divider}
-              </TableHead>
-            ))}
-            <TableHead className="text-right">
-              <span className="inline-flex items-center gap-1">
-                Actions
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon-xs"
-                      className="text-muted-foreground"
-                      aria-label="Choose columns"
-                    >
-                      <Columns3 className="size-3.5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="min-w-40">
-                    <DropdownMenuLabel>Columns</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    {COLUMN_KEYS.map((k) => (
-                      <DropdownMenuCheckboxItem
-                        key={k}
-                        checked={columns[k]}
-                        onCheckedChange={(on) => showColumn(k, on)}
-                        // The menu stays open, so several columns toggle in one go.
-                        onSelect={(e) => e.preventDefault()}
-                      >
-                        {COLUMN_LABELS[k]}
-                      </DropdownMenuCheckboxItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </span>
-            </TableHead>
-          </TableRow>
+          {/* Right-click the header row to choose the columns. */}
+          <ContextMenu>
+            <ContextMenuTrigger asChild>
+              <TableRow className="hover:bg-transparent">
+                <TableHead />
+                <TableHead aria-sort={ariaSort("session")} className="relative">
+                  {sortButton("session")}
+                  {shown.length > 0 ? resizer(shown[0]) : divider}
+                </TableHead>
+                {shown.map((k, i) => (
+                  <TableHead key={k} aria-sort={ariaSort(k)} className="relative">
+                    {sortButton(k)}
+                    {i + 1 < shown.length ? resizer(shown[i + 1], k) : divider}
+                  </TableHead>
+                ))}
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </ContextMenuTrigger>
+            <ContextMenuContent className="min-w-40">
+              <ContextMenuLabel>Columns</ContextMenuLabel>
+              <ContextMenuSeparator />
+              {COLUMN_KEYS.map((k) => (
+                <ContextMenuCheckboxItem
+                  key={k}
+                  checked={columns[k]}
+                  onCheckedChange={(on) => showColumn(k, on)}
+                  // The menu stays open, so several columns toggle in one go.
+                  onSelect={(e) => e.preventDefault()}
+                >
+                  {COLUMN_LABELS[k]}
+                </ContextMenuCheckboxItem>
+              ))}
+            </ContextMenuContent>
+          </ContextMenu>
         </TableHeader>
         <TableBody>
           {rows.flatMap((r) => {
