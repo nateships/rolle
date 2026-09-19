@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.1](https://github.com/nateships/rolle/compare/v0.11.0...v0.11.1) (2026-09-19)
+
+
+### Bug Fixes
+
+* **desktop:** let the Expired badge decay to Inactive after an hour ([#155](https://github.com/nateships/rolle/issues/155)) ([175553f](https://github.com/nateships/rolle/commit/175553f9b4304140d0be279b6faa1ba4c7c19e54))
+
 ## [0.11.0](https://github.com/nateships/rolle/compare/v0.10.0...v0.11.0) (2026-09-19)
 
 
