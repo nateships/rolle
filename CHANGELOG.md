@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/nateships/rolle/compare/v0.10.0...v0.11.0) (2026-09-19)
+
+
+### Features
+
+* **desktop:** add sidebar toggle, filter chips, column picker, and list settings ([#152](https://github.com/nateships/rolle/issues/152)) ([c12f7c0](https://github.com/nateships/rolle/commit/c12f7c08322bbecc186d17030e2287958d3d37c1))
+
 ## [0.10.0](https://github.com/nateships/rolle/compare/v0.9.0...v0.10.0) (2026-09-18)
 
 
