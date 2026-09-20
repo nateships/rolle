@@ -18,6 +18,13 @@ func hideWindow(*exec.Cmd)          {}
 // userLookPath resolves file the way the user's terminal does. An app opened
 // from Finder or a launcher gets the system PATH, which leaves out Homebrew
 // and ~/.local/bin, so when that PATH has no answer the login shell gives one.
+//
+// The shell is a login shell, not an interactive one. The rc file that -i
+// reads starts completions, plugins, and daemons (1Password's `op daemon`
+// is one), and every process it leaves behind stays in this app's process
+// coalition. macOS then shows the app as "Running in Background" after it
+// quits. The profile that -l reads is where Homebrew and most installers
+// put PATH.
 func userLookPath(file string) (string, error) {
 	if p, err := exec.LookPath(file); err == nil {
 		return p, nil
@@ -28,8 +35,7 @@ func userLookPath(file string) (string, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	// -i reads the rc file, where PATH usually grows; -l the profile.
-	out, err := exec.CommandContext(ctx, shell, "-ilc", "command -v "+file).Output()
+	out, err := exec.CommandContext(ctx, shell, "-lc", "command -v "+file).Output()
 	if err != nil {
 		return "", err
 	}
