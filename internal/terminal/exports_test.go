@@ -152,10 +152,22 @@ func TestDetectDarwinHonoursTermProgram(t *testing.T) {
 	}
 	for tp, want := range cases {
 		t.Run(tp, func(t *testing.T) {
+			// The test itself may run inside cmux.
+			t.Setenv("CMUX_BUNDLE_ID", "")
 			t.Setenv("TERM_PROGRAM", tp)
 			if got := detectDarwin(); got != want {
 				t.Fatalf("detectDarwin = %q, want %q", got, want)
 			}
 		})
+	}
+}
+
+// TestDetectDarwinPrefersCmuxOverItsGhostty covers a rolle started from a
+// cmux shell: TERM_PROGRAM says ghostty, but the cmux variable wins.
+func TestDetectDarwinPrefersCmuxOverItsGhostty(t *testing.T) {
+	t.Setenv("TERM_PROGRAM", "ghostty")
+	t.Setenv("CMUX_BUNDLE_ID", "com.cmuxterm.app")
+	if got := detectDarwin(); got != Cmux {
+		t.Fatalf("detectDarwin = %q, want %q", got, Cmux)
 	}
 }

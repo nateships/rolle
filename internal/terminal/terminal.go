@@ -168,9 +168,14 @@ func openCmux(o Options, script string) error {
 
 func appleQuote(s string) string { return `"` + strings.ReplaceAll(s, `"`, `\"`) + `"` }
 
-// detectDarwin picks the terminal named in TERM_PROGRAM, then the first
+// detectDarwin picks the terminal this process runs in, then the first
 // installed app from cmux, Ghostty, iTerm, and Warp, then Terminal.app.
 func detectDarwin() App {
+	// cmux embeds Ghostty and its shells report TERM_PROGRAM=ghostty. Its own
+	// variable tells the two apart.
+	if os.Getenv("CMUX_BUNDLE_ID") != "" {
+		return Cmux
+	}
 	if tp := os.Getenv("TERM_PROGRAM"); tp != "" {
 		switch {
 		case strings.Contains(tp, "iTerm"):
