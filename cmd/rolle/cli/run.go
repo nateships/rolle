@@ -167,14 +167,22 @@ func tokenCmd() *cobra.Command {
 }
 
 func envCmd() *cobra.Command {
-	var powershell bool
+	var powershell, profile bool
 	cmd := &cobra.Command{
 		Use:   "env <session>",
 		Short: "Print credentials as shell exports",
-		Long:  "Print credentials as shell exports. Use with eval \"$(rolle env prod)\".",
-		Args:  cobra.ExactArgs(1),
+		Long: "Print credentials as shell exports. Use with eval \"$(rolle env prod)\". " +
+			"--profile exports the AWS profile and region of an AWS session instead of its credentials, " +
+			"so the shell renews through credential_process; other clouds export their tokens either way.",
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			env, err := svc.SessionEnv(cmd.Context(), args[0])
+			var env [][2]string
+			var err error
+			if profile {
+				env, err = svc.TerminalEnv(cmd.Context(), args[0])
+			} else {
+				env, err = svc.SessionEnv(cmd.Context(), args[0])
+			}
 			if err != nil {
 				return err
 			}
@@ -183,6 +191,7 @@ func envCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&powershell, "powershell", false, "emit PowerShell syntax")
+	cmd.Flags().BoolVar(&profile, "profile", false, "for AWS, export the profile and region instead of the credentials")
 	return cmd
 }
 

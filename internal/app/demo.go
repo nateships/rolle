@@ -30,7 +30,7 @@ func Demo() (*Service, error) {
 		Secrets:       &secrets.Memory{},
 		// A short skew keeps the session that expires soon out of renewal,
 		// which has no portal to talk to, until it really ends.
-		Cache: &credcache.Cache{Dir: filepath.Join(dir, "credentials"), Skew: time.Second},
+		Cache: &credcache.Cache{Store: &secrets.Memory{}, Dir: filepath.Join(dir, "credentials"), Skew: time.Second},
 	}
 	w, active := demoWorkspace()
 	if err := workspace.Save(s.WorkspacePath, w); err != nil {

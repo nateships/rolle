@@ -595,9 +595,21 @@ func (s *Service) SessionEnv(ctx context.Context, ref string) ([][2]string, erro
 	return s.EnvVars(sess, creds), nil
 }
 
-// terminalEnv returns what a shell needs for a session. AWS sessions use the
-// profile so no secret is written; Azure and GCP export their short-lived
-// tokens.
+// TerminalEnv returns what a shell needs for a session. AWS sessions use the
+// profile, so the shell renews through credential_process; Azure and GCP
+// export their short-lived tokens.
+func (s *Service) TerminalEnv(ctx context.Context, ref string) ([][2]string, error) {
+	w, err := s.Load()
+	if err != nil {
+		return nil, err
+	}
+	sess, err := FindSession(w, ref)
+	if err != nil {
+		return nil, err
+	}
+	return s.terminalEnv(ctx, w, sess)
+}
+
 func (s *Service) terminalEnv(ctx context.Context, w *core.Workspace, sess *core.Session) ([][2]string, error) {
 	if sess.Kind.Cloud() == core.CloudAWS {
 		vars := [][2]string{{"AWS_PROFILE", ProfileName(sess)}}
@@ -613,7 +625,9 @@ func (s *Service) terminalEnv(ctx context.Context, w *core.Workspace, sess *core
 	return s.EnvVars(sess, creds), nil
 }
 
-// OpenTerminal starts the session if needed and opens a terminal with its environment.
+// OpenTerminal opens a terminal with the session's environment. The launcher
+// asks this executable for the environment when the shell starts, so the
+// credentials are read then and never written to the script.
 func (s *Service) OpenTerminal(ctx context.Context, ref string) error {
 	w, err := s.Load()
 	if err != nil {
@@ -626,13 +640,15 @@ func (s *Service) OpenTerminal(ctx context.Context, ref string) error {
 	if sess.Status != core.StatusActive {
 		return fmt.Errorf("%s: %w", sess.Name, ErrSessionInactive)
 	}
-	env, err := s.terminalEnv(ctx, w, sess)
-	if err != nil {
+	// Fail here, with the reason, rather than in a terminal window that
+	// opens without its environment.
+	if _, err := s.terminalEnv(ctx, w, sess); err != nil {
 		return err
 	}
 	return terminal.Open(terminal.Options{
 		Title: sess.Name,
-		Env:   env,
+		Exec:  s.Executable,
+		Args:  []string{"env", sess.ID, "--profile"},
 		Dir:   filepath.Join(s.Cache.Dir, "launch"),
 		App:   terminal.App(w.EffectiveSettings().Terminal),
 	})

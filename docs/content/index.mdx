@@ -54,7 +54,7 @@ rolle is a desktop app and a CLI. It hands short-lived cloud credentials to your
 | --- | --- | --- |
 | Workspace (integrations, sessions, settings) | `workspace.json` in the config directory | Owner-only file |
 | Refresh tokens and access keys | OS keychain, service `rolle` | Keychain access control |
-| Short-lived credentials | `credentials/` in the cache directory | Owner-only files that expire |
+| Short-lived credentials | OS keychain, service `rolle` | Keychain access control; entries expire and are removed |
 | Impersonated ADC files, which embed the gcloud refresh token | `credentials/gcp/` in the cache directory | Owner-only files, removed when the session stops |
 
 The config directory is the first of:

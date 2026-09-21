@@ -33,7 +33,7 @@ func testrolle(t *testing.T) *RolleService {
 		AWSConfigPath: filepath.Join(dir, "aws", "config"),
 		Executable:    "/opt/rolle",
 		Secrets:       &secrets.Memory{},
-		Cache:         &credcache.Cache{Dir: filepath.Join(dir, "cache")},
+		Cache:         &credcache.Cache{Store: &secrets.Memory{}, Dir: filepath.Join(dir, "cache")},
 	}
 	return NewRolleService(svc)
 }

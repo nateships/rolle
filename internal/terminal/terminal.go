@@ -1,6 +1,7 @@
 // Package terminal opens the user's terminal with a session's environment
 // ready. A short launcher script is written with owner-only permissions and
-// deletes itself as its first action, so nothing lingers on disk.
+// deletes itself as its first action. The script asks rolle for the
+// environment when the shell starts, so it never holds a credential.
 package terminal
 
 import (
@@ -30,8 +31,11 @@ const (
 type Options struct {
 	// Title is shown to the user when the shell starts.
 	Title string
-	// Env is exported before the shell starts. Values are quoted safely.
-	Env [][2]string
+	// Exec and Args name the command that prints the session's environment
+	// as shell exports, such as the rolle executable with "env <session>".
+	// The launcher evals its output. On Windows, --powershell is appended.
+	Exec string
+	Args []string
 	// Dir is where the launcher script is written. Must be private.
 	Dir string
 	// App overrides terminal detection.
@@ -85,12 +89,21 @@ func exports(env [][2]string, powershell, unset bool) string {
 	return b.String()
 }
 
-// posixScript exports the environment, removes itself, and execs a login shell.
+// envCommand is the shell command that prints the environment.
+func envCommand(o Options, quote func(string) string, extra ...string) string {
+	parts := []string{quote(o.Exec)}
+	for _, a := range append(append([]string{}, o.Args...), extra...) {
+		parts = append(parts, quote(a))
+	}
+	return strings.Join(parts, " ")
+}
+
+// posixScript removes itself, evals the environment, and execs a login shell.
 func posixScript(o Options) string {
 	var b strings.Builder
 	b.WriteString("#!/bin/sh\n")
 	b.WriteString("rm -f \"$0\"\n")
-	b.WriteString(Exports(o.Env, false))
+	fmt.Fprintf(&b, "eval \"$(%s)\"\n", envCommand(o, shQuote))
 	fmt.Fprintf(&b, "export ROLLE_SESSION=%s\n", shQuote(o.Title))
 	fmt.Fprintf(&b, "printf '\\033[1mrolle:\\033[0m %%s ready\\n' %s\n", shQuote(o.Title))
 	b.WriteString("exec \"${SHELL:-/bin/sh}\" -l\n")
@@ -197,7 +210,7 @@ func psQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", "''") + 
 func openWindows(o Options) (err error) {
 	var b strings.Builder
 	b.WriteString("Remove-Item -LiteralPath $PSCommandPath -Force\n")
-	b.WriteString(Exports(o.Env, true))
+	fmt.Fprintf(&b, "Invoke-Expression ((& %s) -join \"`n\")\n", envCommand(o, psQuote, "--powershell"))
 	fmt.Fprintf(&b, "$env:ROLLE_SESSION = %s\n", psQuote(o.Title))
 	fmt.Fprintf(&b, "Write-Host ('rolle: ' + %s + ' ready')\n", psQuote(o.Title))
 	path, err := writeScript(o.Dir, "rolle-session-*.ps1", b.String())

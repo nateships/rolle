@@ -6,14 +6,16 @@ import (
 )
 
 func TestPosixScriptQuotesAndSelfDeletes(t *testing.T) {
-	s := posixScript(Options{Title: "Acme Prod/Admin", Env: [][2]string{{"AWS_PROFILE", "Acme-Prod-Admin"}, {"EMPTY", ""}, {"TOKEN", "it's;rm -rf"}}})
-	for _, want := range []string{"#!/bin/sh\n", "rm -f \"$0\"\n", "export AWS_PROFILE='Acme-Prod-Admin'\n", `export TOKEN='it'\''s;rm -rf'`, "printf '\\033[1mrolle:\\033[0m %s ready\\n' 'Acme Prod/Admin'\n", "exec \"${SHELL:-/bin/sh}\" -l\n"} {
+	// The session id is quoted like any argument, so a hostile name cannot
+	// break out of the eval.
+	s := posixScript(Options{Title: "Acme Prod/Admin", Exec: "/Applications/rolle.app/Contents/MacOS/rolle", Args: []string{"env", "it's;rm -rf", "--profile"}})
+	for _, want := range []string{"#!/bin/sh\n", "rm -f \"$0\"\n", `eval "$('/Applications/rolle.app/Contents/MacOS/rolle' 'env' 'it'\''s;rm -rf' '--profile')"` + "\n", "printf '\\033[1mrolle:\\033[0m %s ready\\n' 'Acme Prod/Admin'\n", "exec \"${SHELL:-/bin/sh}\" -l\n"} {
 		if !strings.Contains(s, want) {
 			t.Fatalf("script missing %q:\n%s", want, s)
 		}
 	}
-	if strings.Contains(s, "EMPTY") {
-		t.Fatal("empty values should be skipped")
+	if strings.Contains(s, "export AWS") || strings.Contains(s, "TOKEN") {
+		t.Fatal("the launcher must not carry credentials")
 	}
 }
 

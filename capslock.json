@@ -24,7 +24,7 @@
     {
       "capability": "CAPABILITY_FILES",
       "capabilityName": "FILES",
-      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
       "packageDir": "github.com/nateships/rolle/internal/aws",
       "packageName": "aws"
     },
@@ -136,7 +136,7 @@
     {
       "capability": "CAPABILITY_NETWORK",
       "capabilityName": "NETWORK",
-      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
       "packageDir": "github.com/nateships/rolle/internal/aws",
       "packageName": "aws"
     },
@@ -157,7 +157,7 @@
     {
       "capability": "CAPABILITY_NETWORK",
       "capabilityName": "NETWORK",
-      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/credcache",
       "packageName": "credcache"
     },
@@ -251,6 +251,13 @@
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/azure",
       "packageName": "azure"
+    },
+    {
+      "capability": "CAPABILITY_RUNTIME",
+      "capabilityName": "RUNTIME",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/credcache",
+      "packageName": "credcache"
     },
     {
       "capability": "CAPABILITY_RUNTIME",
@@ -339,7 +346,7 @@
     {
       "capability": "CAPABILITY_READ_SYSTEM_STATE",
       "capabilityName": "READ_SYSTEM_STATE",
-      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/kube",
       "packageName": "kube"
     },
@@ -429,15 +436,15 @@
     },
     {
       "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
-      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
+      "capabilityName": "MODIFY_SYSTEM_STATE/ENV",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/aws",
       "packageName": "aws"
     },
     {
       "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
-      "capabilityName": "MODIFY_SYSTEM_STATE/ENV",
-      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
       "packageDir": "github.com/nateships/rolle/internal/aws",
       "packageName": "aws"
     },
@@ -464,8 +471,15 @@
     },
     {
       "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
+      "capabilityName": "MODIFY_SYSTEM_STATE/ENV",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/credcache",
+      "packageName": "credcache"
+    },
+    {
+      "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
       "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
-      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/credcache",
       "packageName": "credcache"
     },
@@ -492,14 +506,14 @@
     },
     {
       "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
-      "capabilityName": "MODIFY_SYSTEM_STATE/ENV",
+      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/secrets",
       "packageName": "secrets"
     },
     {
       "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
-      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
+      "capabilityName": "MODIFY_SYSTEM_STATE/ENV",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/secrets",
       "packageName": "secrets"
@@ -557,6 +571,13 @@
       "capability": "CAPABILITY_SYSTEM_CALLS",
       "capabilityName": "SYSTEM_CALLS",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/credcache",
+      "packageName": "credcache"
+    },
+    {
+      "capability": "CAPABILITY_SYSTEM_CALLS",
+      "capabilityName": "SYSTEM_CALLS",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/kube",
       "packageName": "kube"
     },
@@ -591,7 +612,7 @@
     {
       "capability": "CAPABILITY_ARBITRARY_EXECUTION",
       "capabilityName": "ARBITRARY_EXECUTION",
-      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
       "packageDir": "github.com/nateships/rolle/internal/aws",
       "packageName": "aws"
     },
@@ -608,6 +629,13 @@
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/azure",
       "packageName": "azure"
+    },
+    {
+      "capability": "CAPABILITY_ARBITRARY_EXECUTION",
+      "capabilityName": "ARBITRARY_EXECUTION",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/credcache",
+      "packageName": "credcache"
     },
     {
       "capability": "CAPABILITY_ARBITRARY_EXECUTION",
@@ -766,7 +794,7 @@
     {
       "capability": "CAPABILITY_UNSAFE_POINTER",
       "capabilityName": "UNSAFE_POINTER",
-      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/credcache",
       "packageName": "credcache"
     },
@@ -857,7 +885,7 @@
     {
       "capability": "CAPABILITY_REFLECT",
       "capabilityName": "REFLECT",
-      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/credcache",
       "packageName": "credcache"
     },
@@ -948,6 +976,13 @@
     {
       "capability": "CAPABILITY_EXEC",
       "capabilityName": "EXEC",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/credcache",
+      "packageName": "credcache"
+    },
+    {
+      "capability": "CAPABILITY_EXEC",
+      "capabilityName": "EXEC",
       "capabilityType": "CAPABILITY_TYPE_DIRECT",
       "packageDir": "github.com/nateships/rolle/internal/discover",
       "packageName": "discover"
@@ -996,11 +1031,11 @@
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2/config",
-      "version": "v1.33.4"
+      "version": "v1.33.5"
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2/credentials",
-      "version": "v1.20.4"
+      "version": "v1.20.5"
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2/feature/ec2/imds",
@@ -1044,7 +1079,7 @@
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2/service/sts",
-      "version": "v1.50.0"
+      "version": "v1.51.0"
     },
     {
       "path": "github.com/aws/smithy-go",
@@ -1083,6 +1118,10 @@
       "version": "v0.2.8"
     },
     {
+      "path": "go.yaml.in/yaml/v3",
+      "version": "v3.0.5"
+    },
+    {
       "path": "golang.org/x/oauth2",
       "version": "v0.37.0"
     },
@@ -1101,10 +1140,6 @@
     {
       "path": "gopkg.in/ini.v1",
       "version": "v1.67.3"
-    },
-    {
-      "path": "gopkg.in/yaml.v3",
-      "version": "v3.0.1"
     }
   ],
   "packageInfo": [
@@ -1607,6 +1642,9 @@
       "path": "github.com/zalando/go-keyring/secret_service"
     },
     {
+      "path": "go.yaml.in/yaml/v3"
+    },
+    {
       "path": "golang.org/x/oauth2"
     },
     {
@@ -1967,9 +2005,6 @@
     },
     {
       "path": "gopkg.in/ini.v1"
-    },
-    {
-      "path": "gopkg.in/yaml.v3"
     }
   ]
 }

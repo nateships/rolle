@@ -27,7 +27,7 @@ func testCLI(t *testing.T) *app.Service {
 		AWSConfigPath: filepath.Join(dir, "aws", "config"),
 		Executable:    "/opt/rolle",
 		Secrets:       &secrets.Memory{},
-		Cache:         &credcache.Cache{Dir: filepath.Join(dir, "cache")},
+		Cache:         &credcache.Cache{Store: &secrets.Memory{}, Dir: filepath.Join(dir, "cache")},
 	}
 	old := newService
 	newService = func() (*app.Service, error) { return s, nil }
@@ -235,6 +235,11 @@ func TestStartStatusStopAndEnv(t *testing.T) {
 	out = mustRun(t, "env", "dev", "--powershell")
 	if !strings.Contains(out, "$env:AWS_ACCESS_KEY_ID = ") || !strings.Contains(out, "Remove-Item Env:AWS_SESSION_TOKEN -ErrorAction SilentlyContinue\n") {
 		t.Fatalf("powershell output:\n%s", out)
+	}
+	// The terminal launcher asks for the profile, so no credential reaches the script.
+	out = mustRun(t, "env", "dev", "--profile")
+	if !strings.Contains(out, "export AWS_PROFILE='default'\n") || !strings.Contains(out, "export AWS_REGION='us-east-1'\n") || strings.Contains(out, "AKIA") || strings.Contains(out, "secret") {
+		t.Fatalf("env --profile output:\n%s", out)
 	}
 	out = mustRun(t, "creds", "--session", reload(t, s, "dev").ID)
 	if !strings.Contains(out, `"Version":1`) || !strings.Contains(out, `"AccessKeyId":"AKIA"`) || !strings.Contains(out, `"Expiration":"`) {

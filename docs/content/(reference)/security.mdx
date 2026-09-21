@@ -9,7 +9,9 @@ Identity Center refresh tokens, console login refresh tokens with their DPoP key
 
 ## Short-lived credentials
 
-A started session caches its temporary credentials in `credentials/` under the cache directory (see [Storage](/#storage)) with owner-only permissions. `credential_process` reads that cache. Each entry carries its expiry. The app renews or removes entries. An IAM user without MFA has no temporary credentials. Its access key stays in the keychain and does not enter the cache.
+A started session caches its temporary credentials in the OS keychain, one entry per session, next to the long-lived secrets. `credential_process` reads that entry. Each entry carries its expiry. The app renews or removes entries, and a stale entry is removed on the next read. No credential is written to disk. An IAM user without MFA has no temporary credentials. Its access key stays in the keychain and does not enter the cache.
+
+**Open terminal** writes a short launcher script under `credentials/launch/` in the cache directory (see [Storage](/#storage)). The script deletes itself as its first action and asks `rolle env` for the environment when the shell starts, so it never holds a credential.
 
 ## AWS profiles
 

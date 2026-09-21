@@ -38,7 +38,7 @@ func scripts(t *testing.T, dir string) []string {
 	return names
 }
 
-var testOpts = Options{Title: "Acme Prod/Admin", Env: [][2]string{{"AWS_PROFILE", "acme"}, {"AWS_REGION", "eu-west-1"}}}
+var testOpts = Options{Title: "Acme Prod/Admin", Exec: "/opt/rolle", Args: []string{"env", "s1", "--profile"}}
 
 func TestOpenLinuxHonoursTerminalVariable(t *testing.T) {
 	term := fakeBin(t, "myterm")
@@ -153,7 +153,7 @@ func TestOpenDarwinWritesCommandScriptWhenOpenSucceeds(t *testing.T) {
 func TestOpenWindowsScriptContent(t *testing.T) {
 	ps := fakeBin(t, "powershell")
 	t.Setenv("PATH", filepath.Dir(ps))
-	o := Options{Title: "it's prod", Env: [][2]string{{"AZURE_TENANT_ID", "t-1"}, {"EMPTY", ""}}, Dir: t.TempDir(), App: PowerShell}
+	o := Options{Title: "it's prod", Exec: "C:\\rolle\\rolle.exe", Args: []string{"env", "s1", "--profile"}, Dir: t.TempDir(), App: PowerShell}
 	if err := openWindows(o); err != nil {
 		t.Fatal(err)
 	}
@@ -164,14 +164,11 @@ func TestOpenWindowsScriptContent(t *testing.T) {
 	body, _ := os.ReadFile(filepath.Join(o.Dir, left[0]))
 	s := string(body)
 	rm := strings.Index(s, "Remove-Item -LiteralPath $PSCommandPath -Force\n")
-	export := strings.Index(s, "$env:AZURE_TENANT_ID = 't-1'\n")
+	export := strings.Index(s, "Invoke-Expression ((& 'C:\\rolle\\rolle.exe' 'env' 's1' '--profile' '--powershell') -join \"`n\")\n")
 	session := strings.Index(s, "$env:ROLLE_SESSION = 'it''s prod'\n")
 	host := strings.Index(s, "Write-Host ('rolle: ' + 'it''s prod' + ' ready')\n")
 	if rm != 0 || export < 0 || session < 0 || host < 0 || export >= session || session >= host {
 		t.Fatalf("script:\n%s", s)
-	}
-	if strings.Contains(s, "EMPTY") {
-		t.Fatal("empty values must be skipped")
 	}
 
 	// Without powershell the script is removed again.
