@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { ExternalLink, Loader2, LogIn } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -287,6 +287,150 @@ export function AddIAMUserDialog({
             }
           }}
         />
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function AddAWSLoginDialog({
+  open,
+  onClose,
+  defaultRegion = "us-east-1",
+}: {
+  open: boolean;
+  onClose: () => void;
+  defaultRegion?: string;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [name, setName] = useState("");
+  const [region, setRegion] = useState(defaultRegion);
+  useEffect(() => {
+    if (!open) {
+      setName("");
+      setRegion(defaultRegion);
+    }
+  }, [open, defaultRegion]);
+  const valid = name.trim() && region.trim();
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add console login</DialogTitle>
+          <DialogDescription>
+            Sign in with your console credentials in the browser, the flow behind <code>aws login</code>. The first
+            start opens the browser; no access key is stored.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          className="space-y-4"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (!valid) return;
+            setBusy(true);
+            try {
+              await api.AddAWSLogin({ name: name.trim(), region: region.trim() });
+              toast.success(`${name.trim()} added`);
+              onClose();
+            } catch (err) {
+              toast.error(errorMessage(err));
+            } finally {
+              setBusy(false);
+            }
+          }}
+        >
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Session name">
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="console" autoFocus />
+            </Field>
+            <Field label="Region" hint="The sign-in region, and the default region for tools">
+              <RegionSelect value={region} onChange={setRegion} />
+            </Field>
+          </div>
+          <Button type="submit" className="w-full gap-2" disabled={!valid || busy}>
+            {busy ? <Loader2 className="size-4 animate-spin" /> : <LogIn className="size-4" />} Add session
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** SessionLoginDialog runs the browser sign-in of a console login session. */
+export function SessionLoginDialog({
+  session,
+  onClose,
+  onDone,
+}: {
+  session: Session | null;
+  onClose: () => void;
+  onDone?: (session: Session) => void;
+}) {
+  const [login, setLogin] = useState<DeviceLogin | null>(null);
+
+  useEffect(() => {
+    if (!session) {
+      setLogin(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const dl = await api.StartSessionLogin(session.id);
+        if (cancelled) return;
+        setLogin(dl);
+        const signed = await api.WaitSessionLogin(session.id);
+        if (cancelled) return;
+        toast.success(`Signed in to ${session.name}`, {
+          description: signed.aws?.accountId ? `Account ${signed.aws.accountId}` : undefined,
+        });
+        onDone?.(signed);
+        onClose();
+      } catch (e) {
+        if (cancelled) return;
+        toast.error(errorMessage(e));
+        onClose();
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.id]);
+
+  const cancel = () => {
+    if (session) void api.CancelSessionLogin(session.id);
+    onClose();
+  };
+
+  return (
+    <Dialog open={!!session} onOpenChange={(o) => !o && cancel()}>
+      <DialogContent className="text-center">
+        <DialogHeader className="items-center">
+          <DialogTitle>Sign in to {session?.name ?? ""}</DialogTitle>
+          <DialogDescription>Sign in with your console credentials in your browser.</DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col items-center gap-4 py-2">
+          <div className="rounded-2xl bg-card p-5">
+            <CloudGlyph cloud="aws" className="size-14 p-2.5" />
+          </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="size-4 animate-spin" /> Waiting for the sign-in…
+          </div>
+          {login && (
+            <div className="flex items-center gap-4">
+              <Button
+                variant="link"
+                className="gap-1 text-muted-foreground"
+                onClick={() => void api.OpenURL(login.verificationUri)}
+              >
+                Reopen the page <ExternalLink className="size-3" />
+              </Button>
+              <Button variant="link" className="text-muted-foreground" onClick={cancel}>
+                Cancel
+              </Button>
+            </div>
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

@@ -47,6 +47,8 @@ type RolleService struct {
 type pendingLogin struct {
 	auth   *aws.DeviceAuthorization
 	cancel context.CancelFunc
+	// ctx is the context Wait runs under. Set while a caller waits.
+	ctx context.Context
 }
 
 // abandon frees the login's listener and unblocks a waiting caller.
@@ -111,9 +113,14 @@ type DeviceLogin struct {
 
 // StartSSOLogin begins the browser sign-in and opens the page. Call WaitSSOLogin next.
 func (r *RolleService) StartSSOLogin(ref string) (DeviceLogin, error) {
+	return r.startLogin(ref, r.svc.SSOLogin)
+}
+
+// startLogin runs begin for ref, records the pending login, and opens the page.
+func (r *RolleService) startLogin(ref string, begin func(context.Context, string) (*aws.DeviceAuthorization, error)) (DeviceLogin, error) {
 	c, cancel := ctx()
 	defer cancel()
-	auth, err := r.svc.SSOLogin(c, ref)
+	auth, err := begin(c, ref)
 	if err != nil {
 		return DeviceLogin{}, err
 	}
@@ -139,32 +146,43 @@ func (r *RolleService) CancelSSOLogin(ref string) {
 	}
 }
 
-// WaitSSOLogin blocks until the user approves, then discovers roles.
-func (r *RolleService) WaitSSOLogin(ref string) ([]core.Session, error) {
+// waitLogin binds the pending login of ref to a context that Cancel can end.
+// The entry stays until release runs, so Cancel can find it and unblock the
+// waiting call through the context.
+func (r *RolleService) waitLogin(ref string) (p *pendingLogin, release func(), err error) {
 	c, cancel := context.WithTimeout(context.Background(), 15*time.Minute)
-	defer cancel()
-	// The entry stays until Wait returns, so Cancel can find it and unblock
-	// this call through the context.
 	r.mu.Lock()
-	p := r.pending[ref]
+	p = r.pending[ref]
 	if p != nil {
 		p.cancel = cancel
+		p.ctx = c
 	}
 	r.mu.Unlock()
 	if p == nil {
-		return nil, fmt.Errorf("no login in progress for %s", ref)
+		cancel()
+		return nil, nil, fmt.Errorf("no login in progress for %s", ref)
 	}
-	defer func() {
+	return p, func() {
+		cancel()
 		r.mu.Lock()
 		if r.pending[ref] == p {
 			delete(r.pending, ref)
 		}
 		r.mu.Unlock()
-	}()
-	if err := p.auth.Wait(c); err != nil {
+	}, nil
+}
+
+// WaitSSOLogin blocks until the user approves, then discovers roles.
+func (r *RolleService) WaitSSOLogin(ref string) ([]core.Session, error) {
+	p, release, err := r.waitLogin(ref)
+	if err != nil {
 		return nil, err
 	}
-	return r.svc.FinishSSOLogin(c, ref)
+	defer release()
+	if err := p.auth.Wait(p.ctx); err != nil {
+		return nil, err
+	}
+	return r.svc.FinishSSOLogin(p.ctx, ref)
 }
 
 // SSOLogout signs out of a portal.
@@ -205,6 +223,39 @@ func (r *RolleService) AddIAMUser(in IAMUserInput) (core.Session, error) {
 		Key: aws.AccessKey{AccessKeyID: in.AccessKeyID, SecretAccessKey: in.SecretAccessKey},
 	})
 }
+
+// AWSLoginInput is the frontend shape for a new console login session.
+type AWSLoginInput struct {
+	Name   string `json:"name"`
+	Region string `json:"region"`
+}
+
+// AddAWSLogin creates a session that signs in with console credentials in the browser.
+func (r *RolleService) AddAWSLogin(in AWSLoginInput) (core.Session, error) {
+	return r.svc.AddAWSLogin(app.AddAWSLoginInput{Name: in.Name, Region: in.Region})
+}
+
+// StartSessionLogin begins the browser sign-in of a console login session and
+// opens the page. Call WaitSessionLogin next, then Start.
+func (r *RolleService) StartSessionLogin(ref string) (DeviceLogin, error) {
+	return r.startLogin(ref, r.svc.AWSLogin)
+}
+
+// WaitSessionLogin blocks until the user approves, then records the account.
+func (r *RolleService) WaitSessionLogin(ref string) (core.Session, error) {
+	p, release, err := r.waitLogin(ref)
+	if err != nil {
+		return core.Session{}, err
+	}
+	defer release()
+	if err := p.auth.Wait(p.ctx); err != nil {
+		return core.Session{}, err
+	}
+	return r.svc.FinishAWSLogin(ref)
+}
+
+// CancelSessionLogin abandons a login that WaitSessionLogin is waiting on.
+func (r *RolleService) CancelSessionLogin(ref string) { r.CancelSSOLogin(ref) }
 
 // RemoveSession deletes a session.
 func (r *RolleService) RemoveSession(ref string) error {

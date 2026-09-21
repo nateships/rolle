@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bufio"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/nateships/rolle/internal/app"
+	"github.com/nateships/rolle/internal/aws"
 	"github.com/nateships/rolle/internal/awsconfig"
 	"github.com/nateships/rolle/internal/browser"
 	"github.com/nateships/rolle/internal/core"
@@ -18,12 +20,20 @@ import (
 
 func startCmd() *cobra.Command {
 	var mfa string
+	var noBrowser bool
 	cmd := &cobra.Command{
 		Use:   "start <session>",
 		Short: "Start a session",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			creds, err := svc.Start(cmd.Context(), args[0], app.StartOptions{MFACode: mfa})
+			// A console login session signs in through the browser first.
+			if errors.Is(err, aws.ErrLoginRequired) {
+				if err = consoleLogin(cmd, args[0], noBrowser); err != nil {
+					return err
+				}
+				creds, err = svc.Start(cmd.Context(), args[0], app.StartOptions{MFACode: mfa})
+			}
 			if errors.Is(err, awsconfig.ErrShadowed) {
 				return fmt.Errorf("%w; tools read those first\nrolle session fix-profile %q removes them", err, args[0])
 			}
@@ -55,7 +65,43 @@ func startCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&mfa, "mfa-code", "", "one-time MFA code")
+	cmd.Flags().BoolVar(&noBrowser, "no-browser", false, "sign in from another device: print the URL and paste the code back")
 	return cmd
+}
+
+// consoleLogin runs the sign-in of a console login session. The prompts go
+// to stderr so --json output stays clean. Without a browser on this host the
+// cross-device flow runs: the page shows a code that the user pastes back.
+func consoleLogin(cmd *cobra.Command, ref string, noBrowser bool) error {
+	if noBrowser {
+		auth, err := svc.AWSRemoteLogin(ref)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(os.Stderr, "Open this page on a device with a browser and sign in:\n%s\n", auth.VerificationURI)
+		fmt.Fprint(os.Stderr, "Enter the authorization code the browser shows: ")
+		code, err := bufio.NewReader(os.Stdin).ReadString('\n')
+		if err != nil && code == "" {
+			return fmt.Errorf("read the authorization code: %w", err)
+		}
+		if err := auth.Complete(cmd.Context(), code); err != nil {
+			return err
+		}
+		_, err = svc.FinishAWSLogin(ref)
+		return err
+	}
+	auth, err := svc.AWSLogin(cmd.Context(), ref)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(os.Stderr, "Approve the sign-in in your browser. If it did not open:\n%s\n", auth.VerificationURI)
+	_ = browser.Open(auth.VerificationURI)
+	fmt.Fprintln(os.Stderr, "Waiting for approval...")
+	if err := auth.Wait(cmd.Context()); err != nil {
+		return err
+	}
+	_, err = svc.FinishAWSLogin(ref)
+	return err
 }
 
 func stopCmd() *cobra.Command {

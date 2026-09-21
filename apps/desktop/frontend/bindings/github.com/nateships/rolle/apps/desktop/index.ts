@@ -7,6 +7,7 @@ export {
 };
 
 export type {
+    AWSLoginInput,
     AppInfo,
     CLIStatus,
     DeviceLogin,

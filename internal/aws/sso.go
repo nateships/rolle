@@ -12,8 +12,6 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"net"
-	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -111,17 +109,18 @@ func (s *SSO) cfg(ctx context.Context) (aws.Config, error) {
 // without typing a code. It falls back to the device flow when no loopback
 // port is available.
 func (s *SSO) StartLogin(ctx context.Context) (*DeviceAuthorization, error) {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	state := randomToken(16)
+	lb, err := listenLoopback(state)
 	if err != nil {
 		return s.StartDeviceLogin(ctx)
 	}
 	cfg, err := s.cfg(ctx)
 	if err != nil {
-		_ = ln.Close()
+		lb.stop()
 		return nil, err
 	}
 	oidc := ssooidc.NewFromConfig(cfg)
-	redirect := "http://" + ln.Addr().String() + redirectPath
+	redirect := lb.redirect
 	reg, err := oidc.RegisterClient(ctx, &ssooidc.RegisterClientInput{
 		ClientName:   aws.String(clientName),
 		ClientType:   aws.String("public"),
@@ -131,75 +130,24 @@ func (s *SSO) StartLogin(ctx context.Context) (*DeviceAuthorization, error) {
 		IssuerUrl:    aws.String(s.Integration.AWSSSO.StartURL),
 	})
 	if err != nil {
-		_ = ln.Close()
+		lb.stop()
 		return nil, fmt.Errorf("register client: %w", err)
 	}
 	verifier := randomToken(32)
-	state := randomToken(16)
-	sum := sha256.Sum256([]byte(verifier))
-	challenge := base64.RawURLEncoding.EncodeToString(sum[:])
+	challenge := pkceChallenge(verifier)
 
-	type callback struct{ code, state, err string }
-	got := make(chan callback, 1)
-	mux := http.NewServeMux()
-	mux.HandleFunc(redirectPath, func(w http.ResponseWriter, r *http.Request) {
-		q := r.URL.Query()
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		// Only the redirect that carries this login's state counts. Anything
-		// else on the loopback port is ignored and does not consume the slot.
-		if q.Get("state") != state {
-			w.WriteHeader(http.StatusBadRequest)
-			_ = callbackPage.Execute(w, callbackView{Class: "err", Title: "This page does not belong to the current sign-in", Text: "You can close this tab and try again from rolle."})
-			return
-		}
-		// A redirect with neither a code nor an error is not an outcome. It
-		// must not take the single slot a real redirect needs.
-		if q.Get("code") == "" && q.Get("error") == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			_ = callbackPage.Execute(w, callbackView{Class: "err", Title: "The sign-in did not complete", Text: "You can close this tab and try again from rolle."})
-			return
-		}
-		view := callbackView{Class: "ok", Title: "Signed in", Text: "You can close this tab and return to rolle."}
-		if q.Get("error") != "" {
-			view = callbackView{Class: "err", Title: "Sign-in was not approved", Text: "You can close this tab and try again from rolle."}
-		}
-		_ = callbackPage.Execute(w, view)
-		// The page is sent before the flow continues, so the tab never sees a dropped connection.
-		select {
-		case got <- callback{code: q.Get("code"), state: q.Get("state"), err: q.Get("error")}:
-		default:
-		}
-	})
-	srv := &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
-	go func() { _ = srv.Serve(ln) }()
-	stop := func() {
-		shutdown, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		defer cancel()
-		_ = srv.Shutdown(shutdown)
-	}
-
-	d := &DeviceAuthorization{VerificationURI: authorizeURL(s.Integration.AWSSSO.Region, aws.ToString(reg.ClientId), redirect, state, challenge), cancel: stop}
+	d := &DeviceAuthorization{VerificationURI: authorizeURL(s.Integration.AWSSSO.Region, aws.ToString(reg.ClientId), redirect, state, challenge), cancel: lb.stop}
 	d.complete = func(ctx context.Context) error {
-		defer stop()
-		var cb callback
-		select {
-		case cb = <-got:
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(10 * time.Minute):
-			return errors.New("aws sso: login timed out")
-		}
-		if cb.err != "" {
-			return fmt.Errorf("aws sso: %s", cb.err)
-		}
-		if cb.state != state || cb.code == "" {
-			return errors.New("aws sso: callback did not match this login")
+		defer lb.stop()
+		code, err := lb.wait(ctx, "aws sso")
+		if err != nil {
+			return err
 		}
 		tok, err := oidc.CreateToken(ctx, &ssooidc.CreateTokenInput{
 			ClientId:     reg.ClientId,
 			ClientSecret: reg.ClientSecret,
 			GrantType:    aws.String("authorization_code"),
-			Code:         aws.String(cb.code),
+			Code:         aws.String(code),
 			CodeVerifier: aws.String(verifier),
 			RedirectUri:  aws.String(redirect),
 		})
@@ -216,6 +164,12 @@ func (s *SSO) StartLogin(ctx context.Context) (*DeviceAuthorization, error) {
 		})
 	}
 	return d, nil
+}
+
+// pkceChallenge is the S256 code challenge for a verifier.
+func pkceChallenge(verifier string) string {
+	sum := sha256.Sum256([]byte(verifier))
+	return base64.RawURLEncoding.EncodeToString(sum[:])
 }
 
 // authorizeURL builds the Identity Center authorization page for the PKCE flow.

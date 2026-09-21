@@ -17,6 +17,7 @@ function renderRow(
     integrations?: Integration[];
     tags?: Tag[];
     onNeedsLogin?: (i: Integration, id?: string) => void;
+    onNeedsSessionLogin?: (s: Session) => void;
     onTagClick?: (tag: string) => void;
     shadows?: Record<string, string | undefined>;
     columns?: React.ComponentProps<typeof SessionRow>["columns"];
@@ -38,6 +39,7 @@ function renderRow(
             workspace={ws}
             columns={opts.columns}
             onNeedsLogin={opts.onNeedsLogin}
+            onNeedsSessionLogin={opts.onNeedsSessionLogin}
             onTagClick={opts.onTagClick}
             shadows={opts.shadows}
           />
@@ -184,6 +186,22 @@ describe("SessionRow actions", () => {
     await user.click(screen.getByRole("button", { name: "Start" }));
 
     await waitFor(() => expect(onNeedsLogin).toHaveBeenCalledWith(acme, s.id));
+    expect(error).not.toHaveBeenCalled();
+  });
+
+  it("hands a console login session to its own sign-in when the backend needs the browser", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "Start").mockRejectedValue(new Error("aws login: login required"));
+    const error = vi.spyOn(toast, "error");
+    const onNeedsLogin = vi.fn();
+    const onNeedsSessionLogin = vi.fn();
+    const s = session({ name: "console", kind: Kind.KindAWSLogin, aws: {} });
+    renderRow(s, { onNeedsLogin, onNeedsSessionLogin });
+
+    await user.click(screen.getByRole("button", { name: "Start" }));
+
+    await waitFor(() => expect(onNeedsSessionLogin).toHaveBeenCalledWith(s));
+    expect(onNeedsLogin).not.toHaveBeenCalled();
     expect(error).not.toHaveBeenCalled();
   });
 

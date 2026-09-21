@@ -10,6 +10,7 @@ func TestKindCloud(t *testing.T) {
 		KindAWSIAMUser:    CloudAWS,
 		KindAWSAssumeRole: CloudAWS,
 		KindAWSSSORole:    CloudAWS,
+		KindAWSLogin:      CloudAWS,
 		KindAzure:         CloudAzure,
 		KindGCP:           CloudGCP,
 		Kind("bogus"):     "",

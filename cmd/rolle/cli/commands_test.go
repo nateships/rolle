@@ -672,3 +672,35 @@ func TestSessionAddIAMUserFromProfile(t *testing.T) {
 		t.Fatalf("missing profile = %v", err)
 	}
 }
+
+func TestSessionAddAWSLogin(t *testing.T) {
+	s := testCLI(t)
+	out := mustRun(t, "session", "add", "aws-login", "--name", "console", "--region", "us-east-1", "--profile", "console")
+	if !strings.HasPrefix(out, "added console (") {
+		t.Fatalf("add output:\n%s", out)
+	}
+	sess := reload(t, s, "console")
+	if sess.Kind != core.KindAWSLogin || sess.Region != "us-east-1" || app.ProfileName(sess) != "console" {
+		t.Fatalf("session = %+v aws = %+v", sess, sess.AWS)
+	}
+	var listed []map[string]any
+	if err := json.Unmarshal([]byte(mustRun(t, "session", "list", "--json")), &listed); err != nil {
+		t.Fatal(err)
+	}
+	if len(listed) != 1 || listed[0]["kind"] != "aws-login" || listed[0]["cloud"] != "aws" || listed[0]["profile"] != "console" {
+		t.Fatalf("session list --json = %v", listed)
+	}
+	if _, err := run(t, "session", "add", "aws-login", "--name", "x"); err == nil || !strings.Contains(err.Error(), `required flag(s) "region"`) {
+		t.Fatalf("missing region = %v", err)
+	}
+	// A console login is a valid source for a role chain.
+	mustRun(t, "session", "add", "assume-role", "--name", "admin", "--role-arn", "arn:aws:iam::123456789012:role/Admin", "--source", "console", "--region", "us-east-1")
+	if got := reload(t, s, "admin"); got.AWS.SourceSessionID != sess.ID {
+		t.Fatalf("source = %q", got.AWS.SourceSessionID)
+	}
+	if _, err := run(t, "session", "remove", "console"); err == nil {
+		t.Fatal("removing a source session must fail")
+	}
+	mustRun(t, "session", "remove", "admin")
+	mustRun(t, "session", "remove", "console")
+}

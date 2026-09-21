@@ -56,6 +56,7 @@ describe("cloudOf", () => {
     expect(cloudOf(Kind.KindAWSSSORole)).toBe("aws");
     expect(cloudOf(Kind.KindAWSAssumeRole)).toBe("aws");
     expect(cloudOf(Kind.KindAWSIAMUser)).toBe("aws");
+    expect(cloudOf(Kind.KindAWSLogin)).toBe("aws");
   });
 
   it("falls back to aws for unknown kinds", () => {
@@ -69,6 +70,7 @@ describe("kindLabel", () => {
     expect(kindLabel[Kind.KindAWSSSORole]).toBe("SSO role");
     expect(kindLabel[Kind.KindAWSAssumeRole]).toBe("Assume role");
     expect(kindLabel[Kind.KindAWSIAMUser]).toBe("IAM user");
+    expect(kindLabel[Kind.KindAWSLogin]).toBe("Console login");
     expect(kindLabel[Kind.KindAzure]).toBe("Azure");
     expect(kindLabel[Kind.KindGCP]).toBe("GCP");
   });
@@ -95,6 +97,13 @@ describe("sessionSubtitle", () => {
   it("shows the role ARN for assume role", () => {
     const s = session({ kind: Kind.KindAWSAssumeRole, aws: { roleArn: "arn:aws:iam::1:role/x" } });
     expect(sessionSubtitle(s)).toBe("arn:aws:iam::1:role/x");
+  });
+
+  it("shows the account and region for a console login once signed in", () => {
+    expect(
+      sessionSubtitle(session({ kind: Kind.KindAWSLogin, region: "us-east-1", aws: { accountId: "123456789012" } })),
+    ).toBe("123456789012 · us-east-1");
+    expect(sessionSubtitle(session({ kind: Kind.KindAWSLogin, region: "us-east-1", aws: {} }))).toBe("us-east-1");
   });
 
   it("falls back to the region for IAM users and sessions without details", () => {

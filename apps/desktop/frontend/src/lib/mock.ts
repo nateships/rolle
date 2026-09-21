@@ -233,6 +233,31 @@ export const mockApi = {
     emit();
     return s;
   },
+  AddAWSLogin: async (v: { name: string; region: string }) => {
+    const s = {
+      id: id(),
+      name: v.name,
+      kind: "aws-login",
+      region: v.region,
+      status: "inactive",
+      aws: {},
+    } as Session;
+    state.sessions.push(s);
+    emit();
+    return s;
+  },
+  StartSessionLogin: async () => {
+    await wait(600);
+    return { verificationUri: "https://us-east-1.oauth.signin.aws/v1/authorize?client_id=mock", userCode: "" };
+  },
+  WaitSessionLogin: async (ref: string) => {
+    await wait(2500);
+    const s = state.sessions.find((x) => x.id === ref)!;
+    s.aws = { ...s.aws, accountId: "123456789012" };
+    emit();
+    return s;
+  },
+  CancelSessionLogin: async () => {},
   ImportIAMUser: async (profile: string) => {
     const s = {
       id: id(),

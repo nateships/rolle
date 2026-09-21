@@ -53,6 +53,7 @@ export function SessionRow({
   nested,
   columns = DEFAULT_COLUMNS,
   onNeedsLogin,
+  onNeedsSessionLogin,
   onTagClick,
   shadows,
 }: {
@@ -62,6 +63,8 @@ export function SessionRow({
   /** The optional columns on show. Every one by default. */
   columns?: Columns;
   onNeedsLogin?: (integration: Integration, startSessionId?: string) => void;
+  /** A console login session needs its browser sign-in before it starts. */
+  onNeedsSessionLogin?: (session: Session) => void;
   /** The name on a tag chip was clicked. */
   onTagClick?: (tag: string) => void;
   /** Profile name to the file whose static keys shadow it. */
@@ -131,7 +134,9 @@ export function SessionRow({
       });
     } catch (e) {
       const msg = errorMessage(e);
-      if (/login required/i.test(msg) && integration && onNeedsLogin) {
+      if (/login required/i.test(msg) && s.kind === Kind.KindAWSLogin && onNeedsSessionLogin) {
+        onNeedsSessionLogin(s);
+      } else if (/login required/i.test(msg) && integration && onNeedsLogin) {
         onNeedsLogin(integration, s.id);
       } else if (/static keys/i.test(msg)) {
         shadowToast(msg);
@@ -176,7 +181,10 @@ export function SessionRow({
 
   const isAWS = cloudOf(s.kind) === "aws";
   // The provider mark already names the cloud; only less common kinds get a badge.
-  const badge = s.kind === Kind.KindAWSAssumeRole || s.kind === Kind.KindAWSIAMUser ? kindLabel[s.kind] : "";
+  const badge =
+    s.kind === Kind.KindAWSAssumeRole || s.kind === Kind.KindAWSIAMUser || s.kind === Kind.KindAWSLogin
+      ? kindLabel[s.kind]
+      : "";
 
   async function copy(kind: "env" | "profile") {
     try {

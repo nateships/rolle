@@ -185,6 +185,8 @@ type TableProps = {
   widths: ColumnWidths;
   onWidths: (w: ColumnWidths) => void;
   onNeedsLogin: (i: Integration, startId?: string) => void;
+  /** A console login session needs its browser sign-in before it starts. */
+  onNeedsSessionLogin?: (s: Session) => void;
   /** A tag chip on a row was clicked; the dashboard filters by it. */
   onTagClick?: (tag: string) => void;
   /** Profile name to the file whose static keys shadow it. */
@@ -198,6 +200,7 @@ export function SessionTable({
   widths,
   onWidths,
   onNeedsLogin,
+  onNeedsSessionLogin,
   onTagClick,
   shadows,
 }: TableProps) {
@@ -343,6 +346,7 @@ export function SessionTable({
                   workspace={workspace}
                   columns={columns}
                   onNeedsLogin={onNeedsLogin}
+                  onNeedsSessionLogin={onNeedsSessionLogin}
                   onTagClick={onTagClick}
                   shadows={shadows}
                 />,
@@ -368,6 +372,7 @@ export function SessionTable({
                     columns={columns}
                     nested
                     onNeedsLogin={onNeedsLogin}
+                    onNeedsSessionLogin={onNeedsSessionLogin}
                     onTagClick={onTagClick}
                     shadows={shadows}
                   />

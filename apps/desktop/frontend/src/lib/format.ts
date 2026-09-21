@@ -15,6 +15,7 @@ export const kindLabel: Record<string, string> = {
   [Kind.KindAWSSSORole]: "SSO role",
   [Kind.KindAWSAssumeRole]: "Assume role",
   [Kind.KindAWSIAMUser]: "IAM user",
+  [Kind.KindAWSLogin]: "Console login",
   [Kind.KindAzure]: "Azure",
   [Kind.KindGCP]: "GCP",
 };
@@ -66,5 +67,7 @@ export function sessionSubtitle(s: Session): string {
   if (!a) return s.region ?? "";
   if (s.kind === Kind.KindAWSSSORole) return `${a.accountId ?? ""} · ${a.roleName ?? ""}`;
   if (s.kind === Kind.KindAWSAssumeRole) return a.roleArn ?? "";
+  // A console login learns its account on the first sign-in.
+  if (s.kind === Kind.KindAWSLogin && a.accountId) return `${a.accountId} · ${s.region ?? ""}`;
   return s.region ?? "";
 }

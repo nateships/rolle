@@ -25,6 +25,13 @@ import * as discover$0 from "../../internal/discover/models.js";
 import * as $models from "./models.js";
 
 /**
+ * AddAWSLogin creates a session that signs in with console credentials in the browser.
+ */
+export function AddAWSLogin($in: $models.AWSLoginInput): $CancellablePromise<core$0.Session> {
+    return $Call.ByID(2299386944, $in);
+}
+
+/**
  * AddAWSSSO registers an IAM Identity Center portal.
  */
 export function AddAWSSSO(alias: string, startURL: string, region: string): $CancellablePromise<core$0.Integration> {
@@ -99,6 +106,13 @@ export function CLIStatus(): $CancellablePromise<$models.CLIStatus> {
  */
 export function CancelSSOLogin(ref: string): $CancellablePromise<void> {
     return $Call.ByID(596805525, ref);
+}
+
+/**
+ * CancelSessionLogin abandons a login that WaitSessionLogin is waiting on.
+ */
+export function CancelSessionLogin(ref: string): $CancellablePromise<void> {
+    return $Call.ByID(1005737096, ref);
 }
 
 /**
@@ -404,6 +418,14 @@ export function StartSSOLogin(ref: string): $CancellablePromise<$models.DeviceLo
 }
 
 /**
+ * StartSessionLogin begins the browser sign-in of a console login session and
+ * opens the page. Call WaitSessionLogin next, then Start.
+ */
+export function StartSessionLogin(ref: string): $CancellablePromise<$models.DeviceLogin> {
+    return $Call.ByID(397862172, ref);
+}
+
+/**
  * StaticProfiles lists the sections of ~/.aws/credentials that hold static
  * keys, with the file's path.
  */
@@ -481,6 +503,13 @@ export function UpdateTag(name: string, tag: core$0.Tag): $CancellablePromise<vo
  */
 export function WaitSSOLogin(ref: string): $CancellablePromise<core$0.Session[] | null> {
     return $Call.ByID(1083657062, ref);
+}
+
+/**
+ * WaitSessionLogin blocks until the user approves, then records the account.
+ */
+export function WaitSessionLogin(ref: string): $CancellablePromise<core$0.Session> {
+    return $Call.ByID(795047007, ref);
 }
 
 /**

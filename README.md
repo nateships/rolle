@@ -24,7 +24,7 @@ Assume any role, any cloud.
 
 rolle is a desktop app and a CLI. It hands short-lived AWS, Azure, and Google Cloud credentials to your tools and writes no secret to disk.
 
-- **AWS.** Sign in to IAM Identity Center once and get every account and role you can reach. Chain `AssumeRole` from any session. Add IAM users, with optional MFA. Each active session is a profile backed by `credential_process` for the AWS CLI and the SDKs.
+- **AWS.** Sign in to IAM Identity Center once and get every account and role you can reach. Chain `AssumeRole` from any session. Add IAM users, with optional MFA, or sign in with console credentials in the browser, the flow behind `aws login`. Each active session is a profile backed by `credential_process` for the AWS CLI and the SDKs.
 - **Azure.** Sign in to an Entra ID tenant. Each subscription is a session that yields Resource Manager tokens.
 - **Google Cloud.** Reuse the credentials `gcloud` has. Each project is a session. Impersonate service accounts.
 - **Desktop app.** Expiry countdowns, favorites, tags, one-click console and terminal, a tray menu, and signed self-updates.

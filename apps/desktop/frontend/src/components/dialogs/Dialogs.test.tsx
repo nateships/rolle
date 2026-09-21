@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { describe, expect, it, vi } from "vitest";
 import {
   AddAssumeRoleDialog,
+  AddAWSLoginDialog,
   AddAzureDialog,
   AddGCPDialog,
   AddGCPImpersonationDialog,
@@ -11,6 +12,7 @@ import {
   AddSSODialog,
   LoginDialog,
   MFADialog,
+  SessionLoginDialog,
 } from "@/components/dialogs/Dialogs";
 import { api, Cloud, Kind, type Session, type Workspace } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
@@ -253,6 +255,86 @@ describe("AddIAMUserDialog", () => {
 
     await waitFor(() => expect(error).toHaveBeenCalledWith("keychain locked"));
     expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+describe("AddAWSLoginDialog", () => {
+  it("adds the session with a name and the default region", async () => {
+    const user = userEvent.setup();
+    const add = vi.spyOn(api, "AddAWSLogin").mockResolvedValue(session({ kind: Kind.KindAWSLogin }));
+    const success = vi.spyOn(toast, "success");
+    const onClose = vi.fn();
+    render(<AddAWSLoginDialog open onClose={onClose} defaultRegion="eu-west-1" />);
+
+    const submit = screen.getByRole("button", { name: "Add session" });
+    expect(submit).toBeDisabled();
+    await user.type(screen.getByPlaceholderText("console"), "console");
+    expect(submit).toBeEnabled();
+    await user.click(submit);
+
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+    expect(add).toHaveBeenCalledWith({ name: "console", region: "eu-west-1" });
+    expect(success).toHaveBeenCalledWith("console added");
+  });
+
+  it("shows a backend error and stays open", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "AddAWSLogin").mockRejectedValue(new Error("name taken"));
+    const error = vi.spyOn(toast, "error");
+    const onClose = vi.fn();
+    render(<AddAWSLoginDialog open onClose={onClose} />);
+
+    await user.type(screen.getByPlaceholderText("console"), "console");
+    await user.click(screen.getByRole("button", { name: "Add session" }));
+
+    await waitFor(() => expect(error).toHaveBeenCalledWith("name taken"));
+    expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+describe("SessionLoginDialog", () => {
+  const console = session({ id: "c1", name: "console", kind: Kind.KindAWSLogin, aws: {} });
+
+  it("opens the sign-in, lets the user reopen the page or cancel", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "StartSessionLogin").mockResolvedValue({ verificationUri: "https://verify", userCode: "" });
+    // Approval never arrives in this test.
+    vi.spyOn(api, "WaitSessionLogin").mockReturnValue(new Promise(() => {}) as never);
+    const open = vi.spyOn(api, "OpenURL").mockResolvedValue();
+    const cancel = vi.spyOn(api, "CancelSessionLogin").mockResolvedValue();
+    const onClose = vi.fn();
+    render(<SessionLoginDialog session={console} onClose={onClose} />);
+
+    expect(screen.getByRole("dialog", { name: "Sign in to console" })).toBeInTheDocument();
+    await user.click(await screen.findByRole("button", { name: /Reopen the page/ }));
+    expect(open).toHaveBeenCalledWith("https://verify");
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(cancel).toHaveBeenCalledWith("c1");
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("reports the account once the sign-in completes", async () => {
+    vi.spyOn(api, "StartSessionLogin").mockResolvedValue({ verificationUri: "https://verify", userCode: "" });
+    const signed = { ...console, aws: { accountId: "123456789012" } } as Session;
+    vi.spyOn(api, "WaitSessionLogin").mockResolvedValue(signed);
+    const success = vi.spyOn(toast, "success");
+    const onClose = vi.fn();
+    const onDone = vi.fn();
+    render(<SessionLoginDialog session={console} onClose={onClose} onDone={onDone} />);
+
+    await waitFor(() => expect(onDone).toHaveBeenCalledWith(signed));
+    expect(success).toHaveBeenCalledWith("Signed in to console", { description: "Account 123456789012" });
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("closes with an error toast when the sign-in fails", async () => {
+    vi.spyOn(api, "StartSessionLogin").mockRejectedValue(new Error("no loopback port"));
+    const error = vi.spyOn(toast, "error");
+    const onClose = vi.fn();
+    render(<SessionLoginDialog session={console} onClose={onClose} />);
+
+    await waitFor(() => expect(error).toHaveBeenCalledWith("no loopback port"));
+    expect(onClose).toHaveBeenCalled();
   });
 });
 
