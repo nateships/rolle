@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"slices"
 	"strings"
 )
 
@@ -92,7 +93,7 @@ func exports(env [][2]string, powershell, unset bool) string {
 // envCommand is the shell command that prints the environment.
 func envCommand(o Options, quote func(string) string, extra ...string) string {
 	parts := []string{quote(o.Exec)}
-	for _, a := range append(append([]string{}, o.Args...), extra...) {
+	for _, a := range slices.Concat(o.Args, extra) {
 		parts = append(parts, quote(a))
 	}
 	return strings.Join(parts, " ")
@@ -210,7 +211,10 @@ func psQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", "''") + 
 func openWindows(o Options) (err error) {
 	var b strings.Builder
 	b.WriteString("Remove-Item -LiteralPath $PSCommandPath -Force\n")
-	fmt.Fprintf(&b, "Invoke-Expression ((& %s) -join \"`n\")\n", envCommand(o, psQuote, "--powershell"))
+	// rolle prints the reason when it fails; an empty Invoke-Expression would
+	// bury it under its own error.
+	fmt.Fprintf(&b, "$rolleEnv = (& %s) -join \"`n\"\n", envCommand(o, psQuote, "--powershell"))
+	b.WriteString("if ($rolleEnv) { Invoke-Expression $rolleEnv }\n")
 	fmt.Fprintf(&b, "$env:ROLLE_SESSION = %s\n", psQuote(o.Title))
 	fmt.Fprintf(&b, "Write-Host ('rolle: ' + %s + ' ready')\n", psQuote(o.Title))
 	path, err := writeScript(o.Dir, "rolle-session-*.ps1", b.String())

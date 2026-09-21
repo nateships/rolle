@@ -35,10 +35,6 @@ func TestPutGetExpiry(t *testing.T) {
 	if _, err := c.Get("s1"); !errors.Is(err, ErrMiss) {
 		t.Fatalf("expected miss inside skew, got %v", err)
 	}
-	// A stale entry leaves the store, so no expired secret stays behind.
-	if _, err := c.Store.Get("credentials/s1"); !errors.Is(err, secrets.ErrNotFound) {
-		t.Fatalf("stale entry still stored: %v", err)
-	}
 	if _, err := c.Get("missing"); !errors.Is(err, ErrMiss) {
 		t.Fatalf("expected miss for unknown session, got %v", err)
 	}
@@ -153,12 +149,25 @@ func TestDeleteToleratesAFailingStore(t *testing.T) {
 	if err := c.Delete("s1"); err != nil {
 		t.Fatalf("Delete of a missing entry = %v", err)
 	}
-	c.Store = failStore{errors.New("keychain locked")}
+	locked := errors.New("keychain locked")
+	c.Store = failStore{locked}
 	if err := c.Delete("s1"); err == nil {
 		t.Fatal("Delete must report a store fault")
 	}
-	if _, err := c.Get("s1"); !errors.Is(err, ErrMiss) {
+	// A store fault is not a miss: a miss would send the caller to the provider.
+	if _, err := c.Get("s1"); !errors.Is(err, locked) || errors.Is(err, ErrMiss) {
 		t.Fatalf("Get with a failing store = %v", err)
+	}
+}
+
+func TestMargin(t *testing.T) {
+	c := &Cache{}
+	if c.Margin() != 5*time.Minute {
+		t.Fatalf("default margin = %v", c.Margin())
+	}
+	c.Skew = time.Second
+	if c.Margin() != time.Second {
+		t.Fatalf("margin = %v", c.Margin())
 	}
 }
 

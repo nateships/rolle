@@ -611,6 +611,11 @@ func (s *Service) TerminalEnv(ctx context.Context, ref string) ([][2]string, err
 }
 
 func (s *Service) terminalEnv(ctx context.Context, w *core.Workspace, sess *core.Session) ([][2]string, error) {
+	// A stopped AWS session has no profile section, so the check must not
+	// wait for credentials().
+	if sess.Status != core.StatusActive {
+		return nil, fmt.Errorf("%s: %w", sess.Name, ErrSessionInactive)
+	}
 	if sess.Kind.Cloud() == core.CloudAWS {
 		vars := [][2]string{{"AWS_PROFILE", ProfileName(sess)}}
 		if sess.Region != "" {
@@ -636,9 +641,6 @@ func (s *Service) OpenTerminal(ctx context.Context, ref string) error {
 	sess, err := FindSession(w, ref)
 	if err != nil {
 		return err
-	}
-	if sess.Status != core.StatusActive {
-		return fmt.Errorf("%s: %w", sess.Name, ErrSessionInactive)
 	}
 	// Fail here, with the reason, rather than in a terminal window that
 	// opens without its environment.

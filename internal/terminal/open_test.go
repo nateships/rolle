@@ -164,7 +164,7 @@ func TestOpenWindowsScriptContent(t *testing.T) {
 	body, _ := os.ReadFile(filepath.Join(o.Dir, left[0]))
 	s := string(body)
 	rm := strings.Index(s, "Remove-Item -LiteralPath $PSCommandPath -Force\n")
-	export := strings.Index(s, "Invoke-Expression ((& 'C:\\rolle\\rolle.exe' 'env' 's1' '--profile' '--powershell') -join \"`n\")\n")
+	export := strings.Index(s, "$rolleEnv = (& 'C:\\rolle\\rolle.exe' 'env' 's1' '--profile' '--powershell') -join \"`n\"\nif ($rolleEnv) { Invoke-Expression $rolleEnv }\n")
 	session := strings.Index(s, "$env:ROLLE_SESSION = 'it''s prod'\n")
 	host := strings.Index(s, "Write-Host ('rolle: ' + 'it''s prod' + ' ready')\n")
 	if rm != 0 || export < 0 || session < 0 || host < 0 || export >= session || session >= host {

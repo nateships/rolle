@@ -249,6 +249,10 @@ func TestStartStatusStopAndEnv(t *testing.T) {
 	if out := mustRun(t, "status"); strings.TrimSpace(out) != "no active sessions" {
 		t.Fatalf("status after stop:\n%s", out)
 	}
+	// A stopped session has no profile, so the launcher fails with the reason.
+	if _, err := run(t, "env", "dev", "--profile"); !errors.Is(err, app.ErrSessionInactive) {
+		t.Fatalf("env --profile after stop: %v", err)
+	}
 	if _, err := run(t, "start", "ghost"); !errors.Is(err, core.ErrNotFound) {
 		t.Fatalf("start unknown: %v", err)
 	}

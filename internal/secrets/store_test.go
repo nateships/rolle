@@ -2,7 +2,6 @@ package secrets
 
 import (
 	"errors"
-	"strconv"
 	"strings"
 	"testing"
 )
@@ -75,11 +74,13 @@ func TestChunkedSizeBoundary(t *testing.T) {
 				if head != c.value {
 					t.Fatalf("small value stored as %q", head)
 				}
-			} else if head != "chunks:"+strconv.Itoa(c.chunks) {
+			} else if !isChunked(head, c.chunks) {
 				t.Fatalf("marker = %q, want chunks:%d", head, c.chunks)
 			}
-			if _, err := mem.Get(chunkKey("k", c.chunks)); !errors.Is(err, ErrNotFound) {
-				t.Fatalf("chunk %d exists past the end", c.chunks)
+			if c.chunks > 0 {
+				if _, err := mem.Get(chunkOf(t, mem, "k", c.chunks)); !errors.Is(err, ErrNotFound) {
+					t.Fatalf("chunk %d exists past the end", c.chunks)
+				}
 			}
 			if len(mem.m) != c.chunks+1 {
 				t.Fatalf("%d entries stored, want %d", len(mem.m), c.chunks+1)
@@ -98,13 +99,13 @@ func TestChunkedManyChunks(t *testing.T) {
 	if got, err := ch.Get("k"); err != nil || got != value {
 		t.Fatalf("Get mismatch: %v", err)
 	}
-	if head, _ := mem.Get("k"); head != "chunks:100" {
+	if head, _ := mem.Get("k"); !isChunked(head, 100) {
 		t.Fatalf("marker = %q", head)
 	}
 	if len(mem.m) != 101 {
 		t.Fatalf("%d entries stored, want 101", len(mem.m))
 	}
-	if part, _ := mem.Get(chunkKey("k", 99)); part != "789" {
+	if part, _ := mem.Get(chunkOf(t, mem, "k", 99)); part != "789" {
 		t.Fatalf("last chunk = %q", part)
 	}
 }
@@ -115,15 +116,19 @@ func TestChunkedResizeLeavesNoStaleChunks(t *testing.T) {
 	if err := ch.Set("k", "abcdefgh"); err != nil { // 4 chunks
 		t.Fatal(err)
 	}
+	var old []string
+	for i := range 4 {
+		old = append(old, chunkOf(t, mem, "k", i))
+	}
 	if err := ch.Set("k", "abcd"); err != nil { // 2 chunks
 		t.Fatal(err)
 	}
 	if got, _ := ch.Get("k"); got != "abcd" {
 		t.Fatalf("Get = %q", got)
 	}
-	for _, i := range []int{2, 3} {
-		if _, err := mem.Get(chunkKey("k", i)); !errors.Is(err, ErrNotFound) {
-			t.Fatalf("stale chunk %d remains", i)
+	for _, k := range old {
+		if _, err := mem.Get(k); !errors.Is(err, ErrNotFound) {
+			t.Fatalf("stale chunk %s remains", k)
 		}
 	}
 	if len(mem.m) != 3 {
@@ -157,7 +162,7 @@ func TestChunkedGetErrors(t *testing.T) {
 	if err := ch.Set("k", "abcdef"); err != nil {
 		t.Fatal(err)
 	}
-	if err := mem.Delete(chunkKey("k", 1)); err != nil {
+	if err := mem.Delete(chunkOf(t, mem, "k", 1)); err != nil {
 		t.Fatal(err)
 	}
 	_, err := ch.Get("k")

@@ -943,12 +943,18 @@ func (s *Service) credentials(ctx context.Context, w *core.Workspace, sess *core
 	if sess.Status != core.StatusActive {
 		return core.Credentials{}, fmt.Errorf("%s: %w", sess.Name, ErrSessionInactive)
 	}
-	if creds, err := s.Cache.Get(sess.ID); err == nil {
+	creds, err := s.Cache.Get(sess.ID)
+	if err == nil {
 		debug.Logf("creds", "%s served from cache", sess.Name)
 		return creds, nil
 	}
+	// A keychain fault is not a miss. Report it instead of asking the provider
+	// for credentials that could not be stored.
+	if !errors.Is(err, credcache.ErrMiss) {
+		return core.Credentials{}, err
+	}
 	debug.Logf("creds", "%s cache miss, refreshing", sess.Name)
-	creds, err := s.fetch(ctx, w, sess, "")
+	creds, err = s.fetch(ctx, w, sess, "")
 	if err != nil {
 		debug.Logf("creds", "%s refresh failed: %v", sess.Name, err)
 		return core.Credentials{}, err
@@ -1185,18 +1191,23 @@ func (s *Service) ReconcileProfiles() error {
 	return first
 }
 
-// stale reports whether a session's credentials need renewal: a cache miss,
-// or for an uncached IAM user, an expiry that has passed.
+// stale reports whether a session's credentials need renewal. The workspace
+// records each session's expiry when its credentials are fetched, so the
+// check reads no keychain entry. A session without a recorded expiry is
+// stale. Cached credentials count as stale inside the cache margin; an
+// uncached IAM user's key lasts until its expiry.
 func (s *Service) stale(sess *core.Session) bool {
-	if cacheable(sess) {
-		_, err := s.Cache.Get(sess.ID)
-		return err != nil
+	if sess.Expires == nil {
+		return true
 	}
 	now := time.Now()
 	if s.Now != nil {
 		now = s.Now()
 	}
-	return sess.Expires == nil || !now.Before(*sess.Expires)
+	if cacheable(sess) {
+		return !now.Add(s.Cache.Margin()).Before(*sess.Expires)
+	}
+	return !now.Before(*sess.Expires)
 }
 
 // LoginRequired reports whether err means the user has to sign in to the

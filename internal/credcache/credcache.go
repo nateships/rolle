@@ -7,6 +7,7 @@ package credcache
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -55,21 +56,27 @@ func (c *Cache) skew() time.Duration {
 	return 5 * time.Minute
 }
 
+// Margin is how long before expiry credentials count as stale.
+func (c *Cache) Margin() time.Duration { return c.skew() }
+
 func key(sessionID string) string { return "credentials/" + sessionID }
 
-// Get returns cached credentials if they are still fresh. A stale entry is
-// removed, so the keychain does not keep expired secrets.
+// Get returns cached credentials if they are still fresh. A missing, corrupt,
+// or expired entry is ErrMiss. A store fault, such as a locked keychain, is
+// returned as is: the caller must not answer it with a provider round trip.
 func (c *Cache) Get(sessionID string) (core.Credentials, error) {
 	raw, err := c.Store.Get(key(sessionID))
-	if err != nil {
+	if errors.Is(err, secrets.ErrNotFound) {
 		return core.Credentials{}, ErrMiss
+	}
+	if err != nil {
+		return core.Credentials{}, fmt.Errorf("credential cache: %w", err)
 	}
 	var creds core.Credentials
 	if err := json.Unmarshal([]byte(raw), &creds); err != nil {
 		return core.Credentials{}, ErrMiss
 	}
 	if creds.Expired(c.now(), c.skew()) {
-		_ = c.Store.Delete(key(sessionID))
 		return core.Credentials{}, ErrMiss
 	}
 	return creds, nil

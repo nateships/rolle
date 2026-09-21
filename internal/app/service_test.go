@@ -441,12 +441,15 @@ func TestAWSLoginLifecycle(t *testing.T) {
 	}
 
 	// The sign-in lapses with no refresh token: the renewal deactivates the session.
-	if err := s.Cache.Delete(sess.ID); err != nil {
-		t.Fatal(err)
-	}
 	past := now.Add(-time.Minute)
 	creds.Expiration = &past
 	if err := s.login(&sess).StoreImported(creds, "", "", ""); err != nil {
+		t.Fatal(err)
+	}
+	w, _ = s.Load()
+	expiring, _ := FindSession(w, sess.ID)
+	expiring.Expires = &past
+	if err := s.Save(w); err != nil {
 		t.Fatal(err)
 	}
 	w, err = s.Refresh()
