@@ -33,13 +33,24 @@ type Cache struct {
 }
 
 // Default returns the keychain cache with the scratch directory under the
-// XDG cache directory, honouring ROLLE_CACHE_DIR.
+// XDG cache directory, honouring ROLLE_CACHE_DIR. Credential files that a
+// version before the keychain cache left in that directory are removed.
 func Default() *Cache {
 	dir := os.Getenv("ROLLE_CACHE_DIR")
 	if dir == "" {
 		dir = filepath.Join(paths.CacheDir(), "credentials")
 	}
+	removeLegacyFiles(dir)
 	return &Cache{Store: secrets.NewKeychain(), Dir: dir}
+}
+
+// removeLegacyFiles deletes the <session id>.json files at the top of dir.
+// The launch and gcp subdirectories stay.
+func removeLegacyFiles(dir string) {
+	files, _ := filepath.Glob(filepath.Join(dir, "*.json"))
+	for _, f := range files {
+		_ = os.Remove(f)
+	}
 }
 
 func (c *Cache) now() time.Time {

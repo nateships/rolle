@@ -181,9 +181,25 @@ func (f failStore) Delete(string) error        { return f.err }
 func TestDefaultHonoursCacheDir(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("ROLLE_CACHE_DIR", dir)
+	// A credential file from a version before the keychain cache goes; the
+	// files other tools read stay.
+	if err := os.MkdirAll(filepath.Join(dir, "gcp"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"s1.json", filepath.Join("gcp", "g1.json")} {
+		if err := os.WriteFile(filepath.Join(dir, name), []byte("{}"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
 	c := Default()
 	if c.Dir != dir || c.Store == nil {
 		t.Fatalf("Default = %+v", c)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "s1.json")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("legacy credential file still present: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(dir, "gcp", "g1.json")); err != nil {
+		t.Fatalf("gcp file removed: %v", err)
 	}
 	t.Setenv("ROLLE_CACHE_DIR", "")
 	if got := Default().Dir; !strings.Contains(got, "rolle") || !strings.HasSuffix(got, "credentials") {
