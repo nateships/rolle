@@ -32,9 +32,13 @@ import (
 // reference is the AWS CLI v2 source, awscli/customizations/login, and the
 // signin service model shipped with it.
 const (
-	// loginClientID is the public client the same-device flow uses.
+	// loginClientID is the public client of the same-device flow: the browser
+	// returns to a loopback listener.
 	loginClientID = "arn:aws:signin:::devtools/same-device"
-	loginScope    = "openid"
+	// remoteClientID is the public client of the cross-device flow: the
+	// browser shows a code the user pastes back.
+	remoteClientID = "arn:aws:signin:::devtools/cross-device"
+	loginScope     = "openid"
 )
 
 // loginToken is the cached sign-in of one console login session.
@@ -44,6 +48,9 @@ type loginToken struct {
 	SessionToken    string    `json:"sessionToken"`
 	Expires         time.Time `json:"expires"`
 	RefreshToken    string    `json:"refreshToken"`
+	// ClientID is the public client the refresh token was issued to. Empty
+	// means loginClientID, from before the cross-device flow existed.
+	ClientID string `json:"clientId,omitempty"`
 	// DPoPKey is the PEM EC private key the refresh token is bound to.
 	DPoPKey string `json:"dpopKey"`
 	Region  string `json:"region"`
@@ -93,10 +100,10 @@ func loginHost(region string) string {
 }
 
 // loginAuthorizeURL builds the sign-in page for the PKCE flow.
-func loginAuthorizeURL(region, redirect, state, challenge string) string {
+func loginAuthorizeURL(region, clientID, redirect, state, challenge string) string {
 	q := url.Values{
 		"response_type":         {"code"},
-		"client_id":             {loginClientID},
+		"client_id":             {clientID},
 		"redirect_uri":          {redirect},
 		"state":                 {state},
 		"code_challenge":        {challenge},
@@ -121,43 +128,103 @@ func (l *Login) StartLogin(ctx context.Context) (*DeviceAuthorization, error) {
 	}
 	verifier := randomToken(32)
 	redirect := lb.redirect
-	d := &DeviceAuthorization{VerificationURI: loginAuthorizeURL(l.Region, redirect, state, pkceChallenge(verifier)), cancel: lb.stop}
+	d := &DeviceAuthorization{VerificationURI: loginAuthorizeURL(l.Region, loginClientID, redirect, state, pkceChallenge(verifier)), cancel: lb.stop}
 	d.complete = func(ctx context.Context) error {
 		defer lb.stop()
 		code, err := lb.wait(ctx, state, "aws login")
 		if err != nil {
 			return err
 		}
-		out, err := l.token(ctx, key, map[string]string{
-			"clientId":     loginClientID,
-			"grantType":    "authorization_code",
-			"code":         code,
-			"redirectUri":  redirect,
-			"codeVerifier": verifier,
-		})
-		if err != nil {
-			return err
-		}
-		session, err := loginSessionFromIDToken(out.IDToken)
-		if err != nil {
-			return err
-		}
-		pemKey, err := marshalKey(key)
-		if err != nil {
-			return err
-		}
-		return l.store(loginToken{
-			AccessKeyID:     out.AccessToken.AccessKeyID,
-			SecretAccessKey: out.AccessToken.SecretAccessKey,
-			SessionToken:    out.AccessToken.SessionToken,
-			Expires:         l.now().Add(time.Duration(out.ExpiresIn) * time.Second),
-			RefreshToken:    out.RefreshToken,
-			DPoPKey:         pemKey,
-			Region:          l.Region,
-			LoginSession:    session,
-		})
+		return l.exchange(ctx, key, loginClientID, code, redirect, verifier)
 	}
 	return d, nil
+}
+
+// RemoteAuthorization is a cross-device sign-in: the user opens
+// VerificationURI on any device and pastes back the code the browser shows.
+type RemoteAuthorization struct {
+	VerificationURI string
+	complete        func(ctx context.Context, verification string) error
+}
+
+// Complete trades the pasted verification code for credentials and stores them.
+func (r *RemoteAuthorization) Complete(ctx context.Context, verification string) error {
+	return r.complete(ctx, verification)
+}
+
+// StartRemoteLogin begins a sign-in for a host without a browser, the flow
+// behind `aws login --remote`. The browser lands on a confirmation page that
+// shows a code; Complete finishes with it.
+func (l *Login) StartRemoteLogin() (*RemoteAuthorization, error) {
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+	state := randomToken(16)
+	verifier := randomToken(32)
+	redirect := "https://" + loginHost(l.Region) + "/v1/sessions/confirmation"
+	r := &RemoteAuthorization{VerificationURI: loginAuthorizeURL(l.Region, remoteClientID, redirect, state, pkceChallenge(verifier))}
+	r.complete = func(ctx context.Context, verification string) error {
+		code, err := parseVerificationCode(verification, state)
+		if err != nil {
+			return err
+		}
+		return l.exchange(ctx, key, remoteClientID, code, redirect, verifier)
+	}
+	return r, nil
+}
+
+// parseVerificationCode reads the code the confirmation page shows: base64 of
+// "state=...&code=...". It must carry this login's state.
+func parseVerificationCode(verification, state string) (string, error) {
+	verification = strings.TrimSpace(verification)
+	raw, err := base64.StdEncoding.DecodeString(verification)
+	if err != nil {
+		if raw, err = base64.RawStdEncoding.DecodeString(verification); err != nil {
+			return "", errors.New("aws login: the code is not what the confirmation page shows")
+		}
+	}
+	q, err := url.ParseQuery(string(raw))
+	if err != nil || q.Get("code") == "" || q.Get("state") == "" {
+		return "", errors.New("aws login: the code is not what the confirmation page shows")
+	}
+	if q.Get("state") != state {
+		return "", errors.New("aws login: the code does not belong to this sign-in")
+	}
+	return q.Get("code"), nil
+}
+
+// exchange trades an authorization code for credentials and stores them.
+func (l *Login) exchange(ctx context.Context, key *ecdsa.PrivateKey, clientID, code, redirect, verifier string) error {
+	out, err := l.token(ctx, key, map[string]string{
+		"clientId":     clientID,
+		"grantType":    "authorization_code",
+		"code":         code,
+		"redirectUri":  redirect,
+		"codeVerifier": verifier,
+	})
+	if err != nil {
+		return err
+	}
+	session, err := loginSessionFromIDToken(out.IDToken)
+	if err != nil {
+		return err
+	}
+	pemKey, err := marshalKey(key)
+	if err != nil {
+		return err
+	}
+	return l.store(loginToken{
+		AccessKeyID:     out.AccessToken.AccessKeyID,
+		SecretAccessKey: out.AccessToken.SecretAccessKey,
+		SessionToken:    out.AccessToken.SessionToken,
+		Expires:         l.now().Add(time.Duration(out.ExpiresIn) * time.Second),
+		RefreshToken:    out.RefreshToken,
+		ClientID:        clientID,
+		DPoPKey:         pemKey,
+		Region:          l.Region,
+		LoginSession:    session,
+	})
 }
 
 // tokenResponse is the body of a successful /v1/token call.
@@ -405,8 +472,12 @@ func (l *Login) refresh(ctx context.Context, t loginToken) (loginToken, error) {
 	if err != nil {
 		return loginToken{}, fmt.Errorf("%w: %v", ErrLoginRequired, err)
 	}
+	clientID := t.ClientID
+	if clientID == "" {
+		clientID = loginClientID
+	}
 	out, err := l.token(ctx, key, map[string]string{
-		"clientId":     loginClientID,
+		"clientId":     clientID,
 		"grantType":    "refresh_token",
 		"refreshToken": t.RefreshToken,
 	})

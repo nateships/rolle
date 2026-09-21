@@ -21,7 +21,7 @@ import (
 )
 
 func TestLoginAuthorizeURL(t *testing.T) {
-	u, err := url.Parse(loginAuthorizeURL("eu-west-1", "http://127.0.0.1:1/oauth/callback", "st", "ch"))
+	u, err := url.Parse(loginAuthorizeURL("eu-west-1", loginClientID, "http://127.0.0.1:1/oauth/callback", "st", "ch"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -228,6 +228,84 @@ func TestLoginFlow(t *testing.T) {
 	}
 	if rt.calls != 1 {
 		t.Fatal("valid credentials should be served without the network")
+	}
+}
+
+// TestLoginRemoteFlow drives the cross-device flow: no listener, the browser
+// lands on the confirmation page, and the pasted code carries the state.
+func TestLoginRemoteFlow(t *testing.T) {
+	const session = "arn:aws:signin:eu-west-1:210987654321:session/xyz"
+	var got map[string]string
+	var proof string
+	client, rt := testClient(t, func(w http.ResponseWriter, r *http.Request) {
+		proof = r.Header.Get("DPoP")
+		_ = json.NewDecoder(r.Body).Decode(&got)
+		refresh := "rt-remote"
+		if got["grantType"] == "refresh_token" {
+			refresh = "rt-remote-2"
+		}
+		_ = json.NewEncoder(w).Encode(tokenBody("ASIAR", refresh, fakeIDToken(session)))
+	})
+	now := ssoNow
+	l := &Login{SessionID: "s2", Region: "eu-west-1", Secrets: &secrets.Memory{}, Now: func() time.Time { return now }, Client: client}
+	auth, err := l.StartRemoteLogin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	page, err := url.Parse(auth.VerificationURI)
+	if err != nil {
+		t.Fatal(err)
+	}
+	q := page.Query()
+	const confirm = "https://eu-west-1.oauth.signin.aws/v1/sessions/confirmation"
+	if page.Host != "eu-west-1.oauth.signin.aws" || q.Get("client_id") != remoteClientID || q.Get("redirect_uri") != confirm {
+		t.Fatalf("authorize URL: %s", auth.VerificationURI)
+	}
+	state := q.Get("state")
+	code := func(s, c string) string {
+		return base64.StdEncoding.EncodeToString([]byte(url.Values{"state": {s}, "code": {c}}.Encode()))
+	}
+
+	// A code from another sign-in, and garbage, are refused before any request.
+	if err := auth.Complete(context.Background(), code("other", "abc")); err == nil || !strings.Contains(err.Error(), "does not belong") {
+		t.Fatalf("foreign state: %v", err)
+	}
+	if err := auth.Complete(context.Background(), "not base64!"); err == nil {
+		t.Fatal("garbage accepted")
+	}
+	if rt.calls != 0 {
+		t.Fatalf("calls before a valid code = %d", rt.calls)
+	}
+
+	if err := auth.Complete(context.Background(), " "+code(state, "abc")+"\n"); err != nil {
+		t.Fatal(err)
+	}
+	if got["grantType"] != "authorization_code" || got["code"] != "abc" || got["clientId"] != remoteClientID || got["redirectUri"] != confirm {
+		t.Fatalf("token request: %v", got)
+	}
+	if pkceChallenge(got["codeVerifier"]) != q.Get("code_challenge") {
+		t.Fatal("code verifier does not match the challenge")
+	}
+	verifyDPoP(t, proof, "https://eu-west-1.oauth.signin.aws/v1/token")
+	if l.LoginSession() != session {
+		t.Fatalf("LoginSession = %q", l.LoginSession())
+	}
+
+	// The refresh names the client the token was issued to.
+	now = now.Add(20 * time.Minute)
+	creds, err := l.Credentials(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got["grantType"] != "refresh_token" || got["clientId"] != remoteClientID || got["refreshToken"] != "rt-remote" {
+		t.Fatalf("refresh request: %v", got)
+	}
+	stored, err := l.stored()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if creds.AccessKeyID != "ASIAR" || stored.RefreshToken != "rt-remote-2" || stored.ClientID != remoteClientID {
+		t.Fatalf("after refresh: creds %+v stored %+v", creds, stored)
 	}
 }
 

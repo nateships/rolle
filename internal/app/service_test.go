@@ -420,6 +420,13 @@ func TestAWSLoginLifecycle(t *testing.T) {
 	if _, err := s.Cache.Get(sess.ID); err != nil {
 		t.Fatalf("short-lived credentials must be cached: %v", err)
 	}
+	// Federation refuses these credentials, so the console link needs a role.
+	if _, err := s.ConsoleURL(context.Background(), sess.ID); err == nil || !strings.Contains(err.Error(), "needs a role") {
+		t.Fatalf("ConsoleURL = %v", err)
+	}
+	if _, err := s.AWSRemoteLogin(sess.ID); err != nil {
+		t.Fatalf("AWSRemoteLogin = %v", err)
+	}
 	w, _ := s.Load()
 	got2, _ := FindSession(w, sess.ID)
 	if got2.Status != core.StatusActive || got2.Expires == nil {

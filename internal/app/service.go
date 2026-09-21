@@ -612,6 +612,21 @@ func (s *Service) AWSLogin(ctx context.Context, ref string) (*aws.DeviceAuthoriz
 	return s.login(sess).StartLogin(ctx)
 }
 
+// AWSRemoteLogin starts a cross-device sign-in for a console login session,
+// for a host without a browser. The caller shows the URL, then hands the
+// pasted code to Complete and calls FinishAWSLogin.
+func (s *Service) AWSRemoteLogin(ref string) (*aws.RemoteAuthorization, error) {
+	w, err := s.Load()
+	if err != nil {
+		return nil, err
+	}
+	sess, err := loginSession(w, ref)
+	if err != nil {
+		return nil, err
+	}
+	return s.login(sess).StartRemoteLogin()
+}
+
 // FinishAWSLogin records the account the sign-in landed in.
 func (s *Service) FinishAWSLogin(ref string) (core.Session, error) {
 	w, err := s.Load()
@@ -1025,7 +1040,9 @@ func (s *Service) ConsoleURL(ctx context.Context, ref string) (string, error) {
 	if sess.Kind.Cloud() != core.CloudAWS {
 		return "", fmt.Errorf("console links are only available for AWS sessions")
 	}
-	if sess.Kind == core.KindAWSIAMUser {
+	// Federation accepts role and federation tokens only. An IAM user's key
+	// and the credentials of a console login are neither.
+	if sess.Kind == core.KindAWSIAMUser || sess.Kind == core.KindAWSLogin {
 		return "", fmt.Errorf("%s: console sign-in needs a role; add an assume-role session", sess.Name)
 	}
 	creds, err := s.credentials(ctx, w, sess)

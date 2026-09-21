@@ -82,7 +82,7 @@ See [Agents and scripts](/agents).
 
 | Command | Purpose |
 | --- | --- |
-| `rolle start <session> [--mfa-code C] [--no-browser]` | Start a session. `--no-browser` prints the sign-in URL of a console login instead of opening the browser |
+| `rolle start <session> [--mfa-code C] [--no-browser]` | Start a session. `--no-browser` runs the cross-device sign-in of a console login: open the URL elsewhere and paste the code back |
 | `rolle stop <session>` | Stop a session |
 | `rolle status` | Show active sessions |
 | `rolle cleanup [profile ...] [--all]` | List the sections of `~/.aws/credentials` that hold static keys, or remove their keys |
