@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/nateships/rolle/internal/app"
+	"github.com/nateships/rolle/internal/aws"
 	"github.com/nateships/rolle/internal/awsconfig"
 	"github.com/nateships/rolle/internal/browser"
 	"github.com/nateships/rolle/internal/core"
@@ -18,12 +19,20 @@ import (
 
 func startCmd() *cobra.Command {
 	var mfa string
+	var noBrowser bool
 	cmd := &cobra.Command{
 		Use:   "start <session>",
 		Short: "Start a session",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			creds, err := svc.Start(cmd.Context(), args[0], app.StartOptions{MFACode: mfa})
+			// A console login session signs in through the browser first.
+			if errors.Is(err, aws.ErrLoginRequired) {
+				if err = consoleLogin(cmd, args[0], noBrowser); err != nil {
+					return err
+				}
+				creds, err = svc.Start(cmd.Context(), args[0], app.StartOptions{MFACode: mfa})
+			}
 			if errors.Is(err, awsconfig.ErrShadowed) {
 				return fmt.Errorf("%w; tools read those first\nrolle session fix-profile %q removes them", err, args[0])
 			}
@@ -55,7 +64,29 @@ func startCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&mfa, "mfa-code", "", "one-time MFA code")
+	cmd.Flags().BoolVar(&noBrowser, "no-browser", false, "print the sign-in URL instead of opening a browser")
 	return cmd
+}
+
+// consoleLogin runs the browser sign-in of a console login session. The
+// prompts go to stderr so --json output stays clean.
+func consoleLogin(cmd *cobra.Command, ref string, noBrowser bool) error {
+	auth, err := svc.AWSLogin(cmd.Context(), ref)
+	if err != nil {
+		return err
+	}
+	if noBrowser {
+		fmt.Fprintf(os.Stderr, "Open %s\n", auth.VerificationURI)
+	} else {
+		fmt.Fprintf(os.Stderr, "Approve the sign-in in your browser. If it did not open:\n%s\n", auth.VerificationURI)
+		_ = browser.Open(auth.VerificationURI)
+	}
+	fmt.Fprintln(os.Stderr, "Waiting for approval...")
+	if err := auth.Wait(cmd.Context()); err != nil {
+		return err
+	}
+	_, err = svc.FinishAWSLogin(ref)
+	return err
 }
 
 func stopCmd() *cobra.Command {

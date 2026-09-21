@@ -346,3 +346,27 @@ func TestOpenCallsRefuseBadInput(t *testing.T) {
 		t.Fatal("console for unknown session opened")
 	}
 }
+
+func TestAWSLoginSessionNeedsBrowserFirst(t *testing.T) {
+	r := testrolle(t)
+	sess, err := r.AddAWSLogin(AWSLoginInput{Name: "console", Region: "us-east-1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sess.Kind != core.KindAWSLogin || sess.Region != "us-east-1" {
+		t.Fatalf("session = %+v", sess)
+	}
+	// Nothing is stored, so the start reports that a sign-in is needed.
+	if _, err := r.Start(sess.ID, ""); !app.LoginRequired(err) {
+		t.Fatalf("Start = %v", err)
+	}
+	if _, err := r.WaitSessionLogin(sess.ID); err == nil || !strings.Contains(err.Error(), "no login in progress") {
+		t.Fatalf("WaitSessionLogin without a start = %v", err)
+	}
+	if _, err := r.StartSessionLogin("nope"); err == nil {
+		t.Fatal("StartSessionLogin on an unknown session succeeded")
+	}
+	if err := r.RemoveSession(sess.ID); err != nil {
+		t.Fatal(err)
+	}
+}

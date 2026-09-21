@@ -549,6 +549,88 @@ func (s *Service) AddIAMUser(in AddIAMUserInput) (core.Session, error) {
 	return sess, s.Save(w)
 }
 
+// AddAWSLoginInput describes a new console login session.
+type AddAWSLoginInput struct {
+	Name, Region, Profile string
+}
+
+// AddAWSLogin creates a session that signs in with console credentials in
+// the browser, the flow behind `aws login`. The first Start opens the browser.
+func (s *Service) AddAWSLogin(in AddAWSLoginInput) (core.Session, error) {
+	if err := checkProfile(in.Profile); err != nil {
+		return core.Session{}, err
+	}
+	if in.Region == "" {
+		return core.Session{}, errors.New("a region is required")
+	}
+	w, err := s.Load()
+	if err != nil {
+		return core.Session{}, err
+	}
+	if err := checkSessionName(w, in.Name, ""); err != nil {
+		return core.Session{}, err
+	}
+	sess := core.Session{
+		ID:     newID(),
+		Name:   in.Name,
+		Kind:   core.KindAWSLogin,
+		Region: in.Region,
+		Status: core.StatusInactive,
+		AWS:    &core.AWSSession{Profile: in.Profile},
+	}
+	w.Sessions = append(w.Sessions, sess)
+	return sess, s.Save(w)
+}
+
+func (s *Service) login(sess *core.Session) *aws.Login {
+	return &aws.Login{SessionID: sess.ID, Region: sess.Region, Secrets: s.Secrets, Now: s.Now}
+}
+
+// loginSession returns the console login session that ref names.
+func loginSession(w *core.Workspace, ref string) (*core.Session, error) {
+	sess, err := FindSession(w, ref)
+	if err != nil {
+		return nil, err
+	}
+	if sess.Kind != core.KindAWSLogin {
+		return nil, fmt.Errorf("%s does not sign in with console credentials", sess.Name)
+	}
+	return sess, nil
+}
+
+// AWSLogin starts a browser sign-in for a console login session. The caller
+// completes the returned authorization with Wait, then calls FinishAWSLogin.
+func (s *Service) AWSLogin(ctx context.Context, ref string) (*aws.DeviceAuthorization, error) {
+	w, err := s.Load()
+	if err != nil {
+		return nil, err
+	}
+	sess, err := loginSession(w, ref)
+	if err != nil {
+		return nil, err
+	}
+	return s.login(sess).StartLogin(ctx)
+}
+
+// FinishAWSLogin records the account the sign-in landed in.
+func (s *Service) FinishAWSLogin(ref string) (core.Session, error) {
+	w, err := s.Load()
+	if err != nil {
+		return core.Session{}, err
+	}
+	sess, err := loginSession(w, ref)
+	if err != nil {
+		return core.Session{}, err
+	}
+	if acct := aws.AccountFromLoginSession(s.login(sess).LoginSession()); acct != "" && sess.AWS.AccountID != acct {
+		sess.AWS.AccountID = acct
+		if err := s.Save(w); err != nil {
+			return core.Session{}, err
+		}
+	}
+	return *sess, nil
+}
+
 // RemoveSession deletes a session and everything cached for it.
 func (s *Service) RemoveSession(ref string) error {
 	w, err := s.Load()
@@ -567,8 +649,11 @@ func (s *Service) RemoveSession(ref string) error {
 	// Cleanup failures are reported after the save, as in RemoveIntegration.
 	name := sess.Name
 	cleanup := s.deactivate(sess)
-	if sess.Kind == core.KindAWSIAMUser {
+	switch sess.Kind {
+	case core.KindAWSIAMUser:
 		_ = aws.DeleteAccessKey(s.Secrets, sess.ID)
+	case core.KindAWSLogin:
+		_ = s.login(sess).Logout()
 	}
 	if err := w.RemoveSession(sess.ID); err != nil {
 		return err
@@ -921,6 +1006,8 @@ func (s *Service) fetch(ctx context.Context, w *core.Workspace, sess *core.Sessi
 			return core.Credentials{}, fmt.Errorf("%s: MFA code required", sess.Name)
 		}
 		return aws.IAMUserCredentials(ctx, aws.IAMUserInput{Key: key, Region: sess.Region, MFADevice: sess.AWS.MFADevice, MFACode: mfaCode})
+	case core.KindAWSLogin:
+		return s.login(sess).Credentials(ctx)
 	}
 	return s.fetchCloud(ctx, w, sess)
 }
@@ -1095,13 +1182,13 @@ func (s *Service) stale(sess *core.Session) bool {
 // LoginRequired reports whether err means the user has to sign in to the
 // provider again before the session can start or renew.
 func LoginRequired(err error) bool {
-	return errors.Is(err, aws.ErrSSOLoginRequired) || errors.Is(err, azure.ErrLoginRequired) || errors.Is(err, gcp.ErrNoADC)
+	return errors.Is(err, aws.ErrSSOLoginRequired) || errors.Is(err, aws.ErrLoginRequired) || errors.Is(err, azure.ErrLoginRequired) || errors.Is(err, gcp.ErrNoADC)
 }
 
 // permanent reports whether a renewal error means the session cannot renew
 // without the user: a sign-in is needed, or a source session is gone.
 func permanent(err error) bool {
-	return errors.Is(err, aws.ErrSSOLoginRequired) || errors.Is(err, azure.ErrLoginRequired) ||
+	return errors.Is(err, aws.ErrSSOLoginRequired) || errors.Is(err, aws.ErrLoginRequired) || errors.Is(err, azure.ErrLoginRequired) ||
 		errors.Is(err, ErrSessionInactive) || errors.Is(err, core.ErrNotFound) ||
 		errors.Is(err, aws.ErrNoAccessKey) || errors.Is(err, gcp.ErrNoADC)
 }
@@ -1143,8 +1230,11 @@ func (s *Service) ResetAll() error {
 	for i := range w.Sessions {
 		sess := &w.Sessions[i]
 		keep(s.deactivate(sess))
-		if sess.Kind == core.KindAWSIAMUser {
+		switch sess.Kind {
+		case core.KindAWSIAMUser:
 			keep(aws.DeleteAccessKey(s.Secrets, sess.ID))
+		case core.KindAWSLogin:
+			keep(s.login(sess).Logout())
 		}
 	}
 	for _, in := range w.Integrations {

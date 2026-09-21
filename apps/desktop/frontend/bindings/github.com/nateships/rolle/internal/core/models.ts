@@ -185,6 +185,13 @@ export enum Kind {
     KindAWSSSORole = "aws-sso-role",
 
     /**
+     * KindAWSLogin signs in with console credentials in the browser, the flow
+     * behind `aws login`, and renews short-lived credentials with a refresh
+     * token stored in the secret store.
+     */
+    KindAWSLogin = "aws-login",
+
+    /**
      * KindAzure obtains an Entra ID token for a subscription.
      */
     KindAzure = "azure",

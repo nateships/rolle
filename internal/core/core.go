@@ -29,6 +29,10 @@ const (
 	KindAWSAssumeRole Kind = "aws-assume-role"
 	// KindAWSSSORole fetches role credentials from IAM Identity Center.
 	KindAWSSSORole Kind = "aws-sso-role"
+	// KindAWSLogin signs in with console credentials in the browser, the flow
+	// behind `aws login`, and renews short-lived credentials with a refresh
+	// token stored in the secret store.
+	KindAWSLogin Kind = "aws-login"
 	// KindAzure obtains an Entra ID token for a subscription.
 	KindAzure Kind = "azure"
 	// KindGCP impersonates a service account with a signed-in user.
@@ -38,7 +42,7 @@ const (
 // Cloud returns the cloud a kind belongs to.
 func (k Kind) Cloud() Cloud {
 	switch k {
-	case KindAWSIAMUser, KindAWSAssumeRole, KindAWSSSORole:
+	case KindAWSIAMUser, KindAWSAssumeRole, KindAWSSSORole, KindAWSLogin:
 		return CloudAWS
 	case KindAzure:
 		return CloudAzure

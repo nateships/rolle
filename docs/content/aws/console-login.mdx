@@ -1,0 +1,31 @@
+---
+title: Console login
+description: Sign in with console credentials in the browser, the flow behind `aws login`.
+---
+
+A console login session signs you in to AWS in the browser with the credentials you use for the AWS Management Console: an IAM user, the root user, or IAM federation. It is the flow behind [`aws login`](https://docs.aws.amazon.com/signin/latest/userguide/command-line-sign-in.html), for accounts that do not use IAM Identity Center. No access key is stored. rolle keeps a refresh token in the OS keychain and renews the short-lived credentials from it for up to 12 hours.
+
+```sh
+rolle session add aws-login --name console --region us-east-1
+rolle start console
+```
+
+The first start opens the browser. Approve the sign-in and return to rolle. Later starts reuse the sign-in until it lapses; the next start then opens the browser again.
+
+| Flag | Meaning |
+| --- | --- |
+| `--name` | Session name |
+| `--region` | Region to sign in to, and the default region for tools |
+| `--profile` | AWS profile name. Empty uses `default` |
+
+`rolle start <session> --no-browser` prints the sign-in URL instead of opening the browser.
+
+## Permissions
+
+An IAM user or role needs the `SignInLocalDevelopmentAccess` managed policy. The root user needs nothing. An account can restrict the flow with the `arn:aws:signin:{region}:{account}:oauth2/public-client/localhost` resource in an IAM policy.
+
+## How it works
+
+The sign-in is an OAuth 2.0 authorization code flow with PKCE against AWS Sign-In. The browser returns to a listener on `127.0.0.1`. AWS answers with credentials that last 15 minutes and a refresh token bound to a key pair that rolle generates for the session (DPoP). rolle renews the credentials in the background while the refresh token works. The refresh token and the private key live in the OS keychain and go when you remove the session.
+
+The session learns its account on the first sign-in and shows it under its name. A console login can be the source of an [assume-role session](/docs/aws/assume-role).

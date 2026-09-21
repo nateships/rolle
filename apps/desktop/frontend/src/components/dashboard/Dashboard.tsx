@@ -53,11 +53,13 @@ import { useModifierHeld } from "@/lib/modifier";
 import {
   AddSSODialog,
   AddAssumeRoleDialog,
+  AddAWSLoginDialog,
   AddIAMUserDialog,
   AddAzureDialog,
   AddGCPDialog,
   AddGCPImpersonationDialog,
   LoginDialog,
+  SessionLoginDialog,
 } from "@/components/dialogs/Dialogs";
 import {
   api,
@@ -67,6 +69,7 @@ import {
   Kind,
   Status,
   type Integration,
+  type Session,
   type Workspace,
   OPEN_SETTINGS,
   UPDATE_AVAILABLE,
@@ -84,6 +87,8 @@ type Dialog =
   | { kind: "sso" }
   | { kind: "assume" }
   | { kind: "iam" }
+  | { kind: "aws-login" }
+  | { kind: "session-login"; session: Session }
   | { kind: "azure" }
   | { kind: "gcp" }
   | { kind: "gcp-impersonate" }
@@ -186,6 +191,12 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     }
   }
 
+  // A console login session signs in on its own; the session starts after.
+  function needsSessionLogin(sess: Session) {
+    pendingStart.current = sess.id;
+    setDialog({ kind: "session-login", session: sess });
+  }
+
   // A Google Cloud integration has no sign-in dialog: a sync re-reads the gcloud credentials.
   function needsLogin(integ: Integration, startId?: string) {
     if (integ.cloud !== CloudKind.CloudGCP) {
@@ -209,7 +220,12 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     if (!inWails) return;
     return Events.On(START_NEEDS_LOGIN, (e: { data: { sessionId: string; integrationId: string } }) => {
       const integ = workspace.integrations.find((i) => i.id === e.data.integrationId);
-      if (integ) needsLogin(integ, e.data.sessionId);
+      if (integ) {
+        needsLogin(integ, e.data.sessionId);
+        return;
+      }
+      const sess = workspace.sessions.find((s) => s.id === e.data.sessionId);
+      if (sess?.kind === Kind.KindAWSLogin) needsSessionLogin(sess);
     });
   });
 
@@ -231,8 +247,10 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
 
   const active = workspace.sessions.filter((s) => s.status === Status.StatusActive).length;
   // Hidden sessions leave every list but Hidden, so the counts skip them too.
-  // IAM users and assumed roles have no integration; they get their own AWS section.
-  const iamCount = workspace.sessions.filter((s) => !s.hidden && s.kind === Kind.KindAWSIAMUser).length;
+  // IAM users, console logins, and assumed roles have no integration; they get their own AWS section.
+  const iamCount = workspace.sessions.filter(
+    (s) => !s.hidden && (s.kind === Kind.KindAWSIAMUser || s.kind === Kind.KindAWSLogin),
+  ).length;
   const roleCount = workspace.sessions.filter((s) => !s.hidden && s.kind === Kind.KindAWSAssumeRole).length;
   // Sections the user hid in Settings → Appearance. Their filters leave the shortcut order too.
   const hiddenSections = useMemo(() => workspace.settings?.hiddenSections ?? [], [workspace.settings?.hiddenSections]);
@@ -364,7 +382,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
           filter === null || filter === "hidden"
             ? true
             : filter === "iam-users"
-              ? s.kind === Kind.KindAWSIAMUser
+              ? s.kind === Kind.KindAWSIAMUser || s.kind === Kind.KindAWSLogin
               : filter === "assumed-roles"
                 ? s.kind === Kind.KindAWSAssumeRole
                 : filter === "favorites"
@@ -892,6 +910,9 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
               <DropdownMenuItem onClick={() => setDialog({ kind: "iam" })}>
                 <KeyRound /> AWS IAM user access key
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDialog({ kind: "aws-login" })}>
+                <LogIn /> AWS console login
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setDialog({ kind: "azure" })}>
                 <Cloud /> Azure tenant
@@ -986,6 +1007,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                       widths={widths}
                       onWidths={setWidths}
                       onNeedsLogin={needsLogin}
+                      onNeedsSessionLogin={needsSessionLogin}
                       onTagClick={(tag) => setFilter(`tag:${tag}`)}
                       shadows={workspace.shadowedProfiles ?? undefined}
                     />
@@ -1007,6 +1029,25 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
         open={dialog?.kind === "iam"}
         onClose={() => setDialog(null)}
         defaultRegion={workspace.settings?.defaultRegion ?? "us-east-1"}
+      />
+      <AddAWSLoginDialog
+        open={dialog?.kind === "aws-login"}
+        onClose={() => setDialog(null)}
+        defaultRegion={workspace.settings?.defaultRegion ?? "us-east-1"}
+      />
+      <SessionLoginDialog
+        session={dialog?.kind === "session-login" ? dialog.session : null}
+        onClose={() => {
+          setDialog(null);
+          pendingStart.current = null;
+        }}
+        onDone={() => {
+          const id = pendingStart.current;
+          if (id) {
+            pendingStart.current = null;
+            api.Start(id, "").catch((e) => toast.error(errorMessage(e)));
+          }
+        }}
       />
       <AddAzureDialog
         open={dialog?.kind === "azure"}

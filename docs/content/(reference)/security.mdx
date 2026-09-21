@@ -5,7 +5,7 @@ description: Where secrets live and what never touches disk.
 
 ## Long-lived secrets
 
-Identity Center refresh tokens, Azure token caches, and IAM user access keys live in the OS keychain (macOS Keychain, Windows Credential Manager, Secret Service on Linux) under the service name `rolle`. Large tokens are split into chunks.
+Identity Center refresh tokens, console login refresh tokens with their DPoP keys, Azure token caches, and IAM user access keys live in the OS keychain (macOS Keychain, Windows Credential Manager, Secret Service on Linux) under the service name `rolle`. Large tokens are split into chunks.
 
 ## Short-lived credentials
 

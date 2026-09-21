@@ -369,3 +369,92 @@ func TestSetRegionRewritesActiveProfile(t *testing.T) {
 		t.Fatal("empty region accepted")
 	}
 }
+
+func TestAWSLoginLifecycle(t *testing.T) {
+	s := testService(t)
+	now := time.Now()
+	s.Now = func() time.Time { return now }
+	if _, err := s.AddAWSLogin(AddAWSLoginInput{Name: "console"}); err == nil {
+		t.Fatal("AddAWSLogin without a region must fail")
+	}
+	sess, err := s.AddAWSLogin(AddAWSLoginInput{Name: "console", Region: "us-east-1", Profile: "console"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sess.Kind != core.KindAWSLogin || sess.Status != core.StatusInactive || sess.AWS == nil || sess.AWS.Profile != "console" {
+		t.Fatalf("session = %+v", sess)
+	}
+	// Nothing is stored yet, so a start needs the browser.
+	if _, err := s.Start(context.Background(), sess.ID, StartOptions{}); !LoginRequired(err) {
+		t.Fatalf("Start before login = %v", err)
+	}
+	auth, err := s.AWSLogin(context.Background(), "console")
+	if err != nil {
+		t.Fatalf("AWSLogin = %v", err)
+	}
+	auth.Cancel()
+	if _, err := s.AWSLogin(context.Background(), "missing"); err == nil {
+		t.Fatal("AWSLogin on an unknown session must fail")
+	}
+
+	// A stored sign-in, as the browser flow leaves it.
+	exp := now.Add(15 * time.Minute)
+	creds := core.Credentials{AccessKeyID: "ASIA1", SecretAccessKey: "s", SessionToken: "t", Expiration: &exp}
+	if err := s.login(&sess).StoreImported(creds, "rt", "", "arn:aws:signin:us-east-1:123456789012:session/abc"); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.FinishAWSLogin(sess.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.AWS.AccountID != "123456789012" {
+		t.Fatalf("account = %q", got.AWS.AccountID)
+	}
+	started, err := s.Start(context.Background(), sess.ID, StartOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if started.AccessKeyID != "ASIA1" || started.Expiration == nil || !started.Expiration.Equal(exp) {
+		t.Fatalf("creds = %+v", started)
+	}
+	if _, err := s.Cache.Get(sess.ID); err != nil {
+		t.Fatalf("short-lived credentials must be cached: %v", err)
+	}
+	w, _ := s.Load()
+	got2, _ := FindSession(w, sess.ID)
+	if got2.Status != core.StatusActive || got2.Expires == nil {
+		t.Fatalf("session = %+v", got2)
+	}
+	cfg, err := os.ReadFile(s.AWSConfigPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(cfg), "[profile console]") {
+		t.Fatalf("aws config:\n%s", cfg)
+	}
+
+	// The sign-in lapses with no refresh token: the renewal deactivates the session.
+	if err := s.Cache.Delete(sess.ID); err != nil {
+		t.Fatal(err)
+	}
+	past := now.Add(-time.Minute)
+	creds.Expiration = &past
+	if err := s.login(&sess).StoreImported(creds, "", "", ""); err != nil {
+		t.Fatal(err)
+	}
+	w, err = s.Refresh()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got3, _ := FindSession(w, sess.ID)
+	if got3.Status != core.StatusInactive || got3.ExpiredAt == nil {
+		t.Fatalf("session after lapsed login = %+v", got3)
+	}
+
+	if err := s.RemoveSession(sess.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Secrets.Get("aws-login-token/" + sess.ID); err == nil {
+		t.Fatal("removing the session must remove its sign-in")
+	}
+}

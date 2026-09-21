@@ -193,7 +193,30 @@ func sessionAddCmd() *cobra.Command {
 	iam.MarkFlagsMutuallyExclusive("access-key-id", "from-profile")
 	iam.MarkFlagsMutuallyExclusive("secret-access-key", "from-profile")
 
-	add.AddCommand(assume, iam, sessionAddGCPImpersonateCmd())
+	var lg app.AddAWSLoginInput
+	login := &cobra.Command{
+		Use:   "aws-login",
+		Short: "Add a console login, the flow behind `aws login`",
+		Long: "Add a session that signs in with console credentials in the browser: an IAM user, the root user, or IAM federation. " +
+			"The first `rolle start` opens the browser; a refresh token then renews the short-lived credentials for up to 12 hours. " +
+			"The identity needs the SignInLocalDevelopmentAccess managed policy, unless it is the root user.",
+		RunE: func(_ *cobra.Command, _ []string) error {
+			s, err := svc.AddAWSLogin(lg)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("added %s (%s)\n", s.Name, s.ID)
+			return nil
+		},
+	}
+	login.Flags().StringVar(&lg.Name, "name", "", "session name")
+	login.Flags().StringVar(&lg.Region, "region", "", "region to sign in to, and the default region")
+	login.Flags().StringVar(&lg.Profile, "profile", "", "AWS profile name (empty uses the shared default profile)")
+	for _, f := range []string{"name", "region"} {
+		_ = login.MarkFlagRequired(f)
+	}
+
+	add.AddCommand(assume, iam, login, sessionAddGCPImpersonateCmd())
 	return add
 }
 
