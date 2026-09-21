@@ -81,6 +81,7 @@ mise run desktop            # the desktop app in dev mode
 mise run desktop:demo       # the same, on fictional data
 mise run cli -- <args>      # the CLI from source, for example: mise run cli -- integration list
 mise run capabilities:check # compare the Go capability graph with capslock.json; mise run capabilities rewrites it
+mise run regions:check      # compare the desktop region picker with the AWS SDK's partition table; mise run regions rewrites it
 mise run docs               # serve the docs site
 mise run reset              # wipe the local workspace, secrets, cache, and AWS profiles
 ```
