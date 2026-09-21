@@ -93,6 +93,14 @@ description = "Rewrite capslock.json: the capabilities (network, exec, files) ea
 run = "capslock -packages ./cmd/...,./internal/... -granularity=package -output=json | jq -S 'del(.capabilityInfo[].path, .capabilityInfo[].depPath)' > capslock.json"
 env = { GOOS = "linux" }
 
+[tasks.regions]
+description = "Rewrite the desktop region picker list from the AWS SDK's partition table"
+run = "go run ./tools/regions"
+
+[tasks."regions:check"]
+description = "Fail when the desktop region picker list differs from the AWS SDK's partition table"
+run = "go run ./tools/regions -check"
+
 [tasks."capabilities:check"]
 description = "Fail when a Go package gained or lost a capability since capslock.json"
 run = "capslock -packages ./cmd/...,./internal/... -granularity=package -output=compare capslock.json"
