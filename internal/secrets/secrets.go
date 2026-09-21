@@ -3,6 +3,8 @@
 package secrets
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strconv"
@@ -91,6 +93,12 @@ func (s *Memory) Delete(key string) error {
 
 // Chunked splits values longer than Size across numbered entries so a
 // backend with a per-entry limit can hold them. Small values are stored as is.
+//
+// The chunks of one value carry a generation tag, and the head names the
+// generation. A rewrite stores the new chunks first and switches the head in
+// one write, so a reader sees the old value or the new one, never a mix,
+// when two processes write at the same time. Heads without a generation,
+// from earlier versions, still read.
 type Chunked struct {
 	Store Store
 	Size  int
@@ -98,7 +106,35 @@ type Chunked struct {
 
 const chunkMarker = "chunks:"
 
-func chunkKey(key string, i int) string { return fmt.Sprintf("%s#%d", key, i) }
+// chunkKey names chunk i of key. gen is empty for a head without a generation.
+func chunkKey(key, gen string, i int) string {
+	if gen == "" {
+		return fmt.Sprintf("%s#%d", key, i)
+	}
+	return fmt.Sprintf("%s#%s#%d", key, gen, i)
+}
+
+// parseHead reads "chunks:<n>" or "chunks:<n>:<gen>". ok is false for a
+// value that is not a chunk marker.
+func parseHead(head string) (n int, gen string, ok bool, err error) {
+	if !strings.HasPrefix(head, chunkMarker) {
+		return 0, "", false, nil
+	}
+	count, gen, _ := strings.Cut(strings.TrimPrefix(head, chunkMarker), ":")
+	n, err = strconv.Atoi(count)
+	if err != nil {
+		return 0, "", true, err
+	}
+	return n, gen, true, nil
+}
+
+func newGeneration() string {
+	b := make([]byte, 4)
+	if _, err := rand.Read(b); err != nil {
+		panic(err)
+	}
+	return hex.EncodeToString(b)
+}
 
 // Get implements Store.
 func (c Chunked) Get(key string) (string, error) {
@@ -106,16 +142,16 @@ func (c Chunked) Get(key string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if !strings.HasPrefix(head, chunkMarker) {
+	n, gen, ok, err := parseHead(head)
+	if !ok {
 		return head, nil
 	}
-	n, err := strconv.Atoi(strings.TrimPrefix(head, chunkMarker))
 	if err != nil {
 		return "", fmt.Errorf("secrets: bad chunk marker for %s", key)
 	}
 	var b strings.Builder
 	for i := 0; i < n; i++ {
-		part, err := c.Store.Get(chunkKey(key, i))
+		part, err := c.Store.Get(chunkKey(key, gen, i))
 		if err != nil {
 			return "", fmt.Errorf("secrets: chunk %d of %s: %w", i, key, err)
 		}
@@ -126,46 +162,50 @@ func (c Chunked) Get(key string) (string, error) {
 
 // Set implements Store.
 func (c Chunked) Set(key, value string) error {
-	if err := c.deleteChunks(key); err != nil {
-		return err
-	}
+	// The previous head names the chunks to remove once the new value is in.
+	prev, _ := c.Store.Get(key)
 	if len(value) <= c.Size {
-		return c.Store.Set(key, value)
+		if err := c.Store.Set(key, value); err != nil {
+			return err
+		}
+		return c.deleteChunks(key, prev)
 	}
+	gen := newGeneration()
 	n := 0
 	for start := 0; start < len(value); start += c.Size {
-		end := start + c.Size
-		if end > len(value) {
-			end = len(value)
-		}
-		if err := c.Store.Set(chunkKey(key, n), value[start:end]); err != nil {
+		end := min(start+c.Size, len(value))
+		if err := c.Store.Set(chunkKey(key, gen, n), value[start:end]); err != nil {
 			return err
 		}
 		n++
 	}
-	return c.Store.Set(key, chunkMarker+strconv.Itoa(n))
+	if err := c.Store.Set(key, chunkMarker+strconv.Itoa(n)+":"+gen); err != nil {
+		return err
+	}
+	return c.deleteChunks(key, prev)
 }
 
 // Delete implements Store.
 func (c Chunked) Delete(key string) error {
-	if err := c.deleteChunks(key); err != nil {
+	head, err := c.Store.Get(key)
+	if err != nil && !errors.Is(err, ErrNotFound) {
+		return err
+	}
+	if err := c.deleteChunks(key, head); err != nil {
 		return err
 	}
 	return c.Store.Delete(key)
 }
 
-// deleteChunks removes chunk entries left by a previous large value.
-func (c Chunked) deleteChunks(key string) error {
-	head, err := c.Store.Get(key)
-	if err != nil || !strings.HasPrefix(head, chunkMarker) {
-		return nil
-	}
-	n, err := strconv.Atoi(strings.TrimPrefix(head, chunkMarker))
-	if err != nil {
+// deleteChunks removes the chunks that head names. A head that is not a
+// chunk marker, or a bad one, names nothing.
+func (c Chunked) deleteChunks(key, head string) error {
+	n, gen, ok, err := parseHead(head)
+	if !ok || err != nil {
 		return nil
 	}
 	for i := 0; i < n; i++ {
-		if err := c.Store.Delete(chunkKey(key, i)); err != nil {
+		if err := c.Store.Delete(chunkKey(key, gen, i)); err != nil {
 			return err
 		}
 	}

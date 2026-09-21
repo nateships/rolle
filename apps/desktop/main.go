@@ -45,9 +45,10 @@ func init() {
 }
 
 func main() {
-	// AWS profiles written by this app name this binary in credential_process.
-	// Hand that call to the CLI instead of opening a window.
-	if len(os.Args) > 1 && os.Args[1] == "creds" {
+	// AWS profiles written by this app name this binary in credential_process,
+	// and the terminal launcher asks it for a session's environment. Hand
+	// those calls to the CLI instead of opening a window.
+	if len(os.Args) > 1 && (os.Args[1] == "creds" || os.Args[1] == "env") {
 		if err := cli.Root().Execute(); err != nil {
 			fmt.Fprintln(os.Stderr, "rolle:", err)
 			os.Exit(1)

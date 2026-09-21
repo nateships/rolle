@@ -86,7 +86,7 @@ See [Agents and scripts](/agents).
 | `rolle stop <session>` | Stop a session |
 | `rolle status` | Show active sessions |
 | `rolle cleanup [profile ...] [--all]` | List the sections of `~/.aws/credentials` that hold static keys, or remove their keys |
-| `rolle env <session> [--powershell]` | Print credentials as shell exports |
+| `rolle env <session> [--powershell] [--profile]` | Print credentials as shell exports. `--profile` exports the AWS profile and region instead, so the shell renews through `credential_process` |
 | `rolle token <session>` | Print the bearer token of an Azure or Google Cloud session |
 | `rolle shell <session>` | Open a terminal window with the credentials ready |
 | `rolle console <session> [--print]` | Open the cloud console |

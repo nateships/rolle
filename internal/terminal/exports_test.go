@@ -80,9 +80,9 @@ func TestShQuote(t *testing.T) {
 }
 
 func TestPosixScriptOrderAndTitleQuoting(t *testing.T) {
-	s := posixScript(Options{Title: "it's prod", Env: [][2]string{{"AWS_PROFILE", "p"}}})
+	s := posixScript(Options{Title: "it's prod", Exec: "/opt/rolle", Args: []string{"env", "s1", "--profile"}})
 	rm := strings.Index(s, "rm -f \"$0\"\n")
-	export := strings.Index(s, "export AWS_PROFILE='p'\n")
+	export := strings.Index(s, "eval \"$('/opt/rolle' 'env' 's1' '--profile')\"\n")
 	session := strings.Index(s, `export ROLLE_SESSION='it'\''s prod'`+"\n")
 	exec := strings.Index(s, "exec \"${SHELL:-/bin/sh}\" -l\n")
 	if rm < 0 || export < 0 || session < 0 || exec < 0 {

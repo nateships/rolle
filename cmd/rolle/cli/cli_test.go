@@ -27,7 +27,7 @@ func testCLI(t *testing.T) *app.Service {
 		AWSConfigPath: filepath.Join(dir, "aws", "config"),
 		Executable:    "/opt/rolle",
 		Secrets:       &secrets.Memory{},
-		Cache:         &credcache.Cache{Dir: filepath.Join(dir, "cache")},
+		Cache:         &credcache.Cache{Store: &secrets.Memory{}, Dir: filepath.Join(dir, "cache")},
 	}
 	old := newService
 	newService = func() (*app.Service, error) { return s, nil }
@@ -236,6 +236,11 @@ func TestStartStatusStopAndEnv(t *testing.T) {
 	if !strings.Contains(out, "$env:AWS_ACCESS_KEY_ID = ") || !strings.Contains(out, "Remove-Item Env:AWS_SESSION_TOKEN -ErrorAction SilentlyContinue\n") {
 		t.Fatalf("powershell output:\n%s", out)
 	}
+	// The terminal launcher asks for the profile, so no credential reaches the script.
+	out = mustRun(t, "env", "dev", "--profile")
+	if !strings.Contains(out, "export AWS_PROFILE='default'\n") || !strings.Contains(out, "export AWS_REGION='us-east-1'\n") || strings.Contains(out, "AKIA") || strings.Contains(out, "secret") {
+		t.Fatalf("env --profile output:\n%s", out)
+	}
 	out = mustRun(t, "creds", "--session", reload(t, s, "dev").ID)
 	if !strings.Contains(out, `"Version":1`) || !strings.Contains(out, `"AccessKeyId":"AKIA"`) || !strings.Contains(out, `"Expiration":"`) {
 		t.Fatalf("creds output:\n%s", out)
@@ -243,6 +248,10 @@ func TestStartStatusStopAndEnv(t *testing.T) {
 	mustRun(t, "stop", "dev")
 	if out := mustRun(t, "status"); strings.TrimSpace(out) != "no active sessions" {
 		t.Fatalf("status after stop:\n%s", out)
+	}
+	// A stopped session has no profile, so the launcher fails with the reason.
+	if _, err := run(t, "env", "dev", "--profile"); !errors.Is(err, app.ErrSessionInactive) {
+		t.Fatalf("env --profile after stop: %v", err)
 	}
 	if _, err := run(t, "start", "ghost"); !errors.Is(err, core.ErrNotFound) {
 		t.Fatalf("start unknown: %v", err)
