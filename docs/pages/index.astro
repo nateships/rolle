@@ -1,6 +1,7 @@
 ---
 // Landing page at "/". The docs live under basePath "/docs".
 import data from "blume:data";
+import Analytics from "blume/components/layout/Analytics.astro";
 import Galaxy from "../components/Galaxy.astro";
 import Header from "../components/landing/Header.astro";
 import Hero from "../components/landing/Hero.astro";
@@ -30,6 +31,8 @@ const site = data.config.site ?? "https://getrolle.com";
     <meta property="og:image" content={`${site}/og-brand.png`} />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="preload" as="font" type="font/ttf" crossorigin href="/fonts/MuseoModerno-Variable.ttf" />
+    <!-- The same analytics block as the docs pages, from blume.config.ts. Production builds only. -->
+    <Analytics analytics={data.config.analytics} />
   </head>
   <body>
     <Galaxy />
