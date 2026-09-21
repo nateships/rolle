@@ -29,7 +29,7 @@ const IS_MAC = /Macintosh/.test(navigator.userAgent);
 const IS_WIN = /Windows/.test(navigator.userAgent);
 const TERMINALS: { value: string; label: string }[] = IS_MAC
   ? [
-      { value: "auto", label: "System default for .command files" },
+      { value: "auto", label: "System default" },
       { value: "cmux", label: "cmux" },
       { value: "ghostty", label: "Ghostty" },
       { value: "iterm", label: "iTerm2" },
