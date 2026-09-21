@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.13.0](https://github.com/nateships/rolle/compare/v0.12.0...v0.13.0) (2026-09-21)
+
+
+### Features
+
+* **docs:** add Vercel Speed Insights ([#164](https://github.com/nateships/rolle/issues/164)) ([400355d](https://github.com/nateships/rolle/commit/400355d68a190d1f97c9be3d62f914a8229c55c7))
+
+
+### Bug Fixes
+
+* **deps:** update wails to v3.0.0-beta.24 ([#173](https://github.com/nateships/rolle/issues/173)) ([f60717e](https://github.com/nateships/rolle/commit/f60717e9d76ab1bbf0f19be6400ebf42c87368f6))
+* **desktop:** generate the region picker from the AWS SDK ([#166](https://github.com/nateships/rolle/issues/166)) ([8262334](https://github.com/nateships/rolle/commit/82623349fa3f56b9e036e3f92d6b7d1395654466))
+* **docs:** render analytics in the landing page body, not the head ([#167](https://github.com/nateships/rolle/issues/167)) ([cd111eb](https://github.com/nateships/rolle/commit/cd111eb5a239d7af4c1b108311090a5eb8f28806))
+
 ## [0.12.0](https://github.com/nateships/rolle/compare/v0.11.1...v0.12.0) (2026-09-21)
 
 
