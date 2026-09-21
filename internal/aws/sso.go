@@ -139,7 +139,7 @@ func (s *SSO) StartLogin(ctx context.Context) (*DeviceAuthorization, error) {
 	d := &DeviceAuthorization{VerificationURI: authorizeURL(s.Integration.AWSSSO.Region, aws.ToString(reg.ClientId), redirect, state, challenge), cancel: lb.stop}
 	d.complete = func(ctx context.Context) error {
 		defer lb.stop()
-		code, err := lb.wait(ctx, state, "aws sso")
+		code, err := lb.wait(ctx, "aws sso")
 		if err != nil {
 			return err
 		}

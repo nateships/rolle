@@ -113,9 +113,14 @@ type DeviceLogin struct {
 
 // StartSSOLogin begins the browser sign-in and opens the page. Call WaitSSOLogin next.
 func (r *RolleService) StartSSOLogin(ref string) (DeviceLogin, error) {
+	return r.startLogin(ref, r.svc.SSOLogin)
+}
+
+// startLogin runs begin for ref, records the pending login, and opens the page.
+func (r *RolleService) startLogin(ref string, begin func(context.Context, string) (*aws.DeviceAuthorization, error)) (DeviceLogin, error) {
 	c, cancel := ctx()
 	defer cancel()
-	auth, err := r.svc.SSOLogin(c, ref)
+	auth, err := begin(c, ref)
 	if err != nil {
 		return DeviceLogin{}, err
 	}
@@ -233,20 +238,7 @@ func (r *RolleService) AddAWSLogin(in AWSLoginInput) (core.Session, error) {
 // StartSessionLogin begins the browser sign-in of a console login session and
 // opens the page. Call WaitSessionLogin next, then Start.
 func (r *RolleService) StartSessionLogin(ref string) (DeviceLogin, error) {
-	c, cancel := ctx()
-	defer cancel()
-	auth, err := r.svc.AWSLogin(c, ref)
-	if err != nil {
-		return DeviceLogin{}, err
-	}
-	r.mu.Lock()
-	if old := r.pending[ref]; old != nil {
-		old.abandon()
-	}
-	r.pending[ref] = &pendingLogin{auth: auth}
-	r.mu.Unlock()
-	_ = browser.Open(auth.VerificationURI)
-	return DeviceLogin{VerificationURI: auth.VerificationURI, UserCode: auth.UserCode}, nil
+	return r.startLogin(ref, r.svc.AWSLogin)
 }
 
 // WaitSessionLogin blocks until the user approves, then records the account.

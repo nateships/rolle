@@ -53,7 +53,10 @@ type loginToken struct {
 	ClientID string `json:"clientId,omitempty"`
 	// DPoPKey is the PEM EC private key the refresh token is bound to.
 	DPoPKey string `json:"dpopKey"`
-	Region  string `json:"region"`
+	// Region is the region of the sign-in. The refresh token is valid only
+	// there, so a later change of the session's region does not move the
+	// refresh.
+	Region string `json:"region"`
 	// LoginSession is the sign-in session ARN, from the id token.
 	LoginSession string `json:"loginSession"`
 }
@@ -131,7 +134,7 @@ func (l *Login) StartLogin(ctx context.Context) (*DeviceAuthorization, error) {
 	d := &DeviceAuthorization{VerificationURI: loginAuthorizeURL(l.Region, loginClientID, redirect, state, pkceChallenge(verifier)), cancel: lb.stop}
 	d.complete = func(ctx context.Context) error {
 		defer lb.stop()
-		code, err := lb.wait(ctx, state, "aws login")
+		code, err := lb.wait(ctx, "aws login")
 		if err != nil {
 			return err
 		}
@@ -196,7 +199,7 @@ func parseVerificationCode(verification, state string) (string, error) {
 
 // exchange trades an authorization code for credentials and stores them.
 func (l *Login) exchange(ctx context.Context, key *ecdsa.PrivateKey, clientID, code, redirect, verifier string) error {
-	out, err := l.token(ctx, key, map[string]string{
+	out, err := l.token(ctx, l.Region, key, map[string]string{
 		"clientId":     clientID,
 		"grantType":    "authorization_code",
 		"code":         code,
@@ -246,9 +249,9 @@ type tokenError struct {
 	Message string `json:"message"`
 }
 
-// token calls the token endpoint with a DPoP proof for key.
-func (l *Login) token(ctx context.Context, key *ecdsa.PrivateKey, body map[string]string) (*tokenResponse, error) {
-	endpoint := "https://" + loginHost(l.Region) + "/v1/token"
+// token calls the token endpoint of region with a DPoP proof for key.
+func (l *Login) token(ctx context.Context, region string, key *ecdsa.PrivateKey, body map[string]string) (*tokenResponse, error) {
+	endpoint := "https://" + loginHost(region) + "/v1/token"
 	payload, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
@@ -289,7 +292,7 @@ func (l *Login) token(ctx context.Context, key *ecdsa.PrivateKey, body map[strin
 	if err := json.Unmarshal(raw, &out); err != nil {
 		return nil, fmt.Errorf("aws login: token: %w", err)
 	}
-	if out.AccessToken.AccessKeyID == "" || out.RefreshToken == "" {
+	if out.AccessToken.AccessKeyID == "" || out.AccessToken.SecretAccessKey == "" || out.AccessToken.SessionToken == "" {
 		return nil, errors.New("aws login: token: incomplete response")
 	}
 	return &out, nil
@@ -476,7 +479,13 @@ func (l *Login) refresh(ctx context.Context, t loginToken) (loginToken, error) {
 	if clientID == "" {
 		clientID = loginClientID
 	}
-	out, err := l.token(ctx, key, map[string]string{
+	// The refresh token is bound to the region of the sign-in, not to the
+	// session's current region.
+	region := t.Region
+	if region == "" {
+		region = l.Region
+	}
+	out, err := l.token(ctx, region, key, map[string]string{
 		"clientId":     clientID,
 		"grantType":    "refresh_token",
 		"refreshToken": t.RefreshToken,
@@ -487,7 +496,11 @@ func (l *Login) refresh(ctx context.Context, t loginToken) (loginToken, error) {
 	t.AccessKeyID = out.AccessToken.AccessKeyID
 	t.SecretAccessKey = out.AccessToken.SecretAccessKey
 	t.SessionToken = out.AccessToken.SessionToken
-	t.RefreshToken = out.RefreshToken
+	// The service rotates the refresh token. Keep the old one if an answer
+	// ever leaves it out, so the next renewal can still try.
+	if out.RefreshToken != "" {
+		t.RefreshToken = out.RefreshToken
+	}
 	t.Expires = l.now().Add(time.Duration(out.ExpiresIn) * time.Second)
 	if err := l.store(t); err != nil {
 		return loginToken{}, err

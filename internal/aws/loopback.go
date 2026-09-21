@@ -10,7 +10,7 @@ import (
 )
 
 // callback is what the browser redirect carried back to the loopback listener.
-type callback struct{ code, state, err string }
+type callback struct{ code, err string }
 
 // loopback is a one-shot listener for the browser redirect of an
 // authorization code flow. Only the redirect that carries state counts.
@@ -54,7 +54,7 @@ func listenLoopback(state string) (*loopback, error) {
 		_ = callbackPage.Execute(w, view)
 		// The page is sent before the flow continues, so the tab never sees a dropped connection.
 		select {
-		case got <- callback{code: q.Get("code"), state: q.Get("state"), err: q.Get("error")}:
+		case got <- callback{code: q.Get("code"), err: q.Get("error")}:
 		default:
 		}
 	})
@@ -69,8 +69,9 @@ func listenLoopback(state string) (*loopback, error) {
 }
 
 // wait blocks until the browser returns with a code, the user declines, ctx
-// ends, or the timeout passes. prefix names the flow in errors.
-func (l *loopback) wait(ctx context.Context, state, prefix string) (string, error) {
+// ends, or the timeout passes. The handler forwards only the redirect that
+// carries this login's state. prefix names the flow in errors.
+func (l *loopback) wait(ctx context.Context, prefix string) (string, error) {
 	var cb callback
 	select {
 	case cb = <-l.got:
@@ -82,7 +83,7 @@ func (l *loopback) wait(ctx context.Context, state, prefix string) (string, erro
 	if cb.err != "" {
 		return "", fmt.Errorf("%s: %s", prefix, cb.err)
 	}
-	if cb.state != state || cb.code == "" {
+	if cb.code == "" {
 		return "", errors.New(prefix + ": callback did not match this login")
 	}
 	return cb.code, nil

@@ -1045,7 +1045,10 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
           const id = pendingStart.current;
           if (id) {
             pendingStart.current = null;
-            api.Start(id, "").catch((e) => toast.error(errorMessage(e)));
+            api
+              .Start(id, "")
+              .then(() => toast.success("Started"))
+              .catch((e) => toast.error(errorMessage(e)));
           }
         }}
       />

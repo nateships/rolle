@@ -637,7 +637,10 @@ func (s *Service) FinishAWSLogin(ref string) (core.Session, error) {
 	if err != nil {
 		return core.Session{}, err
 	}
-	if acct := aws.AccountFromLoginSession(s.login(sess).LoginSession()); acct != "" && sess.AWS.AccountID != acct {
+	if acct := aws.AccountFromLoginSession(s.login(sess).LoginSession()); acct != "" && (sess.AWS == nil || sess.AWS.AccountID != acct) {
+		if sess.AWS == nil {
+			sess.AWS = &core.AWSSession{}
+		}
 		sess.AWS.AccountID = acct
 		if err := s.Save(w); err != nil {
 			return core.Session{}, err

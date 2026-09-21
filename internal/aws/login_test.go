@@ -322,6 +322,7 @@ func TestLoginRefresh(t *testing.T) {
 	var got map[string]string
 	var status int
 	var errCode string
+	var noRotate bool
 	client, rt := testClient(t, func(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&got)
 		if status != 0 {
@@ -329,7 +330,11 @@ func TestLoginRefresh(t *testing.T) {
 			_ = json.NewEncoder(w).Encode(map[string]string{"error": errCode, "message": "nope"})
 			return
 		}
-		_ = json.NewEncoder(w).Encode(tokenBody("AKIA2", "rt2", ""))
+		body := tokenBody("AKIA2", "rt2", "")
+		if noRotate {
+			delete(body, "refreshToken")
+		}
+		_ = json.NewEncoder(w).Encode(body)
 	})
 	store := &secrets.Memory{}
 	l := &Login{SessionID: "s1", Region: "us-east-1", Secrets: store, Now: func() time.Time { return now }, Client: client}
@@ -364,6 +369,17 @@ func TestLoginRefresh(t *testing.T) {
 		t.Fatalf("calls = %d", rt.calls)
 	}
 
+	// An answer without a rotated refresh token keeps the old one.
+	seed()
+	noRotate = true
+	if _, err := l.Credentials(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if kept, _ := l.stored(); kept.RefreshToken != "rt1" || kept.AccessKeyID != "AKIA2" {
+		t.Fatalf("without rotation: %+v", kept)
+	}
+	noRotate = false
+
 	// A refused refresh token needs a new sign-in.
 	seed()
 	status, errCode = http.StatusUnauthorized, "TOKEN_EXPIRED"
@@ -389,4 +405,39 @@ func TestLoginRefresh(t *testing.T) {
 	if _, err := l.Credentials(context.Background()); !errors.Is(err, ErrLoginRequired) {
 		t.Fatalf("after logout: %v", err)
 	}
+}
+
+// TestLoginRefreshUsesSignInRegion pins the refresh to the region of the
+// sign-in. A later change of the session's region must not move it: the
+// refresh token is valid only where it was issued.
+func TestLoginRefreshUsesSignInRegion(t *testing.T) {
+	key, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pemKey, err := marshalKey(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := ssoNow
+	var host, proof string
+	client, _ := testClient(t, func(w http.ResponseWriter, r *http.Request) {
+		host = r.Host
+		proof = r.Header.Get("DPoP")
+		_ = json.NewEncoder(w).Encode(tokenBody("AKIA2", "rt2", ""))
+	})
+	// The session moved to us-east-1 after a sign-in in eu-west-1.
+	l := &Login{SessionID: "s1", Region: "us-east-1", Secrets: &secrets.Memory{}, Now: func() time.Time { return now }, Client: client}
+	if err := l.store(loginToken{
+		AccessKeyID: "AKIA1", Expires: now.Add(-time.Minute), RefreshToken: "rt1", DPoPKey: pemKey, Region: "eu-west-1",
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := l.Credentials(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if host != "eu-west-1.oauth.signin.aws" {
+		t.Fatalf("refresh went to %q, want the sign-in region", host)
+	}
+	verifyDPoP(t, proof, "https://eu-west-1.oauth.signin.aws/v1/token")
 }
