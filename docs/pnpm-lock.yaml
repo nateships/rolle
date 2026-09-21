@@ -10,7 +10,7 @@ importers:
     dependencies:
       blume:
         specifier: ^1.7.0
-        version: 1.7.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@shikijs/themes@4.4.3)(@types/node@22.20.3)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(@vercel/functions@3.9.7)(csstype@3.2.3)(esbuild@0.28.2)(prettier@3.9.6)(vite@8.3.0(@types/node@22.20.3)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))(yaml@2.9.1)
+        version: 1.7.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@shikijs/themes@4.4.3)(@types/node@22.20.3)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(@vercel/functions@3.9.7)(csstype@3.2.3)(esbuild@0.28.2)(prettier@3.9.6)(vite@8.3.0(@types/node@22.20.3)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))(yaml@2.9.1)
 
 packages:
 
@@ -1773,8 +1773,8 @@ packages:
   bindings@1.5.0:
     resolution: {integrity: sha512-p2q/t/mhvuOj/UeLlV6566GD/guowlr0hHxClI0W9m7MWYkL1F0hLo+0Aexs9HSPCtR1SXQ0TD3MMKrXZajbiQ==}
 
-  blume@1.7.0:
-    resolution: {integrity: sha512-wDRlkEMVyPYPRv7s9I1XHGrbj/cSHHOyyu65PIf80s8PpLHicOMlYqwrDE+fns/qRnJG7QluV1aUubPN4JjEpw==}
+  blume@1.7.1:
+    resolution: {integrity: sha512-jHtqy36jzdwsF2MLkYhbaFZeOkmeNUwt/I5+h/S7wkhU4XgEgvKXUA8Vq/CUNswtIhO44Ss9PrvFvi3kD9XAAQ==}
     engines: {node: '>=22.12.0'}
     hasBin: true
     peerDependencies:
@@ -6295,7 +6295,7 @@ snapshots:
     dependencies:
       file-uri-to-path: 1.0.0
 
-  blume@1.7.0(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@shikijs/themes@4.4.3)(@types/node@22.20.3)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(@vercel/functions@3.9.7)(csstype@3.2.3)(esbuild@0.28.2)(prettier@3.9.6)(vite@8.3.0(@types/node@22.20.3)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))(yaml@2.9.1):
+  blume@1.7.1(@emnapi/core@1.11.1)(@emnapi/runtime@1.11.3)(@shikijs/themes@4.4.3)(@types/node@22.20.3)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(@vercel/functions@3.9.7)(csstype@3.2.3)(esbuild@0.28.2)(prettier@3.9.6)(vite@8.3.0(@types/node@22.20.3)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))(yaml@2.9.1):
     dependencies:
       '@astrojs/check': 0.9.10(prettier@3.9.6)(typescript@6.0.3)
       '@astrojs/markdown-satteri': 0.4.1
