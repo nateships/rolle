@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.14.0](https://github.com/nateships/rolle/compare/v0.13.0...v0.14.0) (2026-09-21)
+
+
+### Features
+
+* **app:** keep short-lived credentials in the keychain, not on disk ([#174](https://github.com/nateships/rolle/issues/174)) ([5cc4712](https://github.com/nateships/rolle/commit/5cc4712bb2a202f2a69eb4160e205f2a0ba1e6e0))
+* **terminal:** open the launcher with the system's .command handler ([#176](https://github.com/nateships/rolle/issues/176)) ([e62cf4d](https://github.com/nateships/rolle/commit/e62cf4def3905201039c1fdedecfc68c9a019846))
+
 ## [0.13.0](https://github.com/nateships/rolle/compare/v0.12.0...v0.13.0) (2026-09-21)
 
 
