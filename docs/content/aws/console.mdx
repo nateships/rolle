@@ -14,11 +14,11 @@ rolle console "Acme Prod/AdministratorAccess" --print   # print the URL instead
 
 ## Terminal
 
-**Open terminal** opens a terminal window with the session's environment exported. The terminal is **Settings → General → Terminal**, or the first one found:
+**Open terminal** opens a terminal window with the session's environment exported. The terminal is **Settings → General → Terminal**, or the system default:
 
-| Platform | Order |
+| Platform | Default |
 | --- | --- |
-| macOS | The app in `$TERM_PROGRAM`, then cmux, Ghostty, iTerm, Warp, then Terminal |
+| macOS | The app that opens `.command` files. Terminal, unless another terminal made itself the default: cmux, iTerm2, and Ghostty each have a menu item for that |
 | Linux | `$TERMINAL`, then x-terminal-emulator, gnome-terminal, konsole, xfce4-terminal, alacritty, kitty, xterm |
 | Windows | Windows Terminal, then PowerShell |
 

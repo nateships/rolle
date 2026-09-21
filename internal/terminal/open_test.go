@@ -1,11 +1,13 @@
 package terminal
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
 // fakeBin writes an executable shell script named name into a new directory
@@ -114,8 +116,7 @@ func TestOpenDarwinRemovesScriptWhenLauncherIsMissing(t *testing.T) {
 	// An empty PATH hides open and osascript, so no window can start and
 	// every app falls into the error path.
 	t.Setenv("PATH", t.TempDir())
-	t.Setenv("TERM_PROGRAM", "Apple_Terminal")
-	for _, app := range []App{MacOS, ITerm, Ghostty, Warp} {
+	for _, app := range []App{Auto, MacOS, ITerm, Ghostty, Warp, Cmux} {
 		t.Run(string(app), func(t *testing.T) {
 			o := testOpts
 			o.Dir = t.TempDir()
@@ -236,15 +237,6 @@ func TestOpenFailsWhenDirCannotBeCreated(t *testing.T) {
 	}
 }
 
-func TestDetectDarwinIgnoresUnknownTermProgram(t *testing.T) {
-	t.Setenv("TERM_PROGRAM", "Apple_Terminal")
-	switch detectDarwin() {
-	case Cmux, Ghostty, ITerm, Warp, MacOS:
-	default:
-		t.Fatal("detectDarwin returned an unknown app")
-	}
-}
-
 func TestRemoveOnError(t *testing.T) {
 	dir := t.TempDir()
 	path, err := writeScript(dir, "rolle-session-*.sh", "x")
@@ -260,5 +252,89 @@ func TestRemoveOnError(t *testing.T) {
 	removeOnError(path, &failed)
 	if _, err := os.Stat(path); err == nil {
 		t.Fatal("script kept although the launch failed")
+	}
+}
+
+// recordingBin writes an executable named name that appends its arguments,
+// one per line, to log and exits with code.
+func recordingBin(t *testing.T, name, log string, code int) string {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("shell script fakes need a POSIX shell")
+	}
+	path := filepath.Join(t.TempDir(), name)
+	body := "#!/bin/sh\nfor a in \"$@\"; do printf '%s\\n' \"$a\" >> " + shQuote(log) + "; done\nexit " + fmt.Sprint(code) + "\n"
+	if err := os.WriteFile(path, []byte(body), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+func readLines(t *testing.T, path string) []string {
+	t.Helper()
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return strings.Split(strings.TrimSpace(string(data)), "\n")
+}
+
+// TestOpenDarwinAutoUsesTheSystemHandler checks that the default leaves the
+// choice to Launch Services: open gets the script and no app.
+func TestOpenDarwinAutoUsesTheSystemHandler(t *testing.T) {
+	log := filepath.Join(t.TempDir(), "open.log")
+	open := recordingBin(t, "open", log, 0)
+	t.Setenv("PATH", filepath.Dir(open))
+	o := testOpts
+	o.Dir = t.TempDir()
+	o.App = Auto
+	if err := openDarwin(o); err != nil {
+		t.Fatal(err)
+	}
+	// open runs in the background; it is done when the log has the arguments.
+	var args []string
+	for i := 0; i < 50 && len(args) == 0; i++ {
+		if _, err := os.Stat(log); err == nil {
+			args = readLines(t, log)
+		} else {
+			time.Sleep(20 * time.Millisecond)
+		}
+	}
+	left := scripts(t, o.Dir)
+	if len(args) != 1 || len(left) != 1 || args[0] != filepath.Join(o.Dir, left[0]) {
+		t.Fatalf("open called with %v, scripts %v", args, left)
+	}
+}
+
+// TestOpenCmuxFallsBackToTheApp checks that a refused socket does not stop
+// the launch: the script goes to cmux the way a double-click would.
+func TestOpenCmuxFallsBackToTheApp(t *testing.T) {
+	dir := t.TempDir()
+	log := filepath.Join(dir, "open.log")
+	cmuxLog := filepath.Join(dir, "cmux.log")
+	open := recordingBin(t, "open", log, 0)
+	cmux := recordingBin(t, "cmux", cmuxLog, 1)
+	t.Setenv("PATH", filepath.Dir(open)+string(os.PathListSeparator)+filepath.Dir(cmux))
+	o := testOpts
+	o.Dir = t.TempDir()
+	o.App = Cmux
+	if err := openDarwin(o); err != nil {
+		t.Fatal(err)
+	}
+	cmuxArgs := readLines(t, cmuxLog)
+	if len(cmuxArgs) < 5 || cmuxArgs[0] != "new-workspace" || cmuxArgs[2] != "rolle: Acme Prod/Admin" {
+		t.Fatalf("cmux called with %v", cmuxArgs)
+	}
+	var args []string
+	for i := 0; i < 50 && len(args) == 0; i++ {
+		if _, err := os.Stat(log); err == nil {
+			args = readLines(t, log)
+		} else {
+			time.Sleep(20 * time.Millisecond)
+		}
+	}
+	left := scripts(t, o.Dir)
+	if len(args) != 3 || args[0] != "-a" || args[1] != "cmux" || len(left) != 1 || args[2] != filepath.Join(o.Dir, left[0]) {
+		t.Fatalf("open called with %v, scripts %v", args, left)
 	}
 }

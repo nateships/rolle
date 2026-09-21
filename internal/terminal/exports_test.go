@@ -142,20 +142,3 @@ func TestWriteScriptFailsWithoutDir(t *testing.T) {
 		t.Fatal("writeScript created the directory")
 	}
 }
-
-func TestDetectDarwinHonoursTermProgram(t *testing.T) {
-	cases := map[string]App{
-		"iTerm.app":    ITerm,
-		"cmux":         Cmux,
-		"ghostty":      Ghostty,
-		"WarpTerminal": Warp,
-	}
-	for tp, want := range cases {
-		t.Run(tp, func(t *testing.T) {
-			t.Setenv("TERM_PROGRAM", tp)
-			if got := detectDarwin(); got != want {
-				t.Fatalf("detectDarwin = %q, want %q", got, want)
-			}
-		})
-	}
-}
