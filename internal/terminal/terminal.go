@@ -9,10 +9,11 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
-	"time"
 )
 
-// App names a terminal emulator. "auto" picks the best installed one.
+// App names a terminal emulator. "auto" leaves the choice to the system: on
+// macOS the app that opens .command files, on Linux $TERMINAL or the first
+// emulator found, on Windows Windows Terminal when installed.
 type App string
 
 const (
@@ -124,11 +125,7 @@ func openDarwin(o Options) (err error) {
 		return err
 	}
 	defer removeOnError(path, &err)
-	app := o.App
-	if app == Auto || app == "" {
-		app = detectDarwin()
-	}
-	switch app {
+	switch o.App {
 	case Cmux:
 		return openCmux(o, path)
 	case ITerm:
@@ -137,62 +134,33 @@ func openDarwin(o Options) (err error) {
 		return exec.Command("open", "-na", "Ghostty", "--args", "-e", "/bin/sh", path).Start()
 	case Warp:
 		return exec.Command("open", "-a", "Warp", path).Start()
-	default:
+	case MacOS:
 		return exec.Command("open", "-a", "Terminal", path).Start()
+	default:
+		// The launcher is a .command file. Without an app, Launch Services
+		// opens it in the terminal the user made the default for that type,
+		// Terminal.app unless changed. The same thing a double-click does.
+		return exec.Command("open", path).Start()
 	}
 }
 
-// openCmux creates a cmux workspace running the launcher. cmux is driven over
-// its socket, so the app is started first when it is not running.
+// openCmux runs the launcher in a cmux workspace named after the session.
+// The name needs the cmux command on the PATH and cmux's socket, which cmux
+// opens to other processes only when its Automation setting allows it. When
+// either is missing, the launcher goes through the app like a double-clicked
+// .command file, which also starts cmux when it is not running. The
+// workspace then takes cmux's own name.
 func openCmux(o Options, script string) error {
-	cli, err := exec.LookPath("cmux")
-	if err != nil {
-		cli = "/opt/homebrew/bin/cmux"
-	}
-	args := []string{"new-workspace", "--name", "rolle: " + o.Title, "--command", "/bin/sh " + shQuote(script)}
-	if err := exec.Command(cli, args...).Run(); err == nil {
-		return nil
-	}
-	if err := exec.Command("open", "-a", "cmux").Run(); err != nil {
-		return fmt.Errorf("cmux: %w", err)
-	}
-	var last error
-	for i := 0; i < 20; i++ {
-		time.Sleep(500 * time.Millisecond)
-		if last = exec.Command(cli, args...).Run(); last == nil {
+	if cli, err := exec.LookPath("cmux"); err == nil {
+		args := []string{"new-workspace", "--name", "rolle: " + o.Title, "--command", "/bin/sh " + shQuote(script)}
+		if err := exec.Command(cli, args...).Run(); err == nil {
 			return nil
 		}
 	}
-	return fmt.Errorf("cmux did not accept the workspace: %w", last)
+	return exec.Command("open", "-a", "cmux", script).Start()
 }
 
 func appleQuote(s string) string { return `"` + strings.ReplaceAll(s, `"`, `\"`) + `"` }
-
-// detectDarwin picks the terminal named in TERM_PROGRAM, then the first
-// installed app from cmux, Ghostty, iTerm, and Warp, then Terminal.app.
-func detectDarwin() App {
-	if tp := os.Getenv("TERM_PROGRAM"); tp != "" {
-		switch {
-		case strings.Contains(tp, "iTerm"):
-			return ITerm
-		case strings.Contains(tp, "cmux"):
-			return Cmux
-		case strings.Contains(tp, "ghostty"):
-			return Ghostty
-		case strings.Contains(tp, "Warp"):
-			return Warp
-		}
-	}
-	for _, c := range []struct {
-		path string
-		app  App
-	}{{"/Applications/cmux.app", Cmux}, {"/Applications/Ghostty.app", Ghostty}, {"/Applications/iTerm.app", ITerm}, {"/Applications/Warp.app", Warp}} {
-		if _, err := os.Stat(c.path); err == nil {
-			return c.app
-		}
-	}
-	return MacOS
-}
 
 // removeOnError deletes the launcher script when the terminal did not start,
 // so a script that holds tokens never stays behind.
