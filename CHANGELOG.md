@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.12.0](https://github.com/nateships/rolle/compare/v0.11.1...v0.12.0) (2026-09-21)
+
+
+### Features
+
+* **aws:** add console login sessions, the flow behind aws login ([#163](https://github.com/nateships/rolle/issues/163)) ([41cdd00](https://github.com/nateships/rolle/commit/41cdd00b18199c0bf28d23c786944f569051f9dc))
+
+
+### Bug Fixes
+
+* **desktop:** probe the CLI with a login shell, not an interactive one ([#161](https://github.com/nateships/rolle/issues/161)) ([3c24eaf](https://github.com/nateships/rolle/commit/3c24eaf9a525b8ccb38303c6cbc65c62c1215237))
+
 ## [0.11.1](https://github.com/nateships/rolle/compare/v0.11.0...v0.11.1) (2026-09-19)
 
 
