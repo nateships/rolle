@@ -25,7 +25,12 @@ export default defineConfig({
   },
   theme: { accent: "#00CE78", radius: "md", mode: "system" },
   ai: { llmsTxt: true },
-  analytics: { vercel: true },
+  analytics: {
+    vercel: true,
+    // Vercel Speed Insights: Core Web Vitals per page. Vercel serves the
+    // script from our own domain once Speed Insights is on for the project.
+    scripts: [{ src: "/_vercel/speed-insights/script.js", strategy: "defer" }],
+  },
   seo: { og: { logo: "/mark.svg", palette: { background: "#101114", foreground: "#F4F0E8", muted: "#B4B8C0" } } },
   deployment: { output: "static", site: "https://getrolle.com" },
 });
