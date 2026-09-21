@@ -210,6 +210,11 @@ tasks:
     cmds:
       - wails3 generate bindings -f '{{.BUILD_FLAGS}}' -clean=true{{if eq .OBFUSCATED "true"}} -obfuscated{{end}} -ts -i
 
+  # The outputs are committed and the build uses them as they are. Run this
+  # by hand after a brand change: `mise run icons` at the repository root.
+  # Wired into every build, it rewrote the ICNS and ICO on each fresh clone,
+  # because the packer in the pinned wails3 writes different bytes than the
+  # one the committed files came from.
   generate:icons:
     summary: Generates the stack/r desktop and tray artwork, Windows ICO, and macOS ICNS.
     run: once

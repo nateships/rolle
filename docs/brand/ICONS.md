@@ -17,15 +17,11 @@ The generated PNG, ICNS and ICO files live in apps/desktop/build/: appicon.png, 
 From the repository root:
 
 ```sh
-go run ./tools/icons
+mise run icons
 ```
 
-Then from apps/desktop:
+The task runs the Go generator, then packs the PNGs into the macOS ICNS and the Windows ICO. The outputs are committed and the desktop build uses them as they are, so run the task after a brand change and commit what it writes. The generator uses only the Go standard library and writes SVG and antialiased PNG from the same path definitions. Edit tools/icons/main.go as the source of truth, then refresh the SVGs in docs/brand/icons/ from the generated build files if the mark changes.
 
-```sh
-wails3 task common:generate:icons
-```
-
-The Wails task also runs the Go generator itself, so the second command is sufficient for a full rebuild. The generator uses only the Go standard library and writes SVG and antialiased PNG from the same path definitions. Edit tools/icons/main.go as the source of truth, then refresh the SVGs in docs/brand/icons/ from the generated build files if the mark changes.
+The ICNS and ICO bytes depend on the wails3 version that packs them. A wails3 bump can change them without a visible difference; rerun the task and commit the result when that happens.
 
 macOS uses the ICNS path in Info.plist. Bundle tasks clear stale Assets.car files in reused output bundles so the ICNS icon is used.

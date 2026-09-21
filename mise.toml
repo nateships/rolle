@@ -93,6 +93,11 @@ description = "Rewrite capslock.json: the capabilities (network, exec, files) ea
 run = "capslock -packages ./cmd/...,./internal/... -granularity=package -output=json | jq -S 'del(.capabilityInfo[].path, .capabilityInfo[].depPath)' > capslock.json"
 env = { GOOS = "linux" }
 
+[tasks.icons]
+description = "Regenerate the desktop and tray icons from tools/icons; run after a brand change and commit the result"
+run = "wails3 task common:generate:icons"
+dir = "apps/desktop"
+
 [tasks.regions]
 description = "Rewrite the desktop region picker list from the AWS SDK's partition table"
 run = "go run ./tools/regions"
