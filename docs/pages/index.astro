@@ -31,8 +31,6 @@ const site = data.config.site ?? "https://getrolle.com";
     <meta property="og:image" content={`${site}/og-brand.png`} />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="preload" as="font" type="font/ttf" crossorigin href="/fonts/MuseoModerno-Variable.ttf" />
-    <!-- The same analytics block as the docs pages, from blume.config.ts. Production builds only. -->
-    <Analytics analytics={data.config.analytics} />
   </head>
   <body>
     <Galaxy />
@@ -42,5 +40,12 @@ const site = data.config.site ?? "https://getrolle.com";
       <DashboardDemo />
     </main>
     <Features />
+    <!--
+      The same analytics block as the docs pages, from blume.config.ts.
+      Production builds only. It renders a <vercel-analytics> element, which
+      must not sit in <head>: the parser would end the head there and push the
+      stylesheet into the body.
+    -->
+    <Analytics analytics={data.config.analytics} />
   </body>
 </html>
