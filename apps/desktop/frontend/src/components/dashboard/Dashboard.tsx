@@ -1070,15 +1070,18 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
           pendingStart.current = null;
         }}
         onDone={(integ) => {
-          setFilter(integ.id);
+          // A sign-in that a session start asked for keeps the current filter;
+          // a direct sign-in shows the integration's sessions.
           const id = pendingStart.current;
-          if (id) {
-            pendingStart.current = null;
-            api
-              .Start(id, "")
-              .then(() => toast.success("Started"))
-              .catch((e) => toast.error(errorMessage(e)));
+          if (!id) {
+            setFilter(integ.id);
+            return;
           }
+          pendingStart.current = null;
+          api
+            .Start(id, "")
+            .then(() => toast.success("Started"))
+            .catch((e) => toast.error(errorMessage(e)));
         }}
       />
       <SettingsDialog
