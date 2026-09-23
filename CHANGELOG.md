@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.1](https://github.com/nateships/rolle/compare/v0.14.0...v0.14.1) (2026-09-23)
+
+
+### Bug Fixes
+
+* **desktop:** keep the sidebar filter after a sign-in that a start asked for ([#182](https://github.com/nateships/rolle/issues/182)) ([87f1bd4](https://github.com/nateships/rolle/commit/87f1bd4ba7c50777a5dc82c5b117439b732ddaf8))
+
 ## [0.14.0](https://github.com/nateships/rolle/compare/v0.13.0...v0.14.0) (2026-09-21)
 
 
