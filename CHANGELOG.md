@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.14.2](https://github.com/nateships/rolle/compare/v0.14.1...v0.14.2) (2026-09-25)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @wailsio/runtime to v3.0.0-beta.25 ([#190](https://github.com/nateships/rolle/issues/190)) ([e4554a9](https://github.com/nateships/rolle/commit/e4554a9cd8425af5e3b25fe67cfb0159ac16bb06))
+* **deps:** update dependency cn to ^0.4.0 ([#188](https://github.com/nateships/rolle/issues/188)) ([8824f2c](https://github.com/nateships/rolle/commit/8824f2c3a1ae62e1ef3315a89ff3a7c9f3191b46))
+
 ## [0.14.1](https://github.com/nateships/rolle/compare/v0.14.0...v0.14.1) (2026-09-23)
 
 
