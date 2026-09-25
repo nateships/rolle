@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
-    "@wailsio/runtime": "3.0.0-beta.24",
+    "@wailsio/runtime": "3.0.0-beta.25",
     "canvas-confetti": "^1.9.4",
     "cn": "^0.3.0",
     "lucide-react": "^1.40.0",
