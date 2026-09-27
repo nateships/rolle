@@ -1,4 +1,6 @@
 import { defineConfig } from "blume";
+import { script, vercel } from "blume/analytics";
+import { filesystem, githubReleases } from "blume/sources";
 
 export default defineConfig({
   title: "rolle",
@@ -8,10 +10,10 @@ export default defineConfig({
   basePath: "/docs",
   content: {
     sources: [
-      { type: "filesystem", root: "content" },
+      filesystem({ root: "content" }),
       // Every GitHub release becomes an entry on /changelog and in its RSS
       // feed. release-please writes the release notes, so nothing is typed twice.
-      { type: "github-releases", prefix: "changelog", owner: "nateships", repo: "rolle" },
+      githubReleases({ prefix: "changelog", owner: "nateships", repo: "rolle" }),
     ],
   },
   github: { owner: "nateships", repo: "rolle", branch: "main", dir: "docs" },
@@ -24,13 +26,14 @@ export default defineConfig({
     actions: [{ href: "https://github.com/nateships/rolle/releases", label: "Download" }],
   },
   theme: { accent: "#00CE78", radius: "md", mode: "system" },
-  ai: { llmsTxt: true },
-  analytics: {
-    vercel: true,
+  agents: { llmsTxt: true },
+  analytics: [
+    vercel(),
     // Vercel Speed Insights: Core Web Vitals per page. Vercel serves the
     // script from our own domain once Speed Insights is on for the project.
-    scripts: [{ src: "/_vercel/speed-insights/script.js", strategy: "defer" }],
-  },
+    script({ src: "/_vercel/speed-insights/script.js", strategy: "defer" }),
+  ],
   seo: { og: { logo: "/mark.svg", palette: { background: "#101114", foreground: "#F4F0E8", muted: "#B4B8C0" } } },
-  deployment: { output: "static", site: "https://getrolle.com" },
+  // A static build: vercel.json runs it with no framework preset.
+  deployment: { site: "https://getrolle.com" },
 });
