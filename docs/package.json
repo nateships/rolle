@@ -11,6 +11,6 @@
     "preview": "blume preview"
   },
   "dependencies": {
-    "blume": "^1.7.0"
+    "blume": "^2.0.0"
   }
 }
