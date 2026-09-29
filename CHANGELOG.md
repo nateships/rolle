@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.14.3](https://github.com/nateships/rolle/compare/v0.14.2...v0.14.3) (2026-09-29)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @wailsio/runtime to v3.0.0-beta.26 ([#200](https://github.com/nateships/rolle/issues/200)) ([1b294af](https://github.com/nateships/rolle/commit/1b294af6c46f62ccb766c7ed3e79e891b3d06c1f))
+* **deps:** update dependency blume to v2 ([#194](https://github.com/nateships/rolle/issues/194)) ([69bd110](https://github.com/nateships/rolle/commit/69bd11065ad6946327d4f9cb9694fcf6b0d1ed16))
+* **deps:** update module github.com/aws/aws-sdk-go-v2/service/eks to v1.100.0 ([#202](https://github.com/nateships/rolle/issues/202)) ([ba553fb](https://github.com/nateships/rolle/commit/ba553fb4073994ea2861ff111743cdc435b5764c))
+
 ## [0.14.2](https://github.com/nateships/rolle/compare/v0.14.1...v0.14.2) (2026-09-25)
 
 
