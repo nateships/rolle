@@ -2,7 +2,7 @@
 go = "1.27.1"
 golangci-lint = "2.14.0"
 node = "26"
-aube = "2.2"
+aube = "2.6.0"
 "go:github.com/wailsapp/wails/v3/cmd/wails3" = "v3.0.0-beta.25"
 prek = "0.5.4"        # git hooks, also run in CI
 actionlint = "1.7.12" # workflow correctness

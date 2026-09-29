@@ -53,6 +53,12 @@
       "groupName": "aube",
     },
     {
+      "description": "aube's release tags carry a v prefix that mise.toml must not: mise looks up `aube = \"v2.6.0\"` as a release that does not exist",
+      "matchManagers": ["mise"],
+      "matchDepNames": ["aube"],
+      "extractVersion": "^v(?<version>.*)$",
+    },
+    {
       "description": "goreleaser in mise.toml and in the release workflow move together",
       "matchDepNames": ["goreleaser", "goreleaser/goreleaser"],
       "groupName": "goreleaser",
