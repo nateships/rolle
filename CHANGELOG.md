@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.14.4](https://github.com/nateships/rolle/compare/v0.14.3...v0.14.4) (2026-10-03)
+
+
+### Bug Fixes
+
+* **deps:** update aws-sdk-go-v2 monorepo ([#210](https://github.com/nateships/rolle/issues/210)) ([b4521ef](https://github.com/nateships/rolle/commit/b4521ef79e2b4052ea137b6c2834299c6429db05))
+* **deps:** update dependency motion to v14 ([#234](https://github.com/nateships/rolle/issues/234)) ([63b262b](https://github.com/nateships/rolle/commit/63b262be0d93d170e8a3183013b57d6d6dd85839))
+* **deps:** update module github.com/azuread/microsoft-authentication-library-for-go to v1.10.1 ([#217](https://github.com/nateships/rolle/issues/217)) ([7b6e1b3](https://github.com/nateships/rolle/commit/7b6e1b3ad991d48ba3df7f6a11186245ddd31ea1))
+* **deps:** update wails to v3.0.0-beta.25 ([#204](https://github.com/nateships/rolle/issues/204)) ([e19dcba](https://github.com/nateships/rolle/commit/e19dcbabc4846fc8e6eddc8d2a56deea99d93a39))
+* **deps:** update wails to v3.0.0-beta.26 ([#211](https://github.com/nateships/rolle/issues/211)) ([9b82d6b](https://github.com/nateships/rolle/commit/9b82d6bf8bc79e7fd369aee0a32b650fc66fc454))
+* **deps:** update wails to v3.0.0-beta.27 ([#228](https://github.com/nateships/rolle/issues/228)) ([c1d74d1](https://github.com/nateships/rolle/commit/c1d74d170a216f0b6d4fb4a26ebbd930a64813cc))
+
 ## [0.14.3](https://github.com/nateships/rolle/compare/v0.14.2...v0.14.3) (2026-09-29)
 
 
