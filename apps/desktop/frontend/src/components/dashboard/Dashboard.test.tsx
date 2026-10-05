@@ -96,10 +96,8 @@ describe("Dashboard", () => {
     expect(rowNames()).toContain("personal");
   });
 
-  it("lists tags in the sidebar, filters by one, and takes a dropped session", async () => {
+  it("lists tags in the sidebar and filters by one", async () => {
     const user = userEvent.setup();
-    // One hidden session, so the Hidden entry is there to drop on.
-    Object.assign(workspace.sessions[0], { hidden: true });
     renderDashboard();
     // Seeded: Production with one session, Sandbox with none. Chips on rows
     // carry the same names, so the sidebar is queried on its own.
@@ -112,7 +110,13 @@ describe("Dashboard", () => {
     await user.click(screen.getByRole("button", { name: /^All sessions/ }));
     await user.click(screen.getByRole("button", { name: /^Production$/ }));
     expect(rowNames()).toEqual(["deployer"]);
+  });
 
+  it("takes a dropped session or tag in the sidebar", () => {
+    // One hidden session, so the Hidden entry is there to drop on.
+    Object.assign(workspace.sessions[0], { hidden: true });
+    renderDashboard();
+    const sidebar = within(screen.getByRole("complementary"));
     const setTag = vi.spyOn(api, "SetSessionTag").mockResolvedValue();
     const data = new Map<string, string>([["application/x-rolle-session", "s-personal"]]);
     const dataTransfer = {
@@ -147,7 +151,11 @@ describe("Dashboard", () => {
     fireEvent.dragOver(hidden, { dataTransfer });
     fireEvent.drop(hidden, { dataTransfer });
     expect(hide).toHaveBeenCalledWith("s-personal", true);
+  });
 
+  it("adds a tag from the sidebar", async () => {
+    const user = userEvent.setup();
+    renderDashboard();
     // The + button opens the new-tag dialog, which saves through AddTag.
     const add = vi.spyOn(api, "AddTag").mockResolvedValue();
     await user.click(screen.getByRole("button", { name: "New tag" }));
