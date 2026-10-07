@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.14.5](https://github.com/nateships/rolle/compare/v0.14.4...v0.14.5) (2026-10-07)
+
+
+### Bug Fixes
+
+* **aws:** build SDK config without the shared config loader ([#247](https://github.com/nateships/rolle/issues/247)) ([6b89552](https://github.com/nateships/rolle/commit/6b8955201b43952ea6340d95b2736314d02e6a94))
+* **aws:** serialize token refresh across processes ([#249](https://github.com/nateships/rolle/issues/249)) ([0a79ecd](https://github.com/nateships/rolle/commit/0a79ecd6c14e00fcfa61cf2f4c3f306afdeef542))
+* **cli:** clear stale credentials in rolle env ([#246](https://github.com/nateships/rolle/issues/246)) ([ca202b9](https://github.com/nateships/rolle/commit/ca202b92e43929479659665c905d768eaf44692b))
+* **desktop:** harden the updater and keep the release notes ([#250](https://github.com/nateships/rolle/issues/250)) ([c57fc13](https://github.com/nateships/rolle/commit/c57fc139ff10e97e4a97c6530bf1dc203889b9ec))
+* **desktop:** keep the Homebrew link when removing the command ([#252](https://github.com/nateships/rolle/issues/252)) ([d4283f0](https://github.com/nateships/rolle/commit/d4283f0a2ef759dbe5703bc5ae63ccbfeae97179))
+* **desktop:** toast theme, sidebar focus, search fields, stale pending start ([#254](https://github.com/nateships/rolle/issues/254)) ([ec0ffc7](https://github.com/nateships/rolle/commit/ec0ffc7e7ff6807fe7763f0b1a361f662a514786))
+* **kube:** keep a symlinked kubeconfig a link on write ([#245](https://github.com/nateships/rolle/issues/245)) ([6354ab8](https://github.com/nateships/rolle/commit/6354ab84653a9e1c3cefdbf359bf0541750dc654))
+* restore the profile owner on a failed start and time out rolle creds ([#248](https://github.com/nateships/rolle/issues/248)) ([36b5b4b](https://github.com/nateships/rolle/commit/36b5b4bc48741022e8f0a18405cef435fde718f5))
+* **support:** redact proxy credentials and external IDs ([#253](https://github.com/nateships/rolle/issues/253)) ([e6934a0](https://github.com/nateships/rolle/commit/e6934a0c8283d9e6549b2158270004f5e3c812bf))
+
 ## [0.14.4](https://github.com/nateships/rolle/compare/v0.14.3...v0.14.4) (2026-10-03)
 
 
