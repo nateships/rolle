@@ -2,7 +2,9 @@ package secrets
 
 import (
 	"errors"
+	"slices"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -116,4 +118,76 @@ func TestChunkedRoundTrip(t *testing.T) {
 	if _, err := c.Get("missing"); err != ErrNotFound {
 		t.Fatalf("missing key: %v", err)
 	}
+}
+
+// rewriteOnChunkRead runs one rewrite of key just before the first chunk read.
+// It puts a writer between the head read and the chunk reads of a reader.
+type rewriteOnChunkRead struct {
+	*Memory
+	key, value string
+	done       bool
+}
+
+func (s *rewriteOnChunkRead) Get(k string) (string, error) {
+	if k != s.key && !s.done {
+		s.done = true
+		if err := (Chunked{Store: s.Memory, Size: 2}).Set(s.key, s.value); err != nil {
+			return "", err
+		}
+	}
+	return s.Memory.Get(k)
+}
+
+// TestChunkedGetDuringRewrite checks that a reader that loads the old head
+// while a writer removes the old chunks gets the new value, not a miss.
+func TestChunkedGetDuringRewrite(t *testing.T) {
+	mem := &Memory{}
+	if err := (Chunked{Store: mem, Size: 2}).Set("k", "abcd"); err != nil {
+		t.Fatal(err)
+	}
+	c := Chunked{Store: &rewriteOnChunkRead{Memory: mem, key: "k", value: "wxyz"}, Size: 2}
+	got, err := c.Get("k")
+	if err != nil || got != "wxyz" {
+		t.Fatalf("Get = %q, %v; want the new value", got, err)
+	}
+}
+
+// TestChunkedConcurrentGetSet runs readers against a writer. A reader can
+// see the old value or the new one, but never a miss.
+func TestChunkedConcurrentGetSet(t *testing.T) {
+	mem := &Memory{}
+	c := Chunked{Store: mem, Size: 2}
+	values := []string{"abcdef", "ghijklmn", "opq"}
+	if err := c.Set("k", values[0]); err != nil {
+		t.Fatal(err)
+	}
+	var wg sync.WaitGroup
+	stop := make(chan struct{})
+	for range 4 {
+		wg.Go(func() {
+			for {
+				select {
+				case <-stop:
+					return
+				default:
+				}
+				got, err := c.Get("k")
+				if errors.Is(err, ErrNotFound) {
+					t.Errorf("Get during Set = %v", err)
+					return
+				}
+				if err == nil && !slices.Contains(values, got) {
+					t.Errorf("Get = %q, a mix of values", got)
+					return
+				}
+			}
+		})
+	}
+	for i := range 2000 {
+		if err := c.Set("k", values[i%len(values)]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	close(stop)
+	wg.Wait()
 }

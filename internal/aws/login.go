@@ -75,6 +75,9 @@ type Login struct {
 	Now func() time.Time
 	// Client is overridable for tests. Nil uses the configured client.
 	Client *http.Client
+	// LockDir holds the lock files that stop two processes from renewing the
+	// same sign-in at the same time. Empty means no cross-process lock.
+	LockDir string
 }
 
 func (l *Login) now() time.Time {
@@ -458,12 +461,31 @@ func (l *Login) Credentials(ctx context.Context) (core.Credentials, error) {
 		return core.Credentials{}, err
 	}
 	if !l.valid(t) {
-		if t, err = l.refresh(ctx, t); err != nil {
+		if t, err = l.renew(ctx); err != nil {
 			return core.Credentials{}, err
 		}
 	}
 	exp := t.Expires
 	return core.Credentials{AccessKeyID: t.AccessKeyID, SecretAccessKey: t.SecretAccessKey, SessionToken: t.SessionToken, Expiration: &exp}, nil
+}
+
+// renew refreshes lapsed credentials under the cross-process lock. Another
+// process can renew them while this one waits for the lock, so renew reads
+// them again first. Then each refresh token is used one time only.
+func (l *Login) renew(ctx context.Context) (loginToken, error) {
+	ctx, unlock, err := lockToken(ctx, l.LockDir, loginTokenKey(l.SessionID))
+	if err != nil {
+		return loginToken{}, err
+	}
+	defer unlock()
+	t, err := l.stored()
+	if err != nil {
+		return loginToken{}, err
+	}
+	if l.valid(t) {
+		return t, nil
+	}
+	return l.refresh(ctx, t)
 }
 
 // refresh trades the refresh token for new credentials and stores them.

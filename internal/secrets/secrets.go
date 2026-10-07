@@ -136,12 +136,42 @@ func newGeneration() string {
 	return hex.EncodeToString(b)
 }
 
+// errChunkMissing marks a head that names a chunk the store does not have.
+// It is not ErrNotFound: the head exists, so the key has a value.
+var errChunkMissing = errors.New("chunk missing")
+
+// readAttempts is how many heads Get tries before it stops.
+const readAttempts = 3
+
 // Get implements Store.
+//
+// A rewrite in another process can remove the chunks of the head that Get
+// read. A writer switches the head before it removes the old chunks, so Get
+// reads the head again and tries the new one. A head that does not change
+// while a chunk stays missing gives errChunkMissing, not ErrNotFound.
 func (c Chunked) Get(key string) (string, error) {
 	head, err := c.Store.Get(key)
 	if err != nil {
 		return "", err
 	}
+	for attempt := 1; ; attempt++ {
+		v, err := c.read(key, head)
+		if !errors.Is(err, errChunkMissing) || attempt == readAttempts {
+			return v, err
+		}
+		next, herr := c.Store.Get(key)
+		if herr != nil {
+			return "", herr
+		}
+		if next == head {
+			return "", err
+		}
+		head = next
+	}
+}
+
+// read returns the value that head names.
+func (c Chunked) read(key, head string) (string, error) {
 	n, gen, ok, err := parseHead(head)
 	if !ok {
 		return head, nil
@@ -152,6 +182,9 @@ func (c Chunked) Get(key string) (string, error) {
 	var b strings.Builder
 	for i := 0; i < n; i++ {
 		part, err := c.Store.Get(chunkKey(key, gen, i))
+		if errors.Is(err, ErrNotFound) {
+			return "", fmt.Errorf("secrets: chunk %d of %s: %w", i, key, errChunkMissing)
+		}
 		if err != nil {
 			return "", fmt.Errorf("secrets: chunk %d of %s: %w", i, key, err)
 		}
