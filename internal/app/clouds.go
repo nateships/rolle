@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/zalando/go-keyring"
@@ -539,6 +540,11 @@ func (s *Service) EnvVars(sess *core.Session, creds core.Credentials) [][2]strin
 	vars := EnvVars(sess, creds)
 	if sess.Kind == core.KindGCP && sess.GCP != nil && sess.GCP.ServiceAccount != "" {
 		vars = append(vars, [2]string{"GOOGLE_APPLICATION_CREDENTIALS", s.adcPath(sess)})
+	} else if sess.Kind == core.KindGCP && strings.HasPrefix(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"), filepath.Join(s.Cache.Dir, "gcp")+string(filepath.Separator)) {
+		// The shell points at the impersonated file of an earlier session.
+		// An empty value clears it in eval output. The user's own file
+		// stays set, because rolle reads it as the source credentials.
+		vars = append(vars, [2]string{"GOOGLE_APPLICATION_CREDENTIALS", ""})
 	}
 	return vars
 }
@@ -573,10 +579,9 @@ func EnvVars(sess *core.Session, creds core.Credentials) [][2]string {
 			{"CLOUDSDK_AUTH_ACCESS_TOKEN", creds.Token},
 			{"GOOGLE_OAUTH_ACCESS_TOKEN", creds.Token},
 		}
-		if sess.GCP.ServiceAccount != "" {
-			vars = append(vars, [2]string{"CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT", sess.GCP.ServiceAccount})
-		}
-		return vars
+		// An empty service account clears the impersonation of an earlier
+		// session in eval output.
+		return append(vars, [2]string{"CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT", sess.GCP.ServiceAccount})
 	}
 	return nil
 }

@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -396,6 +397,7 @@ func TestSessionEnvPerCloud(t *testing.T) {
 		},
 		"g1": {
 			{"CLOUDSDK_CORE_PROJECT", "proj-1"}, {"GOOGLE_CLOUD_PROJECT", "proj-1"}, {"CLOUDSDK_AUTH_ACCESS_TOKEN", "g-tok"}, {"GOOGLE_OAUTH_ACCESS_TOKEN", "g-tok"},
+			{"CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT", ""},
 		},
 		"g2": {
 			{"CLOUDSDK_CORE_PROJECT", "proj-1"}, {"GOOGLE_CLOUD_PROJECT", "proj-1"}, {"CLOUDSDK_AUTH_ACCESS_TOKEN", "sa-tok"}, {"GOOGLE_OAUTH_ACCESS_TOKEN", "sa-tok"},
@@ -489,6 +491,15 @@ func TestGCPImpersonationFilesFollowSession(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(s.Cache.Dir, "gcp", "g1.json")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatal("a user-identity session must not write an ADC file")
+	}
+	// The user's own ADC file stays set. The impersonated file of an earlier
+	// session is cleared.
+	if got := s.EnvVars(plain, core.Credentials{Token: "tok"}); slices.Contains(got, [2]string{"GOOGLE_APPLICATION_CREDENTIALS", ""}) {
+		t.Fatalf("user adc cleared: %v", got)
+	}
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", path)
+	if got := s.EnvVars(plain, core.Credentials{Token: "tok"}); got[len(got)-1] != [2]string{"GOOGLE_APPLICATION_CREDENTIALS", ""} {
+		t.Fatalf("stale adc not cleared: %v", got)
 	}
 	if err := s.removeCloudFiles(sess); err != nil {
 		t.Fatal(err)
