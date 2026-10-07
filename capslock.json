@@ -60,6 +60,13 @@
       "capability": "CAPABILITY_FILES",
       "capabilityName": "FILES",
       "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/filelock",
+      "packageName": "filelock"
+    },
+    {
+      "capability": "CAPABILITY_FILES",
+      "capabilityName": "FILES",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
       "packageDir": "github.com/nateships/rolle/internal/gcp",
       "packageName": "gcp"
     },
@@ -578,6 +585,13 @@
       "capability": "CAPABILITY_SYSTEM_CALLS",
       "capabilityName": "SYSTEM_CALLS",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
+      "packageDir": "github.com/nateships/rolle/internal/filelock",
+      "packageName": "filelock"
+    },
+    {
+      "capability": "CAPABILITY_SYSTEM_CALLS",
+      "capabilityName": "SYSTEM_CALLS",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/kube",
       "packageName": "kube"
     },
@@ -720,6 +734,13 @@
       "capabilityType": "CAPABILITY_TYPE_DIRECT",
       "packageDir": "github.com/nateships/rolle/internal/discover",
       "packageName": "discover"
+    },
+    {
+      "capability": "CAPABILITY_UNANALYZED",
+      "capabilityName": "UNANALYZED",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/filelock",
+      "packageName": "filelock"
     },
     {
       "capability": "CAPABILITY_UNANALYZED",
@@ -1583,6 +1604,12 @@
     },
     {
       "path": "github.com/nateships/rolle/internal/discover"
+    },
+    {
+      "ignoredFiles": [
+        "filelock_windows.go"
+      ],
+      "path": "github.com/nateships/rolle/internal/filelock"
     },
     {
       "path": "github.com/nateships/rolle/internal/gcp"
