@@ -56,6 +56,9 @@ func Default() (*Service, error) {
 		Secrets:       secrets.NewKeychain(),
 		Cache:         credcache.Default(),
 	}
+	// A shell can point GOOGLE_APPLICATION_CREDENTIALS at a file in this
+	// folder. rolle must not read that file as the user's credentials.
+	gcp.ImpersonationDir = s.gcpDir()
 	// A bad proxy or bundle must not stop the app; it is reported when edited.
 	if st, err := s.Settings(); err == nil {
 		if err := netcfg.Apply(st); err != nil {

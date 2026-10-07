@@ -570,6 +570,31 @@ func TestAddGCPRecordsAccountBeforeDiscovery(t *testing.T) {
 	}
 }
 
+func TestGCPTokenIgnoresImpersonationFileInEnv(t *testing.T) {
+	home := fakeHome(t)
+	cfg := filepath.Join(home, "gcloud")
+	t.Setenv("CLOUDSDK_CONFIG", cfg)
+	writeFile(t, filepath.Join(cfg, "application_default_credentials.json"), `{"type":"authorized_user","client_id":"c","client_secret":"s","refresh_token":"r"}`)
+	s := testService(t)
+	old := gcp.ImpersonationDir
+	t.Cleanup(func() { gcp.ImpersonationDir = old })
+	gcp.ImpersonationDir = s.gcpDir()
+	// Load a service account session in the shell, then fetch a token for a
+	// plain session in the same shell.
+	sa := &core.Session{ID: "g2", Name: "deployer", Kind: core.KindGCP, GCP: &core.GCPSession{ProjectID: "p", ServiceAccount: "sa@p.iam.gserviceaccount.com"}}
+	if err := s.writeCloudFiles(sa); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", s.adcPath(sa))
+	plain := &core.Session{ID: "g1", Name: "proj", Kind: core.KindGCP, GCP: &core.GCPSession{ProjectID: "p"}}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // the token exchange fails before any network call
+	_, err := s.fetchCloud(ctx, nil, plain)
+	if err == nil || errors.Is(err, gcp.ErrNoADC) || strings.Contains(err.Error(), "authorized_user") {
+		t.Fatalf("fetch plain session = %v, want the user's credentials to be read", err)
+	}
+}
+
 func TestConsoleURLRejectsSessionsWithoutARole(t *testing.T) {
 	s := testService(t)
 	user := addIAMUser(t, s, "user")
@@ -619,12 +644,17 @@ func TestDefaultUsesEnvironmentPaths(t *testing.T) {
 	t.Setenv("ROLLE_WORKSPACE", ws)
 	t.Setenv("ROLLE_CACHE_DIR", cache)
 	t.Setenv("AWS_CONFIG_FILE", cfg)
+	old := gcp.ImpersonationDir
+	t.Cleanup(func() { gcp.ImpersonationDir = old })
 	s, err := Default()
 	if err != nil {
 		t.Fatal(err)
 	}
 	if s.WorkspacePath != ws || s.Cache.Dir != cache || s.AWSConfigPath != cfg {
 		t.Fatalf("paths = %s %s %s", s.WorkspacePath, s.Cache.Dir, s.AWSConfigPath)
+	}
+	if gcp.ImpersonationDir != filepath.Join(cache, "gcp") {
+		t.Fatalf("gcp impersonation dir = %s", gcp.ImpersonationDir)
 	}
 	if s.Executable == "" || s.Secrets == nil {
 		t.Fatalf("service = %+v", s)

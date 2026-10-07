@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/zalando/go-keyring"
@@ -504,8 +503,11 @@ func (s *Service) ConsoleURLFor(ctx context.Context, ref string) (string, error)
 
 // adcPath is where a GCP impersonation session keeps its ADC file.
 func (s *Service) adcPath(sess *core.Session) string {
-	return filepath.Join(s.Cache.Dir, "gcp", sess.ID+".json")
+	return filepath.Join(s.gcpDir(), sess.ID+".json")
 }
+
+// gcpDir is the folder for the ADC files of service account sessions.
+func (s *Service) gcpDir() string { return filepath.Join(s.Cache.Dir, "gcp") }
 
 // writeCloudFiles creates the files other tools read for a session: the AWS
 // profile, or the impersonated ADC file for a GCP service account session.
@@ -540,7 +542,7 @@ func (s *Service) EnvVars(sess *core.Session, creds core.Credentials) [][2]strin
 	vars := EnvVars(sess, creds)
 	if sess.Kind == core.KindGCP && sess.GCP != nil && sess.GCP.ServiceAccount != "" {
 		vars = append(vars, [2]string{"GOOGLE_APPLICATION_CREDENTIALS", s.adcPath(sess)})
-	} else if sess.Kind == core.KindGCP && strings.HasPrefix(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"), filepath.Join(s.Cache.Dir, "gcp")+string(filepath.Separator)) {
+	} else if sess.Kind == core.KindGCP && gcp.InDir(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"), s.gcpDir()) {
 		// The shell points at the impersonated file of an earlier session.
 		// An empty value clears it in eval output. The user's own file
 		// stays set, because rolle reads it as the source credentials.
