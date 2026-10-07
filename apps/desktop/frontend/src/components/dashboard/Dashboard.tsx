@@ -396,9 +396,17 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
         .filter(
           (s) =>
             !q ||
-            [s.name, s.aws?.accountId, s.aws?.roleName, s.aws?.profile, s.region].some((v) =>
-              (v ?? "").toLowerCase().includes(q),
-            ),
+            [
+              s.name,
+              s.aws?.accountId,
+              s.aws?.accountName,
+              s.aws?.roleName,
+              s.aws?.profile,
+              s.azure?.subscriptionId,
+              s.gcp?.projectId,
+              s.region,
+              ...(s.tags ?? []),
+            ].some((v) => (v ?? "").toLowerCase().includes(q)),
         )
         .filter((s) => matchesRefine(s, refine))
     );

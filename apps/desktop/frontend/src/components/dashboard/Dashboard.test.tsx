@@ -225,6 +225,30 @@ describe("Dashboard", () => {
     expect(screen.getByText("Nothing matches")).toBeInTheDocument();
   });
 
+  it("searches subscription, project, account name, and tags", () => {
+    Object.assign(
+      workspace.sessions.find((s) => s.name === "personal")!,
+      { tags: ["Scratchpad"] },
+    );
+    Object.assign(
+      workspace.sessions.find((s) => s.name === "prod-admin")!,
+      {
+        aws: { roleArn: "arn:aws:iam::123456789012:role/Admin", accountName: "Ledger" },
+      },
+    );
+    renderDashboard();
+    const search = (q: string) =>
+      fireEvent.change(screen.getByPlaceholderText("Search sessions"), { target: { value: q } });
+    search("0f1e2d3c");
+    expect(rowNames()).toEqual(["Contoso Production"]);
+    search("4821");
+    expect(rowNames()).toEqual(["data-platform", "deployer"]);
+    search("ledger");
+    expect(rowNames()).toEqual(["prod-admin"]);
+    search("scratchpad");
+    expect(rowNames()).toEqual(["personal"]);
+  });
+
   it("hides the sidebar from the header button and the keyboard, and remembers it", async () => {
     const user = userEvent.setup();
     renderDashboard();
