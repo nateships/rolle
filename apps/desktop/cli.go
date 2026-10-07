@@ -52,6 +52,8 @@ type cliEnv struct {
 	lookPath  func(file string) (string, error)
 	versionOf func(path string) string
 	userPath  func() (string, error)
+	// caskRoots are the Homebrew Caskroom directories to search for a rolle cask.
+	caskRoots []string
 }
 
 func liveEnv() cliEnv {
@@ -66,7 +68,21 @@ func liveEnv() cliEnv {
 		lookPath:  userLookPath,
 		versionOf: commandVersion,
 		userPath:  userPathList,
+		// A cask links its command into <prefix>/bin. Only the /usr/local
+		// prefix links /usr/local/bin/rolle.
+		caskRoots: []string{"/usr/local/Caskroom"},
 	}
+}
+
+// caskInstalled reports whether Homebrew installed the rolle cask. On Intel
+// Macs the cask links /usr/local/bin/rolle, the same path as the app.
+func caskInstalled(env cliEnv) bool {
+	for _, root := range env.caskRoots {
+		if _, err := os.Stat(filepath.Join(root, "rolle")); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 // CLIStatus reports whether the bundled rolle command is on the PATH.
@@ -151,13 +167,7 @@ func (r *RolleService) UninstallCLI() error {
 	}
 	env := liveEnv()
 	if env.goos == "darwin" {
-		if _, err := os.Lstat(cliLink); err != nil {
-			return nil
-		}
-		if err := os.Remove(cliLink); err == nil || !errors.Is(err, os.ErrPermission) {
-			return err
-		}
-		return adminShell(fmt.Sprintf("rm -f %s", shellQuote(cliLink)))
+		return uninstallDarwinLink(env, cliLink)
 	}
 	target := userCLIPath(env)
 	if target == "" {
@@ -176,6 +186,25 @@ func (r *RolleService) UninstallCLI() error {
 		}
 	}
 	return nil
+}
+
+// uninstallDarwinLink removes the link that Install made. It keeps the link
+// of the Homebrew cask and a file that is not a link.
+func uninstallDarwinLink(env cliEnv, link string) error {
+	fi, err := os.Lstat(link)
+	if err != nil {
+		return nil
+	}
+	if caskInstalled(env) {
+		return errors.New("the rolle command comes from Homebrew; to remove it, run brew uninstall --cask rolle")
+	}
+	if fi.Mode()&os.ModeSymlink == 0 {
+		return fmt.Errorf("%s is not a link that rolle made; remove it yourself", link)
+	}
+	if err := os.Remove(link); err == nil || !errors.Is(err, os.ErrPermission) {
+		return err
+	}
+	return adminShell(fmt.Sprintf("rm -f %s", shellQuote(link)))
 }
 
 // refreshCLI rewrites the app's own copy of the command after an update, so
@@ -228,6 +257,9 @@ func darwinStatus(env cliEnv) CLIStatus {
 		}
 	} else if _, err := os.Lstat(cliLink); err == nil {
 		st.Installed, st.Path = true, cliLink
+	}
+	if st.Installed && st.Path == cliLink && caskInstalled(env) {
+		st.Reason = "external"
 	}
 	return st
 }
