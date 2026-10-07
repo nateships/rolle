@@ -109,6 +109,93 @@ func TestDarwinStatus(t *testing.T) {
 	}
 }
 
+// fakeCaskroom makes a Caskroom with a rolle cask and returns its root.
+func fakeCaskroom(t *testing.T) string {
+	t.Helper()
+	root := t.TempDir()
+	if err := os.Mkdir(filepath.Join(root, "rolle"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	return root
+}
+
+func TestDarwinStatusWithHomebrewCask(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("bundle paths use forward slashes; the code runs on macOS only")
+	}
+	// On Intel Macs the cask links /usr/local/bin/rolle, the same path as the app.
+	env := cliEnv{goos: "darwin", exe: fakeBundle(t, t.TempDir())}
+	env.lookPath = func(string) (string, error) { return cliLink, nil }
+	env.caskRoots = []string{t.TempDir(), fakeCaskroom(t)}
+	if st := cliStatusIn(env); !st.Installed || st.Path != cliLink || st.Reason != "external" {
+		t.Fatalf("status with the cask installed = %+v", st)
+	}
+	env.caskRoots = []string{t.TempDir()}
+	if st := cliStatusIn(env); !st.Installed || st.Reason != "" {
+		t.Fatalf("status without the cask = %+v", st)
+	}
+	// With no command, the cask does not stop an install.
+	env.caskRoots = []string{fakeCaskroom(t)}
+	env.lookPath = notFound
+	if _, err := os.Lstat(cliLink); err == nil {
+		return
+	}
+	if st := cliStatusIn(env); st.Installed || st.Reason != "" {
+		t.Fatalf("status with the cask and no command = %+v", st)
+	}
+}
+
+func TestUninstallDarwinLink(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlinks need privileges on Windows; the code runs on macOS only")
+	}
+	dir := t.TempDir()
+	target := filepath.Join(dir, "rolle.app", "Contents", "Helpers", "rolle")
+	link := filepath.Join(dir, "rolle")
+	makeLink := func() {
+		t.Helper()
+		_ = os.Remove(link)
+		if err := os.Symlink(target, link); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// No link: nothing to do.
+	if err := uninstallDarwinLink(cliEnv{}, link); err != nil {
+		t.Fatalf("missing link: %v", err)
+	}
+
+	// A link that Homebrew made stays.
+	makeLink()
+	if err := uninstallDarwinLink(cliEnv{caskRoots: []string{fakeCaskroom(t)}}, link); err == nil {
+		t.Fatal("removed the link of the Homebrew cask")
+	}
+	if _, err := os.Lstat(link); err != nil {
+		t.Fatalf("link of the Homebrew cask is gone: %v", err)
+	}
+
+	// The app made only a link, so a regular file stays.
+	_ = os.Remove(link)
+	if err := os.WriteFile(link, []byte("#!/bin/sh\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := uninstallDarwinLink(cliEnv{}, link); err == nil {
+		t.Fatal("removed a regular file")
+	}
+	if _, err := os.Lstat(link); err != nil {
+		t.Fatalf("regular file is gone: %v", err)
+	}
+
+	// A link without a cask is the app's link.
+	makeLink()
+	if err := uninstallDarwinLink(cliEnv{caskRoots: []string{t.TempDir()}}, link); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Lstat(link); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("link still there: %v", err)
+	}
+}
+
 func TestUserDirStatusNeedsAPayload(t *testing.T) {
 	for _, goos := range []string{"windows", "linux"} {
 		env := cliEnv{goos: goos, home: t.TempDir(), localApp: t.TempDir(), lookPath: notFound}
