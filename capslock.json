@@ -25,13 +25,6 @@
       "capability": "CAPABILITY_FILES",
       "capabilityName": "FILES",
       "capabilityType": "CAPABILITY_TYPE_DIRECT",
-      "packageDir": "github.com/nateships/rolle/internal/atomicfile",
-      "packageName": "atomicfile"
-    },
-    {
-      "capability": "CAPABILITY_FILES",
-      "capabilityName": "FILES",
-      "capabilityType": "CAPABILITY_TYPE_DIRECT",
       "packageDir": "github.com/nateships/rolle/internal/aws",
       "packageName": "aws"
     },
@@ -52,7 +45,7 @@
     {
       "capability": "CAPABILITY_FILES",
       "capabilityName": "FILES",
-      "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/credcache",
       "packageName": "credcache"
     },
@@ -401,14 +394,14 @@
     },
     {
       "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
-      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
+      "capabilityName": "MODIFY_SYSTEM_STATE/ENV",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/cmd/rolle",
       "packageName": "main"
     },
     {
       "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
-      "capabilityName": "MODIFY_SYSTEM_STATE/ENV",
+      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/cmd/rolle",
       "packageName": "main"
@@ -513,14 +506,14 @@
     },
     {
       "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
-      "capabilityName": "MODIFY_SYSTEM_STATE/ENV",
+      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/secrets",
       "packageName": "secrets"
     },
     {
       "capability": "CAPABILITY_MODIFY_SYSTEM_STATE",
-      "capabilityName": "MODIFY_SYSTEM_STATE/SIGNALS",
+      "capabilityName": "MODIFY_SYSTEM_STATE/ENV",
       "capabilityType": "CAPABILITY_TYPE_TRANSITIVE",
       "packageDir": "github.com/nateships/rolle/internal/secrets",
       "packageName": "secrets"
@@ -1030,39 +1023,39 @@
     },
     {
       "path": "github.com/AzureAD/microsoft-authentication-library-for-go",
-      "version": "v1.10.1"
+      "version": "v1.9.0"
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2",
-      "version": "v1.47.1"
+      "version": "v1.47.0"
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2/config",
-      "version": "v1.33.6"
+      "version": "v1.33.5"
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2/credentials",
-      "version": "v1.20.6"
+      "version": "v1.20.5"
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2/feature/ec2/imds",
-      "version": "v1.20.1"
+      "version": "v1.20.0"
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2/internal/configsources",
-      "version": "v1.5.4"
+      "version": "v1.5.3"
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2/internal/endpoints/v2",
-      "version": "v2.8.4"
+      "version": "v2.8.3"
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2/internal/v4a",
-      "version": "v1.5.4"
+      "version": "v1.5.3"
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2/service/eks",
-      "version": "v1.102.0"
+      "version": "v1.99.0"
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding",
@@ -1070,23 +1063,23 @@
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2/service/internal/presigned-url",
-      "version": "v1.14.4"
+      "version": "v1.14.3"
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2/service/signin",
-      "version": "v1.10.1"
+      "version": "v1.10.0"
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2/service/sso",
-      "version": "v1.38.1"
+      "version": "v1.38.0"
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2/service/ssooidc",
-      "version": "v1.43.1"
+      "version": "v1.43.0"
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2/service/sts",
-      "version": "v1.51.1"
+      "version": "v1.51.0"
     },
     {
       "path": "github.com/aws/smithy-go",
@@ -1362,16 +1355,12 @@
       "ignoredFiles": [
         "request_snapshot_test.go",
         "response_snapshot_test.go",
-        "response_snapshot_update_test.go",
         "snapshot_test.go"
       ],
       "path": "github.com/aws/aws-sdk-go-v2/service/eks"
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2/service/eks/internal/endpoints"
-    },
-    {
-      "path": "github.com/aws/aws-sdk-go-v2/service/eks/schemas"
     },
     {
       "path": "github.com/aws/aws-sdk-go-v2/service/eks/types"
@@ -1454,12 +1443,6 @@
       "path": "github.com/aws/smithy-go/document"
     },
     {
-      "path": "github.com/aws/smithy-go/document/internal/serde"
-    },
-    {
-      "path": "github.com/aws/smithy-go/document/json"
-    },
-    {
       "path": "github.com/aws/smithy-go/encoding"
     },
     {
@@ -1484,15 +1467,6 @@
       "path": "github.com/aws/smithy-go/eventstream"
     },
     {
-      "path": "github.com/aws/smithy-go/internal/eventstream"
-    },
-    {
-      "path": "github.com/aws/smithy-go/internal/serde"
-    },
-    {
-      "path": "github.com/aws/smithy-go/internal/sync"
-    },
-    {
       "path": "github.com/aws/smithy-go/internal/sync/singleflight"
     },
     {
@@ -1509,9 +1483,6 @@
         "generate.go"
       ],
       "path": "github.com/aws/smithy-go/middleware"
-    },
-    {
-      "path": "github.com/aws/smithy-go/prelude"
     },
     {
       "path": "github.com/aws/smithy-go/private/requestcompression"
@@ -1543,18 +1514,6 @@
     },
     {
       "path": "github.com/aws/smithy-go/transport/http/internal/io"
-    },
-    {
-      "path": "github.com/aws/smithy-go/transport/http/protocol/internal/httpbinding"
-    },
-    {
-      "path": "github.com/aws/smithy-go/transport/http/protocol/internal/json"
-    },
-    {
-      "path": "github.com/aws/smithy-go/transport/http/protocol/internal/json/internal/stdlib"
-    },
-    {
-      "path": "github.com/aws/smithy-go/transport/http/protocol/restjson1"
     },
     {
       "path": "github.com/aws/smithy-go/waiter"
@@ -1600,9 +1559,6 @@
     },
     {
       "path": "github.com/nateships/rolle/internal/app"
-    },
-    {
-      "path": "github.com/nateships/rolle/internal/atomicfile"
     },
     {
       "path": "github.com/nateships/rolle/internal/aws"
