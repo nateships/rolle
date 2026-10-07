@@ -25,6 +25,13 @@
       "capability": "CAPABILITY_FILES",
       "capabilityName": "FILES",
       "capabilityType": "CAPABILITY_TYPE_DIRECT",
+      "packageDir": "github.com/nateships/rolle/internal/atomicfile",
+      "packageName": "atomicfile"
+    },
+    {
+      "capability": "CAPABILITY_FILES",
+      "capabilityName": "FILES",
+      "capabilityType": "CAPABILITY_TYPE_DIRECT",
       "packageDir": "github.com/nateships/rolle/internal/aws",
       "packageName": "aws"
     },
@@ -1559,6 +1566,9 @@
     },
     {
       "path": "github.com/nateships/rolle/internal/app"
+    },
+    {
+      "path": "github.com/nateships/rolle/internal/atomicfile"
     },
     {
       "path": "github.com/nateships/rolle/internal/aws"

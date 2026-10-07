@@ -6,10 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"go.yaml.in/yaml/v3"
 
+	"github.com/nateships/rolle/internal/atomicfile"
 	"github.com/nateships/rolle/internal/core"
 )
 
@@ -149,8 +149,8 @@ func load(path string) (map[string]any, error) {
 	return doc, nil
 }
 
-// save writes doc through a temporary file in the same directory, so a
-// failed write leaves the old kubeconfig in place.
+// save writes doc atomically, so a failed write leaves the old kubeconfig in
+// place. A symlinked kubeconfig stays a link.
 func save(path string, doc map[string]any) error {
 	var buf bytes.Buffer
 	enc := yaml.NewEncoder(&buf)
@@ -158,28 +158,7 @@ func save(path string, doc map[string]any) error {
 	if err := enc.Encode(doc); err != nil {
 		return err
 	}
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0o700); err != nil {
-		return err
-	}
-	tmp, err := os.CreateTemp(dir, ".rolle-*")
-	if err != nil {
-		return err
-	}
-	_, err = tmp.Write(buf.Bytes())
-	if err == nil {
-		err = tmp.Chmod(0o600)
-	}
-	if cerr := tmp.Close(); err == nil {
-		err = cerr
-	}
-	if err == nil {
-		err = os.Rename(tmp.Name(), path)
-	}
-	if err != nil {
-		_ = os.Remove(tmp.Name())
-	}
-	return err
+	return atomicfile.Write(path, buf.Bytes(), 0o600)
 }
 
 // find returns the named item of a kubeconfig list, or nil.
