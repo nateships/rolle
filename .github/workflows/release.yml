@@ -208,12 +208,25 @@ jobs:
             -url-prefix "https://github.com/nateships/rolle/releases/download/${GITHUB_REF_NAME}/" \
             -output artifacts/manifest.json artifacts
           wails3 updater verify -manifest artifacts/manifest.json -publickey apps/desktop/build/updater.pub
+      - name: Sign the manifest
+        # The artifact signatures do not cover the version, the notes, or the
+        # artifact URLs. This signature covers the whole manifest. The app
+        # reads it from manifest.json.sig and refuses a manifest without a
+        # valid one. The check runs the signature through the same verify
+        # command with the public key that the app embeds.
+        run: |
+          wails3 updater sign -key updater.key artifacts/manifest.json > manifest-sig.json
+          jq -e -r '.[0].signature' manifest-sig.json > artifacts/manifest.json.sig
+          jq '{schemaVersion: 1, version: env.VERSION, artifacts: .}' manifest-sig.json > manifest-check.json
+          wails3 updater verify -manifest manifest-check.json -dir artifacts -publickey apps/desktop/build/updater.pub
       - name: Store the manifest
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: manifest
           if-no-files-found: error
-          path: artifacts/manifest.json
+          path: |
+            artifacts/manifest.json
+            artifacts/manifest.json.sig
       - name: Store the release notes
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"crypto"
 	"crypto/ed25519"
+	"crypto/sha512"
 	"crypto/x509"
 	_ "embed"
 	"encoding/base64"
@@ -78,7 +81,7 @@ func setupUpdater(a *application.App, svc *app.Service) error {
 	}
 	cfg := updater.Config{
 		CurrentVersion: strings.TrimPrefix(version.Version, "v"),
-		Providers:      []updater.Provider{&channelProvider{settings: svc.Settings}},
+		Providers:      []updater.Provider{&channelProvider{settings: svc.Settings, key: key}},
 		PublicKey:      key,
 	}
 	if err := a.Updater.Init(cfg); err != nil {
@@ -275,8 +278,10 @@ func appBundle(exe string) string {
 // Beta follows the newest release of any kind, pre-releases included.
 type channelProvider struct {
 	settings func() (core.Settings, error)
-	mu       sync.Mutex
-	current  *endpoint.Provider
+	// key verifies the detached manifest signature.
+	key     ed25519.PublicKey
+	mu      sync.Mutex
+	current *endpoint.Provider
 }
 
 func (p *channelProvider) Name() string { return "github" }
@@ -290,7 +295,20 @@ func (p *channelProvider) Check(ctx context.Context, req updater.CheckRequest) (
 			debug.Logf("updater", "beta channel: %v; using stable", err)
 		}
 	}
-	ep, err := endpoint.New(endpoint.Config{URL: url})
+	// The artifact signature covers only the artifact. The manifest has its
+	// own signature, which covers the version, the notes, and the URLs.
+	body, err := fetchSignedManifest(ctx, url, p.key)
+	if err != nil {
+		return nil, err
+	}
+	if body == nil {
+		return nil, nil
+	}
+	client, err := verifiedManifestClient(url, body)
+	if err != nil {
+		return nil, err
+	}
+	ep, err := endpoint.New(endpoint.Config{URL: url, HTTPClient: client})
 	if err != nil {
 		return nil, err
 	}
@@ -379,6 +397,98 @@ func newestManifestURL(ctx context.Context, client *http.Client, api string) (st
 		}
 	}
 	return "", errors.New("no release with a manifest")
+}
+
+// manifestClient fetches the manifest and its signature.
+var manifestClient = &http.Client{Timeout: 30 * time.Second}
+
+// fetchSignedManifest downloads the manifest at raw and its signature at
+// raw + ".sig". The signature is an Ed25519ph signature over the SHA-512
+// digest of the manifest bytes, in base64, as `wails3 updater sign` writes
+// it. The function returns nil and no error when the manifest does not
+// exist. A missing or bad signature is an error.
+func fetchSignedManifest(ctx context.Context, raw string, key ed25519.PublicKey) ([]byte, error) {
+	if len(key) != ed25519.PublicKeySize {
+		return nil, errors.New("updater: no manifest public key")
+	}
+	body, status, err := httpGet(ctx, raw, 8<<20)
+	if err != nil {
+		return nil, fmt.Errorf("updater: fetch manifest: %w", err)
+	}
+	if status == http.StatusNotFound {
+		return nil, nil
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("updater: manifest request failed: HTTP %d", status)
+	}
+	sig, status, err := httpGet(ctx, raw+".sig", 1<<10)
+	if err != nil {
+		return nil, fmt.Errorf("updater: fetch manifest signature: %w", err)
+	}
+	if status != http.StatusOK {
+		return nil, fmt.Errorf("updater: manifest signature request failed: HTTP %d", status)
+	}
+	s, err := base64.StdEncoding.DecodeString(strings.TrimSpace(string(sig)))
+	if err != nil {
+		return nil, errors.New("updater: manifest signature is not base64")
+	}
+	digest := sha512.Sum512(body)
+	if err := ed25519.VerifyWithOptions(key, digest[:], s, &ed25519.Options{Hash: crypto.SHA512}); err != nil {
+		return nil, errors.New("updater: manifest signature did not verify")
+	}
+	return body, nil
+}
+
+// httpGet returns at most limit bytes of the body at raw and the status.
+func httpGet(ctx context.Context, raw string, limit int64) ([]byte, int, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, raw, nil)
+	if err != nil {
+		return nil, 0, err
+	}
+	resp, err := manifestClient.Do(req)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	body, err := io.ReadAll(io.LimitReader(resp.Body, limit))
+	return body, resp.StatusCode, err
+}
+
+// verifiedManifestClient is the HTTP client for the endpoint provider. A
+// request for the manifest at raw gets body, which fetchSignedManifest
+// verified. Thus the provider reads the same bytes that the signature
+// covers. Other requests, such as the artifact download, go to the network.
+func verifiedManifestClient(raw string, body []byte) (*http.Client, error) {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return nil, err
+	}
+	return &http.Client{Timeout: 30 * time.Second, Transport: manifestTransport{manifest: u, body: body, next: http.DefaultTransport}}, nil
+}
+
+type manifestTransport struct {
+	manifest *url.URL
+	body     []byte
+	next     http.RoundTripper
+}
+
+// RoundTrip compares scheme, host, and path only. The endpoint provider
+// adds query parameters to the manifest URL.
+func (t manifestTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if req.URL.Scheme != t.manifest.Scheme || !strings.EqualFold(req.URL.Host, t.manifest.Host) || req.URL.Path != t.manifest.Path {
+		return t.next.RoundTrip(req)
+	}
+	return &http.Response{
+		Status:        "200 OK",
+		StatusCode:    http.StatusOK,
+		Proto:         "HTTP/1.1",
+		ProtoMajor:    1,
+		ProtoMinor:    1,
+		Header:        http.Header{"Content-Type": {"application/json"}},
+		Body:          io.NopCloser(bytes.NewReader(t.body)),
+		ContentLength: int64(len(t.body)),
+		Request:       req,
+	}, nil
 }
 
 // replaceFile puts staged in place of target as an executable. It writes
