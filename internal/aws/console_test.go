@@ -93,6 +93,14 @@ func TestConsoleURLErrors(t *testing.T) {
 			t.Fatal("expected a JSON error")
 		}
 	})
+	t.Run("oversized body", func(t *testing.T) {
+		client, _ := testClient(t, func(w http.ResponseWriter, r *http.Request) {
+			fmt.Fprintf(w, `{"SigninToken":"%s"}`, strings.Repeat("a", 2<<20))
+		})
+		if _, err := ConsoleURL(context.Background(), client, tempCreds, ""); err == nil {
+			t.Fatal("expected an error for a body over the read limit")
+		}
+	})
 	t.Run("cancelled context", func(t *testing.T) {
 		client, _ := testClient(t, func(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, `{"SigninToken":"x"}`)
