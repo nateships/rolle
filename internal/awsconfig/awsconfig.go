@@ -4,6 +4,7 @@
 package awsconfig
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -11,6 +12,8 @@ import (
 	"strings"
 
 	"gopkg.in/ini.v1"
+
+	"github.com/nateships/rolle/internal/atomicfile"
 )
 
 // DefaultPath returns ~/.aws/config, honouring AWS_CONFIG_FILE.
@@ -349,27 +352,12 @@ func load(path string) (*ini.File, error) {
 }
 
 func save(path string, f *ini.File) error {
+	var buf bytes.Buffer
+	if _, err := f.WriteTo(&buf); err != nil {
+		return err
+	}
 	// Write onto the target of a symlinked config, so the link stays a link.
-	if real, err := filepath.EvalSymlinks(path); err == nil {
-		path = real
-	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
-		return err
-	}
-	// CreateTemp opens the file with owner-only permissions and a unique name.
-	tmp, err := os.CreateTemp(filepath.Dir(path), filepath.Base(path)+".rolle-*")
-	if err != nil {
-		return err
-	}
-	_, err = f.WriteTo(tmp)
-	if cerr := tmp.Close(); err == nil {
-		err = cerr
-	}
-	if err != nil {
-		_ = os.Remove(tmp.Name())
-		return err
-	}
-	return os.Rename(tmp.Name(), path)
+	return atomicfile.Write(path, buf.Bytes(), 0o600)
 }
 
 // wroteRegion reports whether rolle added the region key: a taken-over

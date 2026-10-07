@@ -147,6 +147,39 @@ func TestMergeCreatesMissingFile(t *testing.T) {
 	}
 }
 
+func TestMergeKeepsSymlinkedKubeconfig(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlinks need privileges on Windows")
+	}
+	target := filepath.Join(t.TempDir(), "dotfiles", "kubeconfig")
+	if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(target, []byte(existing), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(t.TempDir(), "config")
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatal(err)
+	}
+	if err := Merge(link, []Entry{{Context: "c", Cluster: "c", Server: "https://c", User: "u", Exec: RolleExec("s")}}, ""); err != nil {
+		t.Fatal(err)
+	}
+	if fi, err := os.Lstat(link); err != nil || fi.Mode()&os.ModeSymlink == 0 {
+		t.Fatalf("kubeconfig is no longer a symlink: %v, %v", fi, err)
+	}
+	doc := readKubeconfig(t, target)
+	if find(doc, "contexts", "old") == nil || find(doc, "contexts", "c") == nil {
+		t.Fatalf("target not updated: %v", doc)
+	}
+	if fi, err := os.Stat(target); err != nil || fi.Mode().Perm() != 0o600 {
+		t.Fatalf("target mode = %v, %v", fi.Mode(), err)
+	}
+	if left, _ := filepath.Glob(filepath.Join(filepath.Dir(target), ".rolle-*")); len(left) != 0 {
+		t.Fatalf("temp files left: %v", left)
+	}
+}
+
 func TestAttachEnvSetsAndReplacesProfile(t *testing.T) {
 	path := writeKubeconfig(t, existing)
 	if err := AttachEnv(path, "old", "AWS_PROFILE", "prod"); err != nil {
