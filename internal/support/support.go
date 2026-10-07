@@ -84,6 +84,10 @@ func Write(w io.Writer, in Inputs) error {
 		_, err = io.WriteString(f, body)
 		return err
 	}
+	// The regex finds user info only after "://", thus this code redacts the
+	// proxy URL by field.
+	st := in.Settings
+	st.ProxyURL = core.RedactProxyURL(st.ProxyURL)
 	info := map[string]any{
 		"version":       in.Version,
 		"app":           in.App,
@@ -93,33 +97,44 @@ func Write(w io.Writer, in Inputs) error {
 		"workspacePath": in.WorkspacePath,
 		"cacheDir":      in.CacheDir,
 		"awsConfigPath": in.AWSConfigPath,
-		"settings":      in.Settings,
+		"settings":      st,
 	}
-	infoJSON, err := json.MarshalIndent(info, "", "  ")
+	infoJSON, err := marshal(info)
 	if err != nil {
 		return err
 	}
-	if err := add("info.json", Redact(string(infoJSON))); err != nil {
+	if err := add("info.json", Redact(infoJSON)); err != nil {
 		return err
 	}
 	if in.Workspace != nil {
-		// The access key IDs of IAM user sessions stay out of the bundle, in
-		// any format the regex would miss.
+		// The access key IDs of IAM user sessions and the external IDs of
+		// assumed roles stay out of the bundle, in any format the regex would
+		// miss.
 		w := *in.Workspace
 		w.Sessions = make([]core.Session, len(in.Workspace.Sessions))
 		for i, sess := range in.Workspace.Sessions {
-			if sess.AWS != nil && sess.AWS.AccessKeyID != "" {
+			if sess.AWS != nil && (sess.AWS.AccessKeyID != "" || sess.AWS.ExternalID != "") {
 				aws := *sess.AWS
-				aws.AccessKeyID = "<access-key-id>"
+				if aws.AccessKeyID != "" {
+					aws.AccessKeyID = "<access-key-id>"
+				}
+				if aws.ExternalID != "" {
+					aws.ExternalID = "<redacted>"
+				}
 				sess.AWS = &aws
 			}
 			w.Sessions[i] = sess
 		}
-		wsJSON, err := json.MarshalIndent(&w, "", "  ")
+		if w.Settings != nil {
+			ws := *w.Settings
+			ws.ProxyURL = core.RedactProxyURL(ws.ProxyURL)
+			w.Settings = &ws
+		}
+		wsJSON, err := marshal(&w)
 		if err != nil {
 			return err
 		}
-		if err := add("workspace.json", Redact(string(wsJSON))); err != nil {
+		if err := add("workspace.json", Redact(wsJSON)); err != nil {
 			return err
 		}
 	}
@@ -140,6 +155,19 @@ func Write(w io.Writer, in Inputs) error {
 		return err
 	}
 	return z.Close()
+}
+
+// marshal encodes v as indented JSON. It keeps "<" and ">" as they are, so a
+// placeholder such as <redacted> shows as written.
+func marshal(v any) (string, error) {
+	var b strings.Builder
+	enc := json.NewEncoder(&b)
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(v); err != nil {
+		return "", err
+	}
+	return b.String(), nil
 }
 
 // cloudTools describes the Azure and Google Cloud command line setups rolle
