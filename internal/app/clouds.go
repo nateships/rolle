@@ -553,6 +553,10 @@ func EnvVars(sess *core.Session, creds core.Credentials) [][2]string {
 			{"AWS_SESSION_TOKEN", creds.SessionToken},
 			{"AWS_REGION", sess.Region},
 			{"AWS_DEFAULT_REGION", sess.Region},
+			// The keys outrank a profile. An empty profile clears a stale
+			// one in eval output, because an SDK fails when it cannot find
+			// the profile.
+			{"AWS_PROFILE", ""},
 		}
 	case core.CloudAzure:
 		return [][2]string{
@@ -617,7 +621,9 @@ func (s *Service) terminalEnv(ctx context.Context, w *core.Workspace, sess *core
 		return nil, fmt.Errorf("%s: %w", sess.Name, ErrSessionInactive)
 	}
 	if sess.Kind.Cloud() == core.CloudAWS {
-		vars := [][2]string{{"AWS_PROFILE", ProfileName(sess)}}
+		// Keys from an earlier session outrank the profile, so empty values
+		// clear them in eval output.
+		vars := [][2]string{{"AWS_ACCESS_KEY_ID", ""}, {"AWS_SECRET_ACCESS_KEY", ""}, {"AWS_SESSION_TOKEN", ""}, {"AWS_PROFILE", ProfileName(sess)}}
 		if sess.Region != "" {
 			vars = append(vars, [2]string{"AWS_REGION", sess.Region}, [2]string{"AWS_DEFAULT_REGION", sess.Region})
 		}

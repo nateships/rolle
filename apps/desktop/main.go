@@ -51,7 +51,7 @@ func main() {
 	if len(os.Args) > 1 && (os.Args[1] == "creds" || os.Args[1] == "env") {
 		if err := cli.Root().Execute(); err != nil {
 			fmt.Fprintln(os.Stderr, "rolle:", err)
-			os.Exit(1)
+			os.Exit(cli.ExitCode(err))
 		}
 		return
 	}

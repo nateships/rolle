@@ -225,7 +225,8 @@ func TestStartStatusStopAndEnv(t *testing.T) {
 	}
 	out = mustRun(t, "env", "dev")
 	// An IAM user has no session token. The eval output clears a stale one.
-	if !strings.Contains(out, "export AWS_ACCESS_KEY_ID='AKIA'\n") || !strings.Contains(out, "export AWS_SECRET_ACCESS_KEY='secret'\n") || !strings.Contains(out, "export AWS_REGION='us-east-1'\n") || !strings.Contains(out, "unset AWS_SESSION_TOKEN\n") {
+	// It also clears a stale profile, which an SDK can fail to load.
+	if !strings.Contains(out, "export AWS_ACCESS_KEY_ID='AKIA'\n") || !strings.Contains(out, "export AWS_SECRET_ACCESS_KEY='secret'\n") || !strings.Contains(out, "export AWS_REGION='us-east-1'\n") || !strings.Contains(out, "unset AWS_SESSION_TOKEN\n") || !strings.Contains(out, "unset AWS_PROFILE\n") {
 		t.Fatalf("env output:\n%s", out)
 	}
 	// An AWS session is a profile, not a bearer token.
@@ -240,6 +241,17 @@ func TestStartStatusStopAndEnv(t *testing.T) {
 	out = mustRun(t, "env", "dev", "--profile")
 	if !strings.Contains(out, "export AWS_PROFILE='default'\n") || !strings.Contains(out, "export AWS_REGION='us-east-1'\n") || strings.Contains(out, "AKIA") || strings.Contains(out, "secret") {
 		t.Fatalf("env --profile output:\n%s", out)
+	}
+	// Keys from an earlier session outrank AWS_PROFILE, so the eval output
+	// clears them.
+	for _, name := range []string{"AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN"} {
+		if !strings.Contains(out, "unset "+name+"\n") {
+			t.Fatalf("env --profile does not clear %s:\n%s", name, out)
+		}
+	}
+	out = mustRun(t, "env", "dev", "--profile", "--powershell")
+	if !strings.Contains(out, "Remove-Item Env:AWS_ACCESS_KEY_ID -ErrorAction SilentlyContinue\n") || !strings.Contains(out, "$env:AWS_PROFILE = 'default'\n") {
+		t.Fatalf("env --profile --powershell output:\n%s", out)
 	}
 	out = mustRun(t, "creds", "--session", reload(t, s, "dev").ID)
 	if !strings.Contains(out, `"Version":1`) || !strings.Contains(out, `"AccessKeyId":"AKIA"`) || !strings.Contains(out, `"Expiration":"`) {

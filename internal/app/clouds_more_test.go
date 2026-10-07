@@ -389,7 +389,7 @@ func TestSessionEnvPerCloud(t *testing.T) {
 	want := map[string][][2]string{
 		user.ID: {
 			{"AWS_ACCESS_KEY_ID", "AKIAdev"}, {"AWS_SECRET_ACCESS_KEY", "secret"}, {"AWS_SESSION_TOKEN", ""},
-			{"AWS_REGION", "us-east-1"}, {"AWS_DEFAULT_REGION", "us-east-1"},
+			{"AWS_REGION", "us-east-1"}, {"AWS_DEFAULT_REGION", "us-east-1"}, {"AWS_PROFILE", ""},
 		},
 		"az1": {
 			{"AZURE_SUBSCRIPTION_ID", "sub-1"}, {"AZURE_TENANT_ID", "ten-1"}, {"ARM_SUBSCRIPTION_ID", "sub-1"}, {"ARM_TENANT_ID", "ten-1"}, {"AZURE_ACCESS_TOKEN", "az-tok"},
@@ -416,7 +416,7 @@ func TestSessionEnvPerCloud(t *testing.T) {
 	w, _ := s.Load()
 	sess, _ := FindSession(w, user.ID)
 	env, err := s.terminalEnv(ctx, w, sess)
-	if err != nil || fmt.Sprint(env) != fmt.Sprint([][2]string{{"AWS_PROFILE", "default"}, {"AWS_REGION", "us-east-1"}, {"AWS_DEFAULT_REGION", "us-east-1"}}) {
+	if err != nil || fmt.Sprint(env) != fmt.Sprint([][2]string{{"AWS_ACCESS_KEY_ID", ""}, {"AWS_SECRET_ACCESS_KEY", ""}, {"AWS_SESSION_TOKEN", ""}, {"AWS_PROFILE", "default"}, {"AWS_REGION", "us-east-1"}, {"AWS_DEFAULT_REGION", "us-east-1"}}) {
 		t.Fatalf("terminalEnv = %v, %v", env, err)
 	}
 	az, _ := FindSession(w, "az1")
