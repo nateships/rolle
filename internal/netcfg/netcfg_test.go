@@ -18,6 +18,31 @@ func restore(t *testing.T) {
 	t.Helper()
 	prev := current.Load()
 	t.Cleanup(func() { current.Store(prev) })
+	// Keep the AWS_CA_BUNDLE of the host out of the test.
+	t.Setenv("AWS_CA_BUNDLE", "")
+}
+
+func TestApplyTrustsAWSCABundle(t *testing.T) {
+	restore(t)
+	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(204) }))
+	defer srv.Close()
+	t.Setenv("AWS_CA_BUNDLE", writeTemp(t, "-----BEGIN CERTIFICATE-----\n"+base64Lines(srv.Certificate().Raw)+"-----END CERTIFICATE-----\n"))
+	if err := Apply(core.Settings{}); err != nil {
+		t.Fatal(err)
+	}
+	resp, err := Client().Get(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+}
+
+func TestApplySkipsBadAWSBundle(t *testing.T) {
+	restore(t)
+	t.Setenv("AWS_CA_BUNDLE", filepath.Join(t.TempDir(), "nope.pem"))
+	if err := Apply(core.Settings{}); err != nil {
+		t.Fatalf("a bad AWS_CA_BUNDLE blocked Apply: %v", err)
+	}
 }
 
 func TestApplyTrustsExtraBundle(t *testing.T) {

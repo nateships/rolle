@@ -30,11 +30,7 @@ type AssumeRoleInput struct {
 
 // AssumeRole calls STS AssumeRole with the source credentials.
 func AssumeRole(ctx context.Context, in AssumeRoleInput) (core.Credentials, error) {
-	cfg, err := config.LoadDefaultConfig(ctx,
-		config.WithRegion(in.Region),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(in.Source.AccessKeyID, in.Source.SecretAccessKey, in.Source.SessionToken)),
-		config.WithHTTPClient(netcfg.Client()),
-	)
+	cfg, err := sdkConfig(in.Region, credentials.NewStaticCredentialsProvider(in.Source.AccessKeyID, in.Source.SecretAccessKey, in.Source.SessionToken))
 	if err != nil {
 		return core.Credentials{}, err
 	}
@@ -64,6 +60,23 @@ func AssumeRole(ctx context.Context, in AssumeRoleInput) (core.Credentials, erro
 		return core.Credentials{}, fmt.Errorf("assume role %s: empty response", in.RoleARN)
 	}
 	return fromSTS(out.Credentials.AccessKeyId, out.Credentials.SecretAccessKey, out.Credentials.SessionToken, out.Credentials.Expiration), nil
+}
+
+// sdkConfig builds the SDK config for one call. It does not use the SDK config
+// loader, because that loader fails on a CA bundle and on a missing
+// AWS_PROFILE. netcfg trusts AWS_CA_BUNDLE. Service endpoint variables in the
+// environment still apply.
+func sdkConfig(region string, creds aws.CredentialsProvider) (aws.Config, error) {
+	env, err := config.NewEnvConfig()
+	if err != nil {
+		return aws.Config{}, err
+	}
+	return aws.Config{
+		Region:        region,
+		Credentials:   creds,
+		HTTPClient:    netcfg.Client(),
+		ConfigSources: []any{env},
+	}, nil
 }
 
 func fromSTS(id, secret, token *string, exp *time.Time) core.Credentials {

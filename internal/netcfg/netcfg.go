@@ -46,11 +46,11 @@ func (logged) RoundTrip(req *http.Request) (*http.Response, error) {
 // bundle or a malformed proxy URL is an error and leaves the transport as is.
 func Apply(s core.Settings) error {
 	t := base.Clone()
-	if s.CABundle != "" {
-		pool, err := poolWith(s.CABundle)
-		if err != nil {
-			return err
-		}
+	pool, err := roots(s.CABundle)
+	if err != nil {
+		return err
+	}
+	if pool != nil {
 		t.TLSClientConfig = &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}
 	}
 	if s.ProxyURL != "" {
@@ -70,18 +70,40 @@ func Client() *http.Client {
 	return &http.Client{Transport: http.DefaultTransport}
 }
 
-// poolWith returns the system roots plus the certificates in the PEM file.
-func poolWith(path string) (*x509.CertPool, error) {
-	pem, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("CA bundle: %w", err)
+// roots returns the system roots plus the certificates in the bundle from the
+// settings and in AWS_CA_BUNDLE, which the AWS tools use. It returns nil when
+// no bundle is set. A bad AWS_CA_BUNDLE is logged and skipped, because the
+// user did not set it in rolle.
+func roots(setting string) (*x509.CertPool, error) {
+	env := os.Getenv("AWS_CA_BUNDLE")
+	if setting == "" && env == "" {
+		return nil, nil
 	}
 	pool, err := x509.SystemCertPool()
 	if err != nil || pool == nil {
 		pool = x509.NewCertPool()
 	}
-	if !pool.AppendCertsFromPEM(pem) {
-		return nil, fmt.Errorf("CA bundle %s holds no PEM certificates", path)
+	if setting != "" {
+		if err := appendPEM(pool, setting); err != nil {
+			return nil, err
+		}
+	}
+	if env != "" {
+		if err := appendPEM(pool, env); err != nil {
+			debug.Logf("net", "skip AWS_CA_BUNDLE: %v", err)
+		}
 	}
 	return pool, nil
+}
+
+// appendPEM adds the certificates in the PEM file to pool.
+func appendPEM(pool *x509.CertPool, path string) error {
+	pem, err := os.ReadFile(path)
+	if err != nil {
+		return fmt.Errorf("CA bundle: %w", err)
+	}
+	if !pool.AppendCertsFromPEM(pem) {
+		return fmt.Errorf("CA bundle %s holds no PEM certificates", path)
+	}
+	return nil
 }

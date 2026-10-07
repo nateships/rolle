@@ -2,10 +2,12 @@ package aws
 
 import (
 	"context"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -161,5 +163,51 @@ func TestStoreAccessKeyPropagatesStoreError(t *testing.T) {
 	boom := errors.New("boom")
 	if err := StoreAccessKey(failStore{boom}, "s1", AccessKey{AccessKeyID: "a"}); !errors.Is(err, boom) {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+// pemFile writes the certificate of a test TLS server to a PEM file.
+func pemFile(t *testing.T) string {
+	t.Helper()
+	srv := httptest.NewTLSServer(http.NotFoundHandler())
+	defer srv.Close()
+	p := filepath.Join(t.TempDir(), "ca.pem")
+	if err := os.WriteFile(p, pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: srv.Certificate().Raw}), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+// The SDK config loader fails on a CA bundle and on a missing AWS_PROFILE.
+// The STS and SSO calls must not use that loader.
+func TestCallsIgnoreSharedConfigState(t *testing.T) {
+	cases := map[string]func(t *testing.T){
+		"AWS_CA_BUNDLE": func(t *testing.T) { t.Setenv("AWS_CA_BUNDLE", pemFile(t)) },
+		"profile ca_bundle": func(t *testing.T) {
+			cfg := filepath.Join(t.TempDir(), "config")
+			if err := os.WriteFile(cfg, []byte("[default]\nca_bundle = "+pemFile(t)+"\n"), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			t.Setenv("AWS_CONFIG_FILE", cfg)
+		},
+		"missing AWS_PROFILE": func(t *testing.T) { t.Setenv("AWS_PROFILE", "rolle-gone") },
+	}
+	for name, setup := range cases {
+		t.Run(name, func(t *testing.T) {
+			startFakeSTS(t)
+			setup(t)
+			ctx := context.Background()
+			src := core.Credentials{AccessKeyID: "A", SecretAccessKey: "B"}
+			if _, err := AssumeRole(ctx, AssumeRoleInput{Source: src, Region: "us-east-1", RoleARN: "arn:aws:iam::1:role/x"}); err != nil {
+				t.Errorf("assume role: %v", err)
+			}
+			if _, err := IAMUserCredentials(ctx, IAMUserInput{Key: AccessKey{AccessKeyID: "A", SecretAccessKey: "B"}, Region: "us-east-1", MFADevice: "d", MFACode: "1"}); err != nil {
+				t.Errorf("iam user: %v", err)
+			}
+			s := &SSO{Integration: core.Integration{AWSSSO: &core.AWSSSOIntegration{Region: "us-east-1"}}}
+			if _, err := s.cfg(ctx); err != nil {
+				t.Errorf("sso config: %v", err)
+			}
+		})
 	}
 }

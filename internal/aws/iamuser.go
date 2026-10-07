@@ -8,12 +8,10 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 
 	"github.com/nateships/rolle/internal/core"
-	"github.com/nateships/rolle/internal/netcfg"
 	"github.com/nateships/rolle/internal/secrets"
 )
 
@@ -79,11 +77,7 @@ func IAMUserCredentials(ctx context.Context, in IAMUserInput) (core.Credentials,
 		exp := time.Now().Add(in.Duration).UTC()
 		return core.Credentials{AccessKeyID: in.Key.AccessKeyID, SecretAccessKey: in.Key.SecretAccessKey, Expiration: &exp}, nil
 	}
-	cfg, err := config.LoadDefaultConfig(ctx,
-		config.WithRegion(in.Region),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(in.Key.AccessKeyID, in.Key.SecretAccessKey, "")),
-		config.WithHTTPClient(netcfg.Client()),
-	)
+	cfg, err := sdkConfig(in.Region, credentials.NewStaticCredentialsProvider(in.Key.AccessKeyID, in.Key.SecretAccessKey, ""))
 	if err != nil {
 		return core.Credentials{}, err
 	}

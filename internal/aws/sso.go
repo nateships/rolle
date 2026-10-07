@@ -17,13 +17,11 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sso"
 	"github.com/aws/aws-sdk-go-v2/service/ssooidc"
 	oidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
 
 	"github.com/nateships/rolle/internal/core"
-	"github.com/nateships/rolle/internal/netcfg"
 	"github.com/nateships/rolle/internal/secrets"
 )
 
@@ -97,11 +95,7 @@ func (s *SSO) now() time.Time {
 }
 
 func (s *SSO) cfg(ctx context.Context) (aws.Config, error) {
-	return config.LoadDefaultConfig(ctx,
-		config.WithRegion(s.Integration.AWSSSO.Region),
-		config.WithCredentialsProvider(aws.AnonymousCredentials{}),
-		config.WithHTTPClient(netcfg.Client()),
-	)
+	return sdkConfig(s.Integration.AWSSSO.Region, aws.AnonymousCredentials{})
 }
 
 // StartLogin begins a browser sign-in with the authorization code flow and
