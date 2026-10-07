@@ -2,8 +2,11 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   // Best practices pin GitHub Actions to commit digests and keep lockfiles
   // exact. Go indirect dependencies get PRs only when they are vulnerable.
+  // The pre-commit manager is off by default. It updates the digest and the
+  // `# frozen:` version together in .pre-commit-config.yaml.
   "extends": [
     "config:best-practices",
+    ":enablePreCommit",
     "mergeConfidence:all-badges",
     "security:gomodIndirectSecurityUpdates",
   ],
