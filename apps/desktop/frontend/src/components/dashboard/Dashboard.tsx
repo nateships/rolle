@@ -182,6 +182,11 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     const q = new URLSearchParams(location.search);
     return q.get("settings") ? { kind: "settings" } : q.get("import") ? { kind: "import" } : null;
   });
+  // A dialog can replace the sign-in without a close. Then no sign-in waits,
+  // so a later sign-in must not start the old session.
+  useEffect(() => {
+    if (dialog?.kind !== "login" && dialog?.kind !== "session-login") pendingStart.current = null;
+  }, [dialog]);
   async function run(label: string, fn: () => Promise<unknown>) {
     try {
       await fn();
@@ -396,9 +401,17 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
         .filter(
           (s) =>
             !q ||
-            [s.name, s.aws?.accountId, s.aws?.roleName, s.aws?.profile, s.region].some((v) =>
-              (v ?? "").toLowerCase().includes(q),
-            ),
+            [
+              s.name,
+              s.aws?.accountId,
+              s.aws?.accountName,
+              s.aws?.roleName,
+              s.aws?.profile,
+              s.azure?.subscriptionId,
+              s.gcp?.projectId,
+              s.region,
+              ...(s.tags ?? []),
+            ].some((v) => (v ?? "").toLowerCase().includes(q)),
         )
         .filter((s) => matchesRefine(s, refine))
     );
@@ -650,7 +663,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                                       <Button
                                         variant="ghost"
                                         size="icon-xs"
-                                        className="text-muted-foreground opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
+                                        className="text-muted-foreground opacity-0 group-hover:opacity-100 group-has-focus-visible:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
                                         aria-label={`${integ.alias} options`}
                                       >
                                         <MoreHorizontal className="size-3.5" />

@@ -205,6 +205,12 @@ describe("Dashboard", () => {
     expect(screen.getByRole("button", { name: /sign in to acme-eu/i })).toBeInTheDocument();
   });
 
+  it("shows an integration's options button when the keyboard focuses it", () => {
+    renderDashboard();
+    // jsdom does not apply Tailwind, so check for the class that shows the button.
+    expect(screen.getByRole("button", { name: "acme options" })).toHaveClass("focus-visible:opacity-100");
+  });
+
   it("narrows rows with the search box", async () => {
     const user = userEvent.setup();
     renderDashboard();
@@ -217,6 +223,30 @@ describe("Dashboard", () => {
     await user.clear(screen.getByPlaceholderText("Search sessions"));
     await user.type(screen.getByPlaceholderText("Search sessions"), "zzz");
     expect(screen.getByText("Nothing matches")).toBeInTheDocument();
+  });
+
+  it("searches subscription, project, account name, and tags", () => {
+    Object.assign(
+      workspace.sessions.find((s) => s.name === "personal")!,
+      { tags: ["Scratchpad"] },
+    );
+    Object.assign(
+      workspace.sessions.find((s) => s.name === "prod-admin")!,
+      {
+        aws: { roleArn: "arn:aws:iam::123456789012:role/Admin", accountName: "Ledger" },
+      },
+    );
+    renderDashboard();
+    const search = (q: string) =>
+      fireEvent.change(screen.getByPlaceholderText("Search sessions"), { target: { value: q } });
+    search("0f1e2d3c");
+    expect(rowNames()).toEqual(["Contoso Production"]);
+    search("4821");
+    expect(rowNames()).toEqual(["data-platform", "deployer"]);
+    search("ledger");
+    expect(rowNames()).toEqual(["prod-admin"]);
+    search("scratchpad");
+    expect(rowNames()).toEqual(["personal"]);
   });
 
   it("hides the sidebar from the header button and the keyboard, and remembers it", async () => {
