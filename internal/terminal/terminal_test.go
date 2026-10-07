@@ -38,3 +38,33 @@ func TestEvalExportsUnsetsEmptyValues(t *testing.T) {
 		t.Fatalf("powershell eval exports = %q", got)
 	}
 }
+
+func TestEvalExportsClearsOtherAWSSession(t *testing.T) {
+	// A profile session clears the keys of an earlier session. A key session
+	// clears the profile of an earlier session.
+	env := [][2]string{{"AWS_ACCESS_KEY_ID", ""}, {"AWS_SECRET_ACCESS_KEY", ""}, {"AWS_PROFILE", ""}}
+	if got := EvalExports(env, false); got != "unset AWS_ACCESS_KEY_ID\nunset AWS_SECRET_ACCESS_KEY\nunset AWS_PROFILE\n" {
+		t.Fatalf("posix eval exports = %q", got)
+	}
+	if got := EvalExports(env, true); got != "Remove-Item Env:AWS_ACCESS_KEY_ID -ErrorAction SilentlyContinue\nRemove-Item Env:AWS_SECRET_ACCESS_KEY -ErrorAction SilentlyContinue\nRemove-Item Env:AWS_PROFILE -ErrorAction SilentlyContinue\n" {
+		t.Fatalf("powershell eval exports = %q", got)
+	}
+	if got := Exports(env, false); got != "" {
+		t.Fatalf("exports must skip empty values: %q", got)
+	}
+}
+
+func TestEvalExportsClearsOtherGCPSession(t *testing.T) {
+	// A session without a service account clears the impersonation of an
+	// earlier session.
+	env := [][2]string{{"CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT", ""}, {"GOOGLE_APPLICATION_CREDENTIALS", ""}}
+	if got := EvalExports(env, false); got != "unset CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT\nunset GOOGLE_APPLICATION_CREDENTIALS\n" {
+		t.Fatalf("posix eval exports = %q", got)
+	}
+	if got := EvalExports(env, true); got != "Remove-Item Env:CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT -ErrorAction SilentlyContinue\nRemove-Item Env:GOOGLE_APPLICATION_CREDENTIALS -ErrorAction SilentlyContinue\n" {
+		t.Fatalf("powershell eval exports = %q", got)
+	}
+	if got := Exports(env, false); got != "" {
+		t.Fatalf("exports must skip empty values: %q", got)
+	}
+}

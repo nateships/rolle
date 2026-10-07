@@ -64,14 +64,22 @@ func shQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) 
 // script in a POSIX shell or in PowerShell. Empty values are skipped.
 func Exports(env [][2]string, powershell bool) string { return exports(env, powershell, false) }
 
-// EvalExports formats env for eval in the user's shell. An empty credential
-// removes the variable, so a stale token from an earlier session does not
-// stay set. Other empty values, such as a region, leave the shell's own
-// value alone.
+// EvalExports formats env for eval in the user's shell. An empty value for a
+// name in cleared removes the variable, so a value from an earlier session
+// does not stay set. Other empty values, such as a region, leave the shell's
+// own value alone.
 func EvalExports(env [][2]string, powershell bool) string { return exports(env, powershell, true) }
 
 // cleared names the variables an empty value removes in EvalExports.
-var cleared = map[string]bool{"AWS_SESSION_TOKEN": true}
+var cleared = map[string]bool{
+	"AWS_ACCESS_KEY_ID":     true,
+	"AWS_SECRET_ACCESS_KEY": true,
+	"AWS_SESSION_TOKEN":     true,
+	"AWS_PROFILE":           true,
+
+	"CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT": true,
+	"GOOGLE_APPLICATION_CREDENTIALS":            true,
+}
 
 func exports(env [][2]string, powershell, unset bool) string {
 	var b strings.Builder

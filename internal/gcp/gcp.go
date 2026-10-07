@@ -44,9 +44,21 @@ func ConfigDir() (string, error) {
 	return filepath.Join(home, ".config", "gcloud"), nil
 }
 
+// ImpersonationDir is the folder where rolle writes the ADC files of service
+// account sessions. Empty means no folder.
+var ImpersonationDir string
+
+// InDir reports whether path is in dir. An empty dir contains no path.
+func InDir(path, dir string) bool {
+	return dir != "" && strings.HasPrefix(path, dir+string(filepath.Separator))
+}
+
 // ADCPath returns the gcloud Application Default Credentials file location.
+// A GOOGLE_APPLICATION_CREDENTIALS value in ImpersonationDir is ignored. A
+// shell gets that value from an earlier service account session, and the
+// file is not the user's own credentials.
 func ADCPath() (string, error) {
-	if p := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"); p != "" {
+	if p := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"); p != "" && !InDir(p, ImpersonationDir) {
 		return p, nil
 	}
 	dir, err := ConfigDir()

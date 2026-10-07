@@ -503,8 +503,11 @@ func (s *Service) ConsoleURLFor(ctx context.Context, ref string) (string, error)
 
 // adcPath is where a GCP impersonation session keeps its ADC file.
 func (s *Service) adcPath(sess *core.Session) string {
-	return filepath.Join(s.Cache.Dir, "gcp", sess.ID+".json")
+	return filepath.Join(s.gcpDir(), sess.ID+".json")
 }
+
+// gcpDir is the folder for the ADC files of service account sessions.
+func (s *Service) gcpDir() string { return filepath.Join(s.Cache.Dir, "gcp") }
 
 // writeCloudFiles creates the files other tools read for a session: the AWS
 // profile, or the impersonated ADC file for a GCP service account session.
@@ -539,6 +542,11 @@ func (s *Service) EnvVars(sess *core.Session, creds core.Credentials) [][2]strin
 	vars := EnvVars(sess, creds)
 	if sess.Kind == core.KindGCP && sess.GCP != nil && sess.GCP.ServiceAccount != "" {
 		vars = append(vars, [2]string{"GOOGLE_APPLICATION_CREDENTIALS", s.adcPath(sess)})
+	} else if sess.Kind == core.KindGCP && gcp.InDir(os.Getenv("GOOGLE_APPLICATION_CREDENTIALS"), s.gcpDir()) {
+		// The shell points at the impersonated file of an earlier session.
+		// An empty value clears it in eval output. The user's own file
+		// stays set, because rolle reads it as the source credentials.
+		vars = append(vars, [2]string{"GOOGLE_APPLICATION_CREDENTIALS", ""})
 	}
 	return vars
 }
@@ -553,6 +561,10 @@ func EnvVars(sess *core.Session, creds core.Credentials) [][2]string {
 			{"AWS_SESSION_TOKEN", creds.SessionToken},
 			{"AWS_REGION", sess.Region},
 			{"AWS_DEFAULT_REGION", sess.Region},
+			// The keys outrank a profile. An empty profile clears a stale
+			// one in eval output, because an SDK fails when it cannot find
+			// the profile.
+			{"AWS_PROFILE", ""},
 		}
 	case core.CloudAzure:
 		return [][2]string{
@@ -569,10 +581,9 @@ func EnvVars(sess *core.Session, creds core.Credentials) [][2]string {
 			{"CLOUDSDK_AUTH_ACCESS_TOKEN", creds.Token},
 			{"GOOGLE_OAUTH_ACCESS_TOKEN", creds.Token},
 		}
-		if sess.GCP.ServiceAccount != "" {
-			vars = append(vars, [2]string{"CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT", sess.GCP.ServiceAccount})
-		}
-		return vars
+		// An empty service account clears the impersonation of an earlier
+		// session in eval output.
+		return append(vars, [2]string{"CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT", sess.GCP.ServiceAccount})
 	}
 	return nil
 }
@@ -617,7 +628,9 @@ func (s *Service) terminalEnv(ctx context.Context, w *core.Workspace, sess *core
 		return nil, fmt.Errorf("%s: %w", sess.Name, ErrSessionInactive)
 	}
 	if sess.Kind.Cloud() == core.CloudAWS {
-		vars := [][2]string{{"AWS_PROFILE", ProfileName(sess)}}
+		// Keys from an earlier session outrank the profile, so empty values
+		// clear them in eval output.
+		vars := [][2]string{{"AWS_ACCESS_KEY_ID", ""}, {"AWS_SECRET_ACCESS_KEY", ""}, {"AWS_SESSION_TOKEN", ""}, {"AWS_PROFILE", ProfileName(sess)}}
 		if sess.Region != "" {
 			vars = append(vars, [2]string{"AWS_REGION", sess.Region}, [2]string{"AWS_DEFAULT_REGION", sess.Region})
 		}

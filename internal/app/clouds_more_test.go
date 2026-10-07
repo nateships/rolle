@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -389,13 +390,14 @@ func TestSessionEnvPerCloud(t *testing.T) {
 	want := map[string][][2]string{
 		user.ID: {
 			{"AWS_ACCESS_KEY_ID", "AKIAdev"}, {"AWS_SECRET_ACCESS_KEY", "secret"}, {"AWS_SESSION_TOKEN", ""},
-			{"AWS_REGION", "us-east-1"}, {"AWS_DEFAULT_REGION", "us-east-1"},
+			{"AWS_REGION", "us-east-1"}, {"AWS_DEFAULT_REGION", "us-east-1"}, {"AWS_PROFILE", ""},
 		},
 		"az1": {
 			{"AZURE_SUBSCRIPTION_ID", "sub-1"}, {"AZURE_TENANT_ID", "ten-1"}, {"ARM_SUBSCRIPTION_ID", "sub-1"}, {"ARM_TENANT_ID", "ten-1"}, {"AZURE_ACCESS_TOKEN", "az-tok"},
 		},
 		"g1": {
 			{"CLOUDSDK_CORE_PROJECT", "proj-1"}, {"GOOGLE_CLOUD_PROJECT", "proj-1"}, {"CLOUDSDK_AUTH_ACCESS_TOKEN", "g-tok"}, {"GOOGLE_OAUTH_ACCESS_TOKEN", "g-tok"},
+			{"CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT", ""},
 		},
 		"g2": {
 			{"CLOUDSDK_CORE_PROJECT", "proj-1"}, {"GOOGLE_CLOUD_PROJECT", "proj-1"}, {"CLOUDSDK_AUTH_ACCESS_TOKEN", "sa-tok"}, {"GOOGLE_OAUTH_ACCESS_TOKEN", "sa-tok"},
@@ -416,7 +418,7 @@ func TestSessionEnvPerCloud(t *testing.T) {
 	w, _ := s.Load()
 	sess, _ := FindSession(w, user.ID)
 	env, err := s.terminalEnv(ctx, w, sess)
-	if err != nil || fmt.Sprint(env) != fmt.Sprint([][2]string{{"AWS_PROFILE", "default"}, {"AWS_REGION", "us-east-1"}, {"AWS_DEFAULT_REGION", "us-east-1"}}) {
+	if err != nil || fmt.Sprint(env) != fmt.Sprint([][2]string{{"AWS_ACCESS_KEY_ID", ""}, {"AWS_SECRET_ACCESS_KEY", ""}, {"AWS_SESSION_TOKEN", ""}, {"AWS_PROFILE", "default"}, {"AWS_REGION", "us-east-1"}, {"AWS_DEFAULT_REGION", "us-east-1"}}) {
 		t.Fatalf("terminalEnv = %v, %v", env, err)
 	}
 	az, _ := FindSession(w, "az1")
@@ -489,6 +491,15 @@ func TestGCPImpersonationFilesFollowSession(t *testing.T) {
 	}
 	if _, err := os.Stat(filepath.Join(s.Cache.Dir, "gcp", "g1.json")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatal("a user-identity session must not write an ADC file")
+	}
+	// The user's own ADC file stays set. The impersonated file of an earlier
+	// session is cleared.
+	if got := s.EnvVars(plain, core.Credentials{Token: "tok"}); slices.Contains(got, [2]string{"GOOGLE_APPLICATION_CREDENTIALS", ""}) {
+		t.Fatalf("user adc cleared: %v", got)
+	}
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", path)
+	if got := s.EnvVars(plain, core.Credentials{Token: "tok"}); got[len(got)-1] != [2]string{"GOOGLE_APPLICATION_CREDENTIALS", ""} {
+		t.Fatalf("stale adc not cleared: %v", got)
 	}
 	if err := s.removeCloudFiles(sess); err != nil {
 		t.Fatal(err)

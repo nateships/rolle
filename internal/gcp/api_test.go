@@ -90,6 +90,31 @@ func TestADCPath(t *testing.T) {
 	}
 }
 
+func TestADCPathIgnoresImpersonationFile(t *testing.T) {
+	_, want := fakeHome(t)
+	writeADC(t, want, userADC)
+	dir := filepath.Join(t.TempDir(), "gcp")
+	old := ImpersonationDir
+	ImpersonationDir = dir
+	t.Cleanup(func() { ImpersonationDir = old })
+	// A shell that loaded a service account session points at the file rolle
+	// wrote. rolle reads the user's own credentials instead.
+	writeADC(t, filepath.Join(dir, "g2.json"), `{"type":"impersonated_service_account"}`)
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", filepath.Join(dir, "g2.json"))
+	if got, err := ADCPath(); err != nil || got != want {
+		t.Fatalf("ADCPath = %q, %v; want %q", got, err, want)
+	}
+	if got, err := DetectAccount(context.Background()); err != nil || got.Email != "me@example.com" {
+		t.Fatalf("DetectAccount = %+v, %v", got, err)
+	}
+	// A path that the user set is used.
+	custom := filepath.Join(t.TempDir(), "adc.json")
+	t.Setenv("GOOGLE_APPLICATION_CREDENTIALS", custom)
+	if got, err := ADCPath(); err != nil || got != custom {
+		t.Fatalf("ADCPath with override = %q, %v", got, err)
+	}
+}
+
 func TestDetectAccount(t *testing.T) {
 	cases := []struct {
 		name    string
