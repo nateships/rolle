@@ -87,6 +87,9 @@ type SSO struct {
 	Secrets     secrets.Store
 	// Now is overridable for tests.
 	Now func() time.Time
+	// LockDir holds the lock files that stop two processes from renewing the
+	// same token at the same time. Empty means no cross-process lock.
+	LockDir string
 }
 
 func (s *SSO) now() time.Time {
@@ -361,6 +364,20 @@ func (s *SSO) storedToken() (ssoToken, error) {
 func (s *SSO) token(ctx context.Context) (ssoToken, error) {
 	t, err := s.storedToken()
 	if err != nil {
+		return ssoToken{}, err
+	}
+	if s.valid(t) {
+		return t, nil
+	}
+	// Renew under the cross-process lock. Another process can renew the
+	// token while this one waits for the lock, so read it again first. Then
+	// each refresh token is used one time only.
+	ctx, unlock, err := lockToken(ctx, s.LockDir, ssoTokenKey(s.Integration.ID))
+	if err != nil {
+		return ssoToken{}, err
+	}
+	defer unlock()
+	if t, err = s.storedToken(); err != nil {
 		return ssoToken{}, err
 	}
 	if s.valid(t) {

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -22,6 +23,7 @@ import (
 	"github.com/nateships/rolle/internal/debug"
 	"github.com/nateships/rolle/internal/gcp"
 	"github.com/nateships/rolle/internal/netcfg"
+	"github.com/nateships/rolle/internal/paths"
 	"github.com/nateships/rolle/internal/secrets"
 	"github.com/nateships/rolle/internal/workspace"
 )
@@ -37,6 +39,9 @@ type Service struct {
 	Now        func() time.Time
 	// OnChange runs after every workspace write. Nil means no listener.
 	OnChange func()
+	// LockDir holds the lock files that stop the desktop app and the CLI from
+	// renewing one token at the same time. Empty means no cross-process lock.
+	LockDir string
 }
 
 // Default builds a Service with production paths.
@@ -55,6 +60,9 @@ func Default() (*Service, error) {
 		Executable:    exe,
 		Secrets:       secrets.NewKeychain(),
 		Cache:         credcache.Default(),
+		// Not ROLLE_CACHE_DIR: the desktop app and a credential_process call
+		// can see different values, and both must use one lock file.
+		LockDir: filepath.Join(paths.CacheDir(), "locks"),
 	}
 	// A bad proxy or bundle must not stop the app; it is reported when edited.
 	if st, err := s.Settings(); err == nil {
@@ -288,7 +296,7 @@ func (s *Service) dropDependents(w *core.Workspace, sourceID string) {
 }
 
 func (s *Service) sso(in core.Integration) *aws.SSO {
-	return &aws.SSO{Integration: in, Secrets: s.Secrets, Now: s.Now}
+	return &aws.SSO{Integration: in, Secrets: s.Secrets, Now: s.Now, LockDir: s.LockDir}
 }
 
 // SSOLogin starts a browser sign-in for an Identity Center integration. The
@@ -583,7 +591,7 @@ func (s *Service) AddAWSLogin(in AddAWSLoginInput) (core.Session, error) {
 }
 
 func (s *Service) login(sess *core.Session) *aws.Login {
-	return &aws.Login{SessionID: sess.ID, Region: sess.Region, Secrets: s.Secrets, Now: s.Now}
+	return &aws.Login{SessionID: sess.ID, Region: sess.Region, Secrets: s.Secrets, Now: s.Now, LockDir: s.LockDir}
 }
 
 // loginSession returns the console login session that ref names.

@@ -165,8 +165,9 @@ func TestChunkedGetErrors(t *testing.T) {
 	if err := mem.Delete(chunkOf(t, mem, "k", 1)); err != nil {
 		t.Fatal(err)
 	}
+	// The head exists, so a missing chunk is a fault, not a miss.
 	_, err := ch.Get("k")
-	if !errors.Is(err, ErrNotFound) || !strings.Contains(err.Error(), "chunk 1 of k") {
+	if err == nil || errors.Is(err, ErrNotFound) || !strings.Contains(err.Error(), "chunk 1 of k") {
 		t.Fatalf("missing chunk: err = %v", err)
 	}
 }
