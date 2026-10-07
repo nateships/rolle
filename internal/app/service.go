@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -67,7 +68,15 @@ func Default() (*Service, error) {
 	// A bad proxy or bundle must not stop the app; it is reported when edited.
 	if st, err := s.Settings(); err == nil {
 		if err := netcfg.Apply(st); err != nil {
-			debug.Logf("network", "%v", err)
+			// The error can quote the proxy URL, and the URL can hold a
+			// password. Log the URL without its user info.
+			msg := err.Error()
+			if st.ProxyURL != "" {
+				shown := core.RedactProxyURL(st.ProxyURL)
+				msg = strings.ReplaceAll(msg, strconv.Quote(st.ProxyURL), strconv.Quote(shown))
+				msg = strings.ReplaceAll(msg, st.ProxyURL, shown)
+			}
+			debug.Logf("network", "%s", msg)
 		}
 	}
 	return s, nil

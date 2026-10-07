@@ -73,3 +73,20 @@ func TestSettingsNormalize(t *testing.T) {
 		t.Fatal("defaults not applied for nil settings")
 	}
 }
+
+func TestRedactProxyURL(t *testing.T) {
+	cases := map[string]string{
+		"":                                    "",
+		"http://proxy.corp:3128":              "http://proxy.corp:3128",
+		"proxy.corp:3128":                     "proxy.corp:3128",
+		"http://nate:hunter2@proxy.corp:3128": "http://<redacted>@proxy.corp:3128",
+		"nate:hunter2@proxy.corp:3128":        "<redacted>@proxy.corp:3128",
+		"nate:p@ss@proxy.corp:3128":           "<redacted>@proxy.corp:3128",
+		"socks5://nate@proxy.corp:1080":       "socks5://<redacted>@proxy.corp:1080",
+	}
+	for in, want := range cases {
+		if got := RedactProxyURL(in); got != want {
+			t.Errorf("RedactProxyURL(%q) = %q, want %q", in, got, want)
+		}
+	}
+}

@@ -15,6 +15,7 @@ import (
 	"github.com/nateships/rolle/internal/debug"
 	"github.com/nateships/rolle/internal/netcfg"
 	"github.com/nateships/rolle/internal/secrets"
+	"github.com/nateships/rolle/internal/workspace"
 )
 
 // addIAMUser creates an IAM user session with a dummy key.
@@ -506,6 +507,35 @@ func TestUpdateSettingsLogsProxyWithoutPassword(t *testing.T) {
 	for _, line := range debug.Recent() {
 		if strings.Contains(line, "hunter2") {
 			t.Fatalf("settings log leaks the proxy password: %s", line)
+		}
+	}
+}
+
+func TestDefaultLogsBadProxyWithoutPassword(t *testing.T) {
+	// UpdateSettings rejects these URLs, but a hand-edited workspace can hold them.
+	for _, proxy := range []string{"nate:hun\"ter2@proxy.corp:3128", "ftp://nate:hunter2@proxy.corp:3128"} {
+		home := fakeHome(t)
+		ws := filepath.Join(home, "workspace.json")
+		t.Setenv("ROLLE_WORKSPACE", ws)
+		t.Setenv("ROLLE_CACHE_DIR", filepath.Join(home, "cache"))
+		t.Setenv("AWS_CONFIG_FILE", filepath.Join(home, "aws-config"))
+		if err := workspace.Save(ws, &core.Workspace{Version: core.WorkspaceVersion, Settings: &core.Settings{ProxyURL: proxy}}); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := Default(); err != nil {
+			t.Fatal(err)
+		}
+		logged := false
+		for _, line := range debug.Recent() {
+			if strings.Contains(line, "ter2") {
+				t.Fatalf("startup log leaks the proxy password: %s", line)
+			}
+			if strings.Contains(line, "[rolle:network]") && strings.Contains(line, core.RedactProxyURL(proxy)) {
+				logged = true
+			}
+		}
+		if !logged {
+			t.Fatalf("startup log does not report the bad proxy %q", proxy)
 		}
 	}
 }

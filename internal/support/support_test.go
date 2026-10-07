@@ -55,3 +55,39 @@ func TestWriteBundle(t *testing.T) {
 		t.Fatalf("workspace.json lost the role name: %s", files["workspace.json"])
 	}
 }
+
+func TestWriteRedactsProxyAndExternalID(t *testing.T) {
+	for _, proxy := range []string{"http://nate:hunter2@proxy.corp:3128", "nate:hunter2@proxy.corp:3128"} {
+		st := core.Settings{ProxyURL: proxy}
+		ws := &core.Workspace{
+			Settings: &core.Settings{ProxyURL: proxy},
+			Sessions: []core.Session{
+				{ID: "s1", AWS: &core.AWSSession{RoleARN: "arn:aws:iam::1:role/X", ExternalID: "ext-shared-id"}},
+				{ID: "s2", AWS: &core.AWSSession{RoleName: "Admin"}},
+			},
+		}
+		var buf bytes.Buffer
+		if err := Write(&buf, Inputs{Version: "0.1", App: "cli", Workspace: ws, Settings: st}); err != nil {
+			t.Fatal(err)
+		}
+		files := readZip(t, buf.Bytes())
+		for _, name := range []string{"info.json", "workspace.json"} {
+			if strings.Contains(files[name], "hunter2") || strings.Contains(files[name], "ext-shared-id") {
+				t.Errorf("%s leaks a secret for proxy %q:\n%s", name, proxy, files[name])
+			}
+			if !strings.Contains(files[name], `"proxyUrl": "`+core.RedactProxyURL(proxy)+`"`) {
+				t.Errorf("%s lost the proxy host for proxy %q:\n%s", name, proxy, files[name])
+			}
+		}
+		if !strings.Contains(files["workspace.json"], `"externalId": "<redacted>"`) {
+			t.Errorf("workspace.json lacks the external id placeholder:\n%s", files["workspace.json"])
+		}
+		if strings.Count(files["workspace.json"], `"externalId"`) != 1 {
+			t.Errorf("workspace.json adds an external id to a session without one:\n%s", files["workspace.json"])
+		}
+		// The caller's workspace does not change.
+		if ws.Settings.ProxyURL != proxy || ws.Sessions[0].AWS.ExternalID != "ext-shared-id" {
+			t.Fatalf("Write changed the caller's workspace: %+v %+v", ws.Settings, ws.Sessions[0].AWS)
+		}
+	}
+}

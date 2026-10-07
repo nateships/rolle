@@ -275,6 +275,21 @@ func (s Settings) Normalize() Settings {
 	return s
 }
 
+// RedactProxyURL replaces the user info of a proxy URL with <redacted>. It
+// works with and without a scheme. url.Parse finds no user info when the
+// scheme is missing, thus this function does not use it.
+func RedactProxyURL(u string) string {
+	at := strings.LastIndex(u, "@")
+	if at < 0 {
+		return u
+	}
+	start := 0
+	if i := strings.Index(u, "://"); i >= 0 && i < at {
+		start = i + len("://")
+	}
+	return u[:start] + "<redacted>" + u[at:]
+}
+
 // Tag is a user-defined group of sessions shown in the sidebar.
 type Tag struct {
 	Name string `json:"name"`
