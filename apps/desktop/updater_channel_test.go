@@ -72,6 +72,8 @@ func updateFeed(t *testing.T) *httptest.Server {
 	signed("/elsewhere/manifest.json", bytes.Replace(manifest("2.0.0", true), []byte(`"app.zip"`), []byte(`"https://example.com/app.zip"`), 1))
 	serve("/nosig/manifest.json", manifest("2.0.0", true), nil)
 	serve("/tampered/manifest.json", manifest("9.0.0", true), signManifest(t, manifest("2.0.0", true)))
+	// checkReq asks for darwin, so the windows-only manifest has nothing for it.
+	signed("/windows-only/manifest.json", bytes.Replace(manifest("2.0.0", true), []byte(`"url":`), []byte(`"platform":"windows","arch":"amd64","url":`), 1))
 	mux.HandleFunc("/app.zip", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("artifact bytes")) })
 	mux.HandleFunc("/broken", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusInternalServerError) })
 	srv := httptest.NewServer(mux)
@@ -210,6 +212,38 @@ func TestManifestTransportServesOnlyTheManifest(t *testing.T) {
 	}
 	if got := get(srv.URL + "/app.zip"); got != "artifact bytes" {
 		t.Fatalf("artifact = %s", got)
+	}
+}
+
+// The match runs on the error text of the Wails endpoint provider. A new
+// wording in a Wails update makes this test fail.
+func TestChannelProviderTreatsNoArtifactForThisPlatformAsNoUpdate(t *testing.T) {
+	srv := updateFeed(t)
+	pointFeeds(t, srv.URL+"/windows-only/manifest.json", srv.URL+"/releases")
+	p := &channelProvider{settings: settingsWith(""), key: feedPub}
+	if rel, err := p.Check(context.Background(), checkReq); err != nil || rel != nil {
+		t.Fatalf("release = %+v, %v", rel, err)
+	}
+	req := checkReq
+	req.Platform, req.Arch = "windows", "amd64"
+	if rel, err := p.Check(context.Background(), req); err != nil || rel == nil {
+		t.Fatalf("windows release = %+v, %v", rel, err)
+	}
+}
+
+func TestPackageManaged(t *testing.T) {
+	for _, c := range []struct {
+		goos, appImage string
+		want           bool
+	}{
+		{"linux", "", true},
+		{"linux", "/home/me/rolle.AppImage", false},
+		{"darwin", "", false},
+		{"windows", "", false},
+	} {
+		if got := packageManaged(c.goos, c.appImage); got != c.want {
+			t.Errorf("packageManaged(%q, %q) = %v", c.goos, c.appImage, got)
+		}
 	}
 }
 

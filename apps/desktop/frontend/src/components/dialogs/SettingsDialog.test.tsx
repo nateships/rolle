@@ -216,6 +216,13 @@ describe("SettingsDialog", () => {
     await user.click(screen.getByRole("button", { name: /check for updates/i }));
     expect(await screen.findByText("Development build, updates disabled.")).toBeInTheDocument();
     expect(info).toHaveBeenCalledWith("Updates are disabled in development builds");
+
+    check.mockResolvedValue({ enabled: false, currentVersion: "0.0.1", available: false, state: "package-manager" });
+    await user.click(screen.getByRole("button", { name: /check for updates/i }));
+    expect(
+      await screen.findByText("Installed by a package manager. Update with your package manager."),
+    ).toBeInTheDocument();
+    expect(info).toHaveBeenCalledWith("Update rolle with your package manager");
   });
 
   it("shows an update check failure", async () => {

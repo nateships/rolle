@@ -75,6 +75,10 @@ func setupUpdater(a *application.App, svc *app.Service) error {
 		debug.Logf("updater", "dev build %q, updater disabled", version.Version)
 		return nil
 	}
+	if packageManaged(runtime.GOOS, os.Getenv("APPIMAGE")) {
+		debug.Logf("updater", "installed by a package manager, updater disabled")
+		return nil
+	}
 	key, err := parsePublicKey(updaterPublicKey)
 	if err != nil {
 		return err
@@ -174,11 +178,25 @@ type UpdateInfo struct {
 	State          string `json:"state"`
 }
 
+// statePackageManager is the UpdateInfo state of an install that a package
+// manager owns. The frontend then tells the user to update through it.
+const statePackageManager = "package-manager"
+
+// packageManaged reports whether a package manager owns the install. On
+// Linux the updater replaces only an AppImage. A .deb install has no
+// APPIMAGE variable, and its root-owned executable is the package
+// manager's to replace.
+func packageManaged(goos, appImage string) bool { return goos == "linux" && appImage == "" }
+
 // CheckForUpdates asks the release feed for a newer version.
 func (r *RolleService) CheckForUpdates() (UpdateInfo, error) {
 	info := UpdateInfo{Enabled: !isDevBuild(), CurrentVersion: version.Version}
 	if r.app == nil || isDevBuild() {
 		info.State = "disabled"
+		return info, nil
+	}
+	if packageManaged(runtime.GOOS, os.Getenv("APPIMAGE")) {
+		info.Enabled, info.State = false, statePackageManager
 		return info, nil
 	}
 	c, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -199,6 +217,9 @@ func (r *RolleService) CheckForUpdates() (UpdateInfo, error) {
 func (r *RolleService) InstallUpdate() error {
 	if r.app == nil || isDevBuild() {
 		return nil
+	}
+	if packageManaged(runtime.GOOS, os.Getenv("APPIMAGE")) {
+		return errors.New("update rolle with your package manager")
 	}
 	// The updater's helper replaces the app in place, which needs write access
 	// to its folder. A standard macOS account has none in /Applications, a
@@ -317,6 +338,11 @@ func (p *channelProvider) Check(ctx context.Context, req updater.CheckRequest) (
 	p.mu.Unlock()
 	rel, err := ep.Check(ctx, req)
 	if err != nil {
+		// A release with no file for this platform is no update for it.
+		if strings.Contains(err.Error(), "has no artifact for") {
+			debug.Logf("updater", "%v", err)
+			return nil, nil
+		}
 		return nil, err
 	}
 	if !signed(rel) {
