@@ -238,6 +238,11 @@ func (r *RolleService) installStaged(target string, swap func(staged, target str
 	if staged == "" {
 		return errors.New("update: nothing staged")
 	}
+	// The manifest signature covers the artifact bytes but not the version
+	// or the platform. Check them on the staged file.
+	if err := checkStaged(runtime.GOOS, staged, rel.Version); err != nil {
+		return err
+	}
 	debug.Logf("updater", "replacing %s from %s", target, staged)
 	if err := swap(staged, target); err != nil {
 		return err
