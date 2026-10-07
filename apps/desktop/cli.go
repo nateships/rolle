@@ -68,18 +68,10 @@ func liveEnv() cliEnv {
 		lookPath:  userLookPath,
 		versionOf: commandVersion,
 		userPath:  userPathList,
-		caskRoots: caskRoots(),
+		// A cask links its command into <prefix>/bin. Only the /usr/local
+		// prefix links /usr/local/bin/rolle.
+		caskRoots: []string{"/usr/local/Caskroom"},
 	}
-}
-
-// caskRoots lists the Caskroom directories of Homebrew on Intel and on Apple
-// silicon, and of HOMEBREW_PREFIX when it is set.
-func caskRoots() []string {
-	roots := []string{"/usr/local/Caskroom", "/opt/homebrew/Caskroom"}
-	if p := os.Getenv("HOMEBREW_PREFIX"); p != "" {
-		roots = append(roots, filepath.Join(p, "Caskroom"))
-	}
-	return roots
 }
 
 // caskInstalled reports whether Homebrew installed the rolle cask. On Intel

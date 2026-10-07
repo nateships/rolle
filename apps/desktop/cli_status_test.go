@@ -145,6 +145,43 @@ func TestDarwinStatusWithHomebrewCask(t *testing.T) {
 	}
 }
 
+func TestCaskUnderOtherPrefixKeepsAppLink(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlinks need privileges on Windows; the code runs on macOS only")
+	}
+	// Only a cask under /usr/local links /usr/local/bin/rolle. A cask under
+	// /opt/homebrew links /opt/homebrew/bin/rolle.
+	if got := liveEnv().caskRoots; len(got) != 1 || got[0] != "/usr/local/Caskroom" {
+		t.Fatalf("caskRoots = %v, want [/usr/local/Caskroom]", got)
+	}
+
+	// An Apple silicon cask and a link that the app made in /usr/local/bin.
+	brew := filepath.Join(t.TempDir(), "opt", "homebrew")
+	if err := os.MkdirAll(filepath.Join(brew, "Caskroom", "rolle"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	usrLocal := filepath.Join(t.TempDir(), "usr", "local")
+	if err := os.MkdirAll(filepath.Join(usrLocal, "bin"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	env := cliEnv{goos: "darwin", exe: fakeBundle(t, t.TempDir())}
+	env.caskRoots = []string{filepath.Join(usrLocal, "Caskroom")}
+	env.lookPath = func(string) (string, error) { return cliLink, nil }
+	if st := cliStatusIn(env); !st.Installed || st.Reason != "" {
+		t.Fatalf("status with a cask under /opt/homebrew = %+v", st)
+	}
+	link := filepath.Join(usrLocal, "bin", "rolle")
+	if err := os.Symlink(cliTarget(env.exe), link); err != nil {
+		t.Fatal(err)
+	}
+	if err := uninstallDarwinLink(env, link); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Lstat(link); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("link still there: %v", err)
+	}
+}
+
 func TestUninstallDarwinLink(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("symlinks need privileges on Windows; the code runs on macOS only")
