@@ -148,16 +148,17 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Write the release notes
-        # A release that release-please created already carries its notes;
-        # reuse them so the updater and the release agree. A tag pushed by
-        # hand gets the commit subjects since the previous tag. A stable
-        # release compares against the previous stable tag, so it also covers
-        # its pre-releases.
-        env:
-          GH_TOKEN: ${{ github.token }}
+        # release-please writes the notes of each release into CHANGELOG.md.
+        # Use the section of this version, at the tag, so the updater and the
+        # release agree. goreleaser replaces the release body with this file.
+        # The draft release cannot be read with this job's token. A tag pushed
+        # by hand has no section and gets the commit subjects since the
+        # previous tag. A stable release compares against the previous stable
+        # tag, so it also covers its pre-releases.
         run: |
-          if gh release view "$GITHUB_REF_NAME" --json body --jq .body > notes.md 2>/dev/null && [ -s notes.md ]; then
-            echo "Using the notes of the existing release."
+          awk -v v="$VERSION" 'index($0, "## [" v "]") == 1 { f = 1; print; next } f && /^## \[/ { exit } f' CHANGELOG.md > notes.md
+          if [ -s notes.md ]; then
+            echo "Using the CHANGELOG.md section of ${VERSION}."
             cat notes.md
             exit 0
           fi
@@ -208,12 +209,25 @@ jobs:
             -url-prefix "https://github.com/nateships/rolle/releases/download/${GITHUB_REF_NAME}/" \
             -output artifacts/manifest.json artifacts
           wails3 updater verify -manifest artifacts/manifest.json -publickey apps/desktop/build/updater.pub
+      - name: Sign the manifest
+        # The artifact signatures do not cover the version, the notes, or the
+        # artifact URLs. This signature covers the whole manifest. The app
+        # reads it from manifest.json.sig and refuses a manifest without a
+        # valid one. The check runs the signature through the same verify
+        # command with the public key that the app embeds.
+        run: |
+          wails3 updater sign -key updater.key artifacts/manifest.json > manifest-sig.json
+          jq -e -r '.[0].signature' manifest-sig.json > artifacts/manifest.json.sig
+          jq '{schemaVersion: 1, version: env.VERSION, artifacts: .}' manifest-sig.json > manifest-check.json
+          wails3 updater verify -manifest manifest-check.json -dir artifacts -publickey apps/desktop/build/updater.pub
       - name: Store the manifest
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: manifest
           if-no-files-found: error
-          path: artifacts/manifest.json
+          path: |
+            artifacts/manifest.json
+            artifacts/manifest.json.sig
       - name: Store the release notes
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
