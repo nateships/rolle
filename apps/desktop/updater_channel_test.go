@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 
@@ -38,6 +39,9 @@ func updateFeed(t *testing.T) *httptest.Server {
 	mux.HandleFunc("/manifest.json", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write(manifest("2.0.0", true)) })
 	mux.HandleFunc("/beta/manifest.json", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write(manifest("2.1.0-rc.1", true)) })
 	mux.HandleFunc("/unsigned/manifest.json", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write(manifest("3.0.0", false)) })
+	mux.HandleFunc("/elsewhere/manifest.json", func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write(bytes.Replace(manifest("2.0.0", true), []byte(`"app.zip"`), []byte(`"https://example.com/app.zip"`), 1))
+	})
 	mux.HandleFunc("/app.zip", func(w http.ResponseWriter, _ *http.Request) { _, _ = w.Write([]byte("artifact bytes")) })
 	mux.HandleFunc("/broken", func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusInternalServerError) })
 	srv := httptest.NewServer(mux)
@@ -51,9 +55,12 @@ func updateFeed(t *testing.T) *httptest.Server {
 // pointFeeds routes the updater at the fake feed for one test.
 func pointFeeds(t *testing.T, manifest, api string) {
 	t.Helper()
-	oldManifest, oldAPI := manifestURL, releasesAPI
+	oldManifest, oldAPI, oldPrefix := manifestURL, releasesAPI, artifactPrefix
 	manifestURL, releasesAPI = manifest, api
-	t.Cleanup(func() { manifestURL, releasesAPI = oldManifest, oldAPI })
+	if u, err := url.Parse(manifest); err == nil && u.Host != "" {
+		artifactPrefix = u.Scheme + "://" + u.Host + "/"
+	}
+	t.Cleanup(func() { manifestURL, releasesAPI, artifactPrefix = oldManifest, oldAPI, oldPrefix })
 }
 
 func settingsWith(channel string) func() (core.Settings, error) {
@@ -122,6 +129,35 @@ func TestChannelProviderRefusesUnsignedManifest(t *testing.T) {
 	p := &channelProvider{settings: settingsWith("")}
 	if _, err := p.Check(context.Background(), checkReq); err == nil || !strings.Contains(err.Error(), "not signed") {
 		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestChannelProviderRefusesArtifactOutsideReleases(t *testing.T) {
+	srv := updateFeed(t)
+	pointFeeds(t, srv.URL+"/elsewhere/manifest.json", srv.URL+"/releases")
+	p := &channelProvider{settings: settingsWith("")}
+	if _, err := p.Check(context.Background(), checkReq); err == nil || !strings.Contains(err.Error(), "not a rolle release download") {
+		t.Fatalf("err = %v", err)
+	}
+}
+
+func TestTrustedArtifactURL(t *testing.T) {
+	const prefix = "https://github.com/nateships/rolle/releases/download/"
+	if artifactPrefix != prefix {
+		t.Fatalf("artifactPrefix = %q", artifactPrefix)
+	}
+	for raw, want := range map[string]bool{
+		prefix + "v1.2.3/rolle-update-macos-universal.zip":                       true,
+		"http://github.com/nateships/rolle/releases/download/v1.2.3/a.zip":       false,
+		"https://github.com.evil.example/nateships/rolle/releases/download/a":    false,
+		"https://github.com/nateships/other/releases/download/v1.2.3/a.zip":      false,
+		"https://user@github.com/nateships/rolle/releases/download/v1.2.3/a.zip": false,
+		prefix + "v1.2.3/../../../../other/repo/a.zip":                           false,
+		"": false,
+	} {
+		if got := trustedArtifactURL(raw, prefix); got != want {
+			t.Errorf("trustedArtifactURL(%q) = %v, want %v", raw, got, want)
+		}
 	}
 }
 

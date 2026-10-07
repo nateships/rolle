@@ -12,9 +12,11 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -297,7 +299,26 @@ func (p *channelProvider) Check(ctx context.Context, req updater.CheckRequest) (
 	if !signed(rel) {
 		return nil, errors.New("updater: release manifest is not signed")
 	}
+	if rel != nil {
+		if u, _ := rel.Metadata["endpoint.artifact.url"].(string); !trustedArtifactURL(u, artifactPrefix) {
+			return nil, fmt.Errorf("updater: artifact URL %q is not a rolle release download", u)
+		}
+	}
 	return rel, nil
+}
+
+// artifactPrefix is the start of every release artifact URL. The updater
+// refuses to download an artifact from a different location.
+var artifactPrefix = "https://github.com/nateships/rolle/releases/download/"
+
+// trustedArtifactURL reports whether raw starts with prefix and has no user
+// information and no ".." path segment.
+func trustedArtifactURL(raw, prefix string) bool {
+	u, err := url.Parse(raw)
+	if err != nil || u.User != nil || !strings.HasPrefix(raw, prefix) {
+		return false
+	}
+	return !slices.Contains(strings.Split(u.Path, "/"), "..")
 }
 
 // signed reports whether a release carries a signature. A pinned public key
