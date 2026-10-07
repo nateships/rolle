@@ -205,6 +205,12 @@ describe("Dashboard", () => {
     expect(screen.getByRole("button", { name: /sign in to acme-eu/i })).toBeInTheDocument();
   });
 
+  it("shows an integration's options button when the keyboard focuses it", () => {
+    renderDashboard();
+    // jsdom does not apply Tailwind, so check for the class that shows the button.
+    expect(screen.getByRole("button", { name: "acme options" })).toHaveClass("focus-visible:opacity-100");
+  });
+
   it("narrows rows with the search box", async () => {
     const user = userEvent.setup();
     renderDashboard();

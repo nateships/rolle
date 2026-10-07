@@ -650,7 +650,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                                       <Button
                                         variant="ghost"
                                         size="icon-xs"
-                                        className="text-muted-foreground opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100"
+                                        className="text-muted-foreground opacity-0 group-hover:opacity-100 group-has-focus-visible:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
                                         aria-label={`${integ.alias} options`}
                                       >
                                         <MoreHorizontal className="size-3.5" />
