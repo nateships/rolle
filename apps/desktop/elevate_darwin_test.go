@@ -42,7 +42,13 @@ func TestDarwinSwapCommandRuns(t *testing.T) {
 		if err := os.MkdirAll(filepath.Join(app, "Contents"), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		if err := os.WriteFile(filepath.Join(app, "Contents", "version"), []byte(version), 0o666); err != nil {
+		file := filepath.Join(app, "Contents", "version")
+		if err := os.WriteFile(file, []byte(version), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		// The umask removes write access for others on create. Set it
+		// after, so the swap must remove it.
+		if err := os.Chmod(file, 0o666); err != nil {
 			t.Fatal(err)
 		}
 		return app
