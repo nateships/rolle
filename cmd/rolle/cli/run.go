@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -122,6 +123,10 @@ type credentialProcessOutput struct {
 	Expiration      string `json:"Expiration,omitempty"`
 }
 
+// credsTimeout is the longest time that rolle creds waits for credentials. A
+// provider that stops answering must not block the AWS CLI forever.
+var credsTimeout = 60 * time.Second
+
 func credsCmd() *cobra.Command {
 	var session string
 	cmd := &cobra.Command{
@@ -129,7 +134,9 @@ func credsCmd() *cobra.Command {
 		Short:  "Print credentials for credential_process",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			creds, err := svc.Credentials(cmd.Context(), session)
+			ctx, cancel := context.WithTimeout(cmd.Context(), credsTimeout)
+			defer cancel()
+			creds, err := svc.Credentials(ctx, session)
 			if err != nil {
 				return err
 			}
