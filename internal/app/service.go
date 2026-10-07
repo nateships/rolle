@@ -762,21 +762,66 @@ func (s *Service) Start(ctx context.Context, ref string, opts StartOptions) (cor
 			s.recordLogin(in)
 		}
 	}
-	// Write the profile before anything else changes on disk, so a refused
-	// profile leaves the other sessions untouched.
-	if err := s.writeCloudFiles(sess); err != nil {
-		return core.Credentials{}, err
-	}
+	// Cache the credentials first. This changes only the entry of sess.
 	if err := s.cachePut(sess, creds); err != nil {
 		return core.Credentials{}, err
 	}
+	// Write the profile before the other sessions change, so a refused
+	// profile leaves them untouched. If a step fails after this, undo gives
+	// the profile back to its previous owner.
+	undo := s.startUndo(w, sess)
+	if err := s.writeCloudFiles(sess); err != nil {
+		return core.Credentials{}, undo(err)
+	}
 	if err := s.takeOverProfile(w, sess); err != nil {
-		return core.Credentials{}, err
+		return core.Credentials{}, undo(err)
 	}
 	sess.Status = core.StatusActive
 	sess.Expires = creds.Expiration
 	sess.ExpiredAt = nil
-	return creds, s.Save(w)
+	if err := s.Save(w); err != nil {
+		return core.Credentials{}, undo(err)
+	}
+	return creds, nil
+}
+
+// startUndo returns a function that reverts the file and cache changes of a
+// failed Start of sess. The function returns err unchanged. Call startUndo
+// before takeOverProfile changes the status of the other sessions.
+//
+// A session that was active already keeps its profile and cache. Otherwise
+// the AWS profile goes back to the active session that owned it before. If
+// no session owned it, the profile is removed.
+func (s *Service) startUndo(w *core.Workspace, sess *core.Session) func(error) error {
+	if sess.Status == core.StatusActive {
+		return func(err error) error { return err }
+	}
+	var owner *core.Session
+	if sess.Kind.Cloud() == core.CloudAWS {
+		sources := sourceChain(w, sess)
+		for i := range w.Sessions {
+			other := w.Sessions[i]
+			if other.ID != sess.ID && !sources[other.ID] && other.Status == core.StatusActive && other.Kind.Cloud() == core.CloudAWS && ProfileName(&other) == ProfileName(sess) {
+				owner = &other
+				break
+			}
+		}
+	}
+	return func(err error) error {
+		var rerr error
+		if owner != nil {
+			rerr = s.writeCloudFiles(owner)
+		} else {
+			rerr = s.removeCloudFiles(sess)
+		}
+		if rerr != nil {
+			debug.Logf("session", "start %s: restore profile failed: %v", sess.Name, rerr)
+		}
+		if derr := s.Cache.Delete(sess.ID); derr != nil {
+			debug.Logf("session", "start %s: drop cached credentials failed: %v", sess.Name, derr)
+		}
+		return err
+	}
 }
 
 // probeSSOLogins checks the Identity Center integrations that show a login
