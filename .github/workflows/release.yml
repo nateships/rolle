@@ -148,16 +148,17 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Write the release notes
-        # A release that release-please created already carries its notes;
-        # reuse them so the updater and the release agree. A tag pushed by
-        # hand gets the commit subjects since the previous tag. A stable
-        # release compares against the previous stable tag, so it also covers
-        # its pre-releases.
-        env:
-          GH_TOKEN: ${{ github.token }}
+        # release-please writes the notes of each release into CHANGELOG.md.
+        # Use the section of this version, at the tag, so the updater and the
+        # release agree. goreleaser replaces the release body with this file.
+        # The draft release cannot be read with this job's token. A tag pushed
+        # by hand has no section and gets the commit subjects since the
+        # previous tag. A stable release compares against the previous stable
+        # tag, so it also covers its pre-releases.
         run: |
-          if gh release view "$GITHUB_REF_NAME" --json body --jq .body > notes.md 2>/dev/null && [ -s notes.md ]; then
-            echo "Using the notes of the existing release."
+          awk -v v="$VERSION" 'index($0, "## [" v "]") == 1 { f = 1; print; next } f && /^## \[/ { exit } f' CHANGELOG.md > notes.md
+          if [ -s notes.md ]; then
+            echo "Using the CHANGELOG.md section of ${VERSION}."
             cat notes.md
             exit 0
           fi
