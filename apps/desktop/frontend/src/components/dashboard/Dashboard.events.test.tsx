@@ -86,6 +86,28 @@ describe("Dashboard inside Wails", () => {
     expect(start).not.toHaveBeenCalled();
   });
 
+  it("drops the pending start when another dialog replaces the sign-in", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "StartSSOLogin").mockResolvedValue({ verificationUri: "https://device.example", userCode: "" });
+    vi.spyOn(api, "WaitSSOLogin")
+      .mockReturnValueOnce(new Promise(() => {}) as never)
+      .mockResolvedValue([]);
+    const start = vi.spyOn(api, "Start");
+    const success = vi.spyOn(toast, "success");
+    emit(START_NEEDS_LOGIN, { sessionId: workspace.sessions[0].id, integrationId: "acme-eu" });
+    expect(await screen.findByRole("dialog", { name: /sign in to acme-eu/i })).toBeInTheDocument();
+    emit(OPEN_SETTINGS);
+    expect(await screen.findByRole("dialog", { name: /settings/i })).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    // A later sign-in that no start asked for must not start the old session.
+    await user.click(screen.getByRole("button", { name: "acme-eu" }));
+    await user.click(screen.getByRole("button", { name: /sign in to acme-eu/i }));
+    await waitFor(() => expect(success).toHaveBeenCalledWith("Signed in to acme-eu", expect.anything()));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(start).not.toHaveBeenCalled();
+  });
+
   it("re-reads gcloud credentials and starts a Google Cloud session without a dialog", async () => {
     const sync = vi.spyOn(api, "SyncGCP").mockResolvedValue([]);
     const start = vi.spyOn(api, "Start").mockResolvedValue({} as never);

@@ -182,6 +182,11 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
     const q = new URLSearchParams(location.search);
     return q.get("settings") ? { kind: "settings" } : q.get("import") ? { kind: "import" } : null;
   });
+  // A dialog can replace the sign-in without a close. Then no sign-in waits,
+  // so a later sign-in must not start the old session.
+  useEffect(() => {
+    if (dialog?.kind !== "login" && dialog?.kind !== "session-login") pendingStart.current = null;
+  }, [dialog]);
   async function run(label: string, fn: () => Promise<unknown>) {
     try {
       await fn();
