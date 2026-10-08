@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.14.6](https://github.com/nateships/rolle/compare/v0.14.5...v0.14.6) (2026-10-08)
+
+
+### Bug Fixes
+
+* **app:** undo a failed profile change of an active session ([#263](https://github.com/nateships/rolle/issues/263)) ([6abf337](https://github.com/nateships/rolle/commit/6abf337846e7e459d98b283e92fc0fc8171f24f1))
+* **aws:** drop the old owner's region when a region-less session takes a profile ([#258](https://github.com/nateships/rolle/issues/258)) ([decbf0d](https://github.com/nateships/rolle/commit/decbf0d52f9054f06db5a8ddeb822f062620fa0f))
+* **cli:** bound token, kube token, and env fetches ([#262](https://github.com/nateships/rolle/issues/262)) ([ebee0ce](https://github.com/nateships/rolle/commit/ebee0cea8165a89a778ac980eb8fa6d7e4fcc53d))
+* **deps:** update dependency @wailsio/runtime to v3.0.0-beta.28 ([#265](https://github.com/nateships/rolle/issues/265)) ([d64a5c2](https://github.com/nateships/rolle/commit/d64a5c2d2a49a59af9dd5abdb16aacb378f3bda6))
+* **deps:** update dependency @wailsio/runtime to v3.0.0-beta.28 ([#268](https://github.com/nateships/rolle/issues/268)) ([be5fe08](https://github.com/nateships/rolle/commit/be5fe0833680bf392833acf6eb54e50943cb653e))
+* **desktop:** cancel backend login when a dialog replaces sign-in ([#260](https://github.com/nateships/rolle/issues/260)) ([a50f67f](https://github.com/nateships/rolle/commit/a50f67fdde4f63c10be23c763f1217eb0df4a766))
+* **desktop:** refuse a replayed older update manifest ([#264](https://github.com/nateships/rolle/issues/264)) ([8da24b6](https://github.com/nateships/rolle/commit/8da24b6abe8b73beaf3e3ec62c4155e1a9bf691c))
+* **kube:** search every KUBECONFIG file in kube attach ([#261](https://github.com/nateships/rolle/issues/261)) ([430f01c](https://github.com/nateships/rolle/commit/430f01cacc0b4a0e01dcf35ddc70c20aafed642e))
+* **netcfg:** close idle connections of the replaced transport ([#259](https://github.com/nateships/rolle/issues/259)) ([f974438](https://github.com/nateships/rolle/commit/f97443894d5eaae961559cb34d0733f242878326))
+
 ## [0.14.5](https://github.com/nateships/rolle/compare/v0.14.4...v0.14.5) (2026-10-07)
 
 
