@@ -40,4 +40,4 @@ For an Azure or Google Cloud session, `attach` replaces the context's exec plugi
 
 ## Kubeconfig file
 
-`rolle kube add` and `rolle kube attach` edit the file named with `--kubeconfig`, else the first file in `$KUBECONFIG`, else `~/.kube/config`. Entries with the same name are replaced. Every other entry and field stays. The context and cluster entries take the cluster name. An existing context keeps its namespace. The user entry is `rolle:<profile>@<cluster>` for AWS and `rolle:<session>` for Azure and Google Cloud.
+`rolle kube add` edits the file named with `--kubeconfig`, else the first file in `$KUBECONFIG`, else `~/.kube/config`. `rolle kube attach` reads the file named with `--kubeconfig`, else every file in `$KUBECONFIG`, else `~/.kube/config`. Like kubectl, the first file with a name wins. Attach edits only the file that holds the user of the context. Entries with the same name are replaced. Every other entry and field stays. The context and cluster entries take the cluster name. An existing context keeps its namespace. The user entry is `rolle:<profile>@<cluster>` for AWS and `rolle:<session>` for Azure and Google Cloud.

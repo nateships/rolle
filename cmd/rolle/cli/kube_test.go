@@ -87,6 +87,38 @@ func TestKubeAttach(t *testing.T) {
 	}
 }
 
+func TestKubeAttachSearchesKubeconfigList(t *testing.T) {
+	testCLI(t)
+	mustRun(t, "session", "add", "iam-user", "--name", "dev", "--region", "us-east-1", "--access-key-id", "AKIA", "--secret-access-key", "secret", "--profile", "work")
+	dir := t.TempDir()
+	first, second := filepath.Join(dir, "first"), filepath.Join(dir, "second")
+	head := "apiVersion: v1\nkind: Config\n"
+	contexts := testKubeconfig[:strings.Index(testKubeconfig, "users:")]
+	users := head + testKubeconfig[strings.Index(testKubeconfig, "users:"):]
+	if err := os.WriteFile(first, []byte(contexts), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(second, []byte(users), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("KUBECONFIG", string(os.PathListSeparator)+first+string(os.PathListSeparator)+second)
+
+	out := mustRun(t, "kube", "attach", "dev", "kops")
+	if strings.TrimSpace(out) != "context kops in "+first+" now authenticates through dev (user kops in "+second+")" {
+		t.Fatalf("attach output:\n%s", out)
+	}
+	if cfg, _ := os.ReadFile(second); !strings.Contains(string(cfg), "value: work\n") {
+		t.Fatalf("second kubeconfig after attach:\n%s", cfg)
+	}
+	if cfg, _ := os.ReadFile(first); string(cfg) != contexts {
+		t.Fatalf("first kubeconfig changed:\n%s", cfg)
+	}
+	_, err := run(t, "kube", "attach", "dev", "ghost")
+	if !errors.Is(err, core.ErrNotFound) || !strings.Contains(err.Error(), first) || !strings.Contains(err.Error(), second) {
+		t.Fatalf("attach unknown context = %v", err)
+	}
+}
+
 func TestKubeEntriesGiveEachEKSClusterItsOwnUser(t *testing.T) {
 	aws := &core.Session{Name: "dev", Kind: core.KindAWSIAMUser, AWS: &core.AWSSession{Profile: "work"}}
 	clusters := []kube.Cluster{{Name: "api", Region: "eu-west-1"}, {Name: "batch", Region: "eu-west-1"}}

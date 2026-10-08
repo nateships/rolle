@@ -5,6 +5,7 @@ package kube
 import (
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/nateships/rolle/internal/core"
 )
@@ -49,12 +50,28 @@ func RolleExec(session string) Exec {
 
 // DefaultPath returns the first path in KUBECONFIG, else ~/.kube/config.
 func DefaultPath() (string, error) {
-	if list := filepath.SplitList(os.Getenv("KUBECONFIG")); len(list) > 0 && list[0] != "" {
-		return list[0], nil
-	}
-	home, err := os.UserHomeDir()
+	paths, err := Paths()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".kube", "config"), nil
+	return paths[0], nil
+}
+
+// Paths returns the paths in KUBECONFIG in order, else ~/.kube/config. Like
+// kubectl, it skips empty and repeated entries.
+func Paths() ([]string, error) {
+	var paths []string
+	for _, p := range filepath.SplitList(os.Getenv("KUBECONFIG")) {
+		if p != "" && !slices.Contains(paths, p) {
+			paths = append(paths, p)
+		}
+	}
+	if len(paths) > 0 {
+		return paths, nil
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, err
+	}
+	return []string{filepath.Join(home, ".kube", "config")}, nil
 }
