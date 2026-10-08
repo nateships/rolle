@@ -227,13 +227,21 @@ describe("SettingsDialog", () => {
 
   it("shows an update check failure", async () => {
     const user = userEvent.setup();
-    vi.spyOn(api, "CheckForUpdates").mockRejectedValue(new Error("offline"));
+    const check = vi
+      .spyOn(api, "CheckForUpdates")
+      .mockResolvedValue({ enabled: true, currentVersion: "0.0.1", available: false, state: "up-to-date" });
     const error = vi.spyOn(toast, "error");
     await open();
     await tab(user, "About");
+    await user.click(screen.getByRole("button", { name: /check for updates/i }));
+    expect(await screen.findByText("You're on the latest version.")).toBeInTheDocument();
 
+    // A failed check, such as a replayed old manifest, must not leave "latest version" on screen.
+    check.mockRejectedValue(new Error("offline"));
     await user.click(screen.getByRole("button", { name: /check for updates/i }));
     await waitFor(() => expect(error).toHaveBeenCalledWith("offline"));
+    expect(await screen.findByText("The last update check failed.")).toBeInTheDocument();
+    expect(screen.queryByText("You're on the latest version.")).not.toBeInTheDocument();
   });
 
   it("switches the update channel and copies a file path", async () => {
