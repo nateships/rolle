@@ -15,6 +15,7 @@ import (
 	"github.com/nateships/rolle/internal/aws"
 	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/secrets"
+	"gopkg.in/ini.v1"
 )
 
 // faultStore is a secret store that can refuse writes and deletes, like a
@@ -211,4 +212,115 @@ func TestFailedCachePutKeepsProfileOwner(t *testing.T) {
 		t.Fatalf("start mfa = %v", err)
 	}
 	assertOwner(t, s, a)
+}
+
+// sectionOwner returns the session ID that the section of profile names, or
+// "" when the section is absent or names no session.
+func sectionOwner(t *testing.T, s *Service, profile string) string {
+	t.Helper()
+	f, err := ini.Load(s.AWSConfigPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	name := "profile " + profile
+	if profile == "default" {
+		name = profile
+	}
+	sec, err := f.GetSection(name)
+	if err != nil {
+		return ""
+	}
+	return sec.Key("rolle_session").String()
+}
+
+// assertActiveOn checks that the workspace keeps the session active on
+// profile, that the profile names the session, and that the session still
+// answers credential_process.
+func assertActiveOn(t *testing.T, s *Service, id, profile string) {
+	t.Helper()
+	sess := session(t, s, id)
+	if sess.Status != core.StatusActive || ProfileName(sess) != profile {
+		t.Fatalf("%s is %s on profile %q, want active on %q", sess.Name, sess.Status, ProfileName(sess), profile)
+	}
+	if got := sectionOwner(t, s, profile); got != id {
+		t.Fatalf("profile %q names %q, want %s", profile, got, id)
+	}
+	if _, err := s.Credentials(context.Background(), id); err != nil {
+		t.Fatalf("credentials of %s after a failed profile change: %v", sess.Name, err)
+	}
+}
+
+// startOnTwoProfiles starts a on profile work and b on the default profile.
+func startOnTwoProfiles(t *testing.T, s *Service) (a, b core.Session) {
+	t.Helper()
+	a = addIAMUser(t, s, "a")
+	b = addIAMUser(t, s, "b")
+	if err := s.SetProfile(a.ID, "work"); err != nil {
+		t.Fatal(err)
+	}
+	for _, ref := range []string{"a", "b"} {
+		if _, err := s.Start(context.Background(), ref, StartOptions{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return a, b
+}
+
+func TestFailedProfileTakeOverRestoresProfiles(t *testing.T) {
+	s, store := faultService(t)
+	a, b := startOnTwoProfiles(t, s)
+	store.failDelete = true
+	if err := s.SetProfile(b.ID, "work"); !errors.Is(err, errLocked) {
+		t.Fatalf("set profile of b = %v", err)
+	}
+	store.failDelete = false
+	assertActiveOn(t, s, a.ID, "work")
+	assertActiveOn(t, s, b.ID, "default")
+}
+
+func TestFailedProfileSaveRestoresProfiles(t *testing.T) {
+	s := testService(t)
+	a, b := startOnTwoProfiles(t, s)
+	readOnlyWorkspace(t, s)
+	if err := s.SetProfile(b.ID, "work"); err == nil {
+		t.Fatal("profile change succeeded with a read-only workspace")
+	}
+	assertActiveOn(t, s, a.ID, "work")
+	assertActiveOn(t, s, b.ID, "default")
+}
+
+func TestFailedProfileSaveWithoutOwnerRemovesSection(t *testing.T) {
+	s := testService(t)
+	b := addIAMUser(t, s, "b")
+	if _, err := s.Start(context.Background(), "b", StartOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	readOnlyWorkspace(t, s)
+	if err := s.SetProfile(b.ID, "work"); err == nil {
+		t.Fatal("profile change succeeded with a read-only workspace")
+	}
+	if cfg := awsConfig(t, s); strings.Contains(cfg, "[profile work]") {
+		t.Fatalf("config after a failed profile change:\n%s", cfg)
+	}
+	assertActiveOn(t, s, b.ID, "default")
+}
+
+func TestSetProfileRefusesSourceProfile(t *testing.T) {
+	stubSTS(t)
+	s := testService(t)
+	src := addIAMUser(t, s, "src")
+	role, err := s.AddAssumeRole(AddAssumeRoleInput{Name: "admin", Region: "us-east-1", RoleARN: "arn:aws:iam::1:role/admin", SourceRef: "src", Profile: "admin"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, ref := range []string{"src", "admin"} {
+		if _, err := s.Start(context.Background(), ref, StartOptions{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := s.SetProfile(role.ID, ""); err == nil || !strings.Contains(err.Error(), `both write AWS profile "default"`) {
+		t.Fatalf("SetProfile(admin) = %v, want a shared-profile refusal", err)
+	}
+	assertActiveOn(t, s, src.ID, "default")
+	assertActiveOn(t, s, role.ID, "admin")
 }

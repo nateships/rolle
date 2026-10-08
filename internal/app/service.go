@@ -816,6 +816,21 @@ func (s *Service) startUndo(w *core.Workspace, sess *core.Session) func(error) e
 	if sess.Status == core.StatusActive {
 		return func(err error) error { return err }
 	}
+	restore := s.profileRestore(w, sess)
+	return func(err error) error {
+		restore()
+		if derr := s.Cache.Delete(sess.ID); derr != nil {
+			debug.Logf("session", "start %s: drop cached credentials failed: %v", sess.Name, derr)
+		}
+		return err
+	}
+}
+
+// profileRestore returns a function that gives the profile of sess back to
+// the active session that owned it before. If no session owned it, the
+// function removes the profile of sess. Call profileRestore before
+// takeOverProfile changes the status of the other sessions.
+func (s *Service) profileRestore(w *core.Workspace, sess *core.Session) func() {
 	var owner *core.Session
 	if sess.Kind.Cloud() == core.CloudAWS {
 		sources := sourceChain(w, sess)
@@ -827,7 +842,7 @@ func (s *Service) startUndo(w *core.Workspace, sess *core.Session) func(error) e
 			}
 		}
 	}
-	return func(err error) error {
+	return func() {
 		var rerr error
 		if owner != nil {
 			rerr = s.writeCloudFiles(owner)
@@ -835,12 +850,8 @@ func (s *Service) startUndo(w *core.Workspace, sess *core.Session) func(error) e
 			rerr = s.removeCloudFiles(sess)
 		}
 		if rerr != nil {
-			debug.Logf("session", "start %s: restore profile failed: %v", sess.Name, rerr)
+			debug.Logf("session", "%s: restore profile failed: %v", sess.Name, rerr)
 		}
-		if derr := s.Cache.Delete(sess.ID); derr != nil {
-			debug.Logf("session", "start %s: drop cached credentials failed: %v", sess.Name, derr)
-		}
-		return err
 	}
 }
 
@@ -929,8 +940,8 @@ func sourceChain(w *core.Workspace, sess *core.Session) map[string]bool {
 	return sources
 }
 
-// checkSourceProfile refuses to start a role whose source writes the same AWS
-// profile. Both must stay active, and one profile names one session.
+// checkSourceProfile refuses to start a role, or to move an active role to a
+// profile, when its source writes the same AWS profile. Both must stay active, and one profile names one session.
 func checkSourceProfile(w *core.Workspace, sess *core.Session) error {
 	if sess.Kind.Cloud() != core.CloudAWS {
 		return nil
@@ -1514,22 +1525,41 @@ func (s *Service) SetProfile(ref, profile string) error {
 	if sess.Kind.Cloud() != core.CloudAWS {
 		return fmt.Errorf("%s is not an AWS session", sess.Name)
 	}
-	oldProfile := ProfileName(sess)
+	oldProfile, oldField := ProfileName(sess), sess.AWS.Profile
 	sess.AWS.Profile = profile
+	undo := func(err error) error { return err }
 	if sess.Status == core.StatusActive && ProfileName(sess) != oldProfile {
+		if err := checkSourceProfile(w, sess); err != nil {
+			return err
+		}
+		// If a step fails, undo gives the new profile back to its previous
+		// owner and puts the session back on its old profile.
+		restore := s.profileRestore(w, sess)
+		undo = func(err error) error {
+			// restore reads the new profile name of sess. Run it first.
+			restore()
+			sess.AWS.Profile = oldField
+			if rerr := s.writeCloudFiles(sess); rerr != nil {
+				debug.Logf("session", "%s: restore profile %s failed: %v", sess.Name, oldProfile, rerr)
+			}
+			return err
+		}
 		// Write the new section before the old one goes, so a refused name
 		// leaves the session on its old profile.
 		if err := s.writeCloudFiles(sess); err != nil {
-			return err
+			return undo(err)
 		}
 		if err := awsconfig.Remove(s.AWSConfigPath, oldProfile, sess.ID); err != nil {
-			return err
+			return undo(err)
 		}
 		if err := s.takeOverProfile(w, sess); err != nil {
-			return err
+			return undo(err)
 		}
 	}
-	return s.Save(w)
+	if err := s.Save(w); err != nil {
+		return undo(err)
+	}
+	return nil
 }
 
 // SetRegion changes an AWS session's region. An active session rewrites its
