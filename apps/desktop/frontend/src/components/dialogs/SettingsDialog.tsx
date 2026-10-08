@@ -67,6 +67,7 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
   }, [justSaved]);
   const [confirmReset, setConfirmReset] = useState(false);
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
+  const [checkFailed, setCheckFailed] = useState(false);
   const [checking, setChecking] = useState(false);
   const [installing, setInstalling] = useState(false);
 
@@ -75,11 +76,14 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
     try {
       const update = await api.CheckForUpdates();
       setUpdateInfo(update);
+      setCheckFailed(false);
       if (update.state === "package-manager") toast.info("Update rolle with your package manager");
       else if (!update.enabled) toast.info("Updates are disabled in development builds");
       else if (update.available) toast.success(`rolle ${update.version} is available`);
       else toast.success("You're on the latest version");
     } catch (e) {
+      setUpdateInfo(null);
+      setCheckFailed(true);
       toast.error(errorMessage(e));
     } finally {
       setChecking(false);
@@ -363,15 +367,17 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
                 <div>
                   <p className="text-sm font-medium text-foreground">rolle {info?.version ?? "…"}</p>
                   <p className="text-[11px] text-muted-foreground">
-                    {updateInfo === null
-                      ? "Updates are signed and verified before they install."
-                      : updateInfo.state === "package-manager"
-                        ? "Installed by a package manager. Update with your package manager."
-                        : !updateInfo.enabled
-                          ? "Development build, updates disabled."
-                          : updateInfo.available
-                            ? `Version ${updateInfo.version} is ready to install.`
-                            : "You're on the latest version."}
+                    {checkFailed
+                      ? "The last update check failed."
+                      : updateInfo === null
+                        ? "Updates are signed and verified before they install."
+                        : updateInfo.state === "package-manager"
+                          ? "Installed by a package manager. Update with your package manager."
+                          : !updateInfo.enabled
+                            ? "Development build, updates disabled."
+                            : updateInfo.available
+                              ? `Version ${updateInfo.version} is ready to install.`
+                              : "You're on the latest version."}
                   </p>
                 </div>
                 {updateInfo?.available ? (
