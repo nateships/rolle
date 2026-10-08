@@ -280,6 +280,15 @@ func Write(path string, p Profile) error {
 		if sec.HasKey("region") {
 			sec.Key(prevRegion).SetValue(sec.Key("region").String())
 		}
+	case p.Region == "":
+		// A rolle session owns the profile. A new session without a region
+		// must not keep the region of the old session. Restore the region of
+		// the user, or remove the region that rolle wrote.
+		if sec.HasKey(prevRegion) {
+			sec.Key("region").SetValue(sec.Key(prevRegion).String())
+		} else {
+			sec.DeleteKey("region")
+		}
 	}
 	if p.Region != "" {
 		sec.Key("region").SetValue(p.Region)

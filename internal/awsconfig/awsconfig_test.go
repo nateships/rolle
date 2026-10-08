@@ -110,6 +110,45 @@ func TestWriteTakesOverPlainSectionAndRestoresIt(t *testing.T) {
 	}
 }
 
+func TestWriteTakeoverSetsRegionOfNewSession(t *testing.T) {
+	cases := []struct {
+		name, initial, region, want string
+	}{
+		{name: "no region drops old owner region", region: ""},
+		{name: "no region restores user region", initial: "[default]\nregion = eu-west-1\n", region: "", want: "eu-west-1"},
+		{name: "own region replaces old owner region", region: "ap-south-1", want: "ap-south-1"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			path := filepath.Join(t.TempDir(), "config")
+			if err := os.WriteFile(path, []byte(c.initial), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			if err := Write(path, Profile{Name: "default", Region: "us-east-1", SessionID: "s1", Executable: "/opt/rolle"}); err != nil {
+				t.Fatal(err)
+			}
+			if err := Write(path, Profile{Name: "default", Region: c.region, SessionID: "s2", Executable: "/opt/rolle"}); err != nil {
+				t.Fatal(err)
+			}
+			f, err := load(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			sec := f.Section("default")
+			if sec.Key(marker).String() != "s2" || sec.HasKey("region") != (c.want != "") || sec.Key("region").String() != c.want {
+				t.Fatalf("after takeover: region = %q, session = %q", sec.Key("region").String(), sec.Key(marker).String())
+			}
+			if err := Remove(path, "default", "s2"); err != nil {
+				t.Fatal(err)
+			}
+			data, _ := os.ReadFile(path)
+			if string(data) != c.initial {
+				t.Fatalf("after remove = %q, want %q", data, c.initial)
+			}
+		})
+	}
+}
+
 func TestWriteRefusesSectionWithCredentials(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "config")
 	if err := os.WriteFile(path, []byte("[default]\nsso_session = acme\n"), 0o600); err != nil {
