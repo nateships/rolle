@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	"go.yaml.in/yaml/v3"
 
@@ -57,9 +58,10 @@ func Merge(path string, entries []Entry, current string) error {
 }
 
 // AttachEnv sets one environment variable on the exec plugin of the user
-// behind context. The user must run an exec plugin already.
-func AttachEnv(path, context, name, value string) error {
-	return updateUser(path, context, func(user map[string]any) error {
+// behind context. The user must run an exec plugin already. It returns the
+// path it wrote.
+func AttachEnv(paths []string, context, name, value string) (string, error) {
+	return updateUser(paths, context, func(user map[string]any) error {
 		exec, ok := user["exec"].(map[string]any)
 		if !ok {
 			return fmt.Errorf("the user of context %q has no exec plugin; attach works with a plugin that reads AWS credentials, such as aws-iam-authenticator", context)
@@ -70,9 +72,10 @@ func AttachEnv(path, context, name, value string) error {
 	})
 }
 
-// AttachExec replaces the exec plugin of the user behind context.
-func AttachExec(path, context string, exec Exec) error {
-	return updateUser(path, context, func(user map[string]any) error {
+// AttachExec replaces the exec plugin of the user behind context. It returns
+// the path it wrote.
+func AttachExec(paths []string, context string, exec Exec) (string, error) {
+	return updateUser(paths, context, func(user map[string]any) error {
 		user["exec"] = exec.spec()
 		return nil
 	})
@@ -95,32 +98,47 @@ func (e Exec) spec() map[string]any {
 	return spec
 }
 
-// updateUser loads the kubeconfig, finds the user of context, applies fn,
-// and saves. A missing context is core.ErrNotFound.
-func updateUser(path, context string, fn func(user map[string]any) error) error {
-	doc, err := load(path)
-	if err != nil {
-		return err
+// updateUser loads the kubeconfigs, finds the user of context, applies fn,
+// and saves the file that holds the user. Like kubectl, the first file with
+// a name wins, and the context and its user can be in different files. A
+// missing context or user is core.ErrNotFound. It returns the path it wrote.
+func updateUser(paths []string, context string, fn func(user map[string]any) error) (string, error) {
+	docs := make([]map[string]any, len(paths))
+	for i, p := range paths {
+		doc, err := load(p)
+		if err != nil {
+			return "", err
+		}
+		docs[i] = doc
 	}
-	ctx := find(doc, "contexts", context)
+	searched := strings.Join(paths, ", ")
+	var ctx map[string]any
+	for _, doc := range docs {
+		if ctx = find(doc, "contexts", context); ctx != nil {
+			break
+		}
+	}
 	if ctx == nil {
-		return fmt.Errorf("context %q in %s: %w", context, path, core.ErrNotFound)
+		return "", fmt.Errorf("context %q in %s: %w", context, searched, core.ErrNotFound)
 	}
 	body, _ := ctx["context"].(map[string]any)
 	name, _ := body["user"].(string)
-	item := find(doc, "users", name)
-	if item == nil {
-		return fmt.Errorf("user %q of context %q in %s: %w", name, context, path, core.ErrNotFound)
+	for i, doc := range docs {
+		item := find(doc, "users", name)
+		if item == nil {
+			continue
+		}
+		user, ok := item["user"].(map[string]any)
+		if !ok {
+			user = map[string]any{}
+			item["user"] = user
+		}
+		if err := fn(user); err != nil {
+			return "", err
+		}
+		return paths[i], save(paths[i], doc)
 	}
-	user, ok := item["user"].(map[string]any)
-	if !ok {
-		user = map[string]any{}
-		item["user"] = user
-	}
-	if err := fn(user); err != nil {
-		return err
-	}
-	return save(path, doc)
+	return "", fmt.Errorf("user %q of context %q in %s: %w", name, context, searched, core.ErrNotFound)
 }
 
 // load parses the kubeconfig at path into generic maps, so every field it

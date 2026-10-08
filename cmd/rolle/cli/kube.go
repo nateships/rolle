@@ -226,15 +226,16 @@ func kubeAttachCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			paths := []string{path}
 			if path == "" {
-				if path, err = kube.DefaultPath(); err != nil {
+				if paths, err = kube.Paths(); err != nil {
 					return err
 				}
 			}
 			if sess.Kind.Cloud() == core.CloudAWS {
-				err = kube.AttachEnv(path, args[1], "AWS_PROFILE", app.ProfileName(sess))
+				path, err = kube.AttachEnv(paths, args[1], "AWS_PROFILE", app.ProfileName(sess))
 			} else {
-				err = kube.AttachExec(path, args[1], kube.RolleExec(sess.Name))
+				path, err = kube.AttachExec(paths, args[1], kube.RolleExec(sess.Name))
 			}
 			if err != nil {
 				return err
@@ -243,6 +244,6 @@ func kubeAttachCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().StringVar(&path, "kubeconfig", "", "kubeconfig to edit (defaults to $KUBECONFIG, then ~/.kube/config)")
+	cmd.Flags().StringVar(&path, "kubeconfig", "", "kubeconfig to edit (defaults to the files in $KUBECONFIG, then ~/.kube/config)")
 	return cmd
 }

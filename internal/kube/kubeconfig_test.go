@@ -182,7 +182,7 @@ func TestMergeKeepsSymlinkedKubeconfig(t *testing.T) {
 
 func TestAttachEnvSetsAndReplacesProfile(t *testing.T) {
 	path := writeKubeconfig(t, existing)
-	if err := AttachEnv(path, "old", "AWS_PROFILE", "prod"); err != nil {
+	if _, err := AttachEnv([]string{path}, "old", "AWS_PROFILE", "prod"); err != nil {
 		t.Fatal(err)
 	}
 	exec := find(readKubeconfig(t, path), "users", "old-user")["user"].(map[string]any)["exec"].(map[string]any)
@@ -197,7 +197,7 @@ func TestAttachEnvSetsAndReplacesProfile(t *testing.T) {
 	// A user without env gets one.
 	noEnv := strings.Replace(existing, "      env:\n      - name: AWS_PROFILE\n        value: stale\n      - name: AWS_REGION\n        value: us-east-1\n", "", 1)
 	path = writeKubeconfig(t, noEnv)
-	if err := AttachEnv(path, "old", "AWS_PROFILE", "prod"); err != nil {
+	if _, err := AttachEnv([]string{path}, "old", "AWS_PROFILE", "prod"); err != nil {
 		t.Fatal(err)
 	}
 	exec = find(readKubeconfig(t, path), "users", "old-user")["user"].(map[string]any)["exec"].(map[string]any)
@@ -208,14 +208,14 @@ func TestAttachEnvSetsAndReplacesProfile(t *testing.T) {
 	// A user without an exec plugin is refused.
 	noExec := strings.Replace(existing, "    exec:", "    token: abc\n    unused:", 1)
 	path = writeKubeconfig(t, noExec)
-	if err := AttachEnv(path, "old", "AWS_PROFILE", "prod"); err == nil || !strings.Contains(err.Error(), "no exec plugin") {
+	if _, err := AttachEnv([]string{path}, "old", "AWS_PROFILE", "prod"); err == nil || !strings.Contains(err.Error(), "no exec plugin") {
 		t.Fatalf("attach without exec = %v", err)
 	}
 }
 
 func TestAttachExecReplacesPlugin(t *testing.T) {
 	path := writeKubeconfig(t, existing)
-	if err := AttachExec(path, "old", RolleExec("my-project")); err != nil {
+	if _, err := AttachExec([]string{path}, "old", RolleExec("my-project")); err != nil {
 		t.Fatal(err)
 	}
 	doc := readKubeconfig(t, path)
@@ -230,11 +230,83 @@ func TestAttachExecReplacesPlugin(t *testing.T) {
 
 func TestAttachMissingContextIsNotFound(t *testing.T) {
 	path := writeKubeconfig(t, existing)
-	if err := AttachEnv(path, "ghost", "AWS_PROFILE", "p"); !errors.Is(err, core.ErrNotFound) {
+	if _, err := AttachEnv([]string{path}, "ghost", "AWS_PROFILE", "p"); !errors.Is(err, core.ErrNotFound) {
 		t.Fatalf("attach env = %v", err)
 	}
-	if err := AttachExec(path, "ghost", RolleExec("s")); !errors.Is(err, core.ErrNotFound) {
+	if _, err := AttachExec([]string{path}, "ghost", RolleExec("s")); !errors.Is(err, core.ErrNotFound) {
 		t.Fatalf("attach exec = %v", err)
+	}
+}
+
+func TestAttachSearchesEveryKubeconfig(t *testing.T) {
+	context := func(user string) string {
+		return "contexts:\n- name: kops\n  context:\n    cluster: kops\n    user: " + user + "\n"
+	}
+	users := func(names ...string) string {
+		s := "users:\n"
+		for _, n := range names {
+			s += "- name: " + n + "\n  user:\n    exec:\n      command: aws-iam-authenticator\n"
+		}
+		return s
+	}
+	for _, tc := range []struct {
+		name         string
+		first, other string
+		// edited is the file attach writes; the other file must not change.
+		edited int
+		user   string
+	}{
+		{name: "context and user in the second file", first: existing, other: context("u") + users("u"), edited: 1, user: "u"},
+		{name: "context in the first file, user in the second", first: context("u"), other: users("u"), edited: 1, user: "u"},
+		{name: "first context wins", first: context("a"), other: context("b") + users("a", "b"), edited: 1, user: "a"},
+		{name: "first user wins", first: users("u"), other: context("u") + users("u"), edited: 0, user: "u"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dir := t.TempDir()
+			paths := []string{filepath.Join(dir, "one"), filepath.Join(dir, "two")}
+			bodies := []string{tc.first, tc.other}
+			for i, p := range paths {
+				if err := os.WriteFile(p, []byte(bodies[i]), 0o600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			got, err := AttachEnv(paths, "kops", "AWS_PROFILE", "prod")
+			if err != nil || got != paths[tc.edited] {
+				t.Fatalf("attach = %q, %v; want %q", got, err, paths[tc.edited])
+			}
+			user := find(readKubeconfig(t, got), "users", tc.user)["user"].(map[string]any)
+			if env, _ := user["exec"].(map[string]any)["env"].([]any); len(env) != 1 {
+				t.Fatalf("user %s env = %v", tc.user, env)
+			}
+			untouched := paths[1-tc.edited]
+			if data, _ := os.ReadFile(untouched); string(data) != bodies[1-tc.edited] {
+				t.Fatalf("%s changed:\n%s", untouched, data)
+			}
+			if tc.user == "a" {
+				if other := find(readKubeconfig(t, got), "users", "b")["user"].(map[string]any)["exec"].(map[string]any); other["env"] != nil {
+					t.Fatalf("user b changed: %v", other)
+				}
+			}
+		})
+	}
+}
+
+func TestAttachNotFoundNamesEverySearchedFile(t *testing.T) {
+	dir := t.TempDir()
+	first := writeKubeconfig(t, existing)
+	missing := filepath.Join(dir, "missing")
+	orphan := writeKubeconfig(t, "contexts:\n- name: kops\n  context:\n    user: nobody\n")
+	paths := []string{first, missing, orphan}
+	_, err := AttachExec(paths, "ghost", RolleExec("s"))
+	if !errors.Is(err, core.ErrNotFound) || !strings.Contains(err.Error(), first) || !strings.Contains(err.Error(), missing) || !strings.Contains(err.Error(), orphan) {
+		t.Fatalf("attach unknown context = %v", err)
+	}
+	_, err = AttachExec(paths, "kops", RolleExec("s"))
+	if !errors.Is(err, core.ErrNotFound) || !strings.Contains(err.Error(), `user "nobody"`) || !strings.Contains(err.Error(), first) || !strings.Contains(err.Error(), orphan) {
+		t.Fatalf("attach context without user = %v", err)
+	}
+	if _, err := os.Stat(missing); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("missing kubeconfig created: %v", err)
 	}
 }
 
@@ -263,5 +335,28 @@ func TestDefaultPath(t *testing.T) {
 	t.Setenv("USERPROFILE", home)
 	if got, _ := DefaultPath(); got != filepath.Join(home, ".kube", "config") {
 		t.Fatalf("path = %q", got)
+	}
+	// kubectl skips empty entries.
+	t.Setenv("KUBECONFIG", string(os.PathListSeparator)+"/x")
+	if got, _ := DefaultPath(); got != "/x" {
+		t.Fatalf("path = %q", got)
+	}
+}
+
+func TestPaths(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("USERPROFILE", home)
+	sep := string(os.PathListSeparator)
+	for env, want := range map[string][]string{
+		"/a" + sep + sep + "/a" + sep + "/b": {"/a", "/b"},
+		sep + "/x":                           {"/x"},
+		sep:                                  {filepath.Join(home, ".kube", "config")},
+		"":                                   {filepath.Join(home, ".kube", "config")},
+	} {
+		t.Setenv("KUBECONFIG", env)
+		if got, err := Paths(); err != nil || !reflect.DeepEqual(got, want) {
+			t.Fatalf("KUBECONFIG=%q: paths = %q, %v; want %q", env, got, err, want)
+		}
 	}
 }
