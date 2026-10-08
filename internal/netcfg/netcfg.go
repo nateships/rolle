@@ -44,6 +44,8 @@ func (logged) RoundTrip(req *http.Request) (*http.Response, error) {
 
 // Apply rebuilds the current transport from the settings. An unreadable
 // bundle or a malformed proxy URL is an error and leaves the transport as is.
+// After the change, Apply closes the idle connections of the previous
+// transport, because no new request uses that transport.
 func Apply(s core.Settings) error {
 	t := base.Clone()
 	pool, err := roots(s.CABundle)
@@ -60,7 +62,7 @@ func Apply(s core.Settings) error {
 		}
 		t.Proxy = http.ProxyURL(u)
 	}
-	current.Store(t)
+	current.Swap(t).CloseIdleConnections()
 	return nil
 }
 

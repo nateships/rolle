@@ -3,12 +3,14 @@ package netcfg
 import (
 	"crypto/tls"
 	"encoding/base64"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/debug"
@@ -110,6 +112,39 @@ func TestApplyProxy(t *testing.T) {
 	}
 	if u, _ := current.Load().Proxy(req); u != nil && strings.Contains(u.Host, "proxy.corp") {
 		t.Fatal("clearing the setting kept the proxy")
+	}
+}
+
+func TestApplyClosesIdleConnections(t *testing.T) {
+	restore(t)
+	closed := make(chan struct{}, 1)
+	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusNoContent) }))
+	srv.Config.ConnState = func(_ net.Conn, s http.ConnState) {
+		if s == http.StateClosed {
+			select {
+			case closed <- struct{}{}:
+			default:
+			}
+		}
+	}
+	srv.Start()
+	defer srv.Close()
+	if err := Apply(core.Settings{}); err != nil {
+		t.Fatal(err)
+	}
+	resp, err := Client().Get(srv.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = resp.Body.Close()
+	// The connection stays open for reuse. A new Apply must close it.
+	if err := Apply(core.Settings{}); err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case <-closed:
+	case <-time.After(3 * time.Second):
+		t.Fatal("Apply kept the idle connection of the previous transport open")
 	}
 }
 
