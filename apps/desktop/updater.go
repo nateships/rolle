@@ -315,7 +315,7 @@ type workspaceStore interface {
 	Save(w *core.Workspace) error
 }
 
-// errStaleManifest tells that a manifest with a valid signature is older than
+// errStaleManifest shows that a manifest with a valid signature is older than
 // the installed version or older than a manifest seen before.
 var errStaleManifest = errors.New("updater: the release feed serves an older version than expected, possibly a replayed manifest")
 
@@ -381,7 +381,7 @@ func (p *channelProvider) Check(ctx context.Context, req updater.CheckRequest) (
 // version, or older than a manifest that this install verified before on the
 // same feed. A user with edit rights on a release, but without the key, can
 // upload an older manifest and its valid signature again. Without this
-// check, the updater then tells "up to date" and updates stop.
+// check, the updater then reports "up to date" and updates stop.
 func (p *channelProvider) checkFresh(feed string, body []byte, installed string) error {
 	var m struct {
 		Version string `json:"version"`
