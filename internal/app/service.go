@@ -940,8 +940,8 @@ func sourceChain(w *core.Workspace, sess *core.Session) map[string]bool {
 	return sources
 }
 
-// checkSourceProfile refuses to start a role whose source writes the same AWS
-// profile. Both must stay active, and one profile names one session.
+// checkSourceProfile refuses to start a role, or to move an active role to a
+// profile, when its source writes the same AWS profile. Both must stay active, and one profile names one session.
 func checkSourceProfile(w *core.Workspace, sess *core.Session) error {
 	if sess.Kind.Cloud() != core.CloudAWS {
 		return nil
@@ -1529,6 +1529,9 @@ func (s *Service) SetProfile(ref, profile string) error {
 	sess.AWS.Profile = profile
 	undo := func(err error) error { return err }
 	if sess.Status == core.StatusActive && ProfileName(sess) != oldProfile {
+		if err := checkSourceProfile(w, sess); err != nil {
+			return err
+		}
 		// If a step fails, undo gives the new profile back to its previous
 		// owner and puts the session back on its old profile.
 		restore := s.profileRestore(w, sess)

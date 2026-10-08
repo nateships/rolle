@@ -304,3 +304,23 @@ func TestFailedProfileSaveWithoutOwnerRemovesSection(t *testing.T) {
 	}
 	assertActiveOn(t, s, b.ID, "default")
 }
+
+func TestSetProfileRefusesSourceProfile(t *testing.T) {
+	stubSTS(t)
+	s := testService(t)
+	src := addIAMUser(t, s, "src")
+	role, err := s.AddAssumeRole(AddAssumeRoleInput{Name: "admin", Region: "us-east-1", RoleARN: "arn:aws:iam::1:role/admin", SourceRef: "src", Profile: "admin"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, ref := range []string{"src", "admin"} {
+		if _, err := s.Start(context.Background(), ref, StartOptions{}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := s.SetProfile(role.ID, ""); err == nil || !strings.Contains(err.Error(), `both write AWS profile "default"`) {
+		t.Fatalf("SetProfile(admin) = %v, want a shared-profile refusal", err)
+	}
+	assertActiveOn(t, s, src.ID, "default")
+	assertActiveOn(t, s, role.ID, "admin")
+}
