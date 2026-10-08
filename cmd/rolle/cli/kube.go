@@ -197,7 +197,9 @@ func kubeTokenCmd() *cobra.Command {
 		Short: "Print an ExecCredential for kubectl (used by the contexts kube add writes)",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			creds, err := svc.KubeToken(cmd.Context(), args[0])
+			ctx, cancel := credsContext(cmd)
+			defer cancel()
+			creds, err := svc.KubeToken(ctx, args[0])
 			if err != nil {
 				return err
 			}

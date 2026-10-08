@@ -123,9 +123,15 @@ type credentialProcessOutput struct {
 	Expiration      string `json:"Expiration,omitempty"`
 }
 
-// credsTimeout is the longest time that rolle creds waits for credentials. A
-// provider that stops answering must not block the AWS CLI forever.
+// credsTimeout is the longest time that a command which other tools start
+// waits for credentials: creds, token, kube token, and env. A provider that
+// stops answering must not block the AWS CLI, kubectl, or a shell forever.
 var credsTimeout = 60 * time.Second
+
+// credsContext returns the context of cmd with the credsTimeout deadline.
+func credsContext(cmd *cobra.Command) (context.Context, context.CancelFunc) {
+	return context.WithTimeout(cmd.Context(), credsTimeout)
+}
 
 func credsCmd() *cobra.Command {
 	var session string
@@ -134,7 +140,7 @@ func credsCmd() *cobra.Command {
 		Short:  "Print credentials for credential_process",
 		Hidden: true,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			ctx, cancel := context.WithTimeout(cmd.Context(), credsTimeout)
+			ctx, cancel := credsContext(cmd)
 			defer cancel()
 			creds, err := svc.Credentials(ctx, session)
 			if err != nil {
@@ -160,7 +166,9 @@ func tokenCmd() *cobra.Command {
 		Short: "Print the bearer token of an Azure or Google Cloud session",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			creds, err := svc.Credentials(cmd.Context(), args[0])
+			ctx, cancel := credsContext(cmd)
+			defer cancel()
+			creds, err := svc.Credentials(ctx, args[0])
 			if err != nil {
 				return err
 			}
@@ -183,12 +191,14 @@ func envCmd() *cobra.Command {
 			"so the shell renews through credential_process; other clouds export their tokens either way.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx, cancel := credsContext(cmd)
+			defer cancel()
 			var env [][2]string
 			var err error
 			if profile {
-				env, err = svc.TerminalEnv(cmd.Context(), args[0])
+				env, err = svc.TerminalEnv(ctx, args[0])
 			} else {
-				env, err = svc.SessionEnv(cmd.Context(), args[0])
+				env, err = svc.SessionEnv(ctx, args[0])
 			}
 			if err != nil {
 				return err
