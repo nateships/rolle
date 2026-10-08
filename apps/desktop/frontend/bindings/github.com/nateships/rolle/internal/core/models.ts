@@ -411,6 +411,13 @@ export interface Workspace {
     "settings"?: Settings | null;
 
     /**
+     * UpdateSeen maps an update feed, "stable" or "beta", to the highest
+     * manifest version that the desktop updater verified on it. The updater
+     * refuses a later manifest with a lower version.
+     */
+    "updateSeen"?: { [_ in string]?: string } | null;
+
+    /**
      * ShadowedProfiles maps an AWS profile name to the file whose static
      * keys tools read instead of it. The desktop app fills it when it hands
      * the workspace to the window; Save leaves it out.

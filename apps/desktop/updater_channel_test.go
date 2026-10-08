@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -39,7 +40,8 @@ func signManifest(t *testing.T, body []byte) []byte {
 }
 
 // updateFeed is a fake GitHub: a stable manifest at /manifest.json, a
-// pre-release manifest at /beta/manifest.json, a releases API at /releases,
+// pre-release manifest at /beta/manifest.json, an older release manifest at
+// /old/manifest.json, a releases API at /releases,
 // an unsigned manifest at /unsigned/manifest.json, and one artifact. Each
 // manifest has a signature at the same path plus .sig, except
 // /nosig/manifest.json. The signature of /tampered/manifest.json is for
@@ -68,6 +70,7 @@ func updateFeed(t *testing.T) *httptest.Server {
 	signed := func(path string, body []byte) { serve(path, body, signManifest(t, body)) }
 	signed("/manifest.json", manifest("2.0.0", true))
 	signed("/beta/manifest.json", manifest("2.1.0-rc.1", true))
+	signed("/old/manifest.json", manifest("1.5.0", true))
 	signed("/unsigned/manifest.json", manifest("3.0.0", false))
 	signed("/elsewhere/manifest.json", bytes.Replace(manifest("2.0.0", true), []byte(`"app.zip"`), []byte(`"https://example.com/app.zip"`), 1))
 	serve("/nosig/manifest.json", manifest("2.0.0", true), nil)
@@ -285,6 +288,76 @@ func TestChannelProviderUpToDateReturnsNoRelease(t *testing.T) {
 	rel, err := p.Check(context.Background(), req)
 	if err != nil || rel != nil {
 		t.Fatalf("release = %+v, %v", rel, err)
+	}
+}
+
+// A user with edit rights on a release can upload an older manifest and its
+// valid signature again. The check must fail, not report "up to date".
+func TestChannelProviderRefusesManifestOlderThanInstalled(t *testing.T) {
+	srv := updateFeed(t)
+	pointFeeds(t, srv.URL+"/old/manifest.json", srv.URL+"/releases")
+	p := &channelProvider{settings: settingsWith(""), key: feedPub}
+	req := checkReq
+	req.CurrentVersion = "2.0.0"
+	rel, err := p.Check(context.Background(), req)
+	if !errors.Is(err, errStaleManifest) || rel != nil {
+		t.Fatalf("release = %+v, %v", rel, err)
+	}
+}
+
+func TestChannelProviderRefusesManifestOlderThanSeen(t *testing.T) {
+	srv := updateFeed(t)
+	store := testrolle(t).svc
+	pointFeeds(t, srv.URL+"/manifest.json", srv.URL+"/releases")
+	p := &channelProvider{settings: settingsWith(""), key: feedPub, store: store}
+	if rel, err := p.Check(context.Background(), checkReq); err != nil || rel == nil || rel.Version != "2.0.0" {
+		t.Fatalf("release = %+v, %v", rel, err)
+	}
+	if w, _ := store.Load(); w.UpdateSeen["stable"] != "2.0.0" {
+		t.Fatalf("seen = %v", w.UpdateSeen)
+	}
+	// The latest release now serves the 1.5.0 manifest. The installed 1.0.0
+	// is older still, but 2.0.0 was seen before.
+	pointFeeds(t, srv.URL+"/old/manifest.json", srv.URL+"/releases")
+	rel, err := p.Check(context.Background(), checkReq)
+	if !errors.Is(err, errStaleManifest) || rel != nil {
+		t.Fatalf("release = %+v, %v", rel, err)
+	}
+	if w, _ := store.Load(); w.UpdateSeen["stable"] != "2.0.0" {
+		t.Fatalf("seen = %v", w.UpdateSeen)
+	}
+}
+
+// Each feed keeps its own record, so a change of channel is not a replay.
+func TestChannelProviderComparesWithinOneFeed(t *testing.T) {
+	srv := updateFeed(t)
+	store := testrolle(t).svc
+	pointFeeds(t, srv.URL+"/manifest.json", srv.URL+"/releases")
+	p := &channelProvider{settings: settingsWith("beta"), key: feedPub, store: store}
+	if rel, err := p.Check(context.Background(), checkReq); err != nil || rel == nil || rel.Version != "2.1.0-rc.1" {
+		t.Fatalf("beta release = %+v, %v", rel, err)
+	}
+	// The user installed the pre-release and goes back to stable. The
+	// latest stable release is older than the installed version.
+	req := checkReq
+	req.CurrentVersion = "2.1.0-rc.1"
+	p.settings = settingsWith("")
+	if rel, err := p.Check(context.Background(), req); err != nil || rel != nil {
+		t.Fatalf("stable release = %+v, %v", rel, err)
+	}
+	// On beta, a failed releases API falls back to the stable manifest.
+	// That is not a replay of the beta feed either.
+	pointFeeds(t, srv.URL+"/manifest.json", srv.URL+"/broken")
+	p.settings = settingsWith("beta")
+	if rel, err := p.Check(context.Background(), req); err != nil || rel != nil {
+		t.Fatalf("fallback release = %+v, %v", rel, err)
+	}
+	w, err := store.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := map[string]string{"stable": "2.0.0", "beta": "2.1.0-rc.1"}; !maps.Equal(w.UpdateSeen, want) {
+		t.Fatalf("seen = %v, want %v", w.UpdateSeen, want)
 	}
 }
 

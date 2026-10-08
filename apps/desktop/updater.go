@@ -27,6 +27,7 @@ import (
 	"github.com/wailsapp/wails/v3/pkg/application"
 	"github.com/wailsapp/wails/v3/pkg/updater"
 	"github.com/wailsapp/wails/v3/pkg/updater/providers/endpoint"
+	"golang.org/x/mod/semver"
 
 	"github.com/nateships/rolle/internal/app"
 	"github.com/nateships/rolle/internal/core"
@@ -85,7 +86,7 @@ func setupUpdater(a *application.App, svc *app.Service) error {
 	}
 	cfg := updater.Config{
 		CurrentVersion: strings.TrimPrefix(version.Version, "v"),
-		Providers:      []updater.Provider{&channelProvider{settings: svc.Settings, key: key}},
+		Providers:      []updater.Provider{&channelProvider{settings: svc.Settings, key: key, store: svc}},
 		PublicKey:      key,
 	}
 	if err := a.Updater.Init(cfg); err != nil {
@@ -300,10 +301,23 @@ func appBundle(exe string) string {
 type channelProvider struct {
 	settings func() (core.Settings, error)
 	// key verifies the detached manifest signature.
-	key     ed25519.PublicKey
+	key ed25519.PublicKey
+	// store keeps the highest manifest version of each feed. Nil keeps no
+	// record.
+	store   workspaceStore
 	mu      sync.Mutex
 	current *endpoint.Provider
 }
+
+// workspaceStore reads and writes the workspace file.
+type workspaceStore interface {
+	Load() (*core.Workspace, error)
+	Save(w *core.Workspace) error
+}
+
+// errStaleManifest tells that a manifest with a valid signature is older than
+// the installed version or older than a manifest seen before.
+var errStaleManifest = errors.New("updater: the release feed serves an older version than expected, possibly a replayed manifest")
 
 func (p *channelProvider) Name() string { return "github" }
 
@@ -324,6 +338,13 @@ func (p *channelProvider) Check(ctx context.Context, req updater.CheckRequest) (
 	}
 	if body == nil {
 		return nil, nil
+	}
+	feed := "beta"
+	if url == manifestURL {
+		feed = "stable"
+	}
+	if err := p.checkFresh(feed, body, req.CurrentVersion); err != nil {
+		return nil, err
 	}
 	client, err := verifiedManifestClient(url, body)
 	if err != nil {
@@ -355,6 +376,52 @@ func (p *channelProvider) Check(ctx context.Context, req updater.CheckRequest) (
 	}
 	return rel, nil
 }
+
+// checkFresh refuses a verified manifest that is older than the installed
+// version, or older than a manifest that this install verified before on the
+// same feed. A user with edit rights on a release, but without the key, can
+// upload an older manifest and its valid signature again. Without this
+// check, the updater then tells "up to date" and updates stop.
+func (p *channelProvider) checkFresh(feed string, body []byte, installed string) error {
+	var m struct {
+		Version string `json:"version"`
+	}
+	if err := json.Unmarshal(body, &m); err != nil {
+		return fmt.Errorf("updater: decode manifest: %w", err)
+	}
+	got, have := semverOf(m.Version), semverOf(installed)
+	// The stable feed can be older than a pre-release from the beta feed.
+	preRelease := feed == "stable" && semver.Prerelease(have) != ""
+	if !preRelease && semver.Compare(got, have) < 0 {
+		return fmt.Errorf("%w (version %s, installed %s)", errStaleManifest, m.Version, installed)
+	}
+	if p.store == nil {
+		return nil
+	}
+	// A failed read or write of the record does not stop the check.
+	w, err := p.store.Load()
+	if err != nil {
+		debug.Logf("updater", "read seen manifest versions: %v", err)
+		return nil
+	}
+	seen := w.UpdateSeen[feed]
+	switch c := semver.Compare(got, semverOf(seen)); {
+	case c < 0:
+		return fmt.Errorf("%w (version %s, seen %s)", errStaleManifest, m.Version, seen)
+	case c > 0:
+		if w.UpdateSeen == nil {
+			w.UpdateSeen = map[string]string{}
+		}
+		w.UpdateSeen[feed] = m.Version
+		if err := p.store.Save(w); err != nil {
+			debug.Logf("updater", "record seen manifest version: %v", err)
+		}
+	}
+	return nil
+}
+
+// semverOf returns v with one leading "v", the form that x/mod/semver uses.
+func semverOf(v string) string { return "v" + strings.TrimPrefix(v, "v") }
 
 // artifactPrefix is the start of every release artifact URL. The updater
 // refuses to download an artifact from a different location.
