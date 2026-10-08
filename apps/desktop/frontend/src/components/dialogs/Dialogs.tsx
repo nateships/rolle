@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ExternalLink, Loader2, LogIn } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,7 @@ export function LoginDialog({
   onDone?: (integration: Integration, sessions: Session[]) => void;
 }) {
   const [login, setLogin] = useState<DeviceLogin | null>(null);
+  const stopLogin = useRef(() => {});
 
   useEffect(() => {
     if (!integration) {
@@ -65,6 +66,15 @@ export function LoginDialog({
       return;
     }
     let cancelled = false;
+    // An Azure sign-in has no cancel. Any other sign-in can end once:
+    // it finishes, it fails, or the dialog cancels it.
+    let ended = integration.cloud === Cloud.CloudAzure;
+    const stop = () => {
+      if (ended) return;
+      ended = true;
+      void api.CancelSSOLogin(integration.id);
+    };
+    stopLogin.current = stop;
     (async () => {
       try {
         let sessions: Session[];
@@ -72,10 +82,15 @@ export function LoginDialog({
           sessions = (await api.AzureLogin(integration.id)) ?? [];
         } else {
           const dl = await api.StartSSOLogin(integration.id);
-          if (cancelled) return;
+          if (cancelled) {
+            // The dialog closed before the backend held the login. Free it now.
+            void api.CancelSSOLogin(integration.id);
+            return;
+          }
           setLogin(dl);
           sessions = (await api.WaitSSOLogin(integration.id)) ?? [];
         }
+        ended = true;
         // An Azure sign-in has no cancel. It runs on after the dialog closes,
         // so its outcome still shows as a toast.
         const azure = integration.cloud === Cloud.CloudAzure;
@@ -90,6 +105,7 @@ export function LoginDialog({
         onDone?.(integration, sessions);
         onClose();
       } catch (e) {
+        ended = true;
         if (cancelled && integration.cloud !== Cloud.CloudAzure) return;
         toast.error(errorMessage(e));
         if (!cancelled) onClose();
@@ -97,12 +113,14 @@ export function LoginDialog({
     })();
     return () => {
       cancelled = true;
+      // Another dialog can replace this one. Do not leave the login waiting.
+      stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [integration?.id]);
 
   const cancel = () => {
-    if (integration && integration.cloud !== Cloud.CloudAzure) void api.CancelSSOLogin(integration.id);
+    stopLogin.current();
     onClose();
   };
 
@@ -366,6 +384,7 @@ export function SessionLoginDialog({
   onDone?: (session: Session) => void;
 }) {
   const [login, setLogin] = useState<DeviceLogin | null>(null);
+  const stopLogin = useRef(() => {});
 
   useEffect(() => {
     if (!session) {
@@ -373,12 +392,25 @@ export function SessionLoginDialog({
       return;
     }
     let cancelled = false;
+    // The sign-in can end once: it finishes, it fails, or the dialog cancels it.
+    let ended = false;
+    const stop = () => {
+      if (ended) return;
+      ended = true;
+      void api.CancelSessionLogin(session.id);
+    };
+    stopLogin.current = stop;
     (async () => {
       try {
         const dl = await api.StartSessionLogin(session.id);
-        if (cancelled) return;
+        if (cancelled) {
+          // The dialog closed before the backend held the login. Free it now.
+          void api.CancelSessionLogin(session.id);
+          return;
+        }
         setLogin(dl);
         const signed = await api.WaitSessionLogin(session.id);
+        ended = true;
         if (cancelled) return;
         toast.success(`Signed in to ${session.name}`, {
           description: signed.aws?.accountId ? `Account ${signed.aws.accountId}` : undefined,
@@ -386,6 +418,7 @@ export function SessionLoginDialog({
         onDone?.(signed);
         onClose();
       } catch (e) {
+        ended = true;
         if (cancelled) return;
         toast.error(errorMessage(e));
         onClose();
@@ -393,12 +426,14 @@ export function SessionLoginDialog({
     })();
     return () => {
       cancelled = true;
+      // Another dialog can replace this one. Do not leave the login waiting.
+      stop();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.id]);
 
   const cancel = () => {
-    if (session) void api.CancelSessionLogin(session.id);
+    stopLogin.current();
     onClose();
   };
 

@@ -80,7 +80,7 @@ describe("LoginDialog", () => {
     const open = vi.spyOn(api, "OpenURL").mockResolvedValue();
     const cancel = vi.spyOn(api, "CancelSSOLogin").mockResolvedValue();
     const onClose = vi.fn();
-    render(<LoginDialog integration={acme} onClose={onClose} />);
+    const { rerender } = render(<LoginDialog integration={acme} onClose={onClose} />);
 
     expect(screen.getByRole("dialog", { name: "Sign in to acme" })).toBeInTheDocument();
     expect(await screen.findByText("ABCD-1234")).toBeInTheDocument();
@@ -92,6 +92,34 @@ describe("LoginDialog", () => {
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(cancel).toHaveBeenCalledWith("acme");
     expect(onClose).toHaveBeenCalledTimes(1);
+    // The close does not cancel the login a second time.
+    rerender(<LoginDialog integration={null} onClose={onClose} />);
+    expect(cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancels the backend login when another dialog replaces it", async () => {
+    vi.spyOn(api, "StartSSOLogin").mockResolvedValue({ verificationUri: "https://verify", userCode: "ABCD-1234" });
+    vi.spyOn(api, "WaitSSOLogin").mockReturnValue(new Promise(() => {}) as never);
+    const cancel = vi.spyOn(api, "CancelSSOLogin").mockResolvedValue();
+    const { rerender } = render(<LoginDialog integration={acme} onClose={vi.fn()} />);
+    expect(await screen.findByText("ABCD-1234")).toBeInTheDocument();
+
+    rerender(<LoginDialog integration={null} onClose={vi.fn()} />);
+    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(cancel).toHaveBeenCalledWith("acme");
+  });
+
+  it("cancels a login that starts after the dialog is gone", async () => {
+    let started: (dl: { verificationUri: string; userCode: string }) => void = () => {};
+    vi.spyOn(api, "StartSSOLogin").mockReturnValue(new Promise((r) => (started = r)) as never);
+    const wait = vi.spyOn(api, "WaitSSOLogin");
+    const cancel = vi.spyOn(api, "CancelSSOLogin").mockResolvedValue();
+    const { rerender } = render(<LoginDialog integration={acme} onClose={vi.fn()} />);
+
+    rerender(<LoginDialog integration={null} onClose={vi.fn()} />);
+    started({ verificationUri: "https://verify", userCode: "" });
+    await waitFor(() => expect(cancel).toHaveBeenCalledTimes(2));
+    expect(wait).not.toHaveBeenCalled();
   });
 
   it("reports the discovered sessions once approval arrives", async () => {
@@ -101,12 +129,16 @@ describe("LoginDialog", () => {
     const success = vi.spyOn(toast, "success");
     const onClose = vi.fn();
     const onDone = vi.fn();
-    render(<LoginDialog integration={acme} onClose={onClose} onDone={onDone} />);
+    const cancel = vi.spyOn(api, "CancelSSOLogin").mockResolvedValue();
+    const { rerender } = render(<LoginDialog integration={acme} onClose={onClose} onDone={onDone} />);
 
     await waitFor(() => expect(onDone).toHaveBeenCalledWith(acme, found));
     expect(success).toHaveBeenCalledWith("Signed in to acme", { description: "2 new sessions discovered." });
     expect(celebrate).toHaveBeenCalledWith("small");
     expect(onClose).toHaveBeenCalledTimes(1);
+    // A finished login has nothing to cancel.
+    rerender(<LoginDialog integration={null} onClose={onClose} onDone={onDone} />);
+    expect(cancel).not.toHaveBeenCalled();
   });
 
   it("closes with an error toast when the login cannot start", async () => {
@@ -303,7 +335,7 @@ describe("SessionLoginDialog", () => {
     const open = vi.spyOn(api, "OpenURL").mockResolvedValue();
     const cancel = vi.spyOn(api, "CancelSessionLogin").mockResolvedValue();
     const onClose = vi.fn();
-    render(<SessionLoginDialog session={console} onClose={onClose} />);
+    const { rerender } = render(<SessionLoginDialog session={console} onClose={onClose} />);
 
     expect(screen.getByRole("dialog", { name: "Sign in to console" })).toBeInTheDocument();
     await user.click(await screen.findByRole("button", { name: /Reopen the page/ }));
@@ -311,6 +343,34 @@ describe("SessionLoginDialog", () => {
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     expect(cancel).toHaveBeenCalledWith("c1");
     expect(onClose).toHaveBeenCalled();
+    // The close does not cancel the login a second time.
+    rerender(<SessionLoginDialog session={null} onClose={onClose} />);
+    expect(cancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("cancels the backend login when another dialog replaces it", async () => {
+    vi.spyOn(api, "StartSessionLogin").mockResolvedValue({ verificationUri: "https://verify", userCode: "" });
+    vi.spyOn(api, "WaitSessionLogin").mockReturnValue(new Promise(() => {}) as never);
+    const cancel = vi.spyOn(api, "CancelSessionLogin").mockResolvedValue();
+    const { rerender } = render(<SessionLoginDialog session={console} onClose={vi.fn()} />);
+    expect(await screen.findByRole("button", { name: /Reopen the page/ })).toBeInTheDocument();
+
+    rerender(<SessionLoginDialog session={null} onClose={vi.fn()} />);
+    expect(cancel).toHaveBeenCalledTimes(1);
+    expect(cancel).toHaveBeenCalledWith("c1");
+  });
+
+  it("cancels a login that starts after the dialog is gone", async () => {
+    let started: (dl: { verificationUri: string; userCode: string }) => void = () => {};
+    vi.spyOn(api, "StartSessionLogin").mockReturnValue(new Promise((r) => (started = r)) as never);
+    const wait = vi.spyOn(api, "WaitSessionLogin");
+    const cancel = vi.spyOn(api, "CancelSessionLogin").mockResolvedValue();
+    const { rerender } = render(<SessionLoginDialog session={console} onClose={vi.fn()} />);
+
+    rerender(<SessionLoginDialog session={null} onClose={vi.fn()} />);
+    started({ verificationUri: "https://verify", userCode: "" });
+    await waitFor(() => expect(cancel).toHaveBeenCalledTimes(2));
+    expect(wait).not.toHaveBeenCalled();
   });
 
   it("reports the account once the sign-in completes", async () => {
@@ -320,11 +380,15 @@ describe("SessionLoginDialog", () => {
     const success = vi.spyOn(toast, "success");
     const onClose = vi.fn();
     const onDone = vi.fn();
-    render(<SessionLoginDialog session={console} onClose={onClose} onDone={onDone} />);
+    const cancel = vi.spyOn(api, "CancelSessionLogin").mockResolvedValue();
+    const { rerender } = render(<SessionLoginDialog session={console} onClose={onClose} onDone={onDone} />);
 
     await waitFor(() => expect(onDone).toHaveBeenCalledWith(signed));
     expect(success).toHaveBeenCalledWith("Signed in to console", { description: "Account 123456789012" });
     expect(onClose).toHaveBeenCalled();
+    // A finished login has nothing to cancel.
+    rerender(<SessionLoginDialog session={null} onClose={onClose} onDone={onDone} />);
+    expect(cancel).not.toHaveBeenCalled();
   });
 
   it("closes with an error toast when the sign-in fails", async () => {
