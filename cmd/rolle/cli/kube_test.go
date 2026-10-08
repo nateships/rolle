@@ -104,7 +104,7 @@ func TestKubeAttachSearchesKubeconfigList(t *testing.T) {
 	t.Setenv("KUBECONFIG", string(os.PathListSeparator)+first+string(os.PathListSeparator)+second)
 
 	out := mustRun(t, "kube", "attach", "dev", "kops")
-	if strings.TrimSpace(out) != "context kops in "+second+" now authenticates through dev" {
+	if strings.TrimSpace(out) != "context kops in "+first+" now authenticates through dev (user kops in "+second+")" {
 		t.Fatalf("attach output:\n%s", out)
 	}
 	if cfg, _ := os.ReadFile(second); !strings.Contains(string(cfg), "value: work\n") {

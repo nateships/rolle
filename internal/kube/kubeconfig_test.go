@@ -252,14 +252,16 @@ func TestAttachSearchesEveryKubeconfig(t *testing.T) {
 	for _, tc := range []struct {
 		name         string
 		first, other string
-		// edited is the file attach writes; the other file must not change.
-		edited int
-		user   string
+		// context is the file that holds the context. edited is the file attach
+		// writes; the other file must not change.
+		context int
+		edited  int
+		user    string
 	}{
-		{name: "context and user in the second file", first: existing, other: context("u") + users("u"), edited: 1, user: "u"},
-		{name: "context in the first file, user in the second", first: context("u"), other: users("u"), edited: 1, user: "u"},
-		{name: "first context wins", first: context("a"), other: context("b") + users("a", "b"), edited: 1, user: "a"},
-		{name: "first user wins", first: users("u"), other: context("u") + users("u"), edited: 0, user: "u"},
+		{name: "context and user in the second file", first: existing, other: context("u") + users("u"), context: 1, edited: 1, user: "u"},
+		{name: "context in the first file, user in the second", first: context("u"), other: users("u"), context: 0, edited: 1, user: "u"},
+		{name: "first context wins", first: context("a"), other: context("b") + users("a", "b"), context: 0, edited: 1, user: "a"},
+		{name: "first user wins", first: users("u"), other: context("u") + users("u"), context: 1, edited: 0, user: "u"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			dir := t.TempDir()
@@ -271,10 +273,11 @@ func TestAttachSearchesEveryKubeconfig(t *testing.T) {
 				}
 			}
 			got, err := AttachEnv(paths, "kops", "AWS_PROFILE", "prod")
-			if err != nil || got != paths[tc.edited] {
-				t.Fatalf("attach = %q, %v; want %q", got, err, paths[tc.edited])
+			want := Attached{ContextPath: paths[tc.context], User: tc.user, UserPath: paths[tc.edited]}
+			if err != nil || got != want {
+				t.Fatalf("attach = %+v, %v; want %+v", got, err, want)
 			}
-			user := find(readKubeconfig(t, got), "users", tc.user)["user"].(map[string]any)
+			user := find(readKubeconfig(t, got.UserPath), "users", tc.user)["user"].(map[string]any)
 			if env, _ := user["exec"].(map[string]any)["env"].([]any); len(env) != 1 {
 				t.Fatalf("user %s env = %v", tc.user, env)
 			}
@@ -283,7 +286,7 @@ func TestAttachSearchesEveryKubeconfig(t *testing.T) {
 				t.Fatalf("%s changed:\n%s", untouched, data)
 			}
 			if tc.user == "a" {
-				if other := find(readKubeconfig(t, got), "users", "b")["user"].(map[string]any)["exec"].(map[string]any); other["env"] != nil {
+				if other := find(readKubeconfig(t, got.UserPath), "users", "b")["user"].(map[string]any)["exec"].(map[string]any); other["env"] != nil {
 					t.Fatalf("user b changed: %v", other)
 				}
 			}

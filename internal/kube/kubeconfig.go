@@ -57,10 +57,18 @@ func Merge(path string, entries []Entry, current string) error {
 	return save(path, doc)
 }
 
+// Attached tells where attach found the context and which user it changed.
+type Attached struct {
+	// ContextPath is the file that holds the context.
+	ContextPath string
+	User        string
+	// UserPath is the file that holds the user. Attach writes only this file.
+	UserPath string
+}
+
 // AttachEnv sets one environment variable on the exec plugin of the user
-// behind context. The user must run an exec plugin already. It returns the
-// path it wrote.
-func AttachEnv(paths []string, context, name, value string) (string, error) {
+// behind context. The user must run an exec plugin already.
+func AttachEnv(paths []string, context, name, value string) (Attached, error) {
 	return updateUser(paths, context, func(user map[string]any) error {
 		exec, ok := user["exec"].(map[string]any)
 		if !ok {
@@ -72,9 +80,8 @@ func AttachEnv(paths []string, context, name, value string) (string, error) {
 	})
 }
 
-// AttachExec replaces the exec plugin of the user behind context. It returns
-// the path it wrote.
-func AttachExec(paths []string, context string, exec Exec) (string, error) {
+// AttachExec replaces the exec plugin of the user behind context.
+func AttachExec(paths []string, context string, exec Exec) (Attached, error) {
 	return updateUser(paths, context, func(user map[string]any) error {
 		user["exec"] = exec.spec()
 		return nil
@@ -101,28 +108,31 @@ func (e Exec) spec() map[string]any {
 // updateUser loads the kubeconfigs, finds the user of context, applies fn,
 // and saves the file that holds the user. Like kubectl, the first file with
 // a name wins, and the context and its user can be in different files. A
-// missing context or user is core.ErrNotFound. It returns the path it wrote.
-func updateUser(paths []string, context string, fn func(user map[string]any) error) (string, error) {
+// missing context or user is core.ErrNotFound.
+func updateUser(paths []string, context string, fn func(user map[string]any) error) (Attached, error) {
 	docs := make([]map[string]any, len(paths))
 	for i, p := range paths {
 		doc, err := load(p)
 		if err != nil {
-			return "", err
+			return Attached{}, err
 		}
 		docs[i] = doc
 	}
 	searched := strings.Join(paths, ", ")
 	var ctx map[string]any
-	for _, doc := range docs {
+	var at Attached
+	for i, doc := range docs {
 		if ctx = find(doc, "contexts", context); ctx != nil {
+			at.ContextPath = paths[i]
 			break
 		}
 	}
 	if ctx == nil {
-		return "", fmt.Errorf("context %q in %s: %w", context, searched, core.ErrNotFound)
+		return Attached{}, fmt.Errorf("context %q in %s: %w", context, searched, core.ErrNotFound)
 	}
 	body, _ := ctx["context"].(map[string]any)
 	name, _ := body["user"].(string)
+	at.User = name
 	for i, doc := range docs {
 		item := find(doc, "users", name)
 		if item == nil {
@@ -134,11 +144,12 @@ func updateUser(paths []string, context string, fn func(user map[string]any) err
 			item["user"] = user
 		}
 		if err := fn(user); err != nil {
-			return "", err
+			return Attached{}, err
 		}
-		return paths[i], save(paths[i], doc)
+		at.UserPath = paths[i]
+		return at, save(paths[i], doc)
 	}
-	return "", fmt.Errorf("user %q of context %q in %s: %w", name, context, searched, core.ErrNotFound)
+	return Attached{}, fmt.Errorf("user %q of context %q in %s: %w", name, context, searched, core.ErrNotFound)
 }
 
 // load parses the kubeconfig at path into generic maps, so every field it
