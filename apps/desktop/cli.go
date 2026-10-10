@@ -204,7 +204,7 @@ func uninstallDarwinLink(env cliEnv, link string) error {
 	if err := os.Remove(link); err == nil || !errors.Is(err, os.ErrPermission) {
 		return err
 	}
-	return adminShell(fmt.Sprintf("rm -f %s", shellQuote(link)))
+	return adminShell("rolle needs to remove the rolle command from /usr/local/bin.", fmt.Sprintf("rm -f %s", shellQuote(link)))
 }
 
 // refreshCLI rewrites the app's own copy of the command after an update, so
@@ -441,27 +441,9 @@ func linkCLI(target string) error {
 	if !errors.Is(err, os.ErrPermission) && !errors.Is(err, os.ErrNotExist) && !errors.Is(err, os.ErrExist) {
 		return err
 	}
-	return adminShell(fmt.Sprintf("mkdir -p /usr/local/bin && ln -sfn %s %s", shellQuote(target), shellQuote(cliLink)))
-}
-
-// adminShell runs one shell command with administrator privileges through
-// osascript, which shows the standard macOS password prompt.
-func adminShell(script string) error {
-	as := fmt.Sprintf(`do shell script %s with administrator privileges`, appleScriptString(script))
-	out, err := exec.Command("osascript", "-e", as).CombinedOutput()
-	if err != nil {
-		// osascript reports a declined prompt as error -128 in every language.
-		return installError(out, err, strings.Contains(string(out), "(-128)"))
-	}
-	return nil
+	return adminShell("rolle needs to add the rolle command to /usr/local/bin.",
+		fmt.Sprintf("mkdir -p /usr/local/bin && ln -sfn %s %s", shellQuote(target), shellQuote(cliLink)))
 }
 
 // shellQuote wraps s in single quotes for sh.
 func shellQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'" }
-
-// appleScriptString quotes s as an AppleScript string literal.
-func appleScriptString(s string) string {
-	s = strings.ReplaceAll(s, `\`, `\\`)
-	s = strings.ReplaceAll(s, `"`, `\"`)
-	return `"` + s + `"`
-}
