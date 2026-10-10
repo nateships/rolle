@@ -1,0 +1,246 @@
+{
+  "title": "rolle (com.getrolle.app)",
+  "description": "Settings and integrations that rolle applies for the user. A setting applies once and the user can change it, unless it is listed in Locked settings.",
+  "links": [
+    {
+      "rel": "Documentation",
+      "href": "https://getrolle.com/docs/mdm"
+    }
+  ],
+  "properties": {
+    "DisableUpdates": {
+      "type": "boolean",
+      "title": "Disable self-updates",
+      "description": "Turn off the in-app updater. Use this when you deliver new versions of rolle with Jamf.",
+      "property_order": 1,
+      "links": [
+        {
+          "rel": "Documentation",
+          "href": "https://getrolle.com/docs/mdm#turn-off-self-updates"
+        }
+      ]
+    },
+    "Settings": {
+      "type": "object",
+      "title": "Settings",
+      "description": "Values that rolle applies once. The user can change them, unless they are locked. A new value applies again.",
+      "property_order": 2,
+      "links": [
+        {
+          "rel": "Documentation",
+          "href": "https://getrolle.com/docs/mdm#settings"
+        }
+      ],
+      "properties": {
+        "DefaultRegion": {
+          "type": "string",
+          "title": "Default AWS region",
+          "description": "Region for new sessions, such as eu-west-1.",
+          "property_order": 1
+        },
+        "AssumeRoleMinutes": {
+          "type": "integer",
+          "title": "Assume role duration (minutes)",
+          "description": "Duration of chained assume-role sessions, 15 to 720.",
+          "minimum": 15,
+          "maximum": 720,
+          "property_order": 2
+        },
+        "ProxyURL": {
+          "type": "string",
+          "title": "HTTPS proxy",
+          "description": "Proxy for every request rolle makes, such as http://proxy.example.com:3128. Empty follows HTTPS_PROXY.",
+          "property_order": 3
+        },
+        "CABundle": {
+          "type": "string",
+          "title": "Extra CA bundle",
+          "description": "Path of a PEM file with extra root certificates, for TLS inspection. Deploy the file before you lock this setting.",
+          "property_order": 4
+        },
+        "UpdateChannel": {
+          "type": "string",
+          "title": "Update channel",
+          "description": "Stable or beta (pre-releases).",
+          "enum": [
+            "stable",
+            "beta"
+          ],
+          "options": {
+            "enum_titles": [
+              "Stable",
+              "Beta"
+            ]
+          },
+          "property_order": 5
+        },
+        "AutoUpdateOff": {
+          "type": "boolean",
+          "title": "Turn off the automatic update check",
+          "description": "The user can still check by hand. To turn self-updates off completely, use Disable self-updates.",
+          "property_order": 6
+        },
+        "HiddenSections": {
+          "type": "array",
+          "title": "Hidden sidebar sections",
+          "description": "Sidebar sections to hide.",
+          "items": {
+            "type": "string",
+            "enum": [
+              "aws-sso",
+              "aws-iam",
+              "azure",
+              "gcp"
+            ],
+            "options": {
+              "enum_titles": [
+                "AWS Identity Center",
+                "AWS IAM",
+                "Azure tenants",
+                "Google Cloud"
+              ]
+            }
+          },
+          "property_order": 7
+        },
+        "HideOnClose": {
+          "type": "boolean",
+          "title": "Keep running in the tray",
+          "description": "Closing the window hides it instead of quitting.",
+          "property_order": 8
+        },
+        "NotifyOff": {
+          "type": "boolean",
+          "title": "Turn off expiry notifications",
+          "property_order": 9
+        },
+        "NotifyLeadMinutes": {
+          "type": "integer",
+          "title": "Warn before a session expires (minutes)",
+          "description": "0 to 60. 0 means the default, 2 minutes.",
+          "minimum": 0,
+          "maximum": 60,
+          "property_order": 10
+        },
+        "Terminal": {
+          "type": "string",
+          "title": "Terminal app",
+          "description": "Terminal for Open terminal.",
+          "enum": [
+            "auto",
+            "terminal",
+            "iterm",
+            "ghostty",
+            "warp",
+            "cmux"
+          ],
+          "options": {
+            "enum_titles": [
+              "System default",
+              "Terminal",
+              "iTerm2",
+              "Ghostty",
+              "Warp",
+              "cmux"
+            ]
+          },
+          "property_order": 11
+        }
+      }
+    },
+    "LockedSettings": {
+      "type": "array",
+      "title": "Locked settings",
+      "description": "Settings that the user cannot change. Each needs a value under Settings.",
+      "property_order": 3,
+      "items": {
+        "type": "string",
+        "enum": [
+          "DefaultRegion",
+          "AssumeRoleMinutes",
+          "ProxyURL",
+          "CABundle",
+          "UpdateChannel",
+          "AutoUpdateOff",
+          "HiddenSections",
+          "HideOnClose",
+          "NotifyOff",
+          "NotifyLeadMinutes",
+          "Terminal"
+        ],
+        "options": {
+          "enum_titles": [
+            "Default AWS region",
+            "Assume role duration (minutes)",
+            "HTTPS proxy",
+            "Extra CA bundle",
+            "Update channel",
+            "Turn off the automatic update check",
+            "Hidden sidebar sections",
+            "Keep running in the tray",
+            "Turn off expiry notifications",
+            "Warn before a session expires (minutes)",
+            "Terminal app"
+          ]
+        }
+      }
+    },
+    "Integrations": {
+      "type": "array",
+      "title": "Integrations",
+      "description": "Identity Center portals and Entra ID tenants that rolle adds once. The user can rename or remove them.",
+      "property_order": 4,
+      "links": [
+        {
+          "rel": "Documentation",
+          "href": "https://getrolle.com/docs/mdm#integrations"
+        }
+      ],
+      "items": {
+        "type": "object",
+        "title": "Integration",
+        "properties": {
+          "Type": {
+            "type": "string",
+            "title": "Type",
+            "enum": [
+              "aws-sso",
+              "azure"
+            ],
+            "options": {
+              "enum_titles": [
+                "AWS IAM Identity Center portal",
+                "Entra ID tenant"
+              ]
+            },
+            "property_order": 1
+          },
+          "Alias": {
+            "type": "string",
+            "title": "Name",
+            "description": "The name in rolle.",
+            "property_order": 2
+          },
+          "StartURL": {
+            "type": "string",
+            "title": "Start URL (AWS)",
+            "description": "The https start URL of the portal, such as https://example.awsapps.com/start.",
+            "property_order": 3
+          },
+          "Region": {
+            "type": "string",
+            "title": "Region (AWS)",
+            "description": "The Identity Center region, such as us-east-1.",
+            "property_order": 4
+          },
+          "TenantID": {
+            "type": "string",
+            "title": "Tenant ID (Azure)",
+            "description": "The tenant ID or domain, such as example.onmicrosoft.com.",
+            "property_order": 5
+          }
+        }
+      }
+    }
+  }
+}
