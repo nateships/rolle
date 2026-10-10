@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.15.0](https://github.com/nateships/rolle/compare/v0.14.6...v0.15.0) (2026-10-10)
+
+
+### Features
+
+* **desktop:** ship rolle.pkg for Jamf and honor a managed DisableUpdates key ([#274](https://github.com/nateships/rolle/issues/274)) ([060474c](https://github.com/nateships/rolle/commit/060474ca34b00292eb91e39d74e7901bee327551))
+* let a configuration profile add Identity Center portals and Entra ID tenants ([#276](https://github.com/nateships/rolle/issues/276)) ([95f609d](https://github.com/nateships/rolle/commit/95f609dec1edcfba8f28fdb278168b00c2c7dbd5))
+* let a configuration profile set and lock rolle settings ([#275](https://github.com/nateships/rolle/issues/275)) ([56def1a](https://github.com/nateships/rolle/commit/56def1ac1cbcce61e654d3452c911b850dc81e5c))
+
+
+### Bug Fixes
+
+* **deps:** update module golang.org/x/mod to v0.41.0 ([#269](https://github.com/nateships/rolle/issues/269)) ([0d5ba98](https://github.com/nateships/rolle/commit/0d5ba9873e98128d2b2473a1172482f340922518))
+* **desktop:** update an owned bundle without the admin prompt ([#273](https://github.com/nateships/rolle/issues/273)) ([605d423](https://github.com/nateships/rolle/commit/605d4232bd79670e3e4e75587f10f11b8ea6b760))
+
 ## [0.14.6](https://github.com/nateships/rolle/compare/v0.14.5...v0.14.6) (2026-10-08)
 
 
