@@ -11,6 +11,8 @@ import (
 
 func elevatedSwap(string, string) error { return errors.New("elevated install is not available here") }
 
+func contentsSwap(string, string) error { return errors.New("bundle install is not available here") }
+
 // relaunchAfterExit starts target once this process is gone. The child
 // outlives its parent.
 func relaunchAfterExit(target string) error {

@@ -12,28 +12,49 @@ import (
 // when the user declines the UAC prompt. The elevate script exits with it.
 const errorCancelled = 1223
 
+// swapKind is how the updater puts the new release in place of the target.
+type swapKind int
+
+const (
+	// swapHelper lets the updater's helper replace the target.
+	swapHelper swapKind = iota
+	// swapContents replaces the Contents folder of a bundle that the
+	// current account can write in a folder that it cannot write.
+	swapContents
+	// swapElevated replaces the target through the administrator prompt.
+	swapElevated
+)
+
 // updateTarget is what the updater replaces: the bundle on macOS, the
 // AppImage file on Linux when the app runs from one, the executable
-// elsewhere. The second result is true when the current account cannot
-// replace it, so the swap needs elevation. appImage is the APPIMAGE
-// variable the AppImage runtime sets; the executable itself then sits on a
-// read-only mount.
-func updateTarget(goos, exe, appImage string) (target string, needsElevation bool) {
+// elsewhere. The second result tells how to replace it. The swap needs
+// elevation when the current account cannot write the target. On Windows,
+// the folder of the target decides. appImage is the APPIMAGE variable the
+// AppImage runtime sets; the executable itself then sits on a read-only
+// mount.
+func updateTarget(goos, exe, appImage string) (target string, swap swapKind) {
 	switch goos {
 	case "darwin":
 		bundle := appBundle(exe)
-		if bundle == "" {
-			return "", false
+		switch {
+		case bundle == "":
+			return "", swapHelper
+		case !writable(bundle):
+			return bundle, swapElevated
+		case !writable(filepath.Dir(bundle)):
+			return bundle, swapContents
 		}
-		return bundle, !writable(filepath.Dir(bundle)) || !writable(bundle)
+		return bundle, swapHelper
 	case "windows":
-		return exe, !writable(filepath.Dir(exe))
+		if !writable(filepath.Dir(exe)) {
+			return exe, swapElevated
+		}
 	case "linux":
 		if appImage != "" {
-			return appImage, false
+			return appImage, swapHelper
 		}
 	}
-	return exe, false
+	return exe, swapHelper
 }
 
 // installError shapes a failed privileged command into the error the

@@ -104,3 +104,148 @@ func TestDarwinSwapCommandRuns(t *testing.T) {
 	}
 	leftovers(apps)
 }
+
+// TestContentsSwapNeedsNoWriteAccessToTheFolder replaces the Contents folder
+// of a bundle in a folder that refuses writes, like /Applications for a
+// standard account. The test uses a stub instead of codesign, which needs a
+// signed bundle. The stub fails when the CODESIGN_FAIL variable is not
+// empty, or when an argument is equal to the CODESIGN_FAIL_PATH variable. A
+// second stub instead of osascript declines the administrator prompt, so
+// the test never shows a real prompt.
+func TestContentsSwapNeedsNoWriteAccessToTheFolder(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skip("root writes anywhere")
+	}
+	stubs := t.TempDir()
+	for name, body := range map[string]string{
+		"codesign":  "#!/bin/sh\nfor a; do [ \"$a\" = \"$CODESIGN_FAIL_PATH\" ] && exit 1; done\n[ -z \"$CODESIGN_FAIL\" ]\n",
+		"osascript": "#!/bin/sh\necho 'execution error: User canceled. (-128)' >&2\nexit 1\n",
+	} {
+		if err := os.WriteFile(filepath.Join(stubs, name), []byte(body), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Setenv("PATH", stubs+":/usr/bin:/bin")
+	bundle := func(dir, version string) string {
+		app := filepath.Join(dir, "rolle.app")
+		if err := os.MkdirAll(filepath.Join(app, "Contents"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(app, "Contents", "version"), []byte(version), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return app
+	}
+	installed := func(target string) string {
+		b, err := os.ReadFile(filepath.Join(target, "Contents", "version"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(b)
+	}
+	entries := func(dir string) []string {
+		list, err := os.ReadDir(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var names []string
+		for _, e := range list {
+			names = append(names, e.Name())
+		}
+		return names
+	}
+
+	apps := t.TempDir()
+	target := bundle(apps, "old")
+	if err := os.Chmod(apps, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(apps, 0o755) })
+	staging := t.TempDir()
+	staged := bundle(staging, "new")
+	// The swap moves the old Contents folder aside into a folder next to the
+	// staging folder. All t.TempDir folders of this test have one parent.
+	root := filepath.Dir(staging)
+	noAside := func() {
+		t.Helper()
+		for _, name := range entries(root) {
+			if strings.HasPrefix(name, ".rolle-old-") {
+				t.Fatalf("old Contents folder left in %s: %s", root, name)
+			}
+		}
+	}
+
+	t.Setenv("CODESIGN_FAIL", "1")
+	if err := contentsSwap(staged, target); err == nil {
+		t.Fatal("swap passed a failed signature check")
+	}
+	if got := installed(target); got != "old" {
+		t.Fatalf("failed check replaced the bundle: %s", got)
+	}
+	t.Setenv("CODESIGN_FAIL", "")
+
+	// A staged bundle that passes the first check but fails the check in
+	// place, for example because another process changed it between the
+	// two checks. The swap must move the old Contents folder back.
+	t.Setenv("CODESIGN_FAIL_PATH", target)
+	if err := contentsSwap(staged, target); err == nil {
+		t.Fatal("swap passed a failed check of the installed bundle")
+	}
+	if got := installed(target); got != "old" {
+		t.Fatalf("failed check in place kept the new bundle: %s", got)
+	}
+	if got := entries(target); len(got) != 1 || got[0] != "Contents" {
+		t.Fatalf("bundle holds %v, want only Contents", got)
+	}
+	noAside()
+	t.Setenv("CODESIGN_FAIL_PATH", "")
+	// The failed check used the staged Contents folder. Stage a new one.
+	if err := os.RemoveAll(staged); err != nil {
+		t.Fatal(err)
+	}
+	staged = bundle(staging, "new")
+
+	// A staged bundle without Contents fails after the old Contents moved
+	// aside. The swap must move it back.
+	empty := filepath.Join(t.TempDir(), "rolle.app")
+	if err := os.Mkdir(empty, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := contentsSwap(empty, target); err == nil {
+		t.Fatal("swap passed a bundle without Contents")
+	}
+	if got := installed(target); got != "old" {
+		t.Fatalf("failed move lost the old bundle: %s", got)
+	}
+	noAside()
+
+	// A Contents folder without the owner write bit cannot move to another
+	// folder. The swap then falls back to the administrator prompt, which
+	// the osascript stub declines.
+	contents := filepath.Join(target, "Contents")
+	if err := os.Chmod(contents, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(contents, 0o755) })
+	if err := contentsSwap(staged, target); err == nil || err.Error() != "cancelled" {
+		t.Fatalf("swap of a locked Contents folder = %v, want the declined prompt", err)
+	}
+	if got := installed(target); got != "old" {
+		t.Fatalf("fallback changed the bundle: %s", got)
+	}
+	noAside()
+	if err := os.Chmod(contents, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := contentsSwap(staged, target); err != nil {
+		t.Fatal(err)
+	}
+	if got := installed(target); got != "new" {
+		t.Fatalf("installed = %s", got)
+	}
+	if got := entries(target); len(got) != 1 || got[0] != "Contents" {
+		t.Fatalf("bundle holds %v, want only Contents", got)
+	}
+	noAside()
+}
