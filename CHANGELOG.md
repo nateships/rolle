@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.16.0](https://github.com/nateships/rolle/compare/v0.15.0...v0.16.0) (2026-10-10)
+
+
+### Features
+
+* approve the macOS administrator prompt with Touch ID ([#280](https://github.com/nateships/rolle/issues/280)) ([f5f6107](https://github.com/nateships/rolle/commit/f5f6107fcb1afdf650f1cf27733494058356305b))
+
 ## [0.15.0](https://github.com/nateships/rolle/compare/v0.14.6...v0.15.0) (2026-10-10)
 
 
