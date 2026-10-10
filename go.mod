@@ -21,6 +21,7 @@ require (
 	golang.org/x/sys v0.48.0
 	golang.org/x/term v0.46.0
 	gopkg.in/ini.v1 v1.67.3
+	howett.net/plist v1.0.2-0.20250314012144-ee69052608d9
 )
 
 require (

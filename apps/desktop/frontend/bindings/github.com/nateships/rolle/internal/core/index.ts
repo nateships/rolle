@@ -17,6 +17,7 @@ export type {
     GCPIntegration,
     GCPSession,
     Integration,
+    Managed,
     Session,
     Settings,
     Tag,

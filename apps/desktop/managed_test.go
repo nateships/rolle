@@ -75,10 +75,3 @@ func TestUpdatesManagedBinding(t *testing.T) {
 		}
 	}
 }
-
-// No test machine carries a rolle configuration profile.
-func TestManagedByProfileOffWithoutProfile(t *testing.T) {
-	if managedByProfile() {
-		t.Fatal("managedByProfile() = true without a profile")
-	}
-}

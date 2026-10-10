@@ -633,6 +633,8 @@ export const mockApi = {
   },
   // ?managed=1 previews a Mac where a configuration profile turns updates off.
   UpdatesManaged: async () => new URLSearchParams(location.search).get("managed") === "1",
+  // ?locked=proxyUrl,terminal previews settings that a configuration profile locks.
+  LockedSettings: async () => (new URLSearchParams(location.search).get("locked") ?? "").split(",").filter(Boolean),
   OpenTerminal: async () => {
     await wait(300);
   },

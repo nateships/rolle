@@ -25,6 +25,7 @@ import (
 	"github.com/nateships/rolle/internal/gcp"
 	"github.com/nateships/rolle/internal/netcfg"
 	"github.com/nateships/rolle/internal/paths"
+	"github.com/nateships/rolle/internal/policy"
 	"github.com/nateships/rolle/internal/secrets"
 	"github.com/nateships/rolle/internal/workspace"
 )
@@ -43,6 +44,9 @@ type Service struct {
 	// LockDir holds the lock files that stop the desktop app and the CLI from
 	// renewing one token at the same time. Empty means no cross-process lock.
 	LockDir string
+	// Policy reads the organization's configuration profile. Nil means no
+	// profile.
+	Policy func() policy.Policy
 }
 
 // Default builds a Service with production paths.
@@ -64,6 +68,7 @@ func Default() (*Service, error) {
 		// Not ROLLE_CACHE_DIR: the desktop app and a credential_process call
 		// can see different values, and both must use one lock file.
 		LockDir: filepath.Join(paths.CacheDir(), "locks"),
+		Policy:  policy.Load,
 	}
 	// A shell can point GOOGLE_APPLICATION_CREDENTIALS at a file in this
 	// folder. rolle must not read that file as the user's credentials.
@@ -90,6 +95,14 @@ func (s *Service) Load() (*core.Workspace, error) {
 	w, err := workspace.Load(s.WorkspacePath)
 	if err != nil {
 		return nil, err
+	}
+	// This is the one place where Load writes: when the profile sets a value
+	// that the workspace does not have yet. A failed write leaves the values
+	// in effect for this process, and the next Load tries again.
+	if applyPolicy(w, s.policy()) {
+		if err := s.Save(w); err != nil {
+			debug.Logf("policy", "save the managed settings: %v", err)
+		}
 	}
 	fillAccountNames(w)
 	return w, nil
@@ -1371,7 +1384,7 @@ func (s *Service) UpdateSettings(in core.Settings) (core.Settings, error) {
 	if err != nil {
 		return core.Settings{}, err
 	}
-	n := in.Normalize()
+	n := lockSettings(in.Normalize(), s.policy())
 	if err := netcfg.Apply(n); err != nil {
 		return core.Settings{}, err
 	}

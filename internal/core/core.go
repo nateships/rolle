@@ -4,6 +4,7 @@
 package core
 
 import (
+	"encoding/json"
 	"errors"
 	"slices"
 	"strings"
@@ -314,6 +315,10 @@ type Workspace struct {
 	Onboarded bool `json:"onboarded"`
 	// Settings holds user preferences. Nil means defaults.
 	Settings *Settings `json:"settings,omitempty"`
+	// Managed records what the organization's configuration profile last
+	// applied. A user's change to a managed default then survives until the
+	// profile sets another value.
+	Managed *Managed `json:"managed,omitempty"`
 	// UpdateSeen maps an update feed, "stable" or "beta", to the highest
 	// manifest version that the desktop updater verified on it. The updater
 	// refuses a later manifest with a lower version.
@@ -322,6 +327,13 @@ type Workspace struct {
 	// keys tools read instead of it. The desktop app fills it when it hands
 	// the workspace to the window; Save leaves it out.
 	ShadowedProfiles map[string]string `json:"shadowedProfiles,omitempty"`
+}
+
+// Managed is the record of what a configuration profile applied.
+type Managed struct {
+	// Settings maps the JSON name of a Settings field to the value that
+	// rolle applied, as JSON.
+	Settings map[string]json.RawMessage `json:"settings,omitempty"`
 }
 
 // Aliases are the display names for Identity Center accounts, by account
