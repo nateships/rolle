@@ -6,3 +6,4 @@
 *.woff2 binary
 *.ttf binary
 *.otf binary
+internal/policy/testdata/user.plist binary

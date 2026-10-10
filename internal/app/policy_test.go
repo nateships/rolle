@@ -125,3 +125,20 @@ func TestNoPolicyWritesNothing(t *testing.T) {
 		t.Fatalf("workspace written without a policy: %v", err)
 	}
 }
+
+// A locked value comes back at Load even when the workspace file holds
+// another value and records that the profile value applied already.
+func TestPolicyLockedValueRestoredAtLoad(t *testing.T) {
+	s := testService(t)
+	w := &core.Workspace{
+		Settings: &core.Settings{UpdateChannel: "beta"},
+		Managed:  &core.Managed{Settings: map[string]json.RawMessage{"updateChannel": json.RawMessage(`""`)}},
+	}
+	if err := s.Save(w); err != nil {
+		t.Fatal(err)
+	}
+	withPolicy(s, managed(map[string]string{"updateChannel": `""`}, "updateChannel"))
+	if st, _ := s.Settings(); st.UpdateChannel != "" {
+		t.Fatalf("update channel = %q, want the locked value", st.UpdateChannel)
+	}
+}
