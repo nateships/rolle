@@ -109,6 +109,10 @@ func setupUpdater(a *application.App, svc *app.Service) error {
 // backgroundCheck asks the feed for a newer release and tells the frontend
 // when there is one. It never opens the updater window on its own.
 func backgroundCheck(a *application.App, svc *app.Service) {
+	// A configuration profile can arrive after launch. Read it on every tick.
+	if updatesManaged() {
+		return
+	}
 	if st, err := svc.Settings(); err != nil || st.AutoUpdateOff {
 		return
 	}

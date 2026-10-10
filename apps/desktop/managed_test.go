@@ -16,6 +16,9 @@ func withManaged(t *testing.T, on bool) {
 	t.Cleanup(func() { updatesManaged, version.Version = prevManaged, prevVersion })
 	updatesManaged = func() bool { return on }
 	version.Version = "1.2.3"
+	// On Linux an install without APPIMAGE is a package manager's, and that
+	// check runs first. An AppImage path lets the managed check run.
+	t.Setenv("APPIMAGE", "/tmp/rolle.AppImage")
 }
 
 func TestCheckForUpdatesReportsManaged(t *testing.T) {
@@ -47,6 +50,12 @@ func TestSetupUpdaterSkipsManaged(t *testing.T) {
 	if err := setupUpdater(nil, nil); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func TestBackgroundCheckSkipsManaged(t *testing.T) {
+	withManaged(t, true)
+	// No app or service is attached: reaching either would panic.
+	backgroundCheck(nil, nil)
 }
 
 func TestUpdatesManagedBinding(t *testing.T) {

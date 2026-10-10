@@ -594,6 +594,9 @@ export const mockApi = {
   },
   CheckForUpdates: async () => {
     await wait(800);
+    if (await mockApi.UpdatesManaged()) {
+      return { enabled: false, currentVersion: "0.0.1-dev", available: false, state: "managed" };
+    }
     const avail = new URLSearchParams(location.search).get("update") === "1";
     return {
       enabled: true,
