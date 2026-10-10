@@ -13,7 +13,7 @@ import (
 
 // elevatedSwap replaces the bundle through the administrator prompt.
 func elevatedSwap(staged, target string) error {
-	return adminShell(darwinSwapCommand(staged, target))
+	return adminShell("rolle needs to replace the app to install the update.", darwinSwapCommand(staged, target))
 }
 
 // contentsSwap replaces the Contents folder of the bundle at target with

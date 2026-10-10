@@ -109,23 +109,25 @@ func TestDarwinSwapCommandRuns(t *testing.T) {
 // of a bundle in a folder that refuses writes, like /Applications for a
 // standard account. The test uses a stub instead of codesign, which needs a
 // signed bundle. The stub fails when the CODESIGN_FAIL variable is not
-// empty, or when an argument is equal to the CODESIGN_FAIL_PATH variable. A
-// second stub instead of osascript declines the administrator prompt, so
-// the test never shows a real prompt.
+// empty, or when an argument is equal to the CODESIGN_FAIL_PATH variable.
+// adminShell declines the administrator prompt, so the test never shows a
+// real prompt.
 func TestContentsSwapNeedsNoWriteAccessToTheFolder(t *testing.T) {
 	if os.Getuid() == 0 {
 		t.Skip("root writes anywhere")
 	}
 	stubs := t.TempDir()
 	for name, body := range map[string]string{
-		"codesign":  "#!/bin/sh\nfor a; do [ \"$a\" = \"$CODESIGN_FAIL_PATH\" ] && exit 1; done\n[ -z \"$CODESIGN_FAIL\" ]\n",
-		"osascript": "#!/bin/sh\necho 'execution error: User canceled. (-128)' >&2\nexit 1\n",
+		"codesign": "#!/bin/sh\nfor a; do [ \"$a\" = \"$CODESIGN_FAIL_PATH\" ] && exit 1; done\n[ -z \"$CODESIGN_FAIL\" ]\n",
 	} {
 		if err := os.WriteFile(filepath.Join(stubs, name), []byte(body), 0o755); err != nil {
 			t.Fatal(err)
 		}
 	}
 	t.Setenv("PATH", stubs+":/usr/bin:/bin")
+	prevAdmin := adminShell
+	t.Cleanup(func() { adminShell = prevAdmin })
+	adminShell = func(string, string) error { return installError(nil, nil, true) }
 	bundle := func(dir, version string) string {
 		app := filepath.Join(dir, "rolle.app")
 		if err := os.MkdirAll(filepath.Join(app, "Contents"), 0o755); err != nil {
@@ -221,7 +223,7 @@ func TestContentsSwapNeedsNoWriteAccessToTheFolder(t *testing.T) {
 
 	// A Contents folder without the owner write bit cannot move to another
 	// folder. The swap then falls back to the administrator prompt, which
-	// the osascript stub declines.
+	// adminShell declines.
 	contents := filepath.Join(target, "Contents")
 	if err := os.Chmod(contents, 0o555); err != nil {
 		t.Fatal(err)

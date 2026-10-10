@@ -57,6 +57,39 @@ func updateTarget(goos, exe, appImage string) (target string, swap swapKind) {
 	return exe, swapHelper
 }
 
+// adminShell runs one shell command as root after the macOS administrator
+// prompt, which shows prompt. Tests replace it, so they never show a real
+// prompt.
+var adminShell = runAsAdmin
+
+// adminStatusMark starts the last line of output from adminScript.
+const adminStatusMark = "rolle-admin-status:"
+
+// adminScript wraps script so that its last line of output gives its exit
+// code and the pid of the shell. AuthorizationExecuteWithPrivileges does not
+// report the exit code, and the caller must reap the shell. The subshell
+// keeps an exit in script from skipping the status line. The empty echo
+// starts the status line on a new line when the output of script does not
+// end with a newline.
+func adminScript(script string) string {
+	return fmt.Sprintf("(\n%s\n) 2>&1\ns=$?\necho\necho \"%s$s $$\"", script, adminStatusMark)
+}
+
+// adminResult splits the output of adminScript into the output of the script,
+// its exit code, and the pid of the shell. ok is false when the status line
+// is missing, for example because the shell did not start.
+func adminResult(out []byte) (output []byte, code, pid int, ok bool) {
+	text := strings.TrimRight(string(out), "\n")
+	i := strings.LastIndex(text, adminStatusMark)
+	if i < 0 || (i > 0 && text[i-1] != '\n') {
+		return out, 0, 0, false
+	}
+	if _, err := fmt.Sscanf(text[i+len(adminStatusMark):], "%d %d", &code, &pid); err != nil {
+		return out, 0, 0, false
+	}
+	return []byte(text[:i]), code, pid, true
+}
+
 // installError shapes a failed privileged command into the error the
 // frontend shows. A cancelled prompt becomes the bare "cancelled", which the
 // frontend hides.
