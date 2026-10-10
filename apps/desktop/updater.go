@@ -32,6 +32,7 @@ import (
 	"github.com/nateships/rolle/internal/app"
 	"github.com/nateships/rolle/internal/core"
 	"github.com/nateships/rolle/internal/debug"
+	"github.com/nateships/rolle/internal/policy"
 	"github.com/nateships/rolle/internal/version"
 )
 
@@ -198,7 +199,7 @@ const stateManaged = "managed"
 
 // updatesManaged reports whether a configuration profile turned updates off.
 // Tests replace it.
-var updatesManaged = managedByProfile
+var updatesManaged = func() bool { return policy.Load().DisableUpdates }
 
 // UpdatesManaged reports whether the organization manages updates. The
 // settings screen then locks the Automatic updates switch.

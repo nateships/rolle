@@ -53,6 +53,9 @@ const SIDEBAR_SECTIONS: [string, string][] = [
 
 const DURATIONS = [60, 120, 240, 480, 720];
 
+// The hint of a control whose setting a configuration profile locks.
+const MANAGED_HINT = "Your organization manages this setting.";
+
 /** `tab` picks the tab that shows first. The URL's `?tab=` does the same in a browser. */
 export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: string; onClose: () => void }) {
   const [settings, setSettings] = useState<Settings | null>(null);
@@ -72,6 +75,10 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
   const [installing, setInstalling] = useState(false);
   // True when a configuration profile turns updates off.
   const [managed, setManaged] = useState(false);
+  // The settings that a configuration profile locks, by JSON name.
+  const [locked, setLocked] = useState<string[]>([]);
+  const isLocked = (key: string) => locked.includes(key);
+  const hintFor = (key: string, hint: string) => (isLocked(key) ? MANAGED_HINT : hint);
 
   const checkUpdates = async () => {
     setChecking(true);
@@ -121,6 +128,10 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
       .UpdatesManaged()
       .then(setManaged)
       .catch(() => setManaged(false));
+    api
+      .LockedSettings()
+      .then((l) => setLocked(l ?? []))
+      .catch(() => setLocked([]));
   }, [open]);
 
   const update = async (patch: Partial<Settings>) => {
@@ -186,8 +197,12 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
             </TabsList>
 
             <TabsContent value="general" className="mt-4 min-h-[27rem] space-y-4">
-              <Row label="Terminal app" hint="Used by Open terminal on a session.">
-                <Select value={settings.terminal || "auto"} onValueChange={(v) => update({ terminal: v })}>
+              <Row label="Terminal app" hint={hintFor("terminal", "Used by Open terminal on a session.")}>
+                <Select
+                  value={settings.terminal || "auto"}
+                  onValueChange={(v) => update({ terminal: v })}
+                  disabled={isLocked("terminal")}
+                >
                   <SelectTrigger className="w-64" aria-label="Terminal app">
                     <SelectValue />
                   </SelectTrigger>
@@ -200,10 +215,14 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
                   </SelectContent>
                 </Select>
               </Row>
-              <Row label="Keep running in the tray" hint="Closing the window hides it instead of quitting.">
+              <Row
+                label="Keep running in the tray"
+                hint={hintFor("hideOnClose", "Closing the window hides it instead of quitting.")}
+              >
                 <Switch
                   aria-label="Keep running in the tray"
                   checked={settings.hideOnClose}
+                  disabled={isLocked("hideOnClose")}
                   onCheckedChange={(v) => update({ hideOnClose: v })}
                 />
               </Row>
@@ -216,19 +235,27 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
               </Row>
               <Row
                 label="Expiry notifications"
-                hint={`Warns before a session or sign-in expires.${IS_MAC ? " Needs macOS permission (System Settings → Notifications)." : ""}`}
+                hint={hintFor(
+                  "notifyOff",
+                  `Warns before a session or sign-in expires.${IS_MAC ? " Needs macOS permission (System Settings → Notifications)." : ""}`,
+                )}
               >
                 <Switch
                   aria-label="Expiry notifications"
                   checked={!settings.notifyOff}
+                  disabled={isLocked("notifyOff")}
                   onCheckedChange={(v) => update({ notifyOff: !v })}
                 />
               </Row>
               {!settings.notifyOff && (
-                <Row label="Warn before a session expires" hint="The tray flags the session for the same time.">
+                <Row
+                  label="Warn before a session expires"
+                  hint={hintFor("notifyLeadMinutes", "The tray flags the session for the same time.")}
+                >
                   <Select
                     value={String(settings.notifyLeadMinutes || 2)}
                     onValueChange={(v) => update({ notifyLeadMinutes: Number(v) })}
+                    disabled={isLocked("notifyLeadMinutes")}
                   >
                     <SelectTrigger className="w-64" aria-label="Warn before a session expires">
                       <SelectValue />
@@ -248,13 +275,13 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
                 hint={
                   managed
                     ? "Your organization manages updates."
-                    : "Check for new releases every few hours. Takes effect on next launch."
+                    : hintFor("autoUpdateOff", "Check for new releases every few hours. Takes effect on next launch.")
                 }
               >
                 <Switch
                   aria-label="Automatic updates"
                   checked={!managed && !settings.autoUpdateOff}
-                  disabled={managed}
+                  disabled={managed || isLocked("autoUpdateOff")}
                   onCheckedChange={(v) => update({ autoUpdateOff: !v })}
                 />
               </Row>
@@ -264,20 +291,25 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
             </TabsContent>
 
             <TabsContent value="aws" className="mt-4 min-h-[27rem] space-y-4">
-              <Row label="Default region" hint="Pre-filled for new sessions.">
+              <Row label="Default region" hint={hintFor("defaultRegion", "Pre-filled for new sessions.")}>
                 <RegionSelect
                   value={settings.defaultRegion}
                   onChange={(v) => update({ defaultRegion: v })}
+                  disabled={isLocked("defaultRegion")}
                   className="w-64 justify-between font-normal"
                 />
               </Row>
               <Row
                 label="Assume role duration"
-                hint="For chained assume-role sessions. Identity Center roles use their permission set's session duration."
+                hint={hintFor(
+                  "assumeRoleMinutes",
+                  "For chained assume-role sessions. Identity Center roles use their permission set's session duration.",
+                )}
               >
                 <Select
                   value={String(settings.assumeRoleMinutes)}
                   onValueChange={(v) => update({ assumeRoleMinutes: Number(v) })}
+                  disabled={isLocked("assumeRoleMinutes")}
                 >
                   <SelectTrigger className="w-64" aria-label="Assume role duration">
                     <SelectValue />
@@ -360,11 +392,13 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
                 />
               </Row>
               <p className="pt-2 text-xs font-medium text-muted-foreground">Sidebar sections</p>
+              {isLocked("hiddenSections") && <p className="text-[11px] text-muted-foreground">{MANAGED_HINT}</p>}
               {SIDEBAR_SECTIONS.map(([key, label]) => (
                 <Row key={key} label={label}>
                   <Switch
                     aria-label={label}
                     checked={!(settings.hiddenSections ?? []).includes(key)}
+                    disabled={isLocked("hiddenSections")}
                     onCheckedChange={(on) => {
                       const rest = (settings.hiddenSections ?? []).filter((k) => k !== key);
                       update({ hiddenSections: on ? rest : [...rest, key] });
@@ -406,10 +440,14 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
                   </Button>
                 )}
               </div>
-              <Row label="Update channel" hint="Beta installs pre-releases as they ship. Applies at the next check.">
+              <Row
+                label="Update channel"
+                hint={hintFor("updateChannel", "Beta installs pre-releases as they ship. Applies at the next check.")}
+              >
                 <Select
                   value={settings.updateChannel || "stable"}
                   onValueChange={(v) => update({ updateChannel: v === "beta" ? "beta" : "" })}
+                  disabled={isLocked("updateChannel")}
                 >
                   <SelectTrigger className="w-40" aria-label="Update channel">
                     <SelectValue />
@@ -434,9 +472,13 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
 
             <TabsContent value="advanced" className="mt-4 min-h-[27rem] space-y-3">
               <p className="text-xs font-medium text-muted-foreground">Network</p>
-              <Row label="HTTPS proxy" hint="Empty follows HTTPS_PROXY. Example: http://proxy.corp:3128">
+              <Row
+                label="HTTPS proxy"
+                hint={hintFor("proxyUrl", "Empty follows HTTPS_PROXY. Example: http://proxy.corp:3128")}
+              >
                 <Input
                   key={`proxy-${settings.proxyUrl ?? ""}`}
+                  disabled={isLocked("proxyUrl")}
                   defaultValue={settings.proxyUrl ?? ""}
                   placeholder="http://host:port"
                   className="w-64 font-mono text-xs"
@@ -445,9 +487,13 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
                   }
                 />
               </Row>
-              <Row label="Extra CA bundle" hint="PEM file added to the OS trust store, for TLS inspection roots.">
+              <Row
+                label="Extra CA bundle"
+                hint={hintFor("caBundle", "PEM file added to the OS trust store, for TLS inspection roots.")}
+              >
                 <Input
                   key={`ca-${settings.caBundle ?? ""}`}
+                  disabled={isLocked("caBundle")}
                   defaultValue={settings.caBundle ?? ""}
                   placeholder="/path/to/corp-root.pem"
                   className="w-64 font-mono text-xs"

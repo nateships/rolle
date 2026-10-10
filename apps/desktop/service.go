@@ -381,6 +381,11 @@ func (r *RolleService) AddGCPImpersonation(in app.AddGCPImpersonationInput) (cor
 // Settings returns the effective user preferences.
 func (r *RolleService) Settings() (core.Settings, error) { return r.svc.Settings() }
 
+// LockedSettings lists the JSON names of the settings that the
+// organization's configuration profile locks. The settings screen disables
+// their controls.
+func (r *RolleService) LockedSettings() []string { return r.svc.LockedSettings() }
+
 // UpdateSettings stores preferences. The update ticker reads AutoUpdateOff on
 // every tick, so the change applies without a restart.
 func (r *RolleService) UpdateSettings(in core.Settings) (core.Settings, error) {

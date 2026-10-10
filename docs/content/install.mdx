@@ -97,6 +97,59 @@ For another MDM, use a `.mobileconfig` with a payload of type `com.getrolle.app`
 </plist>
 ```
 
+### Set up rolle for your users
+
+The same profile can set rolle's settings for your users. Put them in a `Settings` dictionary. rolle applies each value once, the next time the app or the `rolle` command starts. The user can change it afterwards. When you change a value in the profile, rolle applies the new value again. If you remove a key and add it back later, rolle applies it again.
+
+To stop users from changing a setting, list its key in `LockedSettings`. A locked setting gets the profile's value every time, the control in **Settings** is turned off and says that your organization manages the setting, and the CLI cannot change it either. A key in `LockedSettings` without a value in `Settings` locks nothing.
+
+| Key | Type | Setting |
+|---|---|---|
+| `DefaultRegion` | string | AWS region for new sessions, such as `eu-west-1` |
+| `AssumeRoleMinutes` | integer | Duration of chained assume-role sessions, 15 to 720 |
+| `ProxyURL` | string | HTTPS proxy for every request rolle makes |
+| `CABundle` | string | Path of a PEM file with extra root certificates, for TLS inspection |
+| `UpdateChannel` | string | `beta` for pre-releases; anything else is stable |
+| `AutoUpdateOff` | boolean | Turn off the automatic update check |
+| `HiddenSections` | array of strings | Sidebar sections to hide: `aws-sso`, `aws-iam`, `azure`, `gcp` |
+| `HideOnClose` | boolean | Keep the app in the tray when its window closes |
+| `NotifyOff` | boolean | Turn off expiry notifications |
+| `NotifyLeadMinutes` | integer | Minutes before expiry that the warning shows, up to 60 |
+| `Terminal` | string | Terminal for **Open terminal**: `cmux`, `ghostty`, `iterm`, `warp`, or `terminal` |
+
+rolle ignores a key that is not in the table and a value of the wrong type. It clamps a value out of range the same way the settings screen does. Appearance stays with the user. For a login item, use your MDM's managed login items.
+
+This profile turns off self-updates, sets the region and the role duration, and locks the proxy and the CA bundle:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>DisableUpdates</key>
+  <true/>
+  <key>Settings</key>
+  <dict>
+    <key>DefaultRegion</key>
+    <string>eu-west-1</string>
+    <key>AssumeRoleMinutes</key>
+    <integer>240</integer>
+    <key>ProxyURL</key>
+    <string>http://proxy.example.com:3128</string>
+    <key>CABundle</key>
+    <string>/Library/Application Support/Example/corp-root.pem</string>
+  </dict>
+  <key>LockedSettings</key>
+  <array>
+    <string>ProxyURL</string>
+    <string>CABundle</string>
+  </array>
+</dict>
+</plist>
+```
+
+rolle reads `/Library/Managed Preferences/com.getrolle.app.plist` and then the file for the current user in `/Library/Managed Preferences/<user>/`. The user's file wins for each key. rolle uses a file only when root owns it and only root can write it. These are the files that macOS writes for installed profiles.
+
 ## Verify a download
 
 Every release ships a `checksums.txt` that lists `rolle.dmg`, `rolle.pkg`, the Windows installer, the AppImage, the deb, and `manifest.json`. The `rolle-update-*` zips are for the desktop app's self-update, not for download.

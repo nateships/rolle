@@ -40,6 +40,7 @@ describe("SettingsDialog", () => {
     window.history.replaceState({}, "", "/");
     vi.spyOn(api, "Settings").mockResolvedValue({ ...base });
     vi.spyOn(api, "UpdatesManaged").mockResolvedValue(false);
+    vi.spyOn(api, "LockedSettings").mockResolvedValue([]);
     update = vi.spyOn(api, "UpdateSettings").mockImplementation(((s: Settings) => Promise.resolve({ ...s })) as never);
   });
 
@@ -229,6 +230,21 @@ describe("SettingsDialog", () => {
     await user.click(screen.getByRole("button", { name: /check for updates/i }));
     expect(await screen.findByText("Your organization manages updates.")).toBeInTheDocument();
     expect(info).toHaveBeenCalledWith("Your organization manages rolle updates");
+  });
+
+  it("locks the controls of the settings that the organization locks", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "LockedSettings").mockResolvedValue(["terminal", "hideOnClose", "proxyUrl", "hiddenSections"]);
+    await open();
+    await waitFor(() => expect(screen.getByRole("combobox", { name: "Terminal app" })).toBeDisabled());
+    expect(screen.getByRole("switch", { name: "Keep running in the tray" })).toBeDisabled();
+    expect(screen.getByRole("switch", { name: "Expiry notifications" })).toBeEnabled();
+    expect(screen.getAllByText("Your organization manages this setting.")).toHaveLength(2);
+    await tab(user, "Advanced");
+    expect(screen.getByPlaceholderText("http://host:port")).toBeDisabled();
+    expect(screen.getByPlaceholderText("/path/to/corp-root.pem")).toBeEnabled();
+    await tab(user, "Appearance");
+    expect(screen.getByRole("switch", { name: "Azure tenants" })).toBeDisabled();
   });
 
   it("locks the automatic updates switch when the organization manages updates", async () => {

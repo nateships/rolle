@@ -22,10 +22,12 @@ export function RegionSelect({
   value,
   onChange,
   className,
+  disabled,
 }: {
   value: string;
   onChange: (v: string) => void;
   className?: string;
+  disabled?: boolean;
 }) {
   const selected = useMemo(() => REGIONS.find((r) => r.id === value) ?? null, [value]);
   // The popup mounts here, next to the trigger, instead of on the body. This picker
@@ -39,6 +41,7 @@ export function RegionSelect({
       onValueChange={(r) => r && onChange(r.id)}
       itemToStringLabel={label}
       autoHighlight
+      disabled={disabled}
     >
       <Combobox.Trigger
         className={cn(buttonVariants({ variant: "outline" }), "w-full justify-between font-normal", className)}

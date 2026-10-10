@@ -228,6 +228,15 @@ export function InstallUpdate(): $CancellablePromise<void> {
 }
 
 /**
+ * LockedSettings lists the JSON names of the settings that the
+ * organization's configuration profile locks. The settings screen disables
+ * their controls.
+ */
+export function LockedSettings(): $CancellablePromise<string[] | null> {
+    return $Call.ByID(1872820980);
+}
+
+/**
  * MoveTag puts a tag at index in the sidebar order.
  */
 export function MoveTag(name: string, index: number): $CancellablePromise<void> {
