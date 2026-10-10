@@ -150,6 +150,52 @@ This profile turns off self-updates, sets the region and the role duration, and 
 </plist>
 ```
 
+### Add portals and tenants for your users
+
+The profile can also add IAM Identity Center portals and Entra ID tenants. Put them in an `Integrations` array. Users then only sign in. rolle adds each one once. Users can rename it, remove it, and add their own integrations next to it. If a user removes one, rolle adds it again only when you change its entry in the profile. If the user has the same portal or tenant already, rolle keeps theirs and adds no copy. When you change the region of a portal, rolle updates the region of the user's portal.
+
+| Key | Type | Value |
+|---|---|---|
+| `Type` | string | `aws-sso` for an Identity Center portal, `azure` for an Entra ID tenant |
+| `Alias` | string | The name in rolle. If a user has this name already, rolle adds `-2`, `-3`, and so on |
+| `StartURL` | string | `aws-sso`: the portal's https start URL |
+| `Region` | string | `aws-sso`: the Identity Center region |
+| `TenantID` | string | `azure`: the tenant ID or domain |
+
+rolle skips an entry that misses a key that its type needs, that has a value of the wrong type, or whose start URL is not https. Google Cloud is not available: rolle uses the credentials of `gcloud`.
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Integrations</key>
+  <array>
+    <dict>
+      <key>Type</key>
+      <string>aws-sso</string>
+      <key>Alias</key>
+      <string>example</string>
+      <key>StartURL</key>
+      <string>https://example.awsapps.com/start</string>
+      <key>Region</key>
+      <string>us-east-1</string>
+    </dict>
+    <dict>
+      <key>Type</key>
+      <string>azure</string>
+      <key>Alias</key>
+      <string>example-azure</string>
+      <key>TenantID</key>
+      <string>example.onmicrosoft.com</string>
+    </dict>
+  </array>
+</dict>
+</plist>
+```
+
+You can put `DisableUpdates`, `Settings`, `LockedSettings`, and `Integrations` in one profile.
+
 rolle reads `/Library/Managed Preferences/com.getrolle.app.plist` and then the file for the current user in `/Library/Managed Preferences/<user>/`. The user's file wins for each key. rolle uses a file only when root owns it and only root can write it. These are the files that macOS writes for installed profiles.
 
 ## Verify a download

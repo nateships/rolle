@@ -142,3 +142,105 @@ func TestPolicyLockedValueRestoredAtLoad(t *testing.T) {
 		t.Fatalf("update channel = %q, want the locked value", st.UpdateChannel)
 	}
 }
+
+func acmeSSO(region string) policy.Integration {
+	return policy.Integration{Type: "aws-sso", Alias: "acme", StartURL: "https://acme.awsapps.com/start", Region: region}
+}
+
+func TestPolicyIntegrationAddedOnceWithStableID(t *testing.T) {
+	s := testService(t)
+	withPolicy(s, policy.Policy{Integrations: []policy.Integration{
+		acmeSSO("us-east-1"),
+		{Type: "azure", Alias: "contoso", TenantID: "t-1"},
+	}})
+	w1, err := s.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	w2, err := s.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(w2.Integrations) != 2 || w1.Integrations[0].ID != w2.Integrations[0].ID {
+		t.Fatalf("integrations: first %+v, second %+v", w1.Integrations, w2.Integrations)
+	}
+	sso, az := w2.Integrations[0], w2.Integrations[1]
+	if sso.Alias != "acme" || sso.Cloud != core.CloudAWS || sso.AWSSSO.StartURL != "https://acme.awsapps.com/start" || sso.AWSSSO.Region != "us-east-1" {
+		t.Errorf("aws-sso = %+v %+v", sso, sso.AWSSSO)
+	}
+	if az.Alias != "contoso" || az.Cloud != core.CloudAzure || az.Azure.TenantID != "t-1" {
+		t.Errorf("azure = %+v %+v", az, az.Azure)
+	}
+}
+
+func TestPolicyIntegrationRemovedByUserStaysRemoved(t *testing.T) {
+	s := testService(t)
+	set := withPolicy(s, policy.Policy{Integrations: []policy.Integration{acmeSSO("us-east-1")}})
+	if _, err := s.Load(); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.RemoveIntegration("acme"); err != nil {
+		t.Fatal(err)
+	}
+	if w, _ := s.Load(); len(w.Integrations) != 0 {
+		t.Fatalf("removed integration came back: %+v", w.Integrations)
+	}
+	// A new value in the profile applies again.
+	set(policy.Policy{Integrations: []policy.Integration{acmeSSO("eu-west-1")}})
+	if w, _ := s.Load(); len(w.Integrations) != 1 || w.Integrations[0].AWSSSO.Region != "eu-west-1" {
+		t.Fatalf("integrations = %+v", w.Integrations)
+	}
+}
+
+func TestPolicyIntegrationNewRegionUpdatesExisting(t *testing.T) {
+	s := testService(t)
+	set := withPolicy(s, policy.Policy{Integrations: []policy.Integration{acmeSSO("us-east-1")}})
+	w, err := s.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := w.Integrations[0].ID
+	if err := s.RenameIntegration("acme", "work"); err != nil {
+		t.Fatal(err)
+	}
+	set(policy.Policy{Integrations: []policy.Integration{acmeSSO("eu-west-1")}})
+	w, _ = s.Load()
+	if len(w.Integrations) != 1 || w.Integrations[0].ID != id || w.Integrations[0].AWSSSO.Region != "eu-west-1" || w.Integrations[0].Alias != "work" {
+		t.Fatalf("integrations = %+v", w.Integrations)
+	}
+}
+
+func TestPolicyIntegrationMatchesUsersOwnAndAvoidsAliasClash(t *testing.T) {
+	s := testService(t)
+	if _, err := s.AddAWSSSO("acme", "https://ACME.awsapps.com/start/", "us-east-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AddAzure("contoso", "other-tenant"); err != nil {
+		t.Fatal(err)
+	}
+	withPolicy(s, policy.Policy{Integrations: []policy.Integration{
+		acmeSSO("us-east-1"),
+		{Type: "azure", Alias: "contoso", TenantID: "t-1"},
+	}})
+	w, err := s.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var aliases []string
+	for _, in := range w.Integrations {
+		aliases = append(aliases, in.Alias)
+	}
+	if !slices.Equal(aliases, []string{"acme", "contoso", "contoso-2"}) {
+		t.Fatalf("aliases = %v", aliases)
+	}
+}
+
+func TestFreeAliasKeepsTheBase(t *testing.T) {
+	w := &core.Workspace{Integrations: []core.Integration{{ID: "a", Alias: "team-1"}, {ID: "b", Alias: "team-1-2"}}}
+	if got := freeAlias(w, "team-1"); got != "team-1-3" {
+		t.Fatalf("freeAlias = %q", got)
+	}
+	if got := freeAlias(w, "new"); got != "new" {
+		t.Fatalf("freeAlias = %q", got)
+	}
+}

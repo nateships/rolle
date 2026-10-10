@@ -5,8 +5,10 @@ package policy
 
 import (
 	"encoding/json"
+	"net/url"
 	"os"
 	"slices"
+	"strings"
 
 	"howett.net/plist"
 
@@ -27,6 +29,45 @@ type Policy struct {
 	Settings map[string]json.RawMessage
 	// Locked lists the JSON names of settings that the user cannot change.
 	Locked []string
+	// Integrations are the identity sources that rolle adds for the user.
+	// The user can rename, remove, and sign in to them like any other.
+	Integrations []Integration
+}
+
+// Integration is an identity source in a profile.
+type Integration struct {
+	// Type is "aws-sso" for an IAM Identity Center portal or "azure" for an
+	// Entra ID tenant.
+	Type  string
+	Alias string
+	// StartURL and Region describe an aws-sso portal. StartURL is https,
+	// with a lowercase host and no trailing slash.
+	StartURL string
+	Region   string
+	// TenantID is the lowercase tenant of an azure integration.
+	TenantID string
+}
+
+// Key identifies the source: two integrations with one key are the same
+// portal or tenant.
+func (in Integration) Key() string {
+	if in.Type == "azure" {
+		return "azure:" + strings.ToLower(in.TenantID)
+	}
+	u, _ := startURL(in.StartURL)
+	return "aws-sso:" + u
+}
+
+// Key returns the key of an integration in the workspace, or "" for a
+// source that a profile cannot add.
+func Key(in core.Integration) string {
+	switch {
+	case in.AWSSSO != nil:
+		return Integration{Type: "aws-sso", StartURL: in.AWSSSO.StartURL}.Key()
+	case in.Azure != nil && in.Azure.TenantID != "":
+		return Integration{Type: "azure", TenantID: in.Azure.TenantID}.Key()
+	}
+	return ""
 }
 
 // keys maps each settings key that a profile can set to the JSON name of
@@ -49,7 +90,7 @@ var keys = map[string]string{
 
 // Empty reports whether the policy sets nothing.
 func (p Policy) Empty() bool {
-	return !p.DisableUpdates && len(p.Settings) == 0 && len(p.Locked) == 0
+	return !p.DisableUpdates && len(p.Settings) == 0 && len(p.Locked) == 0 && len(p.Integrations) == 0
 }
 
 // IsLocked reports whether the user cannot change the setting. A locked key
@@ -67,6 +108,9 @@ type profile struct {
 	DisableUpdates *bool          `plist:"DisableUpdates"`
 	Settings       map[string]any `plist:"Settings"`
 	LockedSettings []string       `plist:"LockedSettings"`
+	// Integrations stay untyped here, so one bad entry does not make the
+	// whole file fail to decode.
+	Integrations []any `plist:"Integrations"`
 }
 
 // load reads the files in order. A later file wins for each key. The
@@ -111,8 +155,75 @@ func load(paths []string, trust func(os.FileInfo) bool) Policy {
 				p.Locked = append(p.Locked, name)
 			}
 		}
+		for i, v := range pr.Integrations {
+			in, ok := integration(v)
+			if !ok {
+				debug.Logf("policy", "%s: integration %d skipped", path, i)
+				continue
+			}
+			k := in.Key()
+			if j := slices.IndexFunc(p.Integrations, func(o Integration) bool { return o.Key() == k }); j >= 0 {
+				p.Integrations[j] = in
+			} else {
+				p.Integrations = append(p.Integrations, in)
+			}
+		}
 	}
 	return p
+}
+
+// integration reads one entry of the Integrations array. It refuses an
+// entry that is not a dictionary, that has a field of the wrong type, or
+// that misses a field its type needs. Google Cloud is not here: it signs in
+// through gcloud, which has nothing for a profile to set.
+func integration(v any) (Integration, bool) {
+	m, ok := v.(map[string]any)
+	if !ok {
+		return Integration{}, false
+	}
+	str := func(k string) (string, bool) {
+		x, present := m[k]
+		if !present {
+			return "", true
+		}
+		s, ok := x.(string)
+		return strings.TrimSpace(s), ok
+	}
+	typ, ok1 := str("Type")
+	alias, ok2 := str("Alias")
+	start, ok3 := str("StartURL")
+	region, ok4 := str("Region")
+	tenant, ok5 := str("TenantID")
+	if !ok1 || !ok2 || !ok3 || !ok4 || !ok5 || alias == "" {
+		return Integration{}, false
+	}
+	switch typ {
+	case "aws-sso":
+		u, ok := startURL(start)
+		if !ok || region == "" {
+			return Integration{}, false
+		}
+		return Integration{Type: typ, Alias: alias, StartURL: u, Region: strings.ToLower(region)}, true
+	case "azure":
+		if tenant == "" || strings.ContainsAny(tenant, " /") {
+			return Integration{}, false
+		}
+		return Integration{Type: typ, Alias: alias, TenantID: strings.ToLower(tenant)}, true
+	}
+	return Integration{}, false
+}
+
+// startURL checks an Identity Center start URL and puts it in one form:
+// https, a lowercase host, and no trailing slash.
+func startURL(s string) (string, bool) {
+	u, err := url.Parse(strings.TrimSpace(s))
+	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil {
+		return "", false
+	}
+	u.Host = strings.ToLower(u.Host)
+	u.Path = strings.TrimRight(u.Path, "/")
+	u.RawQuery, u.Fragment = "", ""
+	return u.String(), true
 }
 
 // setting maps a profile key and value to the core.Settings JSON name and

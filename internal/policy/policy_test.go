@@ -86,3 +86,38 @@ func TestLoadWithoutProfileIsEmpty(t *testing.T) {
 		t.Fatalf("policy = %+v", p)
 	}
 }
+
+func TestLoadReadsIntegrationsAndSkipsBadEntries(t *testing.T) {
+	p := load([]string{"testdata/integrations.plist"}, trustAll)
+	want := []Integration{
+		{Type: "aws-sso", Alias: "acme", StartURL: "https://acme.awsapps.com/start", Region: "us-east-1"},
+		{Type: "azure", Alias: "contoso", TenantID: "72f988bf-86f1-41af-91ab-2d7cd011db47"},
+	}
+	if !slices.Equal(p.Integrations, want) {
+		t.Fatalf("integrations = %+v", p.Integrations)
+	}
+	if p.Empty() {
+		t.Error("Empty() = true with integrations")
+	}
+	if p.Integrations[0].Key() != "aws-sso:https://acme.awsapps.com/start" || p.Integrations[1].Key() != "azure:72f988bf-86f1-41af-91ab-2d7cd011db47" {
+		t.Errorf("keys = %q, %q", p.Integrations[0].Key(), p.Integrations[1].Key())
+	}
+}
+
+// A later file replaces an integration with the same key.
+func TestLoadLaterIntegrationWins(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "user.plist")
+	body := `<?xml version="1.0" encoding="UTF-8"?>
+<plist version="1.0"><dict><key>Integrations</key><array><dict>
+<key>Type</key><string>aws-sso</string><key>Alias</key><string>acme-eu</string>
+<key>StartURL</key><string>https://ACME.awsapps.com/start</string><key>Region</key><string>eu-west-1</string>
+</dict></array></dict></plist>`
+	if err := os.WriteFile(path, []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	p := load([]string{"testdata/integrations.plist", path}, trustAll)
+	if len(p.Integrations) != 2 || p.Integrations[0].Alias != "acme-eu" || p.Integrations[0].Region != "eu-west-1" {
+		t.Fatalf("integrations = %+v", p.Integrations)
+	}
+}
