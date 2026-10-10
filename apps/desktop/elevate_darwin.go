@@ -7,6 +7,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+
+	"github.com/nateships/rolle/internal/debug"
 )
 
 // elevatedSwap replaces the bundle through the administrator prompt.
@@ -17,29 +19,38 @@ func elevatedSwap(staged, target string) error {
 // contentsSwap replaces the Contents folder of the bundle at target with
 // the Contents folder of staged. It needs write access to the bundle, but
 // not to the folder that holds the bundle. The bundle signature is in the
-// Contents folder, so the result is a signed bundle. The current account
-// owns the bundle, so no step runs as root, and the swap does not copy
-// staged before the signature check. First the old Contents folder moves
-// aside into the staging folder. If that move fails, for example across
-// volumes, nothing changed, and the swap uses the administrator prompt. If
-// the next move fails, the old Contents folder moves back.
+// Contents folder, so the result is a signed bundle. The moves run as the
+// current account, which can write the bundle. The signature check reads
+// staged in place and does not copy it first, unlike darwinSwapCommand,
+// which checks a root-owned copy. Thus another process of the same account
+// can change staged after the check.
+//
+// First the old Contents folder moves aside into a new folder next to the
+// staging folder. The updater deletes the staging folder when it downloads
+// again, so the old Contents folder must not be in it. The new folder is on
+// the volume of staged, so a first move that works shows that the second
+// move stays on one volume. If the first move fails, for example across
+// volumes, nothing changed, and the swap falls back to elevatedSwap, which
+// runs as root through the administrator prompt. If the second move fails,
+// the old Contents folder moves back.
 func contentsSwap(staged, target string) error {
 	if out, err := exec.Command("codesign", "--verify", "--deep", "--strict", "-R", "="+darwinRequirement, staged).CombinedOutput(); err != nil {
 		return installError(out, err, false)
 	}
-	aside, err := os.MkdirTemp(filepath.Dir(staged), ".old-*")
+	aside, err := os.MkdirTemp(filepath.Dir(filepath.Dir(staged)), ".rolle-old-*")
 	if err != nil {
 		return err
 	}
 	current := filepath.Join(target, "Contents")
 	old := filepath.Join(aside, "Contents")
 	if err := os.Rename(current, old); err != nil {
+		debug.Logf("updater", "move Contents aside: %v; using the administrator prompt", err)
 		_ = os.RemoveAll(aside)
 		return elevatedSwap(staged, target)
 	}
 	if err := os.Rename(filepath.Join(staged, "Contents"), current); err != nil {
 		if back := os.Rename(old, current); back != nil {
-			return fmt.Errorf("install failed: %w; the old app is in %s", err, old)
+			return fmt.Errorf("install failed: %w; move back failed: %v; the old Contents folder is in %s", err, back, old)
 		}
 		_ = os.RemoveAll(aside)
 		return err
@@ -49,7 +60,7 @@ func contentsSwap(staged, target string) error {
 }
 
 // darwinRequirement is the code requirement that a staged bundle must meet
-// before root installs it: a Developer ID signature from the rolle team on
+// before a swap installs it: a Developer ID signature from the rolle team on
 // the rolle bundle identifier.
 const darwinRequirement = `anchor apple generic and identifier "com.getrolle.app" and certificate leaf[subject.OU] = "AMR56F4NQB"`
 

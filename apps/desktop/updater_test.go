@@ -185,3 +185,12 @@ func TestReplaceFileSwapsInPlace(t *testing.T) {
 		t.Fatalf("target changed on a failed swap: %q", got)
 	}
 }
+
+func TestInstallStagedRefusesASecondInstall(t *testing.T) {
+	installMu.Lock()
+	defer installMu.Unlock()
+	// The nil app panics if installStaged gets past the lock.
+	if err := (&RolleService{}).installStaged("", nil); err == nil || err.Error() != "an update is already installing" {
+		t.Fatalf("second install = %v", err)
+	}
+}

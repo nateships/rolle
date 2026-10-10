@@ -783,8 +783,8 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                   aria-label={`Update to ${update.version}`}
                   disabled={installing}
                   onClick={() => {
-                    // On a standard macOS account the download runs here and an
-                    // administrator prompt follows; the button waits meanwhile.
+                    // On a standard macOS account the download runs here, and an
+                    // administrator prompt can follow; the button waits meanwhile.
                     setInstalling(true);
                     api
                       .InstallUpdate()

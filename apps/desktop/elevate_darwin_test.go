@@ -107,15 +107,22 @@ func TestDarwinSwapCommandRuns(t *testing.T) {
 
 // TestContentsSwapNeedsNoWriteAccessToTheFolder replaces the Contents folder
 // of a bundle in a folder that refuses writes, like /Applications for a
-// standard account. A stub replaces codesign, which needs a signed bundle.
-// The stub fails when the CODESIGN_FAIL variable is set.
+// standard account. The test uses a stub instead of codesign, which needs a
+// signed bundle. The stub fails when the CODESIGN_FAIL variable is not
+// empty. A second stub instead of osascript declines the administrator
+// prompt, so the test never shows a real prompt.
 func TestContentsSwapNeedsNoWriteAccessToTheFolder(t *testing.T) {
 	if os.Getuid() == 0 {
 		t.Skip("root writes anywhere")
 	}
 	stubs := t.TempDir()
-	if err := os.WriteFile(filepath.Join(stubs, "codesign"), []byte("#!/bin/sh\n[ -z \"$CODESIGN_FAIL\" ]\n"), 0o755); err != nil {
-		t.Fatal(err)
+	for name, body := range map[string]string{
+		"codesign":  "#!/bin/sh\n[ -z \"$CODESIGN_FAIL\" ]\n",
+		"osascript": "#!/bin/sh\necho 'execution error: User canceled. (-128)' >&2\nexit 1\n",
+	} {
+		if err := os.WriteFile(filepath.Join(stubs, name), []byte(body), 0o755); err != nil {
+			t.Fatal(err)
+		}
 	}
 	t.Setenv("PATH", stubs+":/usr/bin:/bin")
 	bundle := func(dir, version string) string {
@@ -155,6 +162,17 @@ func TestContentsSwapNeedsNoWriteAccessToTheFolder(t *testing.T) {
 	t.Cleanup(func() { _ = os.Chmod(apps, 0o755) })
 	staging := t.TempDir()
 	staged := bundle(staging, "new")
+	// The swap moves the old Contents folder aside into a folder next to the
+	// staging folder. All t.TempDir folders of this test have one parent.
+	root := filepath.Dir(staging)
+	noAside := func() {
+		t.Helper()
+		for _, name := range entries(root) {
+			if strings.HasPrefix(name, ".rolle-old-") {
+				t.Fatalf("old Contents folder left in %s: %s", root, name)
+			}
+		}
+	}
 
 	t.Setenv("CODESIGN_FAIL", "1")
 	if err := contentsSwap(staged, target); err == nil {
@@ -177,8 +195,25 @@ func TestContentsSwapNeedsNoWriteAccessToTheFolder(t *testing.T) {
 	if got := installed(target); got != "old" {
 		t.Fatalf("failed move lost the old bundle: %s", got)
 	}
-	if got := entries(filepath.Dir(empty)); len(got) != 1 {
-		t.Fatalf("staging folder after rollback = %v", got)
+	noAside()
+
+	// A Contents folder without the owner write bit cannot move to another
+	// folder. The swap then falls back to the administrator prompt, which
+	// the osascript stub declines.
+	contents := filepath.Join(target, "Contents")
+	if err := os.Chmod(contents, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(contents, 0o755) })
+	if err := contentsSwap(staged, target); err == nil || err.Error() != "cancelled" {
+		t.Fatalf("swap of a locked Contents folder = %v, want the declined prompt", err)
+	}
+	if got := installed(target); got != "old" {
+		t.Fatalf("fallback changed the bundle: %s", got)
+	}
+	noAside()
+	if err := os.Chmod(contents, 0o755); err != nil {
+		t.Fatal(err)
 	}
 
 	if err := contentsSwap(staged, target); err != nil {
@@ -190,7 +225,5 @@ func TestContentsSwapNeedsNoWriteAccessToTheFolder(t *testing.T) {
 	if got := entries(target); len(got) != 1 || got[0] != "Contents" {
 		t.Fatalf("bundle holds %v, want only Contents", got)
 	}
-	if got := entries(staging); len(got) != 1 || got[0] != "rolle.app" {
-		t.Fatalf("old Contents left in staging: %v", got)
-	}
+	noAside()
 }

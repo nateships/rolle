@@ -226,7 +226,8 @@ func (r *RolleService) InstallUpdate() error {
 	// to its folder. A standard macOS account has none in /Applications, a
 	// standard Windows account none in Program Files. Those installs swap
 	// through the administrator prompt instead. A macOS bundle that the
-	// account owns swaps its Contents folder and needs no prompt.
+	// account can write swaps its Contents folder and needs no prompt, unless
+	// the first move fails.
 	exe, _ := os.Executable()
 	appImage := os.Getenv("APPIMAGE")
 	target, swap := updateTarget(runtime.GOOS, exe, appImage)
@@ -247,9 +248,19 @@ func (r *RolleService) InstallUpdate() error {
 	return r.app.Updater.CheckAndInstall(context.Background())
 }
 
+// installMu stops a second install while one runs. The download of a second
+// install deletes the staging folder of the first. During a swap, that
+// folder holds the new Contents folder.
+var installMu sync.Mutex
+
 // installStaged downloads and verifies the release like the updater does,
 // then puts the staged file in place of target through swap and relaunches.
+// A second call while one runs returns an error.
 func (r *RolleService) installStaged(target string, swap func(staged, target string) error) error {
+	if !installMu.TryLock() {
+		return errors.New("an update is already installing")
+	}
+	defer installMu.Unlock()
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
 	defer cancel()
 	u := r.app.Updater
@@ -276,8 +287,8 @@ func (r *RolleService) installStaged(target string, swap func(staged, target str
 	if err := swap(staged, target); err != nil {
 		return err
 	}
-	// The swap copied the staged file, so the staging directory is now
-	// garbage. The updater's helper removes it on the normal path.
+	// The swap copied or moved the staged file, so the staging directory is
+	// now garbage. The updater's helper removes it on the normal path.
 	if dir := filepath.Dir(staged); strings.HasPrefix(filepath.Base(dir), "wails-update-") {
 		_ = os.RemoveAll(dir)
 	}

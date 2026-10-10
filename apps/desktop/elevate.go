@@ -28,20 +28,23 @@ const (
 // updateTarget is what the updater replaces: the bundle on macOS, the
 // AppImage file on Linux when the app runs from one, the executable
 // elsewhere. The second result tells how to replace it. The swap needs
-// elevation when the current account cannot replace the target. appImage is
-// the APPIMAGE variable the AppImage runtime sets; the executable itself
-// then sits on a read-only mount.
+// elevation when the current account cannot write the target. On Windows,
+// the folder of the target decides. appImage is the APPIMAGE variable the
+// AppImage runtime sets; the executable itself then sits on a read-only
+// mount.
 func updateTarget(goos, exe, appImage string) (target string, swap swapKind) {
 	switch goos {
 	case "darwin":
 		bundle := appBundle(exe)
 		switch {
-		case bundle == "" || writable(filepath.Dir(bundle)) && writable(bundle):
-			return bundle, swapHelper
-		case writable(bundle):
+		case bundle == "":
+			return "", swapHelper
+		case !writable(bundle):
+			return bundle, swapElevated
+		case !writable(filepath.Dir(bundle)):
 			return bundle, swapContents
 		}
-		return bundle, swapElevated
+		return bundle, swapHelper
 	case "windows":
 		if !writable(filepath.Dir(exe)) {
 			return exe, swapElevated
