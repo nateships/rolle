@@ -27,9 +27,11 @@ You can also use **Application & Custom Settings → Upload** with one of the pr
 
 ## Turn off self-updates
 
-A standard account cannot replace an app that root installed, so the in-app update fails for it. When you deliver new versions through your MDM, turn self-updates off with a configuration profile. Set `DisableUpdates` to `true` in the `com.getrolle.app` preference domain. The app then does not check for updates and hides the Update button. In **Settings**, the **Automatic updates** switch is locked and says that your organization manages updates. The app reads the key only from a configuration profile. A value that a user writes with `defaults write` has no effect.
+rolle updates itself unless you turn that off. When root owns `rolle.app`, as after `rolle.pkg`, an update asks for an administrator to approve it. Turn self-updates off when you deliver every version yourself, through your MDM or a patch tool, or when your users cannot approve that prompt.
 
-In Jamf Pro, use the [custom schema](#jamf-pro), or add **Application & Custom Settings → Upload** with `com.getrolle.app` as the preference domain and this property list:
+Set `DisableUpdates` to `true`. The app then does not check for updates and hides the Update button. In **Settings**, the **Automatic updates** switch is locked and says that your organization manages updates. rolle reads the key only from a configuration profile, so `defaults write` has no effect.
+
+As a property list:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
