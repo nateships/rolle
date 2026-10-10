@@ -34,6 +34,8 @@ description: Install the rolle desktop app with Homebrew, a signed DMG, a pkg fo
 
 For Jamf and other MDM tools, each release has `rolle.pkg`. The package is signed with a Developer ID Installer certificate and notarized. It installs `rolle.app` into `/Applications` and links the `rolle` command into `/usr/local/bin`. If `/usr/local/bin/rolle` is already there and is not a link into a `rolle.app`, the package does not change it.
 
+The package installs on macOS 12 or later. It does not compare versions: an older `rolle.pkg` replaces a newer app, so you can roll back.
+
 ```sh
 sudo installer -pkg rolle.pkg -target /
 ```

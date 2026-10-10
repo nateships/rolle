@@ -234,16 +234,20 @@ tasks:
   # /Applications and links the rolle command into /usr/local/bin. A pkg
   # needs a Developer ID Installer signature, so without INSTALLER_IDENTITY
   # there is no pkg. The component plist turns off relocation: otherwise
-  # Installer updates a copy of rolle.app found at another path.
+  # Installer updates a copy of rolle.app found at another path. It also
+  # turns off the version check, so an MDM can push an older release to roll
+  # back. The product requires the macOS version that the app's Info.plist
+  # requires.
   release:pkg:
     internal: true
     cmds:
       - cmd: '{{if not .INSTALLER_IDENTITY}}echo "INSTALLER_IDENTITY is not set; rolle.pkg is skipped."{{else}}true{{end}}'
       - cmd: '{{if .INSTALLER_IDENTITY}}rm -rf "{{.PKG_ROOT}}" && mkdir -p "{{.PKG_ROOT}}" && ditto "{{.BIN_DIR}}/{{.APP_NAME}}.app" "{{.PKG_ROOT}}/{{.APP_NAME}}.app"{{else}}true{{end}}'
-      - cmd: '{{if .INSTALLER_IDENTITY}}pkgbuild --analyze --root "{{.PKG_ROOT}}" "{{.BIN_DIR}}/component.plist" && plutil -replace 0.BundleIsRelocatable -bool NO "{{.BIN_DIR}}/component.plist"{{else}}true{{end}}'
+      - cmd: '{{if .INSTALLER_IDENTITY}}pkgbuild --analyze --root "{{.PKG_ROOT}}" "{{.BIN_DIR}}/component.plist" && plutil -replace 0.BundleIsRelocatable -bool NO "{{.BIN_DIR}}/component.plist" && plutil -replace 0.BundleIsVersionChecked -bool NO "{{.BIN_DIR}}/component.plist"{{else}}true{{end}}'
+      - cmd: '{{if .INSTALLER_IDENTITY}}plutil -create xml1 "{{.BIN_DIR}}/requirements.plist" && plutil -insert os -array "{{.BIN_DIR}}/requirements.plist" && plutil -insert os.0 -string "$(plutil -extract LSMinimumSystemVersion raw "{{.PKG_ROOT}}/{{.APP_NAME}}.app/Contents/Info.plist")" "{{.BIN_DIR}}/requirements.plist"{{else}}true{{end}}'
       - cmd: '{{if .INSTALLER_IDENTITY}}pkgbuild --root "{{.PKG_ROOT}}" --component-plist "{{.BIN_DIR}}/component.plist" --install-location /Applications --scripts build/darwin/pkg --identifier com.getrolle.app --version "{{.VERSION | default "0.0.1"}}" "{{.BIN_DIR}}/component.pkg"{{else}}true{{end}}'
-      - cmd: '{{if .INSTALLER_IDENTITY}}productbuild --package "{{.BIN_DIR}}/component.pkg" --sign "{{.INSTALLER_IDENTITY}}" --timestamp "{{.BIN_DIR}}/{{.APP_NAME}}.pkg"{{else}}true{{end}}'
-      - cmd: '{{if .INSTALLER_IDENTITY}}rm -rf "{{.PKG_ROOT}}" "{{.BIN_DIR}}/component.plist" "{{.BIN_DIR}}/component.pkg"{{else}}true{{end}}'
+      - cmd: '{{if .INSTALLER_IDENTITY}}productbuild --product "{{.BIN_DIR}}/requirements.plist" --package "{{.BIN_DIR}}/component.pkg" --sign "{{.INSTALLER_IDENTITY}}" --timestamp "{{.BIN_DIR}}/{{.APP_NAME}}.pkg"{{else}}true{{end}}'
+      - cmd: '{{if .INSTALLER_IDENTITY}}rm -rf "{{.PKG_ROOT}}" "{{.BIN_DIR}}/component.plist" "{{.BIN_DIR}}/requirements.plist" "{{.BIN_DIR}}/component.pkg"{{else}}true{{end}}'
       - cmd: '{{if and .INSTALLER_IDENTITY .NOTARY_PROFILE}}xcrun notarytool submit "{{.BIN_DIR}}/{{.APP_NAME}}.pkg" --keychain-profile "{{.NOTARY_PROFILE}}" --wait && xcrun stapler staple "{{.BIN_DIR}}/{{.APP_NAME}}.pkg"{{else}}true{{end}}'
       - cmd: '{{if .INSTALLER_IDENTITY}}pkgutil --check-signature "{{.BIN_DIR}}/{{.APP_NAME}}.pkg"{{else}}true{{end}}'
     vars:
