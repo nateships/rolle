@@ -20,10 +20,12 @@ func elevatedSwap(staged, target string) error {
 // the Contents folder of staged. It needs write access to the bundle, but
 // not to the folder that holds the bundle. The bundle signature is in the
 // Contents folder, so the result is a signed bundle. The moves run as the
-// current account, which can write the bundle. The signature check reads
-// staged in place and does not copy it first, unlike darwinSwapCommand,
-// which checks a root-owned copy. Thus another process of the same account
-// can change staged after the check.
+// current account, which can write the bundle. The first signature check
+// reads staged in place, so another process of the same account can change
+// staged after the check. Thus the swap checks the signature again after
+// the move. On macOS 13 and later, App Management stops other apps from
+// changing the installed bundle, so that second check holds. If it fails,
+// the old Contents folder moves back.
 //
 // First the old Contents folder moves aside into a new folder next to the
 // staging folder. The updater deletes the staging folder when it downloads
@@ -34,7 +36,7 @@ func elevatedSwap(staged, target string) error {
 // runs as root through the administrator prompt. If the second move fails,
 // the old Contents folder moves back.
 func contentsSwap(staged, target string) error {
-	if out, err := exec.Command("codesign", "--verify", "--deep", "--strict", "-R", "="+darwinRequirement, staged).CombinedOutput(); err != nil {
+	if out, err := verifyBundle(staged); err != nil {
 		return installError(out, err, false)
 	}
 	aside, err := os.MkdirTemp(filepath.Dir(filepath.Dir(staged)), ".rolle-old-*")
@@ -55,8 +57,30 @@ func contentsSwap(staged, target string) error {
 		_ = os.RemoveAll(aside)
 		return err
 	}
+	if out, err := verifyBundle(target); err != nil {
+		if back := moveBack(current, old, filepath.Join(aside, "rejected")); back != nil {
+			return fmt.Errorf("install failed: the installed app fails the signature check; move back failed: %v; the old Contents folder is in %s", back, old)
+		}
+		_ = os.RemoveAll(aside)
+		return installError(out, err, false)
+	}
 	_ = os.RemoveAll(aside)
 	return nil
+}
+
+// verifyBundle checks that the bundle at path has a valid signature that
+// meets darwinRequirement.
+func verifyBundle(path string) ([]byte, error) {
+	return exec.Command("codesign", "--verify", "--deep", "--strict", "-R", "="+darwinRequirement, path).CombinedOutput()
+}
+
+// moveBack moves the Contents folder at current to rejected, then moves
+// the Contents folder at old to current.
+func moveBack(current, old, rejected string) error {
+	if err := os.Rename(current, rejected); err != nil {
+		return err
+	}
+	return os.Rename(old, current)
 }
 
 // darwinRequirement is the code requirement that a staged bundle must meet

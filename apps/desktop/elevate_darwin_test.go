@@ -109,15 +109,16 @@ func TestDarwinSwapCommandRuns(t *testing.T) {
 // of a bundle in a folder that refuses writes, like /Applications for a
 // standard account. The test uses a stub instead of codesign, which needs a
 // signed bundle. The stub fails when the CODESIGN_FAIL variable is not
-// empty. A second stub instead of osascript declines the administrator
-// prompt, so the test never shows a real prompt.
+// empty, or when an argument is equal to the CODESIGN_FAIL_PATH variable. A
+// second stub instead of osascript declines the administrator prompt, so
+// the test never shows a real prompt.
 func TestContentsSwapNeedsNoWriteAccessToTheFolder(t *testing.T) {
 	if os.Getuid() == 0 {
 		t.Skip("root writes anywhere")
 	}
 	stubs := t.TempDir()
 	for name, body := range map[string]string{
-		"codesign":  "#!/bin/sh\n[ -z \"$CODESIGN_FAIL\" ]\n",
+		"codesign":  "#!/bin/sh\nfor a; do [ \"$a\" = \"$CODESIGN_FAIL_PATH\" ] && exit 1; done\n[ -z \"$CODESIGN_FAIL\" ]\n",
 		"osascript": "#!/bin/sh\necho 'execution error: User canceled. (-128)' >&2\nexit 1\n",
 	} {
 		if err := os.WriteFile(filepath.Join(stubs, name), []byte(body), 0o755); err != nil {
@@ -182,6 +183,27 @@ func TestContentsSwapNeedsNoWriteAccessToTheFolder(t *testing.T) {
 		t.Fatalf("failed check replaced the bundle: %s", got)
 	}
 	t.Setenv("CODESIGN_FAIL", "")
+
+	// A staged bundle that passes the first check but fails the check in
+	// place, for example because another process changed it between the
+	// two checks. The swap must move the old Contents folder back.
+	t.Setenv("CODESIGN_FAIL_PATH", target)
+	if err := contentsSwap(staged, target); err == nil {
+		t.Fatal("swap passed a failed check of the installed bundle")
+	}
+	if got := installed(target); got != "old" {
+		t.Fatalf("failed check in place kept the new bundle: %s", got)
+	}
+	if got := entries(target); len(got) != 1 || got[0] != "Contents" {
+		t.Fatalf("bundle holds %v, want only Contents", got)
+	}
+	noAside()
+	t.Setenv("CODESIGN_FAIL_PATH", "")
+	// The failed check used the staged Contents folder. Stage a new one.
+	if err := os.RemoveAll(staged); err != nil {
+		t.Fatal(err)
+	}
+	staged = bundle(staging, "new")
 
 	// A staged bundle without Contents fails after the old Contents moved
 	// aside. The swap must move it back.
