@@ -185,10 +185,11 @@ tasks:
     cmds:
       - wails3 tool sign --input "{{.BIN_DIR}}/{{.APP_NAME}}.app" --notarize {{.CLI_ARGS}}
 
-  # rolle release packaging. SIGN_IDENTITY and NOTARY_PROFILE come from the
-  # environment; without them the app and the DMG ship unsigned.
+  # rolle release packaging. SIGN_IDENTITY, INSTALLER_IDENTITY, and
+  # NOTARY_PROFILE come from the environment; without them the app and the
+  # DMG ship unsigned and the pkg is skipped.
   release:
-    summary: Signed universal app as a zip and a DMG in bin/
+    summary: Signed universal app as a zip, a DMG, and a pkg in bin/
     platforms: [darwin]
     cmds:
       - task: package:universal
@@ -197,6 +198,7 @@ tasks:
       - ditto -c -k --keepParent "{{.BIN_DIR}}/{{.APP_NAME}}.app" "{{.BIN_DIR}}/{{.APP_NAME}}-update-macos-universal.zip"
       - task: create:dmg
       - task: release:sign:dmg
+      - task: release:pkg
       # The bundle carries its own copy. A leftover universal binary here
       # blocks the next go build, which cannot overwrite a fat Mach-O.
       - rm -f "{{.BIN_DIR}}/{{.APP_NAME}}"
@@ -227,3 +229,22 @@ tasks:
     cmds:
       - cmd: '{{if .SIGN_IDENTITY}}codesign --sign "{{.SIGN_IDENTITY}}" --timestamp "{{.BIN_DIR}}/{{.APP_NAME}}.dmg"{{else}}true{{end}}'
       - cmd: '{{if .NOTARY_PROFILE}}xcrun notarytool submit "{{.BIN_DIR}}/{{.APP_NAME}}.dmg" --keychain-profile "{{.NOTARY_PROFILE}}" --wait && xcrun stapler staple "{{.BIN_DIR}}/{{.APP_NAME}}.dmg"{{else}}true{{end}}'
+
+  # rolle.pkg is for MDM tools such as Jamf. It installs rolle.app into
+  # /Applications and links the rolle command into /usr/local/bin. A pkg
+  # needs a Developer ID Installer signature, so without INSTALLER_IDENTITY
+  # there is no pkg. The component plist turns off relocation: otherwise
+  # Installer updates a copy of rolle.app found at another path.
+  release:pkg:
+    internal: true
+    cmds:
+      - cmd: '{{if not .INSTALLER_IDENTITY}}echo "INSTALLER_IDENTITY is not set; rolle.pkg is skipped."{{else}}true{{end}}'
+      - cmd: '{{if .INSTALLER_IDENTITY}}rm -rf "{{.PKG_ROOT}}" && mkdir -p "{{.PKG_ROOT}}" && ditto "{{.BIN_DIR}}/{{.APP_NAME}}.app" "{{.PKG_ROOT}}/{{.APP_NAME}}.app"{{else}}true{{end}}'
+      - cmd: '{{if .INSTALLER_IDENTITY}}pkgbuild --analyze --root "{{.PKG_ROOT}}" "{{.BIN_DIR}}/component.plist" && plutil -replace 0.BundleIsRelocatable -bool NO "{{.BIN_DIR}}/component.plist"{{else}}true{{end}}'
+      - cmd: '{{if .INSTALLER_IDENTITY}}pkgbuild --root "{{.PKG_ROOT}}" --component-plist "{{.BIN_DIR}}/component.plist" --install-location /Applications --scripts build/darwin/pkg --identifier com.getrolle.app --version "{{.VERSION | default "0.0.1"}}" "{{.BIN_DIR}}/component.pkg"{{else}}true{{end}}'
+      - cmd: '{{if .INSTALLER_IDENTITY}}productbuild --package "{{.BIN_DIR}}/component.pkg" --sign "{{.INSTALLER_IDENTITY}}" --timestamp "{{.BIN_DIR}}/{{.APP_NAME}}.pkg"{{else}}true{{end}}'
+      - cmd: '{{if .INSTALLER_IDENTITY}}rm -rf "{{.PKG_ROOT}}" "{{.BIN_DIR}}/component.plist" "{{.BIN_DIR}}/component.pkg"{{else}}true{{end}}'
+      - cmd: '{{if and .INSTALLER_IDENTITY .NOTARY_PROFILE}}xcrun notarytool submit "{{.BIN_DIR}}/{{.APP_NAME}}.pkg" --keychain-profile "{{.NOTARY_PROFILE}}" --wait && xcrun stapler staple "{{.BIN_DIR}}/{{.APP_NAME}}.pkg"{{else}}true{{end}}'
+      - cmd: '{{if .INSTALLER_IDENTITY}}pkgutil --check-signature "{{.BIN_DIR}}/{{.APP_NAME}}.pkg"{{else}}true{{end}}'
+    vars:
+      PKG_ROOT: '{{.BIN_DIR}}/pkgroot'

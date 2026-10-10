@@ -80,6 +80,10 @@ func setupUpdater(a *application.App, svc *app.Service) error {
 		debug.Logf("updater", "installed by a package manager, updater disabled")
 		return nil
 	}
+	if updatesManaged() {
+		debug.Logf("updater", "DisableUpdates set by a configuration profile, updater disabled")
+		return nil
+	}
 	key, err := parsePublicKey(updaterPublicKey)
 	if err != nil {
 		return err
@@ -189,6 +193,19 @@ const statePackageManager = "package-manager"
 // manager's to replace.
 func packageManaged(goos, appImage string) bool { return goos == "linux" && appImage == "" }
 
+// stateManaged is the UpdateInfo state of an install whose organization
+// turned updates off. The organization then delivers new versions, with
+// Jamf for example.
+const stateManaged = "managed"
+
+// updatesManaged reports whether a configuration profile turned updates off.
+// Tests replace it.
+var updatesManaged = managedByProfile
+
+// UpdatesManaged reports whether the organization manages updates. The
+// settings screen then locks the Automatic updates switch.
+func (r *RolleService) UpdatesManaged() bool { return updatesManaged() }
+
 // CheckForUpdates asks the release feed for a newer version.
 func (r *RolleService) CheckForUpdates() (UpdateInfo, error) {
 	info := UpdateInfo{Enabled: !isDevBuild(), CurrentVersion: version.Version}
@@ -198,6 +215,10 @@ func (r *RolleService) CheckForUpdates() (UpdateInfo, error) {
 	}
 	if packageManaged(runtime.GOOS, os.Getenv("APPIMAGE")) {
 		info.Enabled, info.State = false, statePackageManager
+		return info, nil
+	}
+	if updatesManaged() {
+		info.Enabled, info.State = false, stateManaged
 		return info, nil
 	}
 	c, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -221,6 +242,9 @@ func (r *RolleService) InstallUpdate() error {
 	}
 	if packageManaged(runtime.GOOS, os.Getenv("APPIMAGE")) {
 		return errors.New("update rolle with your package manager")
+	}
+	if updatesManaged() {
+		return errors.New("your organization manages rolle updates")
 	}
 	// The updater's helper replaces the app in place, which needs write access
 	// to its folder. A standard macOS account has none in /Applications, a

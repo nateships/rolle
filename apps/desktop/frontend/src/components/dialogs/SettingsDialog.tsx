@@ -70,6 +70,8 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
   const [checkFailed, setCheckFailed] = useState(false);
   const [checking, setChecking] = useState(false);
   const [installing, setInstalling] = useState(false);
+  // True when a configuration profile turns updates off.
+  const [managed, setManaged] = useState(false);
 
   const checkUpdates = async () => {
     setChecking(true);
@@ -78,6 +80,7 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
       setUpdateInfo(update);
       setCheckFailed(false);
       if (update.state === "package-manager") toast.info("Update rolle with your package manager");
+      else if (update.state === "managed") toast.info("Your organization manages rolle updates");
       else if (!update.enabled) toast.info("Updates are disabled in development builds");
       else if (update.available) toast.success(`rolle ${update.version} is available`);
       else toast.success("You're on the latest version");
@@ -114,6 +117,10 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
       .Info()
       .then(setInfo)
       .catch(() => setInfo(null));
+    api
+      .UpdatesManaged()
+      .then(setManaged)
+      .catch(() => setManaged(false));
   }, [open]);
 
   const update = async (patch: Partial<Settings>) => {
@@ -238,11 +245,16 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
               )}
               <Row
                 label="Automatic updates"
-                hint="Check for new releases every few hours. Takes effect on next launch."
+                hint={
+                  managed
+                    ? "Your organization manages updates."
+                    : "Check for new releases every few hours. Takes effect on next launch."
+                }
               >
                 <Switch
                   aria-label="Automatic updates"
-                  checked={!settings.autoUpdateOff}
+                  checked={!managed && !settings.autoUpdateOff}
+                  disabled={managed}
                   onCheckedChange={(v) => update({ autoUpdateOff: !v })}
                 />
               </Row>
@@ -373,11 +385,13 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
                         ? "Updates are signed and verified before they install."
                         : updateInfo.state === "package-manager"
                           ? "Installed by a package manager. Update with your package manager."
-                          : !updateInfo.enabled
-                            ? "Development build, updates disabled."
-                            : updateInfo.available
-                              ? `Version ${updateInfo.version} is ready to install.`
-                              : "You're on the latest version."}
+                          : updateInfo.state === "managed"
+                            ? "Your organization manages updates."
+                            : !updateInfo.enabled
+                              ? "Development build, updates disabled."
+                              : updateInfo.available
+                                ? `Version ${updateInfo.version} is ready to install.`
+                                : "You're on the latest version."}
                   </p>
                 </div>
                 {updateInfo?.available ? (

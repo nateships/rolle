@@ -1,0 +1,22 @@
+#!/bin/sh
+# Installer runs this script as root after it puts rolle.app in place.
+# $2 is the install location, $3 is the target volume.
+#
+# The script links the rolle command into /usr/local/bin, as Install command
+# in the app does. If a rolle command is there and it is not a link into a
+# rolle.app, the script does not change it. Homebrew or a package can own it.
+set -eu
+
+[ "$3" = "/" ] || exit 0
+helper="${2%/}/rolle.app/Contents/Helpers/rolle"
+link=/usr/local/bin/rolle
+[ -x "$helper" ] || exit 0
+
+if [ -e "$link" ] || [ -L "$link" ]; then
+	case "$(readlink "$link" 2>/dev/null || true)" in
+	*/rolle.app/Contents/Helpers/rolle) ;;
+	*) exit 0 ;;
+	esac
+fi
+mkdir -p /usr/local/bin
+ln -sfn "$helper" "$link"

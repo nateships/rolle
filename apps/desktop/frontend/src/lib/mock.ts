@@ -628,6 +628,8 @@ export const mockApi = {
   InstallUpdate: async () => {
     await wait(1200);
   },
+  // ?managed=1 previews a Mac where a configuration profile turns updates off.
+  UpdatesManaged: async () => new URLSearchParams(location.search).get("managed") === "1",
   OpenTerminal: async () => {
     await wait(300);
   },
