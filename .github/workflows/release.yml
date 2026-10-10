@@ -101,6 +101,12 @@ jobs:
           IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN" | sed -nE 's/.*"(Developer ID Application: [^"]+)".*/\1/p' | head -1)"
           if [ -z "$IDENTITY" ]; then echo "No Developer ID Application identity in the certificate"; exit 1; fi
           echo "SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+          # rolle.pkg, for MDM tools such as Jamf, needs a Developer ID
+          # Installer identity in the same P12. MDM scripts download the pkg
+          # of the latest release, so a signed release without it fails.
+          INSTALLER="$(security find-identity -v "$KEYCHAIN" | sed -nE 's/.*"(Developer ID Installer: [^"]+)".*/\1/p' | head -1)"
+          if [ -z "$INSTALLER" ]; then echo "No Developer ID Installer identity in the certificate"; exit 1; fi
+          echo "INSTALLER_IDENTITY=$INSTALLER" >> "$GITHUB_ENV"
           if [ -n "$APPLE_ID" ] && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
             xcrun notarytool store-credentials rolle-ci --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --keychain "$KEYCHAIN" > /dev/null
             echo "NOTARY_PROFILE=rolle-ci" >> "$GITHUB_ENV"
@@ -130,6 +136,7 @@ jobs:
           path: |
             apps/desktop/bin/rolle-update-macos-universal.zip
             apps/desktop/bin/*.dmg
+            apps/desktop/bin/*.pkg
             apps/desktop/bin/rolle-update-windows-*.zip
             apps/desktop/bin/rolle-installer.exe
             apps/desktop/bin/*.AppImage

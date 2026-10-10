@@ -499,6 +499,14 @@ export function UpdateTag(name: string, tag: core$0.Tag): $CancellablePromise<vo
 }
 
 /**
+ * UpdatesManaged reports whether the organization manages updates. The
+ * settings screen then locks the Automatic updates switch.
+ */
+export function UpdatesManaged(): $CancellablePromise<boolean> {
+    return $Call.ByID(2969561620);
+}
+
+/**
  * WaitSSOLogin blocks until the user approves, then discovers roles.
  */
 export function WaitSSOLogin(ref: string): $CancellablePromise<core$0.Session[] | null> {

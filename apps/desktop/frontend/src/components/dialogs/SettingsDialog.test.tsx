@@ -39,6 +39,7 @@ describe("SettingsDialog", () => {
   beforeEach(() => {
     window.history.replaceState({}, "", "/");
     vi.spyOn(api, "Settings").mockResolvedValue({ ...base });
+    vi.spyOn(api, "UpdatesManaged").mockResolvedValue(false);
     update = vi.spyOn(api, "UpdateSettings").mockImplementation(((s: Settings) => Promise.resolve({ ...s })) as never);
   });
 
@@ -223,6 +224,20 @@ describe("SettingsDialog", () => {
       await screen.findByText("Installed by a package manager. Update with your package manager."),
     ).toBeInTheDocument();
     expect(info).toHaveBeenCalledWith("Update rolle with your package manager");
+
+    check.mockResolvedValue({ enabled: false, currentVersion: "0.0.1", available: false, state: "managed" });
+    await user.click(screen.getByRole("button", { name: /check for updates/i }));
+    expect(await screen.findByText("Your organization manages updates.")).toBeInTheDocument();
+    expect(info).toHaveBeenCalledWith("Your organization manages rolle updates");
+  });
+
+  it("locks the automatic updates switch when the organization manages updates", async () => {
+    vi.spyOn(api, "UpdatesManaged").mockResolvedValue(true);
+    await open();
+    const sw = await screen.findByRole("switch", { name: "Automatic updates" });
+    await waitFor(() => expect(sw).toBeDisabled());
+    expect(sw).not.toBeChecked();
+    expect(screen.getByText("Your organization manages updates.")).toBeInTheDocument();
   });
 
   it("shows an update check failure", async () => {

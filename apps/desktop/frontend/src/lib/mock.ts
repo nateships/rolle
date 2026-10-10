@@ -594,6 +594,9 @@ export const mockApi = {
   },
   CheckForUpdates: async () => {
     await wait(800);
+    if (await mockApi.UpdatesManaged()) {
+      return { enabled: false, currentVersion: "0.0.1-dev", available: false, state: "managed" };
+    }
     const avail = new URLSearchParams(location.search).get("update") === "1";
     return {
       enabled: true,
@@ -628,6 +631,8 @@ export const mockApi = {
   InstallUpdate: async () => {
     await wait(1200);
   },
+  // ?managed=1 previews a Mac where a configuration profile turns updates off.
+  UpdatesManaged: async () => new URLSearchParams(location.search).get("managed") === "1",
   OpenTerminal: async () => {
     await wait(300);
   },

@@ -3,7 +3,7 @@ seo:
   image: /og-brand.png
   title: "Install rolle: Homebrew, DMG, Windows, Linux"
 title: Install
-description: Install the rolle desktop app with Homebrew, a signed DMG, the Windows installer, or the Linux AppImage. Every package carries the rolle command.
+description: Install the rolle desktop app with Homebrew, a signed DMG, a pkg for Jamf and other MDM tools, the Windows installer, or the Linux AppImage. Every package carries the rolle command.
 ---
 
 <Tabs>
@@ -14,7 +14,7 @@ description: Install the rolle desktop app with Homebrew, a signed DMG, the Wind
 
     The cask installs the desktop app and puts the `rolle` command on your `PATH`. The command ships inside the app bundle and updates with the app.
 
-    Or download `rolle.dmg` from the [releases page](https://github.com/nateships/rolle/releases). The app is signed and notarized. It needs macOS 12 or later, on Apple silicon or Intel. **Install command**, in the last onboarding step and in **Settings → General**, links the `rolle` command into `/usr/local/bin`. When `rolle` is already on your PATH, from Homebrew for example, the app says so and leaves it alone.
+    Or download `rolle.dmg` from the [releases page](https://github.com/nateships/rolle/releases). For Jamf and other MDM tools, use `rolle.pkg`; see [Managed Macs](#managed-macs). The app is signed and notarized. It needs macOS 12 or later, on Apple silicon or Intel. **Install command**, in the last onboarding step and in **Settings → General**, links the `rolle` command into `/usr/local/bin`. When `rolle` is already on your PATH, from Homebrew for example, the app says so and leaves it alone.
   </Tab>
   <Tab title="Windows">
     Download `rolle-installer.exe` from the [releases page](https://github.com/nateships/rolle/releases). One installer covers x64 and Arm64. It installs for the current user under `%LOCALAPPDATA%\Programs\rolle`. Installation and updates need no administrator.
@@ -30,9 +30,76 @@ description: Install the rolle desktop app with Homebrew, a signed DMG, the Wind
   </Tab>
 </Tabs>
 
+## Managed Macs
+
+For Jamf and other MDM tools, each release has `rolle.pkg`. The package is signed with a Developer ID Installer certificate and notarized. It installs `rolle.app` into `/Applications` and links the `rolle` command into `/usr/local/bin`. If `/usr/local/bin/rolle` is already there and is not a link into a `rolle.app`, the package does not change it.
+
+The package installs on macOS 12 or later. It does not compare versions: an older `rolle.pkg` replaces a newer app, so you can roll back.
+
+```sh
+sudo installer -pkg rolle.pkg -target /
+```
+
+The package identifier is `com.getrolle.app`. The Team ID is `AMR56F4NQB`.
+
+### Turn off self-updates
+
+A standard account cannot replace an app that root installed, so the in-app update fails for it. When you deliver new versions through your MDM, turn self-updates off with a configuration profile. Set `DisableUpdates` to `true` in the `com.getrolle.app` preference domain. The app then does not check for updates and hides the Update button. In **Settings**, the **Automatic updates** switch is locked and says that your organization manages updates. The app reads the key only from a configuration profile. A value that a user writes with `defaults write` has no effect.
+
+In Jamf Pro, add **Application & Custom Settings → Upload** to a configuration profile. Use `com.getrolle.app` as the preference domain and this property list:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>DisableUpdates</key>
+  <true/>
+</dict>
+</plist>
+```
+
+For another MDM, use a `.mobileconfig` with a payload of type `com.getrolle.app`. Replace the two UUIDs with your own (`uuidgen`):
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>PayloadType</key>
+  <string>Configuration</string>
+  <key>PayloadVersion</key>
+  <integer>1</integer>
+  <key>PayloadIdentifier</key>
+  <string>com.example.rolle</string>
+  <key>PayloadUUID</key>
+  <string>00000000-0000-0000-0000-000000000001</string>
+  <key>PayloadDisplayName</key>
+  <string>rolle</string>
+  <key>PayloadScope</key>
+  <string>System</string>
+  <key>PayloadContent</key>
+  <array>
+    <dict>
+      <key>PayloadType</key>
+      <string>com.getrolle.app</string>
+      <key>PayloadVersion</key>
+      <integer>1</integer>
+      <key>PayloadIdentifier</key>
+      <string>com.example.rolle.updates</string>
+      <key>PayloadUUID</key>
+      <string>00000000-0000-0000-0000-000000000002</string>
+      <key>DisableUpdates</key>
+      <true/>
+    </dict>
+  </array>
+</dict>
+</plist>
+```
+
 ## Verify a download
 
-Every release ships a `checksums.txt` that lists `rolle.dmg`, the Windows installer, the AppImage, the deb, and `manifest.json`. The `rolle-update-*` zips are for the desktop app's self-update, not for download.
+Every release ships a `checksums.txt` that lists `rolle.dmg`, `rolle.pkg`, the Windows installer, the AppImage, the deb, and `manifest.json`. The `rolle-update-*` zips are for the desktop app's self-update, not for download.
 
 `checksums.txt` carries a keyless [Sigstore](https://www.sigstore.dev/) signature from the release workflow. To verify a download, put `checksums.txt` and `checksums.txt.sigstore.json` next to it and run:
 
