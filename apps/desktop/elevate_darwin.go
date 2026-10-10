@@ -3,15 +3,54 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"syscall"
 )
 
 // elevatedSwap replaces the bundle through the administrator prompt.
 func elevatedSwap(staged, target string) error {
 	return adminShell(darwinSwapCommand(staged, target))
+}
+
+// contentsSwap replaces the Contents folder of the bundle at target with
+// the Contents folder of staged. It needs write access to the bundle, but
+// not to the folder that holds the bundle. The bundle signature is in the
+// Contents folder, so the result is a signed bundle. The current account
+// owns the bundle, so no step runs as root, and the swap does not copy
+// staged before the signature check. First the old Contents folder moves
+// aside into the staging folder. If that move crosses volumes, nothing
+// changed, and the swap uses the administrator prompt. If the next move
+// fails, the old Contents folder moves back.
+func contentsSwap(staged, target string) error {
+	if out, err := exec.Command("codesign", "--verify", "--deep", "--strict", "-R", "="+darwinRequirement, staged).CombinedOutput(); err != nil {
+		return installError(out, err, false)
+	}
+	aside, err := os.MkdirTemp(filepath.Dir(staged), ".old-*")
+	if err != nil {
+		return err
+	}
+	current := filepath.Join(target, "Contents")
+	old := filepath.Join(aside, "Contents")
+	if err := os.Rename(current, old); err != nil {
+		_ = os.RemoveAll(aside)
+		if errors.Is(err, syscall.EXDEV) {
+			return elevatedSwap(staged, target)
+		}
+		return err
+	}
+	if err := os.Rename(filepath.Join(staged, "Contents"), current); err != nil {
+		if back := os.Rename(old, current); back != nil {
+			return fmt.Errorf("install failed: %w; the old app is in %s", err, old)
+		}
+		_ = os.RemoveAll(aside)
+		return err
+	}
+	_ = os.RemoveAll(aside)
+	return nil
 }
 
 // darwinRequirement is the code requirement that a staged bundle must meet

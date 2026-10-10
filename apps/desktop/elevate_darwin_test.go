@@ -104,3 +104,93 @@ func TestDarwinSwapCommandRuns(t *testing.T) {
 	}
 	leftovers(apps)
 }
+
+// TestContentsSwapNeedsNoWriteAccessToTheFolder replaces the Contents folder
+// of a bundle in a folder that refuses writes, like /Applications for a
+// standard account. A stub replaces codesign, which needs a signed bundle.
+// The stub fails when the CODESIGN_FAIL variable is set.
+func TestContentsSwapNeedsNoWriteAccessToTheFolder(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skip("root writes anywhere")
+	}
+	stubs := t.TempDir()
+	if err := os.WriteFile(filepath.Join(stubs, "codesign"), []byte("#!/bin/sh\n[ -z \"$CODESIGN_FAIL\" ]\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", stubs+":/usr/bin:/bin")
+	bundle := func(dir, version string) string {
+		app := filepath.Join(dir, "rolle.app")
+		if err := os.MkdirAll(filepath.Join(app, "Contents"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(app, "Contents", "version"), []byte(version), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return app
+	}
+	installed := func(target string) string {
+		b, err := os.ReadFile(filepath.Join(target, "Contents", "version"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return string(b)
+	}
+	entries := func(dir string) []string {
+		list, err := os.ReadDir(dir)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var names []string
+		for _, e := range list {
+			names = append(names, e.Name())
+		}
+		return names
+	}
+
+	apps := t.TempDir()
+	target := bundle(apps, "old")
+	if err := os.Chmod(apps, 0o555); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(apps, 0o755) })
+	staging := t.TempDir()
+	staged := bundle(staging, "new")
+
+	t.Setenv("CODESIGN_FAIL", "1")
+	if err := contentsSwap(staged, target); err == nil {
+		t.Fatal("swap passed a failed signature check")
+	}
+	if got := installed(target); got != "old" {
+		t.Fatalf("failed check replaced the bundle: %s", got)
+	}
+	t.Setenv("CODESIGN_FAIL", "")
+
+	// A staged bundle without Contents fails after the old Contents moved
+	// aside. The swap must move it back.
+	empty := filepath.Join(t.TempDir(), "rolle.app")
+	if err := os.Mkdir(empty, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := contentsSwap(empty, target); err == nil {
+		t.Fatal("swap passed a bundle without Contents")
+	}
+	if got := installed(target); got != "old" {
+		t.Fatalf("failed move lost the old bundle: %s", got)
+	}
+	if got := entries(filepath.Dir(empty)); len(got) != 1 {
+		t.Fatalf("staging folder after rollback = %v", got)
+	}
+
+	if err := contentsSwap(staged, target); err != nil {
+		t.Fatal(err)
+	}
+	if got := installed(target); got != "new" {
+		t.Fatalf("installed = %s", got)
+	}
+	if got := entries(target); len(got) != 1 || got[0] != "Contents" {
+		t.Fatalf("bundle holds %v, want only Contents", got)
+	}
+	if got := entries(staging); len(got) != 1 || got[0] != "rolle.app" {
+		t.Fatalf("old Contents left in staging: %v", got)
+	}
+}

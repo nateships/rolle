@@ -26,6 +26,8 @@ func elevatedSwap(staged, target string) error {
 	return installError(out, err, errors.As(err, &exit) && exit.ExitCode() == errorCancelled)
 }
 
+func contentsSwap(string, string) error { return errors.New("bundle install is not available here") }
+
 // relaunchAfterExit starts the new executable once this process is gone.
 func relaunchAfterExit(target string) error {
 	return hiddenPowerShell(windowsRelaunchScript(os.Getpid(), target)).Start()

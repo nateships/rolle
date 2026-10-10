@@ -105,18 +105,18 @@ func TestAppBundleAndWritable(t *testing.T) {
 
 func TestUpdateTargetAndWindowsScripts(t *testing.T) {
 	dir := t.TempDir()
-	if target, elevate := updateTarget("windows", filepath.Join(dir, "rolle.exe"), ""); target != filepath.Join(dir, "rolle.exe") || elevate {
-		t.Fatalf("writable dir = %q %v", target, elevate)
+	if target, swap := updateTarget("windows", filepath.Join(dir, "rolle.exe"), ""); target != filepath.Join(dir, "rolle.exe") || swap != swapHelper {
+		t.Fatalf("writable dir = %q %v", target, swap)
 	}
-	if target, elevate := updateTarget("linux", "/usr/local/bin/rolle-desktop", ""); target != "/usr/local/bin/rolle-desktop" || elevate {
-		t.Fatalf("linux = %q %v", target, elevate)
+	if target, swap := updateTarget("linux", "/usr/local/bin/rolle-desktop", ""); target != "/usr/local/bin/rolle-desktop" || swap != swapHelper {
+		t.Fatalf("linux = %q %v", target, swap)
 	}
 	// An AppImage runs from a read-only mount; the image file is the target.
-	if target, elevate := updateTarget("linux", "/tmp/.mount_rolleAb12/usr/bin/rolle", "/home/n/Apps/rolle.AppImage"); target != "/home/n/Apps/rolle.AppImage" || elevate {
-		t.Fatalf("appimage = %q %v", target, elevate)
+	if target, swap := updateTarget("linux", "/tmp/.mount_rolleAb12/usr/bin/rolle", "/home/n/Apps/rolle.AppImage"); target != "/home/n/Apps/rolle.AppImage" || swap != swapHelper {
+		t.Fatalf("appimage = %q %v", target, swap)
 	}
-	if target, elevate := updateTarget("darwin", "/usr/local/bin/rolle-desktop", ""); target != "" || elevate {
-		t.Fatalf("darwin outside a bundle = %q %v", target, elevate)
+	if target, swap := updateTarget("darwin", "/usr/local/bin/rolle-desktop", ""); target != "" || swap != swapHelper {
+		t.Fatalf("darwin outside a bundle = %q %v", target, swap)
 	}
 	const exe = `C:\Program Files\nateships\rolle\rolle.exe`
 	swap := windowsSwapCommand(`C:\Temp\wails-update-1\rolle.exe`, exe)

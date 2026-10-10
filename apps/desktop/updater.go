@@ -225,11 +225,15 @@ func (r *RolleService) InstallUpdate() error {
 	// The updater's helper replaces the app in place, which needs write access
 	// to its folder. A standard macOS account has none in /Applications, a
 	// standard Windows account none in Program Files. Those installs swap
-	// through the administrator prompt instead.
+	// through the administrator prompt instead. A macOS bundle that the
+	// account owns swaps its Contents folder and needs no prompt.
 	exe, _ := os.Executable()
 	appImage := os.Getenv("APPIMAGE")
-	target, elevate := updateTarget(runtime.GOOS, exe, appImage)
-	if elevate {
+	target, swap := updateTarget(runtime.GOOS, exe, appImage)
+	switch swap {
+	case swapContents:
+		return r.installStaged(target, contentsSwap)
+	case swapElevated:
 		return r.installStaged(target, elevatedSwap)
 	}
 	// The AppImage runtime mounts the image read-only, so the updater's
