@@ -334,6 +334,9 @@ type Managed struct {
 	// Settings maps the JSON name of a Settings field to the value that
 	// rolle applied, as JSON.
 	Settings map[string]json.RawMessage `json:"settings,omitempty"`
+	// Integrations maps the key of a portal or tenant to the profile entry
+	// that rolle applied, as JSON.
+	Integrations map[string]json.RawMessage `json:"integrations,omitempty"`
 }
 
 // Aliases are the display names for Identity Center accounts, by account

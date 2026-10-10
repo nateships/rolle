@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"slices"
 
 	"github.com/nateships/rolle/internal/core"
@@ -32,20 +33,20 @@ func (s *Service) LockedSettings() []string {
 	return names
 }
 
-// applyPolicy puts the profile's settings into w. A value applies when the
-// profile sets it and rolle has not applied that value before. Thus the
-// user can change it, until the profile sets another value. A locked value
-// applies every time. w.Managed records what applied. applyPolicy reports
-// whether w changed.
+// applyPolicy puts the profile into w. A setting or an integration applies
+// when the profile sets a value that rolle has not applied before. Thus the
+// user can change or remove it, until the profile sets another value. A
+// locked setting applies every time. w.Managed records what applied.
+// applyPolicy reports whether w changed.
 func applyPolicy(w *core.Workspace, p policy.Policy) bool {
-	before, _ := json.Marshal([]any{w.Settings, w.Managed})
-	var record map[string]json.RawMessage
+	before, _ := json.Marshal([]any{w.Settings, w.Managed, w.Integrations})
+	var record core.Managed
 	if w.Managed != nil {
-		record = w.Managed.Settings
+		record = *w.Managed
 	}
 	apply := map[string]json.RawMessage{}
 	for name, v := range p.Settings {
-		if p.IsLocked(name) || !sameJSON(record[name], v) {
+		if p.IsLocked(name) || !sameJSON(record.Settings[name], v) {
 			apply[name] = v
 		}
 	}
@@ -53,14 +54,62 @@ func applyPolicy(w *core.Workspace, p policy.Policy) bool {
 		st := overlay(w.EffectiveSettings(), apply)
 		w.Settings = &st
 	}
+	applied := applyIntegrations(w, p.Integrations, record.Integrations)
 	// A key that left the profile leaves the record too, so the profile
 	// can set it again later.
 	w.Managed = nil
-	if len(p.Settings) > 0 {
-		w.Managed = &core.Managed{Settings: p.Settings}
+	if len(p.Settings) > 0 || len(applied) > 0 {
+		w.Managed = &core.Managed{Settings: p.Settings, Integrations: applied}
 	}
-	after, _ := json.Marshal([]any{w.Settings, w.Managed})
+	after, _ := json.Marshal([]any{w.Settings, w.Managed, w.Integrations})
 	return !sameJSON(before, after)
+}
+
+// applyIntegrations adds each profile integration that rolle has not
+// applied in this form before. If the workspace has the portal or tenant
+// already, from the user or from an earlier profile, it updates the region
+// and keeps the rest. A new integration gets a free alias: the profile's,
+// or that alias with -2, -3, and so on. The result is the new record.
+func applyIntegrations(w *core.Workspace, list []policy.Integration, record map[string]json.RawMessage) map[string]json.RawMessage {
+	var applied map[string]json.RawMessage
+	for _, in := range list {
+		key := in.Key()
+		v, err := json.Marshal(in)
+		if err != nil {
+			continue
+		}
+		if applied == nil {
+			applied = map[string]json.RawMessage{}
+		}
+		applied[key] = v
+		if sameJSON(record[key], v) {
+			continue
+		}
+		if i := slices.IndexFunc(w.Integrations, func(x core.Integration) bool { return policy.Key(x) == key }); i >= 0 {
+			if sso := w.Integrations[i].AWSSSO; sso != nil {
+				sso.Region = in.Region
+			}
+			continue
+		}
+		next := core.Integration{ID: newID(), Alias: freeAlias(w, in.Alias)}
+		if in.Type == "azure" {
+			next.Cloud, next.Azure = core.CloudAzure, &core.AzureIntegration{TenantID: in.TenantID}
+		} else {
+			next.Cloud, next.AWSSSO = core.CloudAWS, &core.AWSSSOIntegration{StartURL: in.StartURL, Region: in.Region}
+		}
+		w.Integrations = append(w.Integrations, next)
+	}
+	return applied
+}
+
+// freeAlias returns alias, or alias with the first suffix -2, -3, and so on
+// that no integration uses.
+func freeAlias(w *core.Workspace, base string) string {
+	alias := base
+	for n := 2; checkAlias(w, alias, "") != nil; n++ {
+		alias = fmt.Sprintf("%s-%d", base, n)
+	}
+	return alias
 }
 
 // lockSettings puts the profile's locked values into st.

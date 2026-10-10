@@ -215,6 +215,12 @@ export interface Managed {
      * rolle applied, as JSON.
      */
     "settings"?: { [_ in string]?: json$0.RawMessage } | null;
+
+    /**
+     * Integrations maps the key of a portal or tenant to the profile entry
+     * that rolle applied, as JSON.
+     */
+    "integrations"?: { [_ in string]?: json$0.RawMessage } | null;
 }
 
 /**

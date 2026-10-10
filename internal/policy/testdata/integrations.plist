@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Integrations</key>
+  <array>
+    <dict>
+      <key>Type</key>
+      <string>aws-sso</string>
+      <key>Alias</key>
+      <string>acme</string>
+      <key>StartURL</key>
+      <string>https://acme.awsapps.com/start/</string>
+      <key>Region</key>
+      <string>us-east-1</string>
+    </dict>
+    <dict>
+      <key>Type</key>
+      <string>azure</string>
+      <key>Alias</key>
+      <string>contoso</string>
+      <key>TenantID</key>
+      <string>72F988BF-86F1-41AF-91AB-2D7CD011DB47</string>
+    </dict>
+    <dict>
+      <key>Type</key>
+      <string>aws-sso</string>
+      <key>Alias</key>
+      <string>no-region</string>
+      <key>StartURL</key>
+      <string>https://other.awsapps.com/start</string>
+    </dict>
+    <dict>
+      <key>Type</key>
+      <string>aws-sso</string>
+      <key>Alias</key>
+      <string>plain-http</string>
+      <key>StartURL</key>
+      <string>http://evil.example.com/start</string>
+      <key>Region</key>
+      <string>us-east-1</string>
+    </dict>
+    <dict>
+      <key>Type</key>
+      <string>gcp</string>
+      <key>Alias</key>
+      <string>google</string>
+    </dict>
+    <string>not a dict</string>
+    <dict>
+      <key>Type</key>
+      <string>aws-sso</string>
+      <key>Alias</key>
+      <integer>7</integer>
+      <key>StartURL</key>
+      <string>https://seven.awsapps.com/start</string>
+      <key>Region</key>
+      <string>us-east-1</string>
+    </dict>
+  </array>
+</dict>
+</plist>
