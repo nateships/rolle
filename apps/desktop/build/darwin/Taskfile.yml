@@ -241,14 +241,27 @@ tasks:
   release:pkg:
     internal: true
     cmds:
-      - cmd: '{{if not .INSTALLER_IDENTITY}}echo "INSTALLER_IDENTITY is not set; rolle.pkg is skipped."{{else}}true{{end}}'
-      - cmd: '{{if .INSTALLER_IDENTITY}}rm -rf "{{.PKG_ROOT}}" && mkdir -p "{{.PKG_ROOT}}" && ditto "{{.BIN_DIR}}/{{.APP_NAME}}.app" "{{.PKG_ROOT}}/{{.APP_NAME}}.app"{{else}}true{{end}}'
-      - cmd: '{{if .INSTALLER_IDENTITY}}pkgbuild --analyze --root "{{.PKG_ROOT}}" "{{.BIN_DIR}}/component.plist" && plutil -replace 0.BundleIsRelocatable -bool NO "{{.BIN_DIR}}/component.plist" && plutil -replace 0.BundleIsVersionChecked -bool NO "{{.BIN_DIR}}/component.plist"{{else}}true{{end}}'
-      - cmd: '{{if .INSTALLER_IDENTITY}}plutil -create xml1 "{{.BIN_DIR}}/requirements.plist" && plutil -insert os -array "{{.BIN_DIR}}/requirements.plist" && plutil -insert os.0 -string "$(plutil -extract LSMinimumSystemVersion raw "{{.PKG_ROOT}}/{{.APP_NAME}}.app/Contents/Info.plist")" "{{.BIN_DIR}}/requirements.plist"{{else}}true{{end}}'
-      - cmd: '{{if .INSTALLER_IDENTITY}}pkgbuild --root "{{.PKG_ROOT}}" --component-plist "{{.BIN_DIR}}/component.plist" --install-location /Applications --scripts build/darwin/pkg --identifier com.getrolle.app --version "{{.VERSION | default "0.0.1"}}" "{{.BIN_DIR}}/component.pkg"{{else}}true{{end}}'
-      - cmd: '{{if .INSTALLER_IDENTITY}}productbuild --product "{{.BIN_DIR}}/requirements.plist" --package "{{.BIN_DIR}}/component.pkg" --sign "{{.INSTALLER_IDENTITY}}" --timestamp "{{.BIN_DIR}}/{{.APP_NAME}}.pkg"{{else}}true{{end}}'
-      - cmd: '{{if .INSTALLER_IDENTITY}}rm -rf "{{.PKG_ROOT}}" "{{.BIN_DIR}}/component.plist" "{{.BIN_DIR}}/requirements.plist" "{{.BIN_DIR}}/component.pkg"{{else}}true{{end}}'
-      - cmd: '{{if and .INSTALLER_IDENTITY .NOTARY_PROFILE}}xcrun notarytool submit "{{.BIN_DIR}}/{{.APP_NAME}}.pkg" --keychain-profile "{{.NOTARY_PROFILE}}" --wait && xcrun stapler staple "{{.BIN_DIR}}/{{.APP_NAME}}.pkg"{{else}}true{{end}}'
-      - cmd: '{{if .INSTALLER_IDENTITY}}pkgutil --check-signature "{{.BIN_DIR}}/{{.APP_NAME}}.pkg"{{else}}true{{end}}'
+      - task: '{{if .INSTALLER_IDENTITY}}release:pkg:build{{else}}release:pkg:skip{{end}}'
+
+  release:pkg:build:
+    internal: true
+    cmds:
+      - rm -rf "{{.PKG_ROOT}}" && mkdir -p "{{.PKG_ROOT}}" && ditto "{{.BIN_DIR}}/{{.APP_NAME}}.app" "{{.PKG_ROOT}}/{{.APP_NAME}}.app"
+      - pkgbuild --analyze --root "{{.PKG_ROOT}}" "{{.BIN_DIR}}/component.plist"
+      - plutil -replace 0.BundleIsRelocatable -bool NO "{{.BIN_DIR}}/component.plist"
+      - plutil -replace 0.BundleIsVersionChecked -bool NO "{{.BIN_DIR}}/component.plist"
+      - plutil -create xml1 "{{.BIN_DIR}}/requirements.plist"
+      - plutil -insert os -array "{{.BIN_DIR}}/requirements.plist"
+      - plutil -insert os.0 -string "$(plutil -extract LSMinimumSystemVersion raw "{{.PKG_ROOT}}/{{.APP_NAME}}.app/Contents/Info.plist")" "{{.BIN_DIR}}/requirements.plist"
+      - pkgbuild --root "{{.PKG_ROOT}}" --component-plist "{{.BIN_DIR}}/component.plist" --install-location /Applications --scripts build/darwin/pkg --identifier com.getrolle.app --version "{{.VERSION | default "0.0.1"}}" "{{.BIN_DIR}}/component.pkg"
+      - productbuild --product "{{.BIN_DIR}}/requirements.plist" --package "{{.BIN_DIR}}/component.pkg" --sign "{{.INSTALLER_IDENTITY}}" --timestamp "{{.BIN_DIR}}/{{.APP_NAME}}.pkg"
+      - rm -rf "{{.PKG_ROOT}}" "{{.BIN_DIR}}/component.plist" "{{.BIN_DIR}}/requirements.plist" "{{.BIN_DIR}}/component.pkg"
+      - cmd: '{{if .NOTARY_PROFILE}}xcrun notarytool submit "{{.BIN_DIR}}/{{.APP_NAME}}.pkg" --keychain-profile "{{.NOTARY_PROFILE}}" --wait && xcrun stapler staple "{{.BIN_DIR}}/{{.APP_NAME}}.pkg"{{else}}true{{end}}'
+      - pkgutil --check-signature "{{.BIN_DIR}}/{{.APP_NAME}}.pkg"
     vars:
       PKG_ROOT: '{{.BIN_DIR}}/pkgroot'
+
+  release:pkg:skip:
+    internal: true
+    cmds:
+      - echo "INSTALLER_IDENTITY is not set; rolle.pkg is skipped."

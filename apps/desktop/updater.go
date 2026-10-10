@@ -72,16 +72,11 @@ func isDevBuild() bool {
 // ticker here, not in the Wails updater, so the AutoUpdateOff setting is read
 // on every tick and a change applies without a restart.
 func setupUpdater(a *application.App, svc *app.Service) error {
-	if isDevBuild() {
-		debug.Logf("updater", "dev build %q, updater disabled", version.Version)
-		return nil
-	}
-	if packageManaged(runtime.GOOS, os.Getenv("APPIMAGE")) {
-		debug.Logf("updater", "installed by a package manager, updater disabled")
-		return nil
-	}
-	if updatesManaged() {
-		debug.Logf("updater", "DisableUpdates set by a configuration profile, updater disabled")
+	// A configuration profile can arrive or go away while the app runs, so a
+	// managed install still sets up the updater. Each check reads the
+	// profile again.
+	if state, _ := updateBlock(); state != "" && state != stateManaged {
+		debug.Logf("updater", "version %q, updates %s, updater not set up", version.Version, state)
 		return nil
 	}
 	key, err := parsePublicKey(updaterPublicKey)
@@ -109,8 +104,7 @@ func setupUpdater(a *application.App, svc *app.Service) error {
 // backgroundCheck asks the feed for a newer release and tells the frontend
 // when there is one. It never opens the updater window on its own.
 func backgroundCheck(a *application.App, svc *app.Service) {
-	// A configuration profile can arrive after launch. Read it on every tick.
-	if updatesManaged() {
+	if state, _ := updateBlock(); state != "" {
 		return
 	}
 	if st, err := svc.Settings(); err != nil || st.AutoUpdateOff {
@@ -210,19 +204,31 @@ var updatesManaged = managedByProfile
 // settings screen then locks the Automatic updates switch.
 func (r *RolleService) UpdatesManaged() bool { return updatesManaged() }
 
+// updateBlock reports why this install cannot take an update now. state is
+// the UpdateInfo state and err is the error that InstallUpdate returns. state
+// is empty when updates can run. A dev build has no error, because
+// InstallUpdate does nothing there.
+func updateBlock() (state string, err error) {
+	switch {
+	case isDevBuild():
+		return "disabled", nil
+	case packageManaged(runtime.GOOS, os.Getenv("APPIMAGE")):
+		return statePackageManager, errors.New("update rolle with your package manager")
+	case updatesManaged():
+		return stateManaged, errors.New("your organization manages rolle updates")
+	}
+	return "", nil
+}
+
 // CheckForUpdates asks the release feed for a newer version.
 func (r *RolleService) CheckForUpdates() (UpdateInfo, error) {
-	info := UpdateInfo{Enabled: !isDevBuild(), CurrentVersion: version.Version}
-	if r.app == nil || isDevBuild() {
+	info := UpdateInfo{Enabled: true, CurrentVersion: version.Version}
+	if state, _ := updateBlock(); state != "" {
+		info.Enabled, info.State = false, state
+		return info, nil
+	}
+	if r.app == nil {
 		info.State = "disabled"
-		return info, nil
-	}
-	if packageManaged(runtime.GOOS, os.Getenv("APPIMAGE")) {
-		info.Enabled, info.State = false, statePackageManager
-		return info, nil
-	}
-	if updatesManaged() {
-		info.Enabled, info.State = false, stateManaged
 		return info, nil
 	}
 	c, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -241,14 +247,11 @@ func (r *RolleService) CheckForUpdates() (UpdateInfo, error) {
 // InstallUpdate downloads, verifies, and installs the latest release, then
 // prompts through the updater window to restart.
 func (r *RolleService) InstallUpdate() error {
-	if r.app == nil || isDevBuild() {
+	if state, err := updateBlock(); state != "" {
+		return err
+	}
+	if r.app == nil {
 		return nil
-	}
-	if packageManaged(runtime.GOOS, os.Getenv("APPIMAGE")) {
-		return errors.New("update rolle with your package manager")
-	}
-	if updatesManaged() {
-		return errors.New("your organization manages rolle updates")
 	}
 	// The updater's helper replaces the app in place, which needs write access
 	// to its folder. A standard macOS account has none in /Applications, a

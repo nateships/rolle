@@ -44,11 +44,19 @@ func TestInstallUpdateRefusesManaged(t *testing.T) {
 	}
 }
 
-func TestSetupUpdaterSkipsManaged(t *testing.T) {
-	withManaged(t, true)
-	// No app is attached: reaching the updater would panic.
-	if err := setupUpdater(nil, nil); err != nil {
-		t.Fatal(err)
+func TestUpdateBlock(t *testing.T) {
+	withManaged(t, false)
+	if state, err := updateBlock(); state != "" || err != nil {
+		t.Fatalf("release, not managed: %q, %v", state, err)
+	}
+	updatesManaged = func() bool { return true }
+	if state, err := updateBlock(); state != stateManaged || err == nil {
+		t.Fatalf("managed: %q, %v", state, err)
+	}
+	// A dev build wins over the profile, and InstallUpdate stays quiet there.
+	version.Version = "0.0.1-dev"
+	if state, err := updateBlock(); state != "disabled" || err != nil {
+		t.Fatalf("dev build: %q, %v", state, err)
 	}
 }
 

@@ -102,13 +102,11 @@ jobs:
           if [ -z "$IDENTITY" ]; then echo "No Developer ID Application identity in the certificate"; exit 1; fi
           echo "SIGN_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
           # rolle.pkg, for MDM tools such as Jamf, needs a Developer ID
-          # Installer identity in the same P12. Without it the pkg is skipped.
+          # Installer identity in the same P12. MDM scripts download the pkg
+          # of the latest release, so a signed release without it fails.
           INSTALLER="$(security find-identity -v "$KEYCHAIN" | sed -nE 's/.*"(Developer ID Installer: [^"]+)".*/\1/p' | head -1)"
-          if [ -n "$INSTALLER" ]; then
-            echo "INSTALLER_IDENTITY=$INSTALLER" >> "$GITHUB_ENV"
-          else
-            echo "No Developer ID Installer identity in the certificate; rolle.pkg is skipped."
-          fi
+          if [ -z "$INSTALLER" ]; then echo "No Developer ID Installer identity in the certificate"; exit 1; fi
+          echo "INSTALLER_IDENTITY=$INSTALLER" >> "$GITHUB_ENV"
           if [ -n "$APPLE_ID" ] && [ -n "$APPLE_APP_SPECIFIC_PASSWORD" ] && [ -n "$APPLE_TEAM_ID" ]; then
             xcrun notarytool store-credentials rolle-ci --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --keychain "$KEYCHAIN" > /dev/null
             echo "NOTARY_PROFILE=rolle-ci" >> "$GITHUB_ENV"
