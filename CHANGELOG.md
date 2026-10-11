@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.17.0](https://github.com/nateships/rolle/compare/v0.16.0...v0.17.0) (2026-10-11)
+
+
+### Features
+
+* edit an Identity Center portal's start URL ([#286](https://github.com/nateships/rolle/issues/286)) ([99c105f](https://github.com/nateships/rolle/commit/99c105f2089394155d19e6e379f384ba962a2725))
+* mark what the organization manages ([#288](https://github.com/nateships/rolle/issues/288)) ([465271f](https://github.com/nateships/rolle/commit/465271f6909c7afbc32f0904727e3ce091c1495c))
+
 ## [0.16.0](https://github.com/nateships/rolle/compare/v0.15.0...v0.16.0) (2026-10-10)
 
 
