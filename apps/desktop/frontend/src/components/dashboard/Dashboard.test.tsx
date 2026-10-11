@@ -414,14 +414,10 @@ describe("Dashboard", () => {
       ).toEqual(["Edit", "Sync", "Sign out", "Remove"]);
     });
 
-    it("shows a portal's start URL on hover and copies it from Edit", async () => {
+    it("copies a portal's start URL from Edit", async () => {
       const user = userEvent.setup();
       const success = vi.spyOn(toast, "success");
       renderDashboard();
-      expect(screen.getByRole("button", { name: "acme" })).toHaveAttribute(
-        "title",
-        "Signed in\nhttps://acme.awsapps.com/start",
-      );
       await pick(user, "acme", /edit/i);
       const dialog = await screen.findByRole("dialog", { name: /edit account/i });
       await user.click(within(dialog).getByRole("button", { name: "Copy Start URL" }));
@@ -559,18 +555,11 @@ describe("Dashboard", () => {
       workspace = { ...workspace, managedIntegrations: ["acme", "contoso"] };
       renderDashboard();
       const acme = screen.getByRole("button", { name: "acme" });
-      expect(acme).toHaveAttribute(
-        "title",
-        "Signed in\nhttps://acme.awsapps.com/start\nYour organization manages this portal.",
-      );
-      expect(acme.querySelector("[data-managed]")).not.toBeNull();
-      expect(screen.getByRole("button", { name: "contoso" })).toHaveAttribute(
-        "title",
-        "Signed in\nYour organization manages this tenant.",
-      );
-      const eu = screen.getByRole("button", { name: "acme-eu" });
-      expect(eu.querySelector("[data-managed]")).toBeNull();
-      expect(eu).toHaveAttribute("title", "Signed out\nhttps://acme-eu.awsapps.com/start");
+      expect(acme).toHaveAttribute("title", "Signed in");
+      expect(acme.querySelector("[data-managed]")).toHaveAttribute("title", "Managed by your organization");
+      const contoso = screen.getByRole("button", { name: "contoso" });
+      expect(contoso.querySelector("[data-managed]")).toHaveAttribute("title", "Managed by your organization");
+      expect(screen.getByRole("button", { name: "acme-eu" }).querySelector("[data-managed]")).toBeNull();
 
       await pick(user, "acme", /edit/i);
       expect(await screen.findByRole("dialog", { name: /edit account/i })).toHaveAccessibleDescription(

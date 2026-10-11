@@ -663,8 +663,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                                 label={integ.alias}
                                 hint={hintFor(integ.id)}
                                 dot={loggedIn ? "ok" : "off"}
-                                detail={integ.awsSso?.startUrl}
-                                managed={orgNote(integ)}
+                                managed={orgNote(integ) && "Managed by your organization"}
                                 trailing={
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -1167,7 +1166,6 @@ function SideItem({
   icon,
   trailing,
   hint,
-  detail,
   managed,
   dropping,
   popped,
@@ -1184,9 +1182,7 @@ function SideItem({
   trailing?: React.ReactNode;
   /** Shortcut badge shown while the modifier is held. */
   hint?: string;
-  /** Second line of the hover title, such as a portal's start URL. */
-  detail?: string;
-  /** Says that the organization manages the item: shows a building icon and adds the text to the hover title. */
+  /** Says that the organization manages the item: shows a building icon with this text as its hover title. */
   managed?: string;
   /** A drag hovers over this item. */
   dropping?: boolean;
@@ -1218,9 +1214,7 @@ function SideItem({
         type="button"
         onClick={onClick}
         // The dot alone is colour only; the title names the state for hover and assistive tech.
-        title={
-          [dot && (dot === "ok" ? "Signed in" : "Signed out"), detail, managed].filter(Boolean).join("\n") || undefined
-        }
+        title={dot ? (dot === "ok" ? "Signed in" : "Signed out") : undefined}
         className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-sm"
       >
         {/* Fixed slot for the icon or the dot keeps every label in one column. */}
@@ -1234,8 +1228,12 @@ function SideItem({
           )}
         </span>
         <span className="truncate">{label}</span>
-        {/* The hover title carries the text, so the icon stays out of the button's name. */}
-        {managed && <Building2 aria-hidden data-managed className="size-3 shrink-0 text-muted-foreground/70" />}
+        {/* Hidden from the button's name; the Edit dialog says the same in text. */}
+        {managed && (
+          <span aria-hidden title={managed} data-managed className="flex shrink-0">
+            <Building2 className="size-3 text-muted-foreground/70" />
+          </span>
+        )}
         {count !== undefined && (
           <span
             // The key remounts the badge when the count changes, so the bump
