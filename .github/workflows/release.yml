@@ -59,7 +59,7 @@ jobs:
           }
           if (-not (Test-Path $exe)) { throw 'NSIS did not install' }
           Add-Content -Path $env:GITHUB_PATH -Value 'C:\Program Files (x86)\NSIS'
-      - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
+      - uses: jdx/mise-action@94c60b39bc2d90ab2f9bab27f38d3cc4812c1834 # v5.1.0
         with:
           cache: false
       - run: mise run setup
@@ -191,7 +191,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-4-dev libwebkitgtk-6.0-dev build-essential pkg-config
-      - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
+      - uses: jdx/mise-action@94c60b39bc2d90ab2f9bab27f38d3cc4812c1834 # v5.1.0
         with:
           cache: false
       - name: Collect the updater payloads
@@ -261,7 +261,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492 # v5.0.1
+      - uses: jdx/mise-action@94c60b39bc2d90ab2f9bab27f38d3cc4812c1834 # v5.1.0
         with:
           cache: false
       - name: Collect the desktop packages and the manifest
