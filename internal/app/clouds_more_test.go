@@ -317,6 +317,86 @@ func TestStartSSORoleWritesProfileAndStopClears(t *testing.T) {
 	}
 }
 
+func TestSetStartURLSignsOutAndKeepsSessions(t *testing.T) {
+	home := fakeHome(t)
+	writeCLITokenCache(t, home, time.Now().Add(2*time.Hour))
+	startFakeSSO(t, "Admin")
+	s := testService(t)
+	if _, err := s.ImportAWSSSO(context.Background(), "acme", portalURL, "us-east-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Start(context.Background(), "Acme/Admin", StartOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.SetFavorite("Acme/Admin", true); err != nil {
+		t.Fatal(err)
+	}
+
+	// The same portal written differently keeps the sign-in.
+	if err := s.SetStartURL("acme", "  https://ACME.awsapps.com/start/  "); err != nil {
+		t.Fatal(err)
+	}
+	w, _ := s.Load()
+	in, _ := FindIntegration(w, "acme")
+	if in.AWSSSO.StartURL != "https://ACME.awsapps.com/start/" || in.AWSSSO.TokenExpires == nil {
+		t.Fatalf("same portal: %+v", in.AWSSSO)
+	}
+	if got := session(t, s, "Acme/Admin"); got.Status != core.StatusActive {
+		t.Fatalf("same portal must not stop the session: %+v", got)
+	}
+
+	// Another portal signs out and keeps the sessions with their changes.
+	if err := s.SetStartURL("acme", "https://acme-alias.awsapps.com/start"); err != nil {
+		t.Fatal(err)
+	}
+	w, _ = s.Load()
+	in, _ = FindIntegration(w, "acme")
+	if in.AWSSSO.StartURL != "https://acme-alias.awsapps.com/start" || in.AWSSSO.TokenExpires != nil {
+		t.Fatalf("other portal: %+v", in.AWSSSO)
+	}
+	got := session(t, s, "Acme/Admin")
+	if got.Status != core.StatusInactive || !got.Favorite || got.IntegrationID != in.ID {
+		t.Fatalf("session after the change: %+v", got)
+	}
+	if cfg := awsConfig(t, s); strings.Contains(cfg, "credential_process") {
+		t.Fatalf("profile must be removed on sign-out:\n%s", cfg)
+	}
+	if s.sso(*in).TokenExpiry() != nil {
+		t.Fatal("the old token must be deleted")
+	}
+}
+
+func TestSetStartURLRejectsBadInput(t *testing.T) {
+	s := testService(t)
+	if _, err := s.AddAWSSSO("acme", "https://acme.awsapps.com/start", "us-east-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AddAWSSSO("globex", "https://globex.awsapps.com/start", "us-east-1"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AddAzure("contoso", "contoso.onmicrosoft.com"); err != nil {
+		t.Fatal(err)
+	}
+	for _, bad := range []string{"", "http://acme.awsapps.com/start", "acme.awsapps.com/start", "https://"} {
+		if err := s.SetStartURL("acme", bad); err == nil || !strings.Contains(err.Error(), "https URL") {
+			t.Fatalf("SetStartURL(%q) = %v", bad, err)
+		}
+	}
+	if err := s.SetStartURL("acme", "https://globex.awsapps.com/start/"); err == nil || !strings.Contains(err.Error(), "globex already uses") {
+		t.Fatalf("duplicate portal: %v", err)
+	}
+	if err := s.SetStartURL("contoso", "https://contoso.awsapps.com/start"); err == nil || !strings.Contains(err.Error(), "not an AWS IAM Identity Center portal") {
+		t.Fatalf("Azure tenant: %v", err)
+	}
+	if err := s.SetStartURL("missing", "https://x.awsapps.com/start"); !errors.Is(err, core.ErrNotFound) {
+		t.Fatalf("unknown integration: %v", err)
+	}
+	w, _ := s.Load()
+	if in, _ := FindIntegration(w, "acme"); in.AWSSSO.StartURL != "https://acme.awsapps.com/start" {
+		t.Fatalf("a refused change must not store the URL: %q", in.AWSSSO.StartURL)
+	}
+}
+
 func TestDiscoverReadsFakeHome(t *testing.T) {
 	home := fakeHome(t)
 	writeFile(t, filepath.Join(home, ".aws", "config"), `[sso-session acme]

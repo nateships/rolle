@@ -411,7 +411,24 @@ describe("Dashboard", () => {
         within(menu)
           .getAllByRole("menuitem")
           .map((m) => m.textContent?.trim()),
-      ).toEqual(["Rename", "Sync", "Sign out", "Remove"]);
+      ).toEqual(["Edit", "Sync", "Sign out", "Remove"]);
+    });
+
+    it("shows a portal's start URL on hover and copies it from Edit", async () => {
+      const user = userEvent.setup();
+      const success = vi.spyOn(toast, "success");
+      renderDashboard();
+      expect(screen.getByRole("button", { name: "acme" })).toHaveAttribute(
+        "title",
+        "Signed in\nhttps://acme.awsapps.com/start",
+      );
+      await pick(user, "acme", /edit/i);
+      const dialog = await screen.findByRole("dialog", { name: /edit account/i });
+      await user.click(within(dialog).getByRole("button", { name: "Copy Start URL" }));
+      await waitFor(() =>
+        expect(success).toHaveBeenCalledWith("Copied", { description: "https://acme.awsapps.com/start" }),
+      );
+      expect(await navigator.clipboard.readText()).toBe("https://acme.awsapps.com/start");
     });
 
     it("syncs, signs out, and removes an AWS portal", async () => {
@@ -499,16 +516,41 @@ describe("Dashboard", () => {
     it("renames an integration from its menu", async () => {
       const user = userEvent.setup();
       const rename = vi.spyOn(api, "RenameIntegration").mockResolvedValue();
+      const setURL = vi.spyOn(api, "SetStartURL");
       renderDashboard();
-      await pick(user, "acme", /rename/i);
-      const dialog = await screen.findByRole("dialog", { name: /rename account/i });
-      const input = within(dialog).getByRole("textbox");
+      await pick(user, "acme", /edit/i);
+      const dialog = await screen.findByRole("dialog", { name: /edit account/i });
+      expect(within(dialog).getByLabelText("Start URL")).toHaveValue("https://acme.awsapps.com/start");
+      const input = within(dialog).getByLabelText("Name");
       expect(input).toHaveValue("acme");
       expect(within(dialog).getByRole("button", { name: "Save" })).toBeDisabled();
       await user.clear(input);
       await user.type(input, "acme-corp");
       await user.click(within(dialog).getByRole("button", { name: "Save" }));
       await waitFor(() => expect(rename).toHaveBeenCalledWith("acme", "acme-corp"));
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      expect(setURL).not.toHaveBeenCalled();
+    });
+
+    it("changes a portal's start URL and warns that it signs out", async () => {
+      const user = userEvent.setup();
+      const rename = vi.spyOn(api, "RenameIntegration");
+      const setURL = vi.spyOn(api, "SetStartURL").mockResolvedValue();
+      const success = vi.spyOn(toast, "success");
+      renderDashboard();
+      await pick(user, "acme", /edit/i);
+      const dialog = await screen.findByRole("dialog", { name: /edit account/i });
+      expect(within(dialog).getByText("Change the name or the start URL of the portal.")).toBeInTheDocument();
+      const url = within(dialog).getByLabelText("Start URL");
+      expect(within(dialog).queryByRole("note")).not.toBeInTheDocument();
+      await user.clear(url);
+      expect(within(dialog).getByRole("button", { name: "Save" })).toBeDisabled();
+      await user.type(url, "https://acme-alias.awsapps.com/start");
+      expect(within(dialog).getByRole("note")).toHaveTextContent(/signs you out/);
+      await user.click(within(dialog).getByRole("button", { name: "Save" }));
+      await waitFor(() => expect(setURL).toHaveBeenCalledWith("acme", "https://acme-alias.awsapps.com/start"));
+      expect(rename).not.toHaveBeenCalled();
+      expect(success).toHaveBeenCalledWith("Saved");
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     });
 
@@ -522,7 +564,7 @@ describe("Dashboard", () => {
         within(menu)
           .getAllByRole("menuitem")
           .map((m) => m.textContent?.trim()),
-      ).toEqual(["Rename", "Sign in", "Remove"]);
+      ).toEqual(["Edit", "Sign in", "Remove"]);
       await user.click(within(menu).getByRole("menuitem", { name: /remove/i }));
       await waitFor(() => expect(remove).toHaveBeenCalledWith("acme-eu"));
     });

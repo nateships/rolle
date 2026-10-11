@@ -25,6 +25,12 @@ Roles group under their account in the desktop app. Sync adds roles and removes 
 
 The credential lifetime is the permission set's session duration, set by the Identity Center administrator (1 to 12 hours). **Assume role duration** applies only to [chained assume-role sessions](/aws/assume-role).
 
+## Change the start URL
+
+In the desktop app, open the portal's menu and choose **Edit**. The **Start URL** field shows the URL, and you can copy or change it. Change it when the portal moves to another URL, for example from the `d-` URL to your organization's alias. The portal keeps its name and its sessions, with their names, tags, and favorites.
+
+A change to another URL signs you out of the portal. Sign in again: sync then keeps each session whose account and role the new portal has, and removes the others. A change of letter case or a trailing slash does not sign you out.
+
 ## Import
 
 rolle imports portals from the AWS CLI config (`sso-session` and legacy `sso_start_url` sections) and from Granted profiles. rolle reuses a valid AWS CLI token for the portal.

@@ -600,7 +600,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                         const logout = integ.cloud === CloudKind.CloudAzure ? api.AzureLogout : api.SSOLogout;
                         const actions: Action[] = [
                           {
-                            label: "Rename",
+                            label: "Edit",
                             icon: <Pencil />,
                             onSelect: () => setDialog({ kind: "rename", integration: integ }),
                           },
@@ -657,6 +657,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                                 label={integ.alias}
                                 hint={hintFor(integ.id)}
                                 dot={loggedIn ? "ok" : "off"}
+                                detail={integ.awsSso?.startUrl}
                                 trailing={
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -1117,6 +1118,17 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 id: dialog.integration.id,
                 name: dialog.integration.alias,
                 save: (n) => api.RenameIntegration(dialog.integration.id, n),
+                ...(dialog.integration.awsSso && {
+                  description: "Change the name or the start URL of the portal.",
+                  details: [
+                    {
+                      label: "Start URL",
+                      value: dialog.integration.awsSso.startUrl,
+                      save: (u) => api.SetStartURL(dialog.integration.id, u),
+                      note: "A different portal signs you out. After you sign in and sync, rolle removes the sessions that the new portal does not have.",
+                    },
+                  ],
+                }),
               }
             : null
         }
@@ -1140,6 +1152,7 @@ function SideItem({
   icon,
   trailing,
   hint,
+  detail,
   dropping,
   popped,
   accent,
@@ -1155,6 +1168,8 @@ function SideItem({
   trailing?: React.ReactNode;
   /** Shortcut badge shown while the modifier is held. */
   hint?: string;
+  /** Second line of the hover title, such as a portal's start URL. */
+  detail?: string;
   /** A drag hovers over this item. */
   dropping?: boolean;
   /** A drop just landed here; plays the pop. */
@@ -1185,7 +1200,7 @@ function SideItem({
         type="button"
         onClick={onClick}
         // The dot alone is colour only; the title names the state for hover and assistive tech.
-        title={dot ? (dot === "ok" ? "Signed in" : "Signed out") : undefined}
+        title={[dot && (dot === "ok" ? "Signed in" : "Signed out"), detail].filter(Boolean).join("\n") || undefined}
         className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-sm"
       >
         {/* Fixed slot for the icon or the dot keeps every label in one column. */}

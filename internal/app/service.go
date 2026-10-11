@@ -385,19 +385,9 @@ func (s *Service) SSOLogout(ref string) error {
 	if err != nil {
 		return err
 	}
-	if err := s.sso(*in).Logout(); err != nil {
+	cleanup, err := s.signOutSSO(w, in)
+	if err != nil {
 		return err
-	}
-	in.AWSSSO.TokenExpires = nil
-	in.AWSSSO.Renews = false
-	// Cleanup failures are reported after the save, as in RemoveIntegration.
-	var cleanup []error
-	for i := range w.Sessions {
-		if w.Sessions[i].IntegrationID == in.ID {
-			if err := s.deactivate(&w.Sessions[i]); err != nil {
-				cleanup = append(cleanup, err)
-			}
-		}
 	}
 	if err := s.Save(w); err != nil {
 		return err
@@ -406,6 +396,27 @@ func (s *Service) SSOLogout(ref string) error {
 		return fmt.Errorf("%s signed out, but cleanup failed: %w", in.Alias, errors.Join(cleanup...))
 	}
 	return nil
+}
+
+// signOutSSO deletes the token of the portal in, clears its expiry, and
+// stops its sessions in w. The sessions stay. The caller saves w. The
+// cleanup errors are for the caller to report after the save, as in
+// RemoveIntegration.
+func (s *Service) signOutSSO(w *core.Workspace, in *core.Integration) ([]error, error) {
+	if err := s.sso(*in).Logout(); err != nil {
+		return nil, err
+	}
+	in.AWSSSO.TokenExpires = nil
+	in.AWSSSO.Renews = false
+	var cleanup []error
+	for i := range w.Sessions {
+		if w.Sessions[i].IntegrationID == in.ID {
+			if err := s.deactivate(&w.Sessions[i]); err != nil {
+				cleanup = append(cleanup, err)
+			}
+		}
+	}
+	return cleanup, nil
 }
 
 // SyncSSO discovers accounts and roles and adds a session for each new role.
@@ -1419,6 +1430,48 @@ func (s *Service) RenameIntegration(ref, alias string) error {
 	}
 	in.Alias = alias
 	return s.Save(w)
+}
+
+// SetStartURL changes the start URL of an Identity Center portal. The
+// portal keeps its ID, its name, and its sessions. If the URL points to a
+// different portal, rolle signs out of the old one first. The next sync
+// keeps each session whose account and role the new portal has, and
+// removes the others. A change of letter case or a trailing slash only
+// stores the new text.
+func (s *Service) SetStartURL(ref, startURL string) error {
+	startURL = strings.TrimSpace(startURL)
+	if u, err := url.Parse(startURL); err != nil || u.Scheme != "https" || u.Host == "" {
+		return errors.New("the start URL must be an https URL")
+	}
+	w, err := s.Load()
+	if err != nil {
+		return err
+	}
+	in, err := ssoIntegration(w, ref)
+	if err != nil {
+		return err
+	}
+	next := core.Integration{AWSSSO: &core.AWSSSOIntegration{StartURL: startURL}}
+	key := policy.Key(next)
+	for _, other := range w.Integrations {
+		if other.ID != in.ID && policy.Key(other) == key {
+			return fmt.Errorf("%s already uses this start URL", other.Alias)
+		}
+	}
+	var cleanup []error
+	if policy.Key(*in) != key {
+		if cleanup, err = s.signOutSSO(w, in); err != nil {
+			return err
+		}
+	}
+	in.AWSSSO.StartURL = startURL
+	if err := s.Save(w); err != nil {
+		return err
+	}
+	if len(cleanup) > 0 {
+		return fmt.Errorf("start URL changed, but cleanup failed: %w", errors.Join(cleanup...))
+	}
+	return nil
 }
 
 // RenameSession changes a session's name. An active AWS session moves its

@@ -592,6 +592,11 @@ export const mockApi = {
     if (x) x.alias = alias;
     emit();
   },
+  SetStartURL: async (ref: string, startUrl: string) => {
+    const x = state.integrations.find((i) => i.id === ref);
+    if (x?.awsSso && x.awsSso.startUrl !== startUrl) x.awsSso = { ...x.awsSso, startUrl, tokenExpires: null };
+    emit();
+  },
   CheckForUpdates: async () => {
     await wait(800);
     if (await mockApi.UpdatesManaged()) {
