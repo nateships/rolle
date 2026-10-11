@@ -470,6 +470,12 @@ func (r *RolleService) RenameIntegration(ref, alias string) error {
 	return r.svc.RenameIntegration(ref, alias)
 }
 
+// SetStartURL changes a portal's start URL. A different portal signs out
+// and keeps the sessions.
+func (r *RolleService) SetStartURL(ref, startURL string) error {
+	return r.svc.SetStartURL(ref, startURL)
+}
+
 // SetFavorite pins or unpins a session.
 func (r *RolleService) SetFavorite(ref string, favorite bool) error {
 	return r.svc.SetFavorite(ref, favorite)

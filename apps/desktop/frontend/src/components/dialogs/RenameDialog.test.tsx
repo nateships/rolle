@@ -38,7 +38,7 @@ describe("RenameDialog", () => {
 
   it("titles an integration rename as an account", () => {
     render(<RenameDialog target={target({ kind: "integration", name: "acme" })} onClose={vi.fn()} />);
-    expect(screen.getByRole("dialog", { name: "Rename account" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Edit account" })).toBeInTheDocument();
     expect(screen.getByText("Only the display name changes.")).toBeInTheDocument();
   });
 

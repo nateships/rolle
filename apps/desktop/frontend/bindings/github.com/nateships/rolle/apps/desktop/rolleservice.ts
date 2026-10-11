@@ -406,6 +406,14 @@ export function SetSessionTag(ref: string, tag: string, on: boolean): $Cancellab
 }
 
 /**
+ * SetStartURL changes a portal's start URL. A different portal signs out
+ * and keeps the sessions.
+ */
+export function SetStartURL(ref: string, startURL: string): $CancellablePromise<void> {
+    return $Call.ByID(3907995336, ref, startURL);
+}
+
+/**
  * Settings returns the effective user preferences.
  */
 export function Settings(): $CancellablePromise<core$0.Settings> {
