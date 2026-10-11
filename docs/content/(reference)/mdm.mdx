@@ -100,6 +100,8 @@ Put the settings for your users in a `Settings` dictionary. rolle applies each v
 | `NotifyLeadMinutes` | integer | Minutes before expiry that the warning shows, up to 60 |
 | `Terminal` | string | Terminal for **Open terminal**: `auto`, `terminal`, `iterm`, `ghostty`, `warp`, or `cmux` |
 
+In **Settings**, a building icon marks each setting that the profile sets. Its hover text says whether the user can change the setting or the profile locks it.
+
 rolle ignores a key that is not in the table and a value of the wrong type. It clamps a value out of range the same way the settings screen does. Appearance stays with the user. For a login item, use your MDM's managed login items.
 
 ### Locked settings
@@ -139,7 +141,7 @@ This profile turns off self-updates, sets the region and the role duration, and 
 
 ## Integrations
 
-Put the IAM Identity Center portals and Entra ID tenants of your organization in an `Integrations` array. Users then only sign in. rolle adds each one once. Users can rename it, change its start URL, remove it, and add their own integrations next to it. If a user removes one, rolle adds it again only when you change its entry in the profile. If the user has the same portal or tenant already, rolle keeps theirs and adds no copy. When you change the region of a portal, rolle updates the region of the user's portal.
+Put the IAM Identity Center portals and Entra ID tenants of your organization in an `Integrations` array. Users then only sign in. rolle adds each one once. Users can rename it, change its start URL, remove it, and add their own integrations next to it. The sidebar shows a building icon next to each portal and tenant that the profile adds, and its hover text says that your organization manages it. If a user removes one, rolle adds it again only when you change its entry in the profile. If the user has the same portal or tenant already, rolle keeps theirs and adds no copy. When you change the region of a portal, rolle updates the region of the user's portal.
 
 | Key | Type | Value |
 |---|---|---|

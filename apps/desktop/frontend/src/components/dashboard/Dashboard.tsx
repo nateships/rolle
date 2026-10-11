@@ -1,6 +1,7 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   ArrowUpCircle,
+  Building2,
   Cloud,
   Import,
   Keyboard,
@@ -156,6 +157,11 @@ const CLOUD_SECTIONS: { key: string; cloud: string; mark: "aws" | "azure" | "gcp
   ];
 
 export function Dashboard({ workspace }: { workspace: Workspace }) {
+  // Says that the organization's profile adds the integration, or undefined.
+  const orgNote = (integ: Integration) =>
+    workspace.managedIntegrations?.includes(integ.id)
+      ? `Your organization manages this ${integ.cloud === CloudKind.CloudAzure ? "tenant" : "portal"}.`
+      : undefined;
   const [query, setQuery] = useState("");
   const [widths, setWidths] = useColumnWidths();
   const [sidebarWidth, setSidebarWidth] = useSidebarWidth();
@@ -657,7 +663,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                                 label={integ.alias}
                                 hint={hintFor(integ.id)}
                                 dot={loggedIn ? "ok" : "off"}
-                                detail={integ.awsSso?.startUrl}
+                                managed={orgNote(integ) && "Managed by your organization"}
                                 trailing={
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -1118,8 +1124,16 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 id: dialog.integration.id,
                 name: dialog.integration.alias,
                 save: (n) => api.RenameIntegration(dialog.integration.id, n),
+                description:
+                  [
+                    orgNote(dialog.integration),
+                    dialog.integration.awsSso
+                      ? "Change the name or the start URL of the portal."
+                      : orgNote(dialog.integration) && "Only the display name changes.",
+                  ]
+                    .filter(Boolean)
+                    .join(" ") || undefined,
                 ...(dialog.integration.awsSso && {
-                  description: "Change the name or the start URL of the portal.",
                   details: [
                     {
                       label: "Start URL",
@@ -1152,7 +1166,7 @@ function SideItem({
   icon,
   trailing,
   hint,
-  detail,
+  managed,
   dropping,
   popped,
   accent,
@@ -1168,8 +1182,8 @@ function SideItem({
   trailing?: React.ReactNode;
   /** Shortcut badge shown while the modifier is held. */
   hint?: string;
-  /** Second line of the hover title, such as a portal's start URL. */
-  detail?: string;
+  /** Says that the organization manages the item: shows a building icon with this text as its hover title. */
+  managed?: string;
   /** A drag hovers over this item. */
   dropping?: boolean;
   /** A drop just landed here; plays the pop. */
@@ -1183,6 +1197,10 @@ function SideItem({
   // playing on the old one and again when the new one arrives.
   const [countAtPop, setCountAtPop] = useState(count);
   if (!popped && countAtPop !== count) setCountAtPop(count);
+  // The dot alone is colour only. Its slot's title names the state on hover,
+  // and the hidden text below describes the button for assistive tech.
+  const state = dot && (dot === "ok" ? "Signed in" : "Signed out");
+  const describedBy = useId();
   return (
     <div
       {...rest}
@@ -1199,12 +1217,11 @@ function SideItem({
       <button
         type="button"
         onClick={onClick}
-        // The dot alone is colour only; the title names the state for hover and assistive tech.
-        title={[dot && (dot === "ok" ? "Signed in" : "Signed out"), detail].filter(Boolean).join("\n") || undefined}
+        aria-describedby={state || managed ? describedBy : undefined}
         className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-sm"
       >
         {/* Fixed slot for the icon or the dot keeps every label in one column. */}
-        <span className="flex size-3.5 shrink-0 items-center justify-center">
+        <span title={state || undefined} className="flex size-3.5 shrink-0 items-center justify-center">
           {icon}
           {dot && (
             <span
@@ -1214,6 +1231,12 @@ function SideItem({
           )}
         </span>
         <span className="truncate">{label}</span>
+        {/* Out of the button's name; the hidden description says the same. */}
+        {managed && (
+          <span aria-hidden title={managed} data-managed className="flex shrink-0">
+            <Building2 className="size-3 text-muted-foreground/70" />
+          </span>
+        )}
         {count !== undefined && (
           <span
             // The key remounts the badge when the count changes, so the bump
@@ -1230,6 +1253,11 @@ function SideItem({
         )}
         <span className="flex-1" />
       </button>
+      {(state || managed) && (
+        <span id={describedBy} hidden>
+          {[state, managed].filter(Boolean).join(". ")}
+        </span>
+      )}
       {/* Fixed slot keeps counts aligned whether or not a row has a control. */}
       <span className="flex size-6 shrink-0 items-center justify-center">{trailing}</span>
       {hint && <Key className="absolute right-1.5 top-1/2 h-5 -translate-y-1/2 text-[10px]">{hint}</Key>}

@@ -414,14 +414,10 @@ describe("Dashboard", () => {
       ).toEqual(["Edit", "Sync", "Sign out", "Remove"]);
     });
 
-    it("shows a portal's start URL on hover and copies it from Edit", async () => {
+    it("copies a portal's start URL from Edit", async () => {
       const user = userEvent.setup();
       const success = vi.spyOn(toast, "success");
       renderDashboard();
-      expect(screen.getByRole("button", { name: "acme" })).toHaveAttribute(
-        "title",
-        "Signed in\nhttps://acme.awsapps.com/start",
-      );
       await pick(user, "acme", /edit/i);
       const dialog = await screen.findByRole("dialog", { name: /edit account/i });
       await user.click(within(dialog).getByRole("button", { name: "Copy Start URL" }));
@@ -552,6 +548,34 @@ describe("Dashboard", () => {
       expect(rename).not.toHaveBeenCalled();
       expect(success).toHaveBeenCalledWith("Saved");
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    });
+
+    it("marks the integrations that the organization manages", async () => {
+      const user = userEvent.setup();
+      workspace = { ...workspace, managedIntegrations: ["acme", "contoso"] };
+      renderDashboard();
+      const acme = screen.getByRole("button", { name: "acme" });
+      expect(acme).not.toHaveAttribute("title");
+      expect(acme).toHaveAccessibleDescription("Signed in. Managed by your organization");
+      expect(acme.querySelector("[data-managed]")).toHaveAttribute("title", "Managed by your organization");
+      expect(acme.querySelector('[title="Signed in"]')).not.toBeNull();
+      const contoso = screen.getByRole("button", { name: "contoso" });
+      expect(contoso.querySelector("[data-managed]")).toHaveAttribute("title", "Managed by your organization");
+      const eu = screen.getByRole("button", { name: "acme-eu" });
+      expect(eu.querySelector("[data-managed]")).toBeNull();
+      expect(eu).toHaveAccessibleDescription("Signed out");
+      expect(eu.querySelector('[title="Signed out"]')).not.toBeNull();
+
+      await pick(user, "acme", /edit/i);
+      expect(await screen.findByRole("dialog", { name: /edit account/i })).toHaveAccessibleDescription(
+        "Your organization manages this portal. Change the name or the start URL of the portal.",
+      );
+      await user.keyboard("{Escape}");
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      await pick(user, "contoso", /edit/i);
+      expect(await screen.findByRole("dialog", { name: /edit account/i })).toHaveAccessibleDescription(
+        "Your organization manages this tenant. Only the display name changes.",
+      );
     });
 
     it("offers the same actions on right click", async () => {

@@ -41,6 +41,7 @@ describe("SettingsDialog", () => {
     vi.spyOn(api, "Settings").mockResolvedValue({ ...base });
     vi.spyOn(api, "UpdatesManaged").mockResolvedValue(false);
     vi.spyOn(api, "LockedSettings").mockResolvedValue([]);
+    vi.spyOn(api, "ManagedSettings").mockResolvedValue([]);
     update = vi.spyOn(api, "UpdateSettings").mockImplementation(((s: Settings) => Promise.resolve({ ...s })) as never);
   });
 
@@ -247,6 +248,25 @@ describe("SettingsDialog", () => {
     expect(screen.getByRole("switch", { name: "Azure tenants" })).toBeDisabled();
   });
 
+  it("marks the settings that the organization locks or presets", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, "LockedSettings").mockResolvedValue(["terminal", "proxyUrl", "hiddenSections"]);
+    vi.spyOn(api, "ManagedSettings").mockResolvedValue(["defaultRegion", "hiddenSections", "proxyUrl", "terminal"]);
+    const mark = (label: string) => screen.getByText(label, { selector: "label, p" }).querySelector("[data-org]");
+    await open();
+    await waitFor(() => expect(mark("Terminal app")).toHaveAttribute("title", "Locked by your organization"));
+    expect(mark("Keep running in the tray")).toBeNull();
+    await tab(user, "AWS");
+    expect(mark("Default region")).toHaveAttribute("title", "Set by your organization. You can change it.");
+    expect(screen.getByText("Set by your organization. You can change it.")).toHaveClass("sr-only");
+    expect(mark("Assume role duration")).toBeNull();
+    await tab(user, "Appearance");
+    expect(mark("Sidebar sections")).toHaveAttribute("title", "Locked by your organization");
+    await tab(user, "Advanced");
+    expect(mark("HTTPS proxy")).toHaveAttribute("title", "Locked by your organization");
+    expect(mark("Extra CA bundle")).toBeNull();
+  });
+
   it("locks the automatic updates switch when the organization manages updates", async () => {
     vi.spyOn(api, "UpdatesManaged").mockResolvedValue(true);
     await open();
@@ -254,6 +274,10 @@ describe("SettingsDialog", () => {
     await waitFor(() => expect(sw).toBeDisabled());
     expect(sw).not.toBeChecked();
     expect(screen.getByText("Your organization manages updates.")).toBeInTheDocument();
+    expect(screen.getByText("Automatic updates", { selector: "label" }).querySelector("[data-org]")).toHaveAttribute(
+      "title",
+      "Locked by your organization",
+    );
   });
 
   it("shows an update check failure", async () => {

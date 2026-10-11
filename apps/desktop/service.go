@@ -86,6 +86,7 @@ func (r *RolleService) Workspace() (*core.Workspace, error) {
 		return nil, err
 	}
 	w.ShadowedProfiles = r.svc.ShadowedProfiles(w)
+	w.ManagedIntegrations = r.svc.ManagedIntegrations(w)
 	return w, nil
 }
 
@@ -385,6 +386,11 @@ func (r *RolleService) Settings() (core.Settings, error) { return r.svc.Settings
 // organization's configuration profile locks. The settings screen disables
 // their controls.
 func (r *RolleService) LockedSettings() []string { return r.svc.LockedSettings() }
+
+// ManagedSettings lists the JSON names of the settings that the
+// organization's configuration profile sets, locked or not. The settings
+// screen marks them.
+func (r *RolleService) ManagedSettings() []string { return r.svc.ManagedSettings() }
 
 // UpdateSettings stores preferences. The update ticker reads AutoUpdateOff on
 // every tick, so the change applies without a restart.

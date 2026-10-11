@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/nateships/rolle/internal/core"
@@ -100,6 +101,15 @@ func TestPolicyLockedValueWins(t *testing.T) {
 	}
 	if !slices.Equal(s.LockedSettings(), []string{"updateChannel"}) {
 		t.Fatalf("LockedSettings = %v", s.LockedSettings())
+	}
+	if !slices.Equal(s.ManagedSettings(), []string{"terminal", "updateChannel"}) {
+		t.Fatalf("ManagedSettings = %v", s.ManagedSettings())
+	}
+}
+
+func TestManagedSettingsWithoutProfileIsEmpty(t *testing.T) {
+	if got := testService(t).ManagedSettings(); got != nil {
+		t.Fatalf("ManagedSettings = %v", got)
 	}
 }
 
@@ -242,5 +252,60 @@ func TestFreeAliasKeepsTheBase(t *testing.T) {
 	}
 	if got := freeAlias(w, "new"); got != "new" {
 		t.Fatalf("freeAlias = %q", got)
+	}
+}
+
+func TestManagedIntegrationsFollowTheProfile(t *testing.T) {
+	s := testService(t)
+	// The user added this portal before the profile, with a trailing slash.
+	mine, err := s.AddAWSSSO("acme-mine", "https://acme.awsapps.com/start/", "us-east-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, err := s.AddAWSSSO("globex", "https://globex.awsapps.com/start", "us-east-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	set := withPolicy(s, policy.Policy{Integrations: []policy.Integration{
+		acmeSSO("us-east-1"),
+		{Type: "azure", Alias: "contoso", TenantID: "t-1"},
+	}})
+	w, err := s.Load()
+	if err != nil {
+		t.Fatal(err)
+	}
+	az, err := FindIntegration(w, "contoso")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := s.ManagedIntegrations(w); !slices.Equal(got, []string{mine.ID, az.ID}) {
+		t.Fatalf("managed = %v, want %v and %v, not %v", got, mine.ID, az.ID, other.ID)
+	}
+
+	// Save leaves the computed list out of the file.
+	w.ManagedIntegrations = s.ManagedIntegrations(w)
+	if err := s.Save(w); err != nil {
+		t.Fatal(err)
+	}
+	data, err := os.ReadFile(s.WorkspacePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(data), "managedIntegrations") {
+		t.Fatalf("workspace on disk has the computed list:\n%s", data)
+	}
+
+	// A portal that moves to another start URL is no longer the profile's.
+	if err := s.SetStartURL(mine.ID, "https://acme-other.awsapps.com/start"); err != nil {
+		t.Fatal(err)
+	}
+	if w, _ = s.Load(); !slices.Equal(s.ManagedIntegrations(w), []string{az.ID}) {
+		t.Fatalf("managed after the URL change = %v", s.ManagedIntegrations(w))
+	}
+
+	// Without a profile, nothing is managed.
+	set(policy.Policy{})
+	if w, _ = s.Load(); s.ManagedIntegrations(w) != nil {
+		t.Fatalf("managed without a profile = %v", s.ManagedIntegrations(w))
 	}
 }

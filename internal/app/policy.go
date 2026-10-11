@@ -33,6 +33,36 @@ func (s *Service) LockedSettings() []string {
 	return names
 }
 
+// ManagedSettings lists the JSON names of the settings that the
+// organization's profile sets, locked or not.
+func (s *Service) ManagedSettings() []string {
+	var names []string
+	for name := range s.policy().Settings {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	return names
+}
+
+// ManagedIntegrations lists the IDs of the integrations in w that the
+// organization's profile adds. An integration matches a profile entry by its
+// start URL or tenant ID, so a portal that the user added before the profile
+// matches too. w.Managed holds the entries of the profile that Load applied.
+func (s *Service) ManagedIntegrations(w *core.Workspace) []string {
+	if w.Managed == nil {
+		return nil
+	}
+	var ids []string
+	for _, in := range w.Integrations {
+		if key := policy.Key(in); key != "" {
+			if _, ok := w.Managed.Integrations[key]; ok {
+				ids = append(ids, in.ID)
+			}
+		}
+	}
+	return ids
+}
+
 // applyPolicy puts the profile into w. A setting or an integration applies
 // when the profile sets a value that rolle has not applied before. Thus the
 // user can change or remove it, until the profile sets another value. A

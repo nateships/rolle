@@ -327,6 +327,10 @@ type Workspace struct {
 	// keys tools read instead of it. The desktop app fills it when it hands
 	// the workspace to the window; Save leaves it out.
 	ShadowedProfiles map[string]string `json:"shadowedProfiles,omitempty"`
+	// ManagedIntegrations lists the IDs of the integrations that the
+	// organization's configuration profile adds. The desktop app fills it
+	// when it hands the workspace to the window; Save leaves it out.
+	ManagedIntegrations []string `json:"managedIntegrations,omitempty"`
 }
 
 // Managed is the record of what a configuration profile applied.
