@@ -21,11 +21,14 @@ const emit = () => listeners.forEach((l) => l());
 // ?keys=1 adds static keys in ~/.aws/credentials to the demo: a shadowed
 // profile on the personal user and two profiles for the cleanup card.
 const demoKeys = new URLSearchParams(location.search).get("keys") === "1";
+// ?org=1 previews integrations that the organization's profile adds.
+const demoOrg = new URLSearchParams(location.search).get("org") === "1";
 
 const state: Workspace = {
   version: 1,
   onboarded: new URLSearchParams(location.search).get("view") === "dashboard",
   shadowedProfiles: demoKeys ? { personal: "~/.aws/credentials" } : undefined,
+  managedIntegrations: demoOrg ? ["acme", "contoso"] : undefined,
   integrations: [],
   sessions: [],
   tags: [],

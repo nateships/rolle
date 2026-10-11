@@ -554,6 +554,36 @@ describe("Dashboard", () => {
       await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     });
 
+    it("marks the integrations that the organization manages", async () => {
+      const user = userEvent.setup();
+      workspace = { ...workspace, managedIntegrations: ["acme", "contoso"] };
+      renderDashboard();
+      const acme = screen.getByRole("button", { name: "acme" });
+      expect(acme).toHaveAttribute(
+        "title",
+        "Signed in\nhttps://acme.awsapps.com/start\nYour organization manages this portal.",
+      );
+      expect(acme.querySelector("[data-managed]")).not.toBeNull();
+      expect(screen.getByRole("button", { name: "contoso" })).toHaveAttribute(
+        "title",
+        "Signed in\nYour organization manages this tenant.",
+      );
+      const eu = screen.getByRole("button", { name: "acme-eu" });
+      expect(eu.querySelector("[data-managed]")).toBeNull();
+      expect(eu).toHaveAttribute("title", "Signed out\nhttps://acme-eu.awsapps.com/start");
+
+      await pick(user, "acme", /edit/i);
+      expect(await screen.findByRole("dialog", { name: /edit account/i })).toHaveAccessibleDescription(
+        "Your organization manages this portal. Change the name or the start URL of the portal.",
+      );
+      await user.keyboard("{Escape}");
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      await pick(user, "contoso", /edit/i);
+      expect(await screen.findByRole("dialog", { name: /edit account/i })).toHaveAccessibleDescription(
+        "Your organization manages this tenant. Only the display name changes.",
+      );
+    });
+
     it("offers the same actions on right click", async () => {
       const user = userEvent.setup();
       const remove = vi.spyOn(api, "RemoveIntegration").mockResolvedValue();

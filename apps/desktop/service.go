@@ -86,6 +86,7 @@ func (r *RolleService) Workspace() (*core.Workspace, error) {
 		return nil, err
 	}
 	w.ShadowedProfiles = r.svc.ShadowedProfiles(w)
+	w.ManagedIntegrations = r.svc.ManagedIntegrations(w)
 	return w, nil
 }
 

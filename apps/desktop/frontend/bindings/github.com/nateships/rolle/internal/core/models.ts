@@ -451,4 +451,11 @@ export interface Workspace {
      * the workspace to the window; Save leaves it out.
      */
     "shadowedProfiles"?: { [_ in string]?: string } | null;
+
+    /**
+     * ManagedIntegrations lists the IDs of the integrations that the
+     * organization's configuration profile adds. The desktop app fills it
+     * when it hands the workspace to the window; Save leaves it out.
+     */
+    "managedIntegrations"?: string[] | null;
 }

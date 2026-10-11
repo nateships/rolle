@@ -46,6 +46,7 @@ func Save(path string, w *core.Workspace) error {
 	w.Version = core.WorkspaceVersion
 	// Computed for the window, not part of the file.
 	w.ShadowedProfiles = nil
+	w.ManagedIntegrations = nil
 	data, err := json.MarshalIndent(w, "", "  ")
 	if err != nil {
 		return err

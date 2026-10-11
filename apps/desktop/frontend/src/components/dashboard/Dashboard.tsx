@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowUpCircle,
+  Building2,
   Cloud,
   Import,
   Keyboard,
@@ -156,6 +157,11 @@ const CLOUD_SECTIONS: { key: string; cloud: string; mark: "aws" | "azure" | "gcp
   ];
 
 export function Dashboard({ workspace }: { workspace: Workspace }) {
+  // Says that the organization's profile adds the integration, or undefined.
+  const orgNote = (integ: Integration) =>
+    workspace.managedIntegrations?.includes(integ.id)
+      ? `Your organization manages this ${integ.cloud === CloudKind.CloudAzure ? "tenant" : "portal"}.`
+      : undefined;
   const [query, setQuery] = useState("");
   const [widths, setWidths] = useColumnWidths();
   const [sidebarWidth, setSidebarWidth] = useSidebarWidth();
@@ -658,6 +664,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                                 hint={hintFor(integ.id)}
                                 dot={loggedIn ? "ok" : "off"}
                                 detail={integ.awsSso?.startUrl}
+                                managed={orgNote(integ)}
                                 trailing={
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -1118,8 +1125,16 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
                 id: dialog.integration.id,
                 name: dialog.integration.alias,
                 save: (n) => api.RenameIntegration(dialog.integration.id, n),
+                description:
+                  [
+                    orgNote(dialog.integration),
+                    dialog.integration.awsSso
+                      ? "Change the name or the start URL of the portal."
+                      : orgNote(dialog.integration) && "Only the display name changes.",
+                  ]
+                    .filter(Boolean)
+                    .join(" ") || undefined,
                 ...(dialog.integration.awsSso && {
-                  description: "Change the name or the start URL of the portal.",
                   details: [
                     {
                       label: "Start URL",
@@ -1153,6 +1168,7 @@ function SideItem({
   trailing,
   hint,
   detail,
+  managed,
   dropping,
   popped,
   accent,
@@ -1170,6 +1186,8 @@ function SideItem({
   hint?: string;
   /** Second line of the hover title, such as a portal's start URL. */
   detail?: string;
+  /** Says that the organization manages the item: shows a building icon and adds the text to the hover title. */
+  managed?: string;
   /** A drag hovers over this item. */
   dropping?: boolean;
   /** A drop just landed here; plays the pop. */
@@ -1200,7 +1218,9 @@ function SideItem({
         type="button"
         onClick={onClick}
         // The dot alone is colour only; the title names the state for hover and assistive tech.
-        title={[dot && (dot === "ok" ? "Signed in" : "Signed out"), detail].filter(Boolean).join("\n") || undefined}
+        title={
+          [dot && (dot === "ok" ? "Signed in" : "Signed out"), detail, managed].filter(Boolean).join("\n") || undefined
+        }
         className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-sm"
       >
         {/* Fixed slot for the icon or the dot keeps every label in one column. */}
@@ -1214,6 +1234,8 @@ function SideItem({
           )}
         </span>
         <span className="truncate">{label}</span>
+        {/* The hover title carries the text, so the icon stays out of the button's name. */}
+        {managed && <Building2 aria-hidden data-managed className="size-3 shrink-0 text-muted-foreground/70" />}
         {count !== undefined && (
           <span
             // The key remounts the badge when the count changes, so the bump
