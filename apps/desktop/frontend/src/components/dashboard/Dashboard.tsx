@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useId, useMemo, useRef, useState } from "react";
 import {
   ArrowUpCircle,
   Building2,
@@ -1197,6 +1197,10 @@ function SideItem({
   // playing on the old one and again when the new one arrives.
   const [countAtPop, setCountAtPop] = useState(count);
   if (!popped && countAtPop !== count) setCountAtPop(count);
+  // The dot alone is colour only. Its slot's title names the state on hover,
+  // and the hidden text below describes the button for assistive tech.
+  const state = dot && (dot === "ok" ? "Signed in" : "Signed out");
+  const describedBy = useId();
   return (
     <div
       {...rest}
@@ -1213,12 +1217,11 @@ function SideItem({
       <button
         type="button"
         onClick={onClick}
-        // The dot alone is colour only; the title names the state for hover and assistive tech.
-        title={dot ? (dot === "ok" ? "Signed in" : "Signed out") : undefined}
+        aria-describedby={state || managed ? describedBy : undefined}
         className="flex min-w-0 flex-1 items-center gap-2 px-2 py-1.5 text-left text-sm"
       >
         {/* Fixed slot for the icon or the dot keeps every label in one column. */}
-        <span className="flex size-3.5 shrink-0 items-center justify-center">
+        <span title={state || undefined} className="flex size-3.5 shrink-0 items-center justify-center">
           {icon}
           {dot && (
             <span
@@ -1228,7 +1231,7 @@ function SideItem({
           )}
         </span>
         <span className="truncate">{label}</span>
-        {/* Hidden from the button's name; the Edit dialog says the same in text. */}
+        {/* Out of the button's name; the hidden description says the same. */}
         {managed && (
           <span aria-hidden title={managed} data-managed className="flex shrink-0">
             <Building2 className="size-3 text-muted-foreground/70" />
@@ -1250,6 +1253,11 @@ function SideItem({
         )}
         <span className="flex-1" />
       </button>
+      {(state || managed) && (
+        <span id={describedBy} hidden>
+          {[state, managed].filter(Boolean).join(". ")}
+        </span>
+      )}
       {/* Fixed slot keeps counts aligned whether or not a row has a control. */}
       <span className="flex size-6 shrink-0 items-center justify-center">{trailing}</span>
       {hint && <Key className="absolute right-1.5 top-1/2 h-5 -translate-y-1/2 text-[10px]">{hint}</Key>}

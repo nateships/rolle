@@ -555,11 +555,16 @@ describe("Dashboard", () => {
       workspace = { ...workspace, managedIntegrations: ["acme", "contoso"] };
       renderDashboard();
       const acme = screen.getByRole("button", { name: "acme" });
-      expect(acme).toHaveAttribute("title", "Signed in");
+      expect(acme).not.toHaveAttribute("title");
+      expect(acme).toHaveAccessibleDescription("Signed in. Managed by your organization");
       expect(acme.querySelector("[data-managed]")).toHaveAttribute("title", "Managed by your organization");
+      expect(acme.querySelector('[title="Signed in"]')).not.toBeNull();
       const contoso = screen.getByRole("button", { name: "contoso" });
       expect(contoso.querySelector("[data-managed]")).toHaveAttribute("title", "Managed by your organization");
-      expect(screen.getByRole("button", { name: "acme-eu" }).querySelector("[data-managed]")).toBeNull();
+      const eu = screen.getByRole("button", { name: "acme-eu" });
+      expect(eu.querySelector("[data-managed]")).toBeNull();
+      expect(eu).toHaveAccessibleDescription("Signed out");
+      expect(eu.querySelector('[title="Signed out"]')).not.toBeNull();
 
       await pick(user, "acme", /edit/i);
       expect(await screen.findByRole("dialog", { name: /edit account/i })).toHaveAccessibleDescription(
