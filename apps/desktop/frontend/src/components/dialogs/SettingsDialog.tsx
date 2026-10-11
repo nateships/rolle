@@ -1,5 +1,17 @@
 import { useEffect, useState } from "react";
-import { Check, Copy, Download, Loader2, Monitor, Moon, RefreshCw, RotateCcw, Sun, Trash2 } from "lucide-react";
+import {
+  Building2,
+  Check,
+  Copy,
+  Download,
+  Loader2,
+  Monitor,
+  Moon,
+  RefreshCw,
+  RotateCcw,
+  Sun,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { StaticKeysCard } from "@/components/StaticKeys";
@@ -55,6 +67,8 @@ const DURATIONS = [60, 120, 240, 480, 720];
 
 // The hint of a control whose setting a configuration profile locks.
 const MANAGED_HINT = "Your organization manages this setting.";
+const LOCKED_MARK = "Locked by your organization";
+const PRESET_MARK = "Set by your organization. You can change it.";
 
 /** `tab` picks the tab that shows first. The URL's `?tab=` does the same in a browser. */
 export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: string; onClose: () => void }) {
@@ -79,6 +93,9 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
   const [locked, setLocked] = useState<string[]>([]);
   const isLocked = (key: string) => locked.includes(key);
   const hintFor = (key: string, hint: string) => (isLocked(key) ? MANAGED_HINT : hint);
+  // The settings that a configuration profile sets, locked or not, by JSON name.
+  const [preset, setPreset] = useState<string[]>([]);
+  const orgFor = (key: string) => (isLocked(key) ? LOCKED_MARK : preset.includes(key) ? PRESET_MARK : undefined);
 
   const checkUpdates = async () => {
     setChecking(true);
@@ -132,6 +149,10 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
       .LockedSettings()
       .then((l) => setLocked(l ?? []))
       .catch(() => setLocked([]));
+    api
+      .ManagedSettings()
+      .then((p) => setPreset(p ?? []))
+      .catch(() => setPreset([]));
   }, [open]);
 
   const update = async (patch: Partial<Settings>) => {
@@ -197,7 +218,11 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
             </TabsList>
 
             <TabsContent value="general" className="mt-4 min-h-[27rem] space-y-4">
-              <Row label="Terminal app" hint={hintFor("terminal", "Used by Open terminal on a session.")}>
+              <Row
+                org={orgFor("terminal")}
+                label="Terminal app"
+                hint={hintFor("terminal", "Used by Open terminal on a session.")}
+              >
                 <Select
                   value={settings.terminal || "auto"}
                   onValueChange={(v) => update({ terminal: v })}
@@ -217,6 +242,7 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
               </Row>
               <Row
                 label="Keep running in the tray"
+                org={orgFor("hideOnClose")}
                 hint={hintFor("hideOnClose", "Closing the window hides it instead of quitting.")}
               >
                 <Switch
@@ -235,6 +261,7 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
               </Row>
               <Row
                 label="Expiry notifications"
+                org={orgFor("notifyOff")}
                 hint={hintFor(
                   "notifyOff",
                   `Warns before a session or sign-in expires.${IS_MAC ? " Needs macOS permission (System Settings → Notifications)." : ""}`,
@@ -250,6 +277,7 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
               {!settings.notifyOff && (
                 <Row
                   label="Warn before a session expires"
+                  org={orgFor("notifyLeadMinutes")}
                   hint={hintFor("notifyLeadMinutes", "The tray flags the session for the same time.")}
                 >
                   <Select
@@ -272,6 +300,7 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
               )}
               <Row
                 label="Automatic updates"
+                org={managed ? LOCKED_MARK : orgFor("autoUpdateOff")}
                 hint={
                   managed
                     ? "Your organization manages updates."
@@ -291,7 +320,11 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
             </TabsContent>
 
             <TabsContent value="aws" className="mt-4 min-h-[27rem] space-y-4">
-              <Row label="Default region" hint={hintFor("defaultRegion", "Pre-filled for new sessions.")}>
+              <Row
+                org={orgFor("defaultRegion")}
+                label="Default region"
+                hint={hintFor("defaultRegion", "Pre-filled for new sessions.")}
+              >
                 <RegionSelect
                   value={settings.defaultRegion}
                   onChange={(v) => update({ defaultRegion: v })}
@@ -301,6 +334,7 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
               </Row>
               <Row
                 label="Assume role duration"
+                org={orgFor("assumeRoleMinutes")}
                 hint={hintFor(
                   "assumeRoleMinutes",
                   "For chained assume-role sessions. Identity Center roles use their permission set's session duration.",
@@ -391,7 +425,10 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
                   onCheckedChange={(v) => update({ flatList: !v })}
                 />
               </Row>
-              <p className="pt-2 text-xs font-medium text-muted-foreground">Sidebar sections</p>
+              <p className="flex items-center gap-1.5 pt-2 text-xs font-medium text-muted-foreground">
+                Sidebar sections
+                <OrgMark text={orgFor("hiddenSections")} />
+              </p>
               {isLocked("hiddenSections") && <p className="text-[11px] text-muted-foreground">{MANAGED_HINT}</p>}
               {SIDEBAR_SECTIONS.map(([key, label]) => (
                 <Row key={key} label={label}>
@@ -411,7 +448,10 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
             <TabsContent value="about" className="mt-4 min-h-[27rem] space-y-5 text-xs">
               <div className="flex items-center justify-between rounded-lg border bg-card px-3 py-2">
                 <div>
-                  <p className="text-sm font-medium text-foreground">rolle {info?.version ?? "…"}</p>
+                  <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                    rolle {info?.version ?? "…"}
+                    <OrgMark text={updateInfo?.state === "managed" ? "Managed by your organization" : undefined} />
+                  </p>
                   <p className="text-[11px] text-muted-foreground">
                     {checkFailed
                       ? "The last update check failed."
@@ -442,6 +482,7 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
               </div>
               <Row
                 label="Update channel"
+                org={orgFor("updateChannel")}
                 hint={hintFor("updateChannel", "Beta installs pre-releases as they ship. Applies at the next check.")}
               >
                 <Select
@@ -474,6 +515,7 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
               <p className="text-xs font-medium text-muted-foreground">Network</p>
               <Row
                 label="HTTPS proxy"
+                org={orgFor("proxyUrl")}
                 hint={hintFor("proxyUrl", "Empty follows HTTPS_PROXY. Example: http://proxy.corp:3128")}
               >
                 <Input
@@ -489,6 +531,7 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
               </Row>
               <Row
                 label="Extra CA bundle"
+                org={orgFor("caBundle")}
                 hint={hintFor("caBundle", "PEM file added to the OS trust store, for TLS inspection roots.")}
               >
                 <Input
@@ -552,11 +595,36 @@ export function SettingsDialog({ open, tab, onClose }: { open: boolean; tab?: st
   );
 }
 
-function Row({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+/** The building icon for what the organization's profile sets, with the text on hover and for screen readers. */
+function OrgMark({ text }: { text?: string }) {
+  if (!text) return null;
+  return (
+    <span title={text} data-org className="inline-flex shrink-0">
+      <Building2 aria-hidden className="size-3 text-muted-foreground/70" />
+      <span className="sr-only">{text}</span>
+    </span>
+  );
+}
+
+function Row({
+  label,
+  hint,
+  org,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  /** Marks a setting that the organization's profile sets: LOCKED_MARK or PRESET_MARK. */
+  org?: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="flex items-center justify-between gap-4">
       <div className="min-w-0">
-        <Label className="text-sm">{label}</Label>
+        <Label className="flex items-center gap-1.5 text-sm">
+          {label}
+          <OrgMark text={org} />
+        </Label>
         {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
       </div>
       <div className="shrink-0">{children}</div>

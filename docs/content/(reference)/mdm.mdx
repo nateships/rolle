@@ -100,6 +100,8 @@ Put the settings for your users in a `Settings` dictionary. rolle applies each v
 | `NotifyLeadMinutes` | integer | Minutes before expiry that the warning shows, up to 60 |
 | `Terminal` | string | Terminal for **Open terminal**: `auto`, `terminal`, `iterm`, `ghostty`, `warp`, or `cmux` |
 
+In **Settings**, a building icon marks each setting that the profile sets. Its hover text says whether the user can change the setting or the profile locks it.
+
 rolle ignores a key that is not in the table and a value of the wrong type. It clamps a value out of range the same way the settings screen does. Appearance stays with the user. For a login item, use your MDM's managed login items.
 
 ### Locked settings

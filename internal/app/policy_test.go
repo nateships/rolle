@@ -102,6 +102,15 @@ func TestPolicyLockedValueWins(t *testing.T) {
 	if !slices.Equal(s.LockedSettings(), []string{"updateChannel"}) {
 		t.Fatalf("LockedSettings = %v", s.LockedSettings())
 	}
+	if !slices.Equal(s.ManagedSettings(), []string{"terminal", "updateChannel"}) {
+		t.Fatalf("ManagedSettings = %v", s.ManagedSettings())
+	}
+}
+
+func TestManagedSettingsWithoutProfileIsEmpty(t *testing.T) {
+	if got := testService(t).ManagedSettings(); got != nil {
+		t.Fatalf("ManagedSettings = %v", got)
+	}
 }
 
 func TestPolicyValuesAreNormalized(t *testing.T) {

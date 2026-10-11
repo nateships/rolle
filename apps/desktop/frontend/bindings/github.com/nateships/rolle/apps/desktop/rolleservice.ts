@@ -237,6 +237,15 @@ export function LockedSettings(): $CancellablePromise<string[] | null> {
 }
 
 /**
+ * ManagedSettings lists the JSON names of the settings that the
+ * organization's configuration profile sets, locked or not. The settings
+ * screen marks them.
+ */
+export function ManagedSettings(): $CancellablePromise<string[] | null> {
+    return $Call.ByID(2368850561);
+}
+
+/**
  * MoveTag puts a tag at index in the sidebar order.
  */
 export function MoveTag(name: string, index: number): $CancellablePromise<void> {

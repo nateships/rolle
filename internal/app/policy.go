@@ -33,6 +33,17 @@ func (s *Service) LockedSettings() []string {
 	return names
 }
 
+// ManagedSettings lists the JSON names of the settings that the
+// organization's profile sets, locked or not.
+func (s *Service) ManagedSettings() []string {
+	var names []string
+	for name := range s.policy().Settings {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	return names
+}
+
 // ManagedIntegrations lists the IDs of the integrations in w that the
 // organization's profile adds. An integration matches a profile entry by its
 // start URL or tenant ID, so a portal that the user added before the profile

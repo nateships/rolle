@@ -643,6 +643,9 @@ export const mockApi = {
   UpdatesManaged: async () => new URLSearchParams(location.search).get("managed") === "1",
   // ?locked=proxyUrl,terminal previews settings that a configuration profile locks.
   LockedSettings: async () => (new URLSearchParams(location.search).get("locked") ?? "").split(",").filter(Boolean),
+  // ?preset=defaultRegion,terminal previews settings that a configuration profile sets without locking.
+  ManagedSettings: async () =>
+    ["locked", "preset"].flatMap((k) => (new URLSearchParams(location.search).get(k) ?? "").split(",").filter(Boolean)),
   OpenTerminal: async () => {
     await wait(300);
   },

@@ -387,6 +387,11 @@ func (r *RolleService) Settings() (core.Settings, error) { return r.svc.Settings
 // their controls.
 func (r *RolleService) LockedSettings() []string { return r.svc.LockedSettings() }
 
+// ManagedSettings lists the JSON names of the settings that the
+// organization's configuration profile sets, locked or not. The settings
+// screen marks them.
+func (r *RolleService) ManagedSettings() []string { return r.svc.ManagedSettings() }
+
 // UpdateSettings stores preferences. The update ticker reads AutoUpdateOff on
 // every tick, so the change applies without a restart.
 func (r *RolleService) UpdateSettings(in core.Settings) (core.Settings, error) {
