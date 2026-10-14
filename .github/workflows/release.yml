@@ -129,7 +129,7 @@ jobs:
           fi
           wails3 task release VERSION="$VERSION" SIGN="${CERTUM_OTP:+1}"
       - name: Store the package
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: desktop-${{ runner.os }}
           if-no-files-found: error
@@ -228,7 +228,7 @@ jobs:
           jq '{schemaVersion: 1, version: env.VERSION, artifacts: .}' manifest-sig.json > manifest-check.json
           wails3 updater verify -manifest manifest-check.json -dir artifacts -publickey apps/desktop/build/updater.pub
       - name: Store the manifest
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: manifest
           if-no-files-found: error
@@ -236,7 +236,7 @@ jobs:
             artifacts/manifest.json
             artifacts/manifest.json.sig
       - name: Store the release notes
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: release-notes
           if-no-files-found: error
