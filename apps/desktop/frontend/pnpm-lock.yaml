@@ -12,8 +12,8 @@ importers:
         specifier: ^1.8.0
         version: 1.9.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@wailsio/runtime':
-        specifier: 3.0.0-beta.28
-        version: 3.0.0-beta.28
+        specifier: 3.0.0-beta.29
+        version: 3.0.0-beta.29
       canvas-confetti:
         specifier: ^1.9.4
         version: 1.9.4
@@ -1607,8 +1607,8 @@ packages:
   '@vitest/spy@5.0.4':
     resolution: {integrity: sha512-MZKk/gSkm2q+ICobMxCpH1mA+cCAWm8WV7UhxlqGjq/sJ3AGc1BqFOs5CRVXxH78wQtme9q/NAAgBquj4AcyMw==}
 
-  '@wailsio/runtime@3.0.0-beta.28':
-    resolution: {integrity: sha512-IPl7WIsu0uQni9qgYAGm47G1WKNV/YFQannb/1r8orA81+wswJmCt/TS6GNb/U/coIRYyQ3ruO1FNMVwUVDvQQ==}
+  '@wailsio/runtime@3.0.0-beta.29':
+    resolution: {integrity: sha512-ZrYvyb2vJ8rAn9mdBBbpNsNRk8Yg5+0DCWhfIQbfoNyI329Lwu8irPYqRneFuNlttA39qsQ0a5mG4mbgBF8g3g==}
 
   ansi-regex@5.0.1:
     resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
@@ -3600,7 +3600,7 @@ snapshots:
 
   '@vitest/spy@5.0.4': {}
 
-  '@wailsio/runtime@3.0.0-beta.28': {}
+  '@wailsio/runtime@3.0.0-beta.29': {}
 
   ansi-regex@5.0.1: {}
 
