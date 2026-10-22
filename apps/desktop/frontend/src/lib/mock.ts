@@ -141,6 +141,17 @@ function seed() {
   ] as Tag[];
 }
 if (state.onboarded) seed();
+// The profile adds its integrations before the first launch, signed out.
+else if (demoOrg)
+  state.integrations = [
+    {
+      id: "acme",
+      alias: "acme",
+      cloud: "aws",
+      awsSso: { startUrl: "https://acme.awsapps.com/start", region: "us-east-1" },
+    },
+    { id: "contoso", alias: "contoso", cloud: "azure", azure: { tenantId: "t-1" } },
+  ] as Integration[];
 
 // ?gcp=missing simulates a machine without gcloud credentials.
 let gcpReady = new URLSearchParams(location.search).get("gcp") !== "missing";
