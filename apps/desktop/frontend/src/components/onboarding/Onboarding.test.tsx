@@ -136,12 +136,88 @@ describe("Onboarding", () => {
     expect(screen.getByText("1 session(s) in your workspace")).toBeInTheDocument();
   });
 
-  it("marks a cloud as connected when the workspace has an integration for it", () => {
+  it("marks a cloud as connected when the workspace has a signed-in integration for it", () => {
     at("?step=cloud");
-    renderOnboarding({ ...empty, integrations: [acme as unknown as Integration] });
+    const signedIn = { ...acme, awsSso: { ...acme.awsSso, tokenExpires: "2030-01-01T00:00:00Z" } };
+    renderOnboarding({ ...empty, integrations: [signedIn as unknown as Integration] });
     const card = screen.getByRole("button", { name: /amazon web services/i });
     expect(within(card).getByText("Connected")).toBeInTheDocument();
     expect(screen.getAllByText("Connected")).toHaveLength(1);
+  });
+
+  it("does not mark a cloud as connected before the user signs in", () => {
+    at("?step=cloud");
+    renderOnboarding({ ...empty, integrations: [acme as unknown as Integration] });
+    expect(screen.queryByText("Connected")).not.toBeInTheDocument();
+  });
+
+  describe("with integrations from the organization", () => {
+    const contoso = { id: "contoso", alias: "contoso", cloud: "azure", azure: { tenantId: "t-1" } };
+    const org = {
+      ...empty,
+      integrations: [acme, contoso],
+      managedIntegrations: ["acme", "contoso"],
+    } as unknown as Workspace;
+
+    it("offers to sign in to them on the welcome step", () => {
+      renderOnboarding(org);
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Your organization set up rolle.");
+      expect(screen.getByRole("button", { name: "Sign in to acme" })).toBeEnabled();
+      expect(screen.getByRole("button", { name: "Sign in to contoso" })).toBeEnabled();
+      expect(screen.queryByRole("button", { name: /get started/i })).not.toBeInTheDocument();
+    });
+
+    it("keeps the usual welcome step for integrations the user added", () => {
+      renderOnboarding({ ...empty, integrations: [acme as unknown as Integration] });
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Assume any role, any cloud.");
+    });
+
+    it("signs in to a managed portal without adding it again", async () => {
+      const user = userEvent.setup();
+      const { wait } = stubAWSLogin();
+      renderOnboarding(org);
+      await user.click(screen.getByRole("button", { name: "Sign in to acme" }));
+      expect(await heading("Approve in your browser")).toBeInTheDocument();
+      expect(api.StartSSOLogin).toHaveBeenCalledWith("acme");
+      expect(api.AddAWSSSO).not.toHaveBeenCalled();
+      wait.resolve([ssoRole("Acme Prod/AdministratorAccess")]);
+      expect(await heading("One session ready")).toBeInTheDocument();
+      expect(api.WaitSSOLogin).toHaveBeenCalledWith("acme");
+    });
+
+    it("returns to the welcome step when the user cancels the sign-in", async () => {
+      const user = userEvent.setup();
+      const { cancel } = stubAWSLogin();
+      renderOnboarding(org);
+      await user.click(screen.getByRole("button", { name: "Sign in to acme" }));
+      await heading("Approve in your browser");
+      await user.click(screen.getByRole("button", { name: "Cancel" }));
+      expect(cancel).toHaveBeenCalledWith("acme");
+      expect(await screen.findByRole("heading", { level: 1 })).toHaveTextContent("Your organization set up rolle.");
+    });
+
+    it("signs in to a managed tenant", async () => {
+      const user = userEvent.setup();
+      vi.spyOn(api, "AzureLogin").mockResolvedValue([azureSub]);
+      renderOnboarding(org);
+      await user.click(screen.getByRole("button", { name: "Sign in to contoso" }));
+      expect(await heading("One session ready")).toBeInTheDocument();
+      expect(api.AzureLogin).toHaveBeenCalledWith("contoso");
+    });
+
+    it("shows a managed integration that is signed in already", () => {
+      const signedIn = { ...contoso, azure: { tenantId: "t-1", account: "nate@contoso.com" } };
+      renderOnboarding({ ...org, integrations: [acme, signedIn] } as unknown as Workspace);
+      expect(screen.getByText("Signed in")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Sign in to contoso" })).not.toBeInTheDocument();
+    });
+
+    it("still lets the user add another cloud", async () => {
+      const user = userEvent.setup();
+      renderOnboarding(org);
+      await user.click(screen.getByRole("button", { name: /add another cloud/i }));
+      expect(await heading("Where do your roles live?")).toBeInTheDocument();
+    });
   });
 
   it("opens the connect step for the chosen cloud", async () => {

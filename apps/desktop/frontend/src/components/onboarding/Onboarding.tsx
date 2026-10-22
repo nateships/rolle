@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowRight,
+  Building2,
   Check,
   Cloud,
   Copy,
@@ -34,10 +35,19 @@ import {
   type FoundTenant,
 } from "@/components/discovery/FoundList";
 import { Events } from "@wailsio/runtime";
-import { api, errorMessage, inWails, type Session, type Workspace, type DeviceLogin, type GCPStatus } from "@/lib/api";
+import {
+  api,
+  errorMessage,
+  inWails,
+  type Integration,
+  type Session,
+  type Workspace,
+  type DeviceLogin,
+  type GCPStatus,
+} from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
 import { copyText } from "@/lib/clipboard";
-import { cloudOf } from "@/lib/format";
+import { cloudOf, isLoggedIn } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 type Step = "welcome" | "cloud" | "connect" | "approve" | "roles" | "done";
@@ -102,8 +112,12 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
 
   const index = ORDER.indexOf(step);
   const go = (s: Step) => setStep(s);
+  // An integration that the profile adds is not connected until the user signs in.
   const connected = (c: CloudChoice) =>
-    workspace.integrations.some((i) => i.cloud === c) || discovered.some((s) => cloudOf(s.kind) === c);
+    workspace.integrations.some((i) => i.cloud === c && isLoggedIn(i)) || discovered.some((s) => cloudOf(s.kind) === c);
+  // The portals and tenants that the organization's profile adds. When there
+  // are some, the welcome step offers to sign in to them.
+  const managed = workspace.integrations.filter((i) => workspace.managedIntegrations?.includes(i.id));
 
   // Identities other tools already set up on this machine, offered for one-click import.
   const found = useDiscovery(workspace, step === "cloud");
@@ -203,6 +217,43 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
     }
   }
 
+  // Sign in to an integration that the profile added. The approve step goes
+  // back to the welcome step, where the integration is.
+  async function signInManaged(integ: Integration) {
+    setImporting(integ.id);
+    setBusy(true);
+    setAlias(integ.alias);
+    approveBackRef.current = "welcome";
+    try {
+      let added: Session[];
+      if (integ.azure) {
+        setCloud("azure");
+        setLogin(null);
+        go("approve");
+        added = (await api.AzureLogin(integ.id)) ?? [];
+      } else {
+        setCloud("aws");
+        loginRef.current = integ.id;
+        cancelledRef.current = false;
+        const dl = await api.StartSSOLogin(integ.id);
+        setLogin(dl);
+        go("approve");
+        added = (await api.WaitSSOLogin(integ.id)) ?? [];
+        loginRef.current = null;
+      }
+      setDiscovered((prev) => [...prev, ...added]);
+      go("roles");
+    } catch (e) {
+      if (cancelledRef.current) return;
+      toast.error(errorMessage(e));
+      go("welcome");
+    } finally {
+      approveBackRef.current = "connect";
+      setImporting(null);
+      setBusy(false);
+    }
+  }
+
   // Back and forward. The webview turns mouse back/forward buttons and trackpad
   // swipes into history navigation, so each step is a history entry and
   // popstate drives the step. Keyboard: Cmd/Ctrl+[ ], Alt+Left/Right.
@@ -239,6 +290,8 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
   // The integration whose sign-in the approve step is waiting on.
   const loginRef = useRef<string | null>(null);
   const cancelledRef = useRef(false);
+  // The step that the approve step goes back to.
+  const approveBackRef = useRef<Step>("connect");
   const cancelLogin = () => {
     if (!loginRef.current) return;
     cancelledRef.current = true;
@@ -249,7 +302,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
   useEffect(() => {
     const move = (dir: "back" | "forward") => {
       const from = stepRef.current;
-      const target = dir === "back" ? BACK[from] : FORWARD[from];
+      const target = dir === "back" ? (from === "approve" ? approveBackRef.current : BACK[from]) : FORWARD[from];
       // Leaving the approve step abandons the sign-in; the approve step itself is not busy.
       if (from === "approve" && dir === "back" && target) {
         cancelLogin();
@@ -352,7 +405,69 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
           to the top when it is taller than the window, so nothing crops. */}
       <main className="relative z-10 flex flex-1 overflow-y-auto px-8 py-6 [&>section]:m-auto">
         <AnimatePresence mode="wait">
-          {step === "welcome" && (
+          {step === "welcome" && managed.length > 0 && (
+            <motion.section
+              key="welcome-org"
+              {...slide}
+              className="flex w-full max-w-lg flex-col items-center text-center"
+            >
+              <motion.div
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: "spring", stiffness: 180, damping: 16 }}
+                className="mb-8"
+              >
+                <GopherMark className="size-28" autoplay="dance" />
+              </motion.div>
+              <h1 className="text-4xl font-semibold tracking-tight">
+                Your <span className="text-brand-orange">organization</span> set up rolle.
+              </h1>
+              <p className="mt-4 max-w-md text-balance text-muted-foreground">
+                Sign in to find the roles you can use. rolle keeps short-lived credentials flowing to your tools without
+                writing a single secret to disk.
+              </p>
+              <ul className="mt-8 w-full space-y-2 text-left">
+                {managed.map((integ) => (
+                  <li key={integ.id} className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2">
+                    <CloudGlyph cloud={integ.cloud as CloudChoice} />
+                    <div className="min-w-0 flex-1">
+                      <p className="flex items-center gap-1.5 truncate text-sm font-medium">
+                        {integ.alias}
+                        <Building2 aria-hidden className="size-3 shrink-0 text-muted-foreground/70" />
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {integ.awsSso?.startUrl ?? (integ.azure ? "Microsoft Entra ID" : "")}
+                      </p>
+                    </div>
+                    {isLoggedIn(integ) ? (
+                      <Badge
+                        variant="outline"
+                        className="gap-1 border-brand-green/40 bg-brand-green/10 text-brand-green-text"
+                      >
+                        <Check className="size-3" /> Signed in
+                      </Badge>
+                    ) : (
+                      <Button
+                        size="sm"
+                        className="gap-1.5"
+                        disabled={busy}
+                        onClick={() => void signInManaged(integ)}
+                        aria-label={`Sign in to ${integ.alias}`}
+                      >
+                        {importing === integ.id ? <Loader2 className="size-3.5 animate-spin" /> : null}
+                        Sign in
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+              <Button variant="link" className="mt-4 gap-1 text-muted-foreground" onClick={() => go("cloud")}>
+                Add another cloud <ArrowRight className="size-3" />
+              </Button>
+            </motion.section>
+          )}
+
+          {step === "welcome" && managed.length === 0 && (
             <motion.section key="welcome" {...slide} className="flex max-w-xl flex-col items-center text-center">
               <motion.div
                 initial={{ scale: 0.6, opacity: 0 }}
@@ -662,7 +777,7 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
                     className="text-muted-foreground"
                     onClick={() => {
                       cancelLogin();
-                      go("connect");
+                      go(approveBackRef.current);
                     }}
                   >
                     Cancel
