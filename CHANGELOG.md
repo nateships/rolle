@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.18.0](https://github.com/nateships/rolle/compare/v0.17.0...v0.18.0) (2026-10-22)
+
+
+### Features
+
+* sign in to the organization's integrations on first launch ([#341](https://github.com/nateships/rolle/issues/341)) ([3ee9567](https://github.com/nateships/rolle/commit/3ee956762c63cfeceafaaab2c1d2449611ca5937))
+
+
+### Bug Fixes
+
+* **deps:** update aws-sdk-go-v2 monorepo ([#300](https://github.com/nateships/rolle/issues/300)) ([bedfef0](https://github.com/nateships/rolle/commit/bedfef028d7bdcfc6de92ae53e2ad7b4cae4a078))
+* **deps:** update aws-sdk-go-v2 monorepo ([#309](https://github.com/nateships/rolle/issues/309)) ([f4f9124](https://github.com/nateships/rolle/commit/f4f91246469c276c864cb7d45e8c6cb7181cbd2b))
+* **deps:** update aws-sdk-go-v2 monorepo ([#319](https://github.com/nateships/rolle/issues/319)) ([ba790f8](https://github.com/nateships/rolle/commit/ba790f8af878778baab7507e17e5188bf5f80ee5))
+* **deps:** update dependency @wailsio/runtime to v3.0.0-beta.29 ([#315](https://github.com/nateships/rolle/issues/315)) ([898bd1c](https://github.com/nateships/rolle/commit/898bd1ce863198925d1740372483e2282d0b9c6e))
+* **deps:** update dependency @wailsio/runtime to v3.0.0-beta.30 ([#324](https://github.com/nateships/rolle/issues/324)) ([64d95db](https://github.com/nateships/rolle/commit/64d95dbe7e00b210e506e33c330ed86e42dd2d75))
+* **deps:** update dependency cn to ^0.5.0 ([#330](https://github.com/nateships/rolle/issues/330)) ([a9274d0](https://github.com/nateships/rolle/commit/a9274d0834cedf8229d0dfb1d2106626a9fe095c))
+* **deps:** update module golang.org/x/mod to v0.42.0 ([#317](https://github.com/nateships/rolle/issues/317)) ([5cf44e0](https://github.com/nateships/rolle/commit/5cf44e0dab4203b7ec81d0ccb87ee60a7f7d5d42))
+* **deps:** update module golang.org/x/sys to v0.49.0 ([#298](https://github.com/nateships/rolle/issues/298)) ([c668a7d](https://github.com/nateships/rolle/commit/c668a7de2debdadc0764d00f9fe8afb861310724))
+* **deps:** update module golang.org/x/term to v0.47.0 ([#318](https://github.com/nateships/rolle/issues/318)) ([c38f32b](https://github.com/nateships/rolle/commit/c38f32be7d27981401fe9cbe23fe87649ba84f14))
+* **deps:** update wails ([#331](https://github.com/nateships/rolle/issues/331)) ([d58dc6c](https://github.com/nateships/rolle/commit/d58dc6c8611eef00c710e27a991b3815bb5d9dfe))
+* **deps:** update wails ([#338](https://github.com/nateships/rolle/issues/338)) ([179df2e](https://github.com/nateships/rolle/commit/179df2eb32b09635e6f902c93c445064155d8042))
+* **deps:** update wails to v3.0.0-beta.28 ([#296](https://github.com/nateships/rolle/issues/296)) ([53a2694](https://github.com/nateships/rolle/commit/53a2694fc36c24bbc3e9156d304827fd466a2395))
+
 ## [0.17.0](https://github.com/nateships/rolle/compare/v0.16.0...v0.17.0) (2026-10-11)
 
 
