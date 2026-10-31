@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.18.1](https://github.com/nateships/rolle/compare/v0.18.0...v0.18.1) (2026-10-31)
+
+
+### Bug Fixes
+
+* **deps:** update aws-sdk-go-v2 monorepo ([#360](https://github.com/nateships/rolle/issues/360)) ([3fec3c7](https://github.com/nateships/rolle/commit/3fec3c7c12663b03d5e9f9ed0dedc532851fdb8b))
+* **deps:** update wails ([#348](https://github.com/nateships/rolle/issues/348)) ([536976f](https://github.com/nateships/rolle/commit/536976f7e00834f8ff5094e3a57eea25f7296505))
+* **deps:** update wails to v3.0.0-beta.32 ([#353](https://github.com/nateships/rolle/issues/353)) ([b10d11c](https://github.com/nateships/rolle/commit/b10d11cff588406a31dac05441c17e08622d9d50))
+
 ## [0.18.0](https://github.com/nateships/rolle/compare/v0.17.0...v0.18.0) (2026-10-22)
 
 
