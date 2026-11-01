@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Events } from "@wailsio/runtime";
+import {
+  NavBack,
+  NavForward,
+  SessionLogin,
+  SettingsOpen,
+  UpdateAvailable,
+  WorkspaceChanged,
+} from "../../bindings/events";
 import { RolleService } from "../../bindings/github.com/nateships/rolle/apps/desktop";
 import type {
   Integration,
@@ -50,10 +58,13 @@ export type {
 } from "../../bindings/github.com/nateships/rolle/apps/desktop";
 export { Kind, Status, Cloud } from "../../bindings/github.com/nateships/rolle/internal/core";
 
-export const WORKSPACE_CHANGED = "workspace:changed";
-export const OPEN_SETTINGS = "settings:open";
-export const START_NEEDS_LOGIN = "session:login";
-export const UPDATE_AVAILABLE = "update:available";
+// The event names come from the Go side through the generated bindings.
+export const WORKSPACE_CHANGED = WorkspaceChanged;
+export const OPEN_SETTINGS = SettingsOpen;
+export const START_NEEDS_LOGIN = SessionLogin;
+export const UPDATE_AVAILABLE = UpdateAvailable;
+export const NAV_BACK = NavBack;
+export const NAV_FORWARD = NavForward;
 
 /** Load the workspace and keep it fresh while the backend emits change events. */
 export function useWorkspace() {
