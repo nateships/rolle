@@ -39,6 +39,8 @@ import {
   api,
   errorMessage,
   inWails,
+  NAV_BACK,
+  NAV_FORWARD,
   type Integration,
   type Session,
   type Workspace,
@@ -343,8 +345,8 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
     window.addEventListener("keydown", onKey);
     window.addEventListener("mouseup", onMouseUp);
     // Native side forwards mouse buttons the webview swallows.
-    const offBack = inWails ? Events.On("nav:back", () => move("back")) : () => {};
-    const offForward = inWails ? Events.On("nav:forward", () => move("forward")) : () => {};
+    const offBack = inWails ? Events.On(NAV_BACK, () => move("back")) : () => {};
+    const offForward = inWails ? Events.On(NAV_FORWARD, () => move("forward")) : () => {};
     return () => {
       window.removeEventListener("popstate", onPop);
       window.removeEventListener("keydown", onKey);

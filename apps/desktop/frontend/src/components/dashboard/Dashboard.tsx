@@ -229,7 +229,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   // The tray asked to start a session that needs a sign-in first.
   useEffect(() => {
     if (!inWails) return;
-    return Events.On(START_NEEDS_LOGIN, (e: { data: { sessionId: string; integrationId: string } }) => {
+    return Events.On(START_NEEDS_LOGIN, (e) => {
       const integ = workspace.integrations.find((i) => i.id === e.data.integrationId);
       if (integ) {
         needsLogin(integ, e.data.sessionId);
@@ -248,7 +248,7 @@ export function Dashboard({ workspace }: { workspace: Workspace }) {
   const [installing, setInstalling] = useState(false);
   useEffect(() => {
     void api.PendingUpdate().then((u) => u?.available && setUpdate(u));
-    if (inWails) return Events.On(UPDATE_AVAILABLE, (e: { data: UpdateInfo }) => setUpdate(e.data));
+    if (inWails) return Events.On(UPDATE_AVAILABLE, (e) => setUpdate(e.data));
   }, []);
 
   const searchRef = useRef<HTMLInputElement>(null);
