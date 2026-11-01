@@ -95,11 +95,29 @@ func main() {
 		notify = notifications.New()
 		services = append(services, application.NewService(notify))
 	}
+	// A second launch gives control to the running app, which shows its
+	// window. Thus only one tray and one expiry loop run. Dev builds and demo
+	// data do not use the lock, so they can run next to the installed app.
+	secondLaunch := make(chan struct{}, 1)
+	var single *application.SingleInstanceOptions
+	if !devMode && os.Getenv("ROLLE_DEMO") != "1" {
+		single = &application.SingleInstanceOptions{
+			UniqueID: bundleID,
+			// This can run before the tray exists, so it only sends a signal.
+			OnSecondInstanceLaunch: func(application.SecondInstanceData) {
+				select {
+				case secondLaunch <- struct{}{}:
+				default:
+				}
+			},
+		}
+	}
 	a := application.New(application.Options{
-		Name:        "rolle",
-		Description: "Assume any role, any cloud",
-		LogLevel:    logLevel,
-		Services:    services,
+		Name:           "rolle",
+		Description:    "Assume any role, any cloud",
+		LogLevel:       logLevel,
+		Services:       services,
+		SingleInstance: single,
 		Assets: application.AssetOptions{
 			Handler: application.AssetFileServerFS(assets),
 		},
@@ -150,6 +168,13 @@ func main() {
 		}
 	}
 	tr := newTray(a, svc, window, dockIcon)
+	// showWindow also opens the window again after the user closed it.
+	go func() {
+		for range secondLaunch {
+			debug.Logf("app", "second launch, showing the window")
+			tr.showWindow()
+		}
+	}()
 	// The save that follows rebuilds the tray, which puts the badge back on
 	// a Dock icon that just came back.
 	rolle.applySettings = func(prev, next core.Settings) error {
