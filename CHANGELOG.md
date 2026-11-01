@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.19.0](https://github.com/nateships/rolle/compare/v0.18.0...v0.19.0) (2026-11-01)
+
+
+### Features
+
+* **desktop:** use Wails event bindings and single-instance lock ([#373](https://github.com/nateships/rolle/issues/373)) ([25c699c](https://github.com/nateships/rolle/commit/25c699ca0e71b6c708b96a7662e57679aac6a61e))
+
+
+### Bug Fixes
+
+* **deps:** update aws-sdk-go-v2 monorepo ([#360](https://github.com/nateships/rolle/issues/360)) ([3fec3c7](https://github.com/nateships/rolle/commit/3fec3c7c12663b03d5e9f9ed0dedc532851fdb8b))
+* **deps:** update aws-sdk-go-v2 monorepo ([#380](https://github.com/nateships/rolle/issues/380)) ([14559b9](https://github.com/nateships/rolle/commit/14559b9ff190eb1817ece2f3aed23c34f922c2cd))
+* **deps:** update dependency tailwind-variants to v4 ([#386](https://github.com/nateships/rolle/issues/386)) ([244165f](https://github.com/nateships/rolle/commit/244165f93d5db8c6c093cef69564839f3bcad42d))
+* **deps:** update howett.net/plist digest to 760f9a5 ([#376](https://github.com/nateships/rolle/issues/376)) ([a8966c4](https://github.com/nateships/rolle/commit/a8966c4e4a9e8c8170962f5eb00dd54127ca9962))
+* **deps:** update module go.yaml.in/yaml/v3 to v3.0.6 ([#381](https://github.com/nateships/rolle/issues/381)) ([36b9f6f](https://github.com/nateships/rolle/commit/36b9f6fa4541a68b997f5a5a4e70f30f8bbec410))
+* **deps:** update wails ([#348](https://github.com/nateships/rolle/issues/348)) ([536976f](https://github.com/nateships/rolle/commit/536976f7e00834f8ff5094e3a57eea25f7296505))
+* **deps:** update wails ([#361](https://github.com/nateships/rolle/issues/361)) ([620418a](https://github.com/nateships/rolle/commit/620418aacd3e239d10c4d2152557de8e42e2cc11))
+* **deps:** update wails Go module and CLI to v3.0.0 ([#371](https://github.com/nateships/rolle/issues/371)) ([7d9ab59](https://github.com/nateships/rolle/commit/7d9ab590d10004d4b1758ea5848bd415bf2130cc))
+* **deps:** update wails to v3.0.0-beta.32 ([#353](https://github.com/nateships/rolle/issues/353)) ([b10d11c](https://github.com/nateships/rolle/commit/b10d11cff588406a31dac05441c17e08622d9d50))
+* **deps:** update wails to v3.1.0 ([#372](https://github.com/nateships/rolle/issues/372)) ([b664625](https://github.com/nateships/rolle/commit/b6646251244e3bfcfe6959f8083be97af1a5b1dd))
+
 ## [0.18.0](https://github.com/nateships/rolle/compare/v0.17.0...v0.18.0) (2026-10-22)
 
 
