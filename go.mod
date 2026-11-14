@@ -18,7 +18,7 @@ require (
 	go.yaml.in/yaml/v3 v3.0.6
 	golang.org/x/mod v0.42.0
 	golang.org/x/oauth2 v0.37.0
-	golang.org/x/sys v0.49.0
+	golang.org/x/sys v0.50.0
 	golang.org/x/term v0.47.0
 	gopkg.in/ini.v1 v1.67.3
 	howett.net/plist v1.0.2-0.20260819222228-760f9a56c6a7
