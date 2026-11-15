@@ -128,13 +128,6 @@ export function GopherRig({ className, autoplay }: { className?: string; autopla
     [],
   );
 
-  // Autoplay waits for the section's own entrance to settle first.
-  useEffect(() => {
-    if (!autoplay) return;
-    const t = setTimeout(() => play(autoplay === true ? undefined : autoplay), 350);
-    return () => clearTimeout(t);
-  }, [autoplay]);
-
   function play(move?: "dance" | "peek") {
     if (state.current.busy) return;
     if (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -146,6 +139,13 @@ export function GopherRig({ className, autoplay }: { className?: string; autopla
       hideThenPeek();
     }
   }
+
+  // Autoplay waits for the section's own entrance to settle first.
+  useEffect(() => {
+    if (!autoplay) return;
+    const t = setTimeout(() => play(autoplay === true ? undefined : autoplay), 350);
+    return () => clearTimeout(t);
+  }, [autoplay]);
 
   return (
     // The box starts 20 units above the artwork: the dance lifts the head 14 units and the SVG clips at its edge.
