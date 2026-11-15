@@ -8,7 +8,7 @@ import (
 	"io"
 	"net/http"
 
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 
 	"github.com/nateships/rolle/internal/azure"
 	"github.com/nateships/rolle/internal/core"
