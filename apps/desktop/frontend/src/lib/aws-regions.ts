@@ -59,9 +59,16 @@ export const AWS_REGIONS: { group: string; regions: { id: string; name: string }
       { id: "il-central-1", name: "Tel Aviv" },
       { id: "me-central-1", name: "UAE" },
       { id: "me-south-1", name: "Bahrain" },
+      { id: "me-west-1", name: "Saudi Arabia" },
     ],
   },
-  { group: "South America", regions: [{ id: "sa-east-1", name: "São Paulo" }] },
+  {
+    group: "South America",
+    regions: [
+      { id: "sa-east-1", name: "São Paulo" },
+      { id: "sa-west-1", name: "Chile" },
+    ],
+  },
   {
     group: "China",
     regions: [
