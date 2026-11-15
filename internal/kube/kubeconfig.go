@@ -8,7 +8,7 @@ import (
 	"os"
 	"strings"
 
-	"go.yaml.in/yaml/v3"
+	"go.yaml.in/yaml/v4"
 
 	"github.com/nateships/rolle/internal/atomicfile"
 	"github.com/nateships/rolle/internal/core"
