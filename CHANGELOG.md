@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.19.1](https://github.com/nateships/rolle/compare/v0.19.0...v0.19.1) (2026-11-15)
+
+
+### Bug Fixes
+
+* **deps:** update aws-sdk-go-v2 monorepo ([#416](https://github.com/nateships/rolle/issues/416)) ([c84f335](https://github.com/nateships/rolle/commit/c84f3359ee68d1f1b70d8b8fc23ed91968f35c97))
+* **deps:** update aws-sdk-go-v2 monorepo ([#423](https://github.com/nateships/rolle/issues/423)) ([34fb1f2](https://github.com/nateships/rolle/commit/34fb1f2ca48bdf1ab5e7afe22804112b4faf5b2d))
+* **deps:** update aws-sdk-go-v2 monorepo ([#430](https://github.com/nateships/rolle/issues/430)) ([1484292](https://github.com/nateships/rolle/commit/14842924fa97ca6e4e5e29de38dda6ffcdc4c371))
+* **deps:** update module go.yaml.in/yaml/v3 to v3.0.6 ([#434](https://github.com/nateships/rolle/issues/434)) ([48b7012](https://github.com/nateships/rolle/commit/48b7012006cdabd1a2b014ceba8846d0a3aa16aa))
+* **deps:** update module go.yaml.in/yaml/v3 to v4 ([#417](https://github.com/nateships/rolle/issues/417)) ([17f3a76](https://github.com/nateships/rolle/commit/17f3a760d5324f00940ad0f6c8a1a805a88eb8fe))
+* **deps:** update module go.yaml.in/yaml/v3 to v4 ([#437](https://github.com/nateships/rolle/issues/437)) ([ff2f444](https://github.com/nateships/rolle/commit/ff2f4440d3e8ce7ececc7791db5ba4bf12c3ef20))
+* **deps:** update module go.yaml.in/yaml/v3 to v4 ([#438](https://github.com/nateships/rolle/issues/438)) ([385b0bc](https://github.com/nateships/rolle/commit/385b0bc00e153f0ca0f149aebd9fdc6cd42456e9))
+* **deps:** update module golang.org/x/oauth2 to v0.38.0 ([#431](https://github.com/nateships/rolle/issues/431)) ([ae5f39a](https://github.com/nateships/rolle/commit/ae5f39af96238aa6f0c2634768ef3073cc6091ea))
+* **deps:** update module golang.org/x/sys to v0.50.0 ([#432](https://github.com/nateships/rolle/issues/432)) ([4be4027](https://github.com/nateships/rolle/commit/4be40273271d2e20f8d4296acfaec14b91cd51e3))
+
 ## [0.19.0](https://github.com/nateships/rolle/compare/v0.18.0...v0.19.0) (2026-11-01)
 
 
