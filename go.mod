@@ -19,7 +19,7 @@ require (
 	golang.org/x/mod v0.43.0
 	golang.org/x/oauth2 v0.38.0
 	golang.org/x/sys v0.50.0
-	golang.org/x/term v0.47.0
+	golang.org/x/term v0.48.0
 	gopkg.in/ini.v1 v1.67.3
 	howett.net/plist v1.0.2-0.20260819222228-760f9a56c6a7
 )
