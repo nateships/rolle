@@ -73,3 +73,38 @@ func (s *Service) RemoveStaticProfile(name string) error {
 	s.notify()
 	return nil
 }
+
+// ForeignProfile describes the settings of another tool in one profile of
+// the AWS config file.
+type ForeignProfile struct {
+	// Path is the config file, in display form.
+	Path string `json:"path"`
+	// Keys are the lines that RemoveForeignKeys removes, in file order. The
+	// list is empty when no other tool configures the profile.
+	Keys []awsconfig.ForeignKey `json:"keys"`
+}
+
+// ForeignProfile lists the lines that another tool wrote for the profile
+// called name. rolle does not start a session onto such a profile.
+func (s *Service) ForeignProfile(name string) ForeignProfile {
+	keys := awsconfig.ForeignKeys(s.AWSConfigPath, name)
+	if keys == nil {
+		keys = []awsconfig.ForeignKey{}
+	}
+	return ForeignProfile{Path: awsconfig.Display(s.AWSConfigPath), Keys: keys}
+}
+
+// RemoveForeignKeys deletes the settings of another tool from one profile of
+// the AWS config file, so a session can start onto the profile. Other
+// profiles stay.
+func (s *Service) RemoveForeignKeys(name string) error {
+	if name == "" {
+		return fmt.Errorf("profile name is empty")
+	}
+	if err := awsconfig.RemoveForeignKeys(s.AWSConfigPath, name); err != nil {
+		return err
+	}
+	// The workspace file did not change, but what the window shows did.
+	s.notify()
+	return nil
+}

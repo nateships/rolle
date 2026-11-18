@@ -156,6 +156,26 @@ func TestIntegrationLoginDeviceFlowDiscoversRoles(t *testing.T) {
 	if out := mustRun(t, "session", "fix-profile", "Acme/Admin"); !strings.Contains(out, "not shadowed") {
 		t.Fatalf("second fix-profile output: %q", out)
 	}
+	// Another tool configures the profile in the config file: start refuses
+	// and names the fix, and fix-profile removes the settings of that tool.
+	if err := os.MkdirAll(filepath.Dir(s.AWSConfigPath), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(s.AWSConfigPath, []byte("[default]\nsso_session = other\nsso_account_id = 1\noutput = json\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := run(t, "start", "Acme/Admin"); err == nil || !strings.Contains(err.Error(), "another tool (sso_session)") || !strings.Contains(err.Error(), "fix-profile") {
+		t.Fatalf("start onto another tool's profile: %v", err)
+	}
+	if out := mustRun(t, "session", "fix-profile", "Acme/Admin"); !strings.Contains(out, "removed the settings of another tool from profile default") {
+		t.Fatalf("fix-profile output: %q", out)
+	}
+	if cfg, _ := os.ReadFile(s.AWSConfigPath); strings.Contains(string(cfg), "sso_") || !strings.Contains(string(cfg), "[default]\noutput = json") {
+		t.Fatalf("config after fix-profile:\n%s", cfg)
+	}
+	if err := os.Remove(s.AWSConfigPath); err != nil {
+		t.Fatal(err)
+	}
 	if err := os.WriteFile(credPath, []byte("[a]\naws_access_key_id = A\naws_secret_access_key = B\n[b]\naws_access_key_id = C\naws_secret_access_key = D\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}

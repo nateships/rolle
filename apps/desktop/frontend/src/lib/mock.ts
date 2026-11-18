@@ -593,6 +593,8 @@ export const mockApi = {
       : [],
   }),
   RemoveStaticProfile: async () => {},
+  ForeignProfile: async () => ({ path: "~/.aws/config", keys: [] }),
+  RemoveForeignKeys: async () => {},
   SetAlias: async (_kind: string, key: string, alias: string) => {
     // The mock keeps no original names, so an empty alias changes nothing.
     if (!alias) return;

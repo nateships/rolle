@@ -51,7 +51,7 @@ See [Agents and scripts](/agents).
 | `rolle session add aws-login --name N --region R [--profile P]` | Add a console login, the flow behind `aws login`. The first start opens the browser |
 | `rolle session add gcp-impersonate --name N --project P --service-account SA [--integration I]` | Impersonate a service account |
 | `rolle session profile <session> [name]` | Set the AWS profile name. Omit the name to restore `default` |
-| `rolle session fix-profile <session>` | Remove the static keys in `~/.aws/credentials` that shadow the session's profile |
+| `rolle session fix-profile <session>` | Remove the static keys in `~/.aws/credentials`, or another tool's settings in `~/.aws/config`, that block the session's profile |
 | `rolle session region <session> <region>` | Change the region of an AWS session |
 | `rolle session remove <session>` | Remove a session |
 

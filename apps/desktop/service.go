@@ -529,14 +529,24 @@ func (r *RolleService) SetAlias(kind, key, alias string) error {
 
 // ProfileShadow returns the file, in display form, whose static keys tools
 // read instead of a profile of that name, or "". The window offers to remove
-// those keys, so a profile that another tool configures in the config file
-// reports "".
+// those keys. A profile that another tool configures in the config file
+// reports ""; ForeignProfile describes that one.
 func (r *RolleService) ProfileShadow(name string) string {
-	if sh := r.svc.ProfileShadow(name); sh != nil && sh.Fixable {
+	if sh := r.svc.ProfileShadow(name); sh != nil && sh.Static {
 		return awsconfig.Display(sh.Path)
 	}
 	return ""
 }
+
+// ForeignProfile lists the lines that another tool wrote for a profile of
+// ~/.aws/config, with the file's path.
+func (r *RolleService) ForeignProfile(name string) app.ForeignProfile {
+	return r.svc.ForeignProfile(name)
+}
+
+// RemoveForeignKeys deletes the settings of another tool from one profile of
+// ~/.aws/config, so a session can start onto the profile.
+func (r *RolleService) RemoveForeignKeys(name string) error { return r.svc.RemoveForeignKeys(name) }
 
 // StaticProfiles lists the sections of ~/.aws/credentials that hold static
 // keys, with the file's path.

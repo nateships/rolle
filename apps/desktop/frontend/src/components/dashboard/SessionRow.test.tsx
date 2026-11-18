@@ -571,6 +571,44 @@ describe("SessionRow actions", () => {
     expect(start).not.toHaveBeenCalled();
   });
 
+  it("takes over a profile that another tool configures, then starts", async () => {
+    const user = userEvent.setup();
+    const s = session({ name: "personal", kind: Kind.KindAWSIAMUser, aws: { profile: "prod" } });
+    const refusal = 'profile "prod" in ~/.aws/config is configured by another tool (sso_session)';
+    const start = vi
+      .spyOn(api, "Start")
+      .mockRejectedValueOnce(new Error(refusal))
+      .mockResolvedValue({} as never);
+    const listing = vi.spyOn(api, "ForeignProfile").mockResolvedValue({
+      path: "~/.aws/config",
+      keys: [
+        { name: "sso_session", value: "acme" },
+        { name: "sso_account_id", value: "111122223333" },
+      ],
+    });
+    const remove = vi.spyOn(api, "RemoveForeignKeys").mockResolvedValue();
+    const error = vi.spyOn(toast, "error");
+    renderRow(s);
+    // Nothing marks the profile before the start; the refusal offers the fix.
+    await user.click(screen.getByRole("button", { name: /^start$/i }));
+    await waitFor(() => expect(error).toHaveBeenCalledWith("Local profile conflict", expect.anything()));
+    const opts = error.mock.calls[0][1] as { description?: string; action?: { label: string; onClick: () => void } };
+    expect(opts.description).toBe(refusal);
+    expect(opts.action?.label).toBe("Fix");
+    act(() => opts.action!.onClick());
+    // The confirmation shows the section as it sits in the file.
+    const confirm = await screen.findByRole("dialog", { name: "Take over profile prod?" });
+    expect(listing).toHaveBeenCalledWith("prod");
+    expect(confirm).toHaveTextContent("Cannot be undone.");
+    await within(confirm).findByText("[profile prod]");
+    expect(confirm).toHaveTextContent("~/.aws/config");
+    expect(confirm).toHaveTextContent("sso_session = acme");
+    expect(confirm).toHaveTextContent("sso_account_id = 111122223333");
+    await user.click(within(confirm).getByRole("button", { name: "Take over" }));
+    await waitFor(() => expect(remove).toHaveBeenCalledWith("prod"));
+    await waitFor(() => expect(start).toHaveBeenCalledTimes(2));
+  });
+
   it("warns in the profile dialog when the typed name is shadowed", async () => {
     const user = userEvent.setup();
     const s = session({ name: "personal", kind: Kind.KindAWSIAMUser });

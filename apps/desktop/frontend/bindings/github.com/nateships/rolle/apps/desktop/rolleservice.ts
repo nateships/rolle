@@ -166,6 +166,14 @@ export function ExportSupportBundle(): $CancellablePromise<string> {
 }
 
 /**
+ * ForeignProfile lists the lines that another tool wrote for a profile of
+ * ~/.aws/config, with the file's path.
+ */
+export function ForeignProfile(name: string): $CancellablePromise<app$0.ForeignProfile> {
+    return $Call.ByID(3978298454, name);
+}
+
+/**
  * GCPStatus checks for local gcloud credentials and the gcloud CLI.
  */
 export function GCPStatus(): $CancellablePromise<$models.GCPStatus> {
@@ -284,8 +292,8 @@ export function PendingUpdate(): $CancellablePromise<$models.UpdateInfo | null> 
 /**
  * ProfileShadow returns the file, in display form, whose static keys tools
  * read instead of a profile of that name, or "". The window offers to remove
- * those keys, so a profile that another tool configures in the config file
- * reports "".
+ * those keys. A profile that another tool configures in the config file
+ * reports ""; ForeignProfile describes that one.
  */
 export function ProfileShadow(name: string): $CancellablePromise<string> {
     return $Call.ByID(4258961860, name);
@@ -297,6 +305,14 @@ export function ProfileShadow(name: string): $CancellablePromise<string> {
  */
 export function Relaunch(demo: boolean): $CancellablePromise<void> {
     return $Call.ByID(3931302737, demo);
+}
+
+/**
+ * RemoveForeignKeys deletes the settings of another tool from one profile of
+ * ~/.aws/config, so a session can start onto the profile.
+ */
+export function RemoveForeignKeys(name: string): $CancellablePromise<void> {
+    return $Call.ByID(3887177841, name);
 }
 
 /**

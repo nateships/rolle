@@ -38,6 +38,9 @@ func startCmd() *cobra.Command {
 			if errors.Is(err, awsconfig.ErrShadowed) {
 				return fmt.Errorf("%w; tools read those first\nrolle session fix-profile %q removes them", err, args[0])
 			}
+			if errors.Is(err, awsconfig.ErrForeign) {
+				return fmt.Errorf("%w\nrolle session fix-profile %q removes the settings of the other tool", err, args[0])
+			}
 			if err != nil {
 				return err
 			}

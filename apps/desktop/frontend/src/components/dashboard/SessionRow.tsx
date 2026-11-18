@@ -32,6 +32,7 @@ import { CloudGlyph } from "@/components/Brand";
 import { MFADialog } from "@/components/dialogs/Dialogs";
 import { RenameDialog, type RenameTarget } from "@/components/dialogs/RenameDialog";
 import { RemoveKeysDialog, type RemoveKeysTarget } from "@/components/dialogs/RemoveKeysDialog";
+import { TakeOverProfileDialog } from "@/components/dialogs/TakeOverProfileDialog";
 import { api, errorMessage, Kind, Status, type Integration, type Session, type Workspace } from "@/lib/api";
 import { celebrate } from "@/lib/celebrate";
 import { copyText } from "@/lib/clipboard";
@@ -75,6 +76,8 @@ export function SessionRow({
   const [editing, setEditing] = useState<RenameTarget | null>(null);
   // The static keys to remove from ~/.aws/credentials, and whether to start after.
   const [removing, setRemoving] = useState<(RemoveKeysTarget & { thenStart: boolean }) | null>(null);
+  // True while the user confirms the takeover of a profile that another tool configures in ~/.aws/config.
+  const [takingOver, setTakingOver] = useState(false);
   const [regionOpen, setRegionOpen] = useState(false);
   const profileName = isAWSKind(s.kind) ? s.aws?.profile || "default" : "";
   // Static keys under the same profile name win over this session.
@@ -87,12 +90,20 @@ export function SessionRow({
   const needsMFA = s.kind === Kind.KindAWSIAMUser && !!s.aws?.mfaDevice;
   const source = s.aws?.sourceSessionId ? workspace.sessions.find((x) => x.id === s.aws?.sourceSessionId) : undefined;
 
-  // shadowToast offers the fix, which starts the session after.
+  // conflictToast offers the fix, which starts the session after.
+  function conflictToast(description: string, fix: () => void) {
+    toast.error("Local profile conflict", { description, action: { label: "Fix", onClick: fix } });
+  }
+
+  // shadowToast offers to remove the static keys that shadow the profile.
   function shadowToast(description: string) {
-    toast.error("Local profile conflict", {
-      description,
-      action: { label: "Fix", onClick: () => setRemoving({ profiles: [profileName], thenStart: true }) },
-    });
+    conflictToast(description, () => setRemoving({ profiles: [profileName], thenStart: true }));
+  }
+
+  // startAfterFix starts the session when a fix is done, or asks for the MFA code first.
+  function startAfterFix() {
+    if (needsMFA) setMfaOpen(true);
+    else void start();
   }
 
   // begin starts the session, or asks for the MFA code first. A profile that
@@ -140,6 +151,8 @@ export function SessionRow({
         onNeedsLogin(integration, s.id);
       } else if (/static keys/i.test(msg)) {
         shadowToast(msg);
+      } else if (/configured by another tool/i.test(msg)) {
+        conflictToast(msg, () => setTakingOver(true));
       } else {
         toast.error(msg);
       }
@@ -532,7 +545,12 @@ export function SessionRow({
             <RemoveKeysDialog
               target={removing}
               onClose={() => setRemoving(null)}
-              onDone={() => removing?.thenStart && (needsMFA ? setMfaOpen(true) : void start())}
+              onDone={() => removing?.thenStart && startAfterFix()}
+            />
+            <TakeOverProfileDialog
+              profile={takingOver ? profileName : null}
+              onClose={() => setTakingOver(false)}
+              onDone={startAfterFix}
             />
             <RegionDialog session={regionOpen ? s : null} onClose={() => setRegionOpen(false)} />
           </TableCell>

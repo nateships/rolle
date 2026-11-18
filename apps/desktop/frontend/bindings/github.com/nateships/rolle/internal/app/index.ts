@@ -4,6 +4,7 @@
 export type {
     AddAssumeRoleInput,
     AddGCPImpersonationInput,
+    ForeignProfile,
     ImportResult,
     LeappImportResult,
     StaticKeys
