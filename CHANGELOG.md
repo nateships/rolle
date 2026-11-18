@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.20.0](https://github.com/nateships/rolle/compare/v0.19.1...v0.20.0) (2026-11-18)
+
+
+### Features
+
+* take over a profile that another tool configures ([#454](https://github.com/nateships/rolle/issues/454)) ([46f3130](https://github.com/nateships/rolle/commit/46f31306fd78f8768ab44ecf2cd00f5a98e42e11))
+
+
+### Bug Fixes
+
+* **deps:** update aws-sdk-go-v2 monorepo ([#444](https://github.com/nateships/rolle/issues/444)) ([be3fe98](https://github.com/nateships/rolle/commit/be3fe988688f8db77075193680a786df31f895b6))
+* **deps:** update aws-sdk-go-v2 monorepo ([#451](https://github.com/nateships/rolle/issues/451)) ([226d614](https://github.com/nateships/rolle/commit/226d614249e1ef4f858cfeca97e822bfb66f296c))
+* **deps:** update module golang.org/x/mod to v0.43.0 ([#447](https://github.com/nateships/rolle/issues/447)) ([b9cdfe6](https://github.com/nateships/rolle/commit/b9cdfe6120fe333d5958997307d654f863ac5f59))
+* **deps:** update module golang.org/x/term to v0.48.0 ([#448](https://github.com/nateships/rolle/issues/448)) ([eb2e7b1](https://github.com/nateships/rolle/commit/eb2e7b16c21c8d4f690f7a13ab23037b3d53f89c))
+
 ## [0.19.1](https://github.com/nateships/rolle/compare/v0.19.0...v0.19.1) (2026-11-15)
 
 
