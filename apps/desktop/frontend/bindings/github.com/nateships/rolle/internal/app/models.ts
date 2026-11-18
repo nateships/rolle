@@ -31,6 +31,23 @@ export interface AddGCPImpersonationInput {
 }
 
 /**
+ * ForeignProfile describes the settings of another tool in one profile of
+ * the AWS config file.
+ */
+export interface ForeignProfile {
+    /**
+     * Path is the config file, in display form.
+     */
+    "path": string;
+
+    /**
+     * Keys are the lines that RemoveForeignKeys removes, in file order. The
+     * list is empty when no other tool configures the profile.
+     */
+    "keys": awsconfig$0.ForeignKey[] | null;
+}
+
+/**
  * ImportResult describes an imported Identity Center portal.
  */
 export interface ImportResult {

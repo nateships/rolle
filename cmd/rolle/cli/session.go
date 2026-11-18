@@ -11,7 +11,6 @@ import (
 	"golang.org/x/term"
 
 	"github.com/nateships/rolle/internal/app"
-	"github.com/nateships/rolle/internal/awsconfig"
 	"github.com/nateships/rolle/internal/core"
 )
 
@@ -244,12 +243,12 @@ func sessionProfileCmd() *cobra.Command {
 	}
 }
 
-// sessionFixProfileCmd removes the static keys that keep tools from using a
-// session's rolle profile.
+// sessionFixProfileCmd removes what keeps tools from using a session's rolle
+// profile: static keys, or the settings of another tool.
 func sessionFixProfileCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "fix-profile <session>",
-		Short: "Remove the static keys in ~/.aws/credentials that shadow the session's profile",
+		Short: "Remove the static keys in ~/.aws/credentials, or another tool's settings in ~/.aws/config, that block the session's profile",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(_ *cobra.Command, args []string) error {
 			w, err := svc.Load()
@@ -266,8 +265,12 @@ func sessionFixProfileCmd() *cobra.Command {
 				fmt.Printf("profile %s is not shadowed\n", name)
 				return nil
 			}
-			if !sh.Fixable {
-				return fmt.Errorf("another tool configures profile %q in %s; use another profile name", name, awsconfig.Display(sh.Path))
+			if !sh.Static {
+				if err := svc.RemoveForeignKeys(name); err != nil {
+					return err
+				}
+				fmt.Printf("removed the settings of another tool from profile %s in %s\n", name, sh.Path)
+				return nil
 			}
 			if err := svc.RemoveStaticProfile(name); err != nil {
 				return err

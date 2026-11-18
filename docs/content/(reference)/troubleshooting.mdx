@@ -11,6 +11,10 @@ Set `ROLLE_DEBUG=1`, pass `rolle --debug`, or turn on **Settings â†’ Advanced â†
 
 `~/.aws/credentials` holds static keys under the same profile name, and the AWS credential chain reads those before rolle's `credential_process`. rolle does not start a session onto such a profile and marks the profile in the table. Click the mark and choose **Remove**, run `rolle session fix-profile <session>`, or give the session another profile name. See [Profiles and regions](/aws/profiles-and-regions#static-keys-in-awscredentials).
 
+## "is configured by another tool" when a session starts
+
+The session's profile name is a profile in `~/.aws/config` that another tool configures, for example an AWS CLI profile with `sso_session`. Click **Fix** on the error and choose **Take over**, run `rolle session fix-profile <session>`, or give the session another profile name. See [Profiles and regions](/aws/profiles-and-regions#profiles-that-another-tool-configures).
+
 ## "login required" when a role starts
 
 The Identity Center token for that portal is expired or revoked. **Start** in the desktop app and in the tray menu signs in first. On the command line, `rolle integration sync <alias>` signs in when it must, and `rolle integration login <alias>` always signs in. The integration's dot in the sidebar turns gray within thirty seconds of the token going bad.

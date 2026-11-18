@@ -28,7 +28,11 @@ rolle does not start a session onto such a profile. The profile column shows an 
 
 **Settings → AWS → Profiles in ~/.aws/credentials** and the last onboarding step list every profile with static keys and remove the ones you pick. **Import** moves the key into an IAM user session named after the profile, then offers the removal. The CLI equivalents are `rolle cleanup` and `rolle session add iam-user --from-profile`.
 
-rolle does not take over a profile in `~/.aws/config` that another tool configures with `credential_process`, `sso_session`, or `role_arn`. Give the session another profile name.
+## Profiles that another tool configures
+
+rolle does not start a session onto a profile in `~/.aws/config` that another tool configures with `credential_process`, `sso_session`, `role_arn`, or static keys. The start error names the profile and the key, and offers **Fix**. The confirmation shows the lines of the other tool and the file. **Take over** deletes those lines from the profile, and the session then starts. `region`, `output`, and the other keys of the profile stay, and so does the `[sso-session]` block. `rolle session fix-profile <session>` does the same from the CLI.
+
+rolle cannot restore the deleted lines. To keep them, give the session another profile name instead.
 
 ## Rename a profile
 

@@ -92,14 +92,31 @@ func Display(path string) string {
 	return "~" + path[len(home):]
 }
 
+// ErrForeign matches, through errors.Is, the error Write returns when another
+// tool configures the profile in the config file.
+var ErrForeign = errors.New("another tool configures the profile")
+
+// ForeignError is that error. Its text names the file, the profile, and the
+// first credential key of the other tool.
+type ForeignError struct {
+	Profile, Path, Key string
+}
+
+func (e *ForeignError) Error() string {
+	return fmt.Sprintf("profile %q in %s is configured by another tool (%s)", e.Profile, Display(e.Path), e.Key)
+}
+
+// Is makes errors.Is(err, ErrForeign) true.
+func (e *ForeignError) Is(target error) bool { return target == ErrForeign }
+
 // Shadow says what keeps tools from using a rolle profile of that name.
 type Shadow struct {
 	// Path is the file that holds the conflicting keys.
 	Path string
-	// Fixable is true when RemoveStaticKeys clears the conflict: static keys
-	// in the shared credentials file. A profile that another tool configures
-	// in the config file needs another profile name instead.
-	Fixable bool
+	// Static is true for static keys in the shared credentials file;
+	// RemoveStaticKeys clears those. It is false for a profile that another
+	// tool configures in the config file; RemoveForeignKeys clears that.
+	Static bool
 }
 
 // Shadowed reports what shadows a rolle profile called profile: static keys
@@ -112,18 +129,14 @@ func Shadowed(configPath, profile string) *Shadow {
 		if sec, err := f.GetSection(profile); err == nil {
 			for _, k := range staticKeys {
 				if sec.HasKey(k) {
-					return &Shadow{Path: credPath, Fixable: true}
+					return &Shadow{Path: credPath, Static: true}
 				}
 			}
 		}
 	}
 	if f, err := load(configPath); err == nil {
-		if sec, err := f.GetSection(sectionName(profile)); err == nil && !sec.HasKey(marker) {
-			for _, k := range credentialKeys {
-				if sec.HasKey(k) {
-					return &Shadow{Path: configPath}
-				}
-			}
+		if sec, err := f.GetSection(sectionName(profile)); err == nil && foreignKey(sec) != "" {
+			return &Shadow{Path: configPath}
 		}
 	}
 	return nil
@@ -132,7 +145,7 @@ func Shadowed(configPath, profile string) *Shadow {
 // checkShadow fails when static keys in the shared credentials file would
 // shadow the profile. Write checks the config file itself.
 func checkShadow(configPath, profile string) error {
-	if sh := Shadowed(configPath, profile); sh != nil && sh.Fixable {
+	if sh := Shadowed(configPath, profile); sh != nil && sh.Static {
 		return &ShadowedError{Profile: profile, Path: sh.Path}
 	}
 	return nil
@@ -251,8 +264,101 @@ func RemoveStaticKeys(configPath, profile string) error {
 	return save(credPath, f)
 }
 
+// foreignKey returns the first credential key that another tool wrote in sec.
+// It returns "" for a section that rolle owns and for a plain section.
+func foreignKey(sec *ini.Section) string {
+	if sec.HasKey(marker) {
+		return ""
+	}
+	for _, k := range credentialKeys {
+		if sec.HasKey(k) {
+			return k
+		}
+	}
+	return ""
+}
+
+// foreignPrefixes start the keys that go with the credential keys of another
+// tool. An sso_account_id without its sso_session makes the AWS CLI refuse
+// the profile, so RemoveForeignKeys removes these keys too.
+var foreignPrefixes = []string{"sso_", "granted_"}
+
+// isForeign reports whether RemoveForeignKeys removes the key.
+func isForeign(key string) bool {
+	for _, k := range credentialKeys {
+		if key == k {
+			return true
+		}
+	}
+	for _, p := range foreignPrefixes {
+		if strings.HasPrefix(key, p) {
+			return true
+		}
+	}
+	return false
+}
+
+// ForeignKey is one line that another tool wrote in a profile.
+type ForeignKey struct {
+	Name string `json:"name"`
+	// Value is the value in the file. A static key shows its masked form.
+	Value string `json:"value"`
+}
+
+// ForeignKeys lists the lines of the profile that RemoveForeignKeys removes,
+// in file order. The list is empty for a profile that rolle owns and for a
+// profile without the credential keys of another tool.
+func ForeignKeys(configPath, profile string) []ForeignKey {
+	f, err := load(configPath)
+	if err != nil {
+		return nil
+	}
+	sec, err := f.GetSection(sectionName(profile))
+	if err != nil || foreignKey(sec) == "" {
+		return nil
+	}
+	var out []ForeignKey
+	for _, k := range sec.Keys() {
+		if !isForeign(k.Name()) {
+			continue
+		}
+		v := k.String()
+		for _, s := range staticKeys {
+			if k.Name() == s {
+				v = preview(s, v)
+			}
+		}
+		out = append(out, ForeignKey{Name: k.Name(), Value: v})
+	}
+	return out
+}
+
+// RemoveForeignKeys deletes the credential configuration of another tool from
+// the profile in the config file, so Write can take the profile. Other keys,
+// such as region and output, stay. A section that becomes empty goes. A
+// profile that rolle owns does not change.
+func RemoveForeignKeys(configPath, profile string) error {
+	f, err := load(configPath)
+	if err != nil {
+		return err
+	}
+	sec, err := f.GetSection(sectionName(profile))
+	if err != nil || foreignKey(sec) == "" {
+		return nil
+	}
+	for _, k := range sec.KeyStrings() {
+		if isForeign(k) {
+			sec.DeleteKey(k)
+		}
+	}
+	if len(sec.Keys()) == 0 {
+		f.DeleteSection(sec.Name())
+	}
+	return save(configPath, f)
+}
+
 // Write adds or replaces the profile in the config file at path. A profile
-// that rolle does not own is not touched.
+// that another tool configures is not touched.
 func Write(path string, p Profile) error {
 	if err := checkShadow(path, p.Name); err != nil {
 		return err
@@ -271,10 +377,8 @@ func Write(path string, p Profile) error {
 	case !sec.HasKey(marker):
 		// rolle takes over a plain section (region, output, ...) and restores
 		// it on Remove. A section with credentials belongs to another tool.
-		for _, k := range credentialKeys {
-			if sec.HasKey(k) {
-				return fmt.Errorf("profile %q in %s is configured by another tool (%s)", p.Name, path, k)
-			}
+		if k := foreignKey(sec); k != "" {
+			return &ForeignError{Profile: p.Name, Path: path, Key: k}
 		}
 		sec.Key(preexisting).SetValue("true")
 		if sec.HasKey("region") {

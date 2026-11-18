@@ -57,6 +57,18 @@ func TestWorkspaceMarksShadowedProfiles(t *testing.T) {
 	if got := r.ProfileShadow("foreign"); got != "" {
 		t.Fatalf("ProfileShadow(foreign) = %q, want nothing for a config file conflict", got)
 	}
+	// ForeignProfile describes the config file conflict, and
+	// RemoveForeignKeys clears it.
+	fp := r.ForeignProfile("foreign")
+	if fp.Path != awsconfig.Display(r.svc.AWSConfigPath) || len(fp.Keys) != 1 || fp.Keys[0].Name != "credential_process" || fp.Keys[0].Value != "other-tool" {
+		t.Fatalf("ForeignProfile(foreign) = %+v", fp)
+	}
+	if err := r.RemoveForeignKeys("foreign"); err != nil {
+		t.Fatal(err)
+	}
+	if fp := r.ForeignProfile("foreign"); len(fp.Keys) != 0 {
+		t.Fatalf("ForeignProfile(foreign) after the removal = %+v", fp)
+	}
 
 	st := r.StaticProfiles()
 	if st.Path != shown || len(st.Profiles) != 2 || st.Profiles[0].Imported || st.Profiles[1].Imported {

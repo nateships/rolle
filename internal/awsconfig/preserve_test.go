@@ -291,12 +291,12 @@ func TestShadowedAndRemoveStaticKeys(t *testing.T) {
 	if err := os.WriteFile(config, []byte("[profile vault]\ncredential_process = aws-vault exec x\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	// Static keys in the credentials file can be removed; another tool's
-	// config cannot; a plain section shadows nothing.
-	if sh := Shadowed(config, "default"); sh == nil || sh.Path != credPath || !sh.Fixable {
+	// Static keys are in the credentials file; another tool's settings are
+	// in the config file; a plain section shadows nothing.
+	if sh := Shadowed(config, "default"); sh == nil || sh.Path != credPath || !sh.Static {
 		t.Fatalf("default = %+v", sh)
 	}
-	if sh := Shadowed(config, "vault"); sh == nil || sh.Path != config || sh.Fixable {
+	if sh := Shadowed(config, "vault"); sh == nil || sh.Path != config || sh.Static {
 		t.Fatalf("vault = %+v", sh)
 	}
 	if sh := Shadowed(config, "other"); sh != nil {
@@ -339,5 +339,111 @@ func TestShadowedAndRemoveStaticKeys(t *testing.T) {
 	list, _ := StaticProfiles(config)
 	if len(list) != 1 || list[0].Name != "p" || len(list[0].Keys) != 2 || list[0].Keys[0].Preview != "AKIA…" || list[0].Keys[1].Preview != "…" {
 		t.Fatalf("static profiles = %+v", list)
+	}
+}
+
+func TestRemoveForeignKeysLetsWriteTakeTheProfile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "config")
+	orig := `[profile prod]
+sso_session = acme
+sso_account_id = 111122223333
+sso_role_name = Admin
+region = eu-west-1
+output = json
+
+[profile keys]
+aws_access_key_id = AKIAEXAMPLE
+aws_secret_access_key = hunter2
+
+[profile plain]
+region = us-east-1
+
+[sso-session acme]
+sso_start_url = https://acme.awsapps.com/start
+sso_region = us-east-1
+`
+	mustWrite(t, path, orig)
+	err := Write(path, rolle)
+	if !errors.Is(err, ErrForeign) || !strings.Contains(err.Error(), "sso_session") {
+		t.Fatalf("err = %v, want ErrForeign naming sso_session", err)
+	}
+
+	// The listing has every line that goes, in file order. A secret shows
+	// no part of its value.
+	got := ForeignKeys(path, "prod")
+	want := []ForeignKey{{"sso_session", "acme"}, {"sso_account_id", "111122223333"}, {"sso_role_name", "Admin"}}
+	if len(got) != len(want) {
+		t.Fatalf("ForeignKeys = %+v, want %+v", got, want)
+	}
+	for i := range want {
+		if got[i] != want[i] {
+			t.Fatalf("ForeignKeys[%d] = %+v, want %+v", i, got[i], want[i])
+		}
+	}
+	if keys := ForeignKeys(path, "keys"); len(keys) != 2 || keys[0].Value != "AKIA…" || keys[1].Value != "…" {
+		t.Fatalf("static keys not masked: %+v", keys)
+	}
+	for _, name := range []string{"plain", "missing"} {
+		if keys := ForeignKeys(path, name); keys != nil {
+			t.Fatalf("ForeignKeys(%s) = %+v, want none", name, keys)
+		}
+	}
+
+	// A plain profile and a missing profile do not change the file.
+	for _, name := range []string{"plain", "missing"} {
+		if err := RemoveForeignKeys(path, name); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if got := mustRead(t, path); got != orig {
+		t.Fatalf("file changed:\n%s", got)
+	}
+
+	if err := RemoveForeignKeys(path, "prod"); err != nil {
+		t.Fatal(err)
+	}
+	after := mustRead(t, path)
+	for _, gone := range []string{"sso_session", "sso_account_id", "sso_role_name"} {
+		if strings.Contains(after, gone) {
+			t.Errorf("%s still present:\n%s", gone, after)
+		}
+	}
+	for _, kept := range []string{"[profile prod]\nregion = eu-west-1\noutput = json", "[profile keys]\naws_access_key_id = AKIAEXAMPLE", "[sso-session acme]\nsso_start_url = https://acme.awsapps.com/start\nsso_region = us-east-1"} {
+		if !strings.Contains(after, kept) {
+			t.Errorf("missing %q:\n%s", kept, after)
+		}
+	}
+	if sh := Shadowed(path, "prod"); sh != nil {
+		t.Fatalf("still shadowed: %+v", sh)
+	}
+
+	// rolle now takes the profile, and gives the plain section back.
+	if err := Write(path, rolle); err != nil {
+		t.Fatal(err)
+	}
+	if err := Remove(path, "prod", rolle.SessionID); err != nil {
+		t.Fatal(err)
+	}
+	if got := mustRead(t, path); got != after {
+		t.Fatalf("Remove did not restore the plain section:\n%s", got)
+	}
+
+	// A section that held only the other tool's keys goes, and a profile
+	// that rolle owns stays.
+	if err := RemoveForeignKeys(path, "keys"); err != nil {
+		t.Fatal(err)
+	}
+	if got := mustRead(t, path); strings.Contains(got, "[profile keys]") {
+		t.Fatalf("empty section kept:\n%s", got)
+	}
+	if err := Write(path, rolle); err != nil {
+		t.Fatal(err)
+	}
+	owned := mustRead(t, path)
+	if err := RemoveForeignKeys(path, "prod"); err != nil {
+		t.Fatal(err)
+	}
+	if got := mustRead(t, path); got != owned {
+		t.Fatalf("rolle profile changed:\n%s", got)
 	}
 }
