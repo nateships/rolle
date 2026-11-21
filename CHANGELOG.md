@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.20.1](https://github.com/nateships/rolle/compare/v0.20.0...v0.20.1) (2026-11-21)
+
+
+### Bug Fixes
+
+* **deps:** update module gopkg.in/ini.v1 to v1.68.0 ([#456](https://github.com/nateships/rolle/issues/456)) ([8fb61a5](https://github.com/nateships/rolle/commit/8fb61a56eaa1db7f5842b60b7531d18b969aecb8))
+
 ## [0.20.0](https://github.com/nateships/rolle/compare/v0.19.1...v0.20.0) (2026-11-18)
 
 
