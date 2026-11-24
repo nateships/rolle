@@ -5,8 +5,8 @@ go 1.26.7
 require (
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.10.1
 	github.com/aws/aws-sdk-go-v2 v1.48.0
-	github.com/aws/aws-sdk-go-v2/config v1.33.18
-	github.com/aws/aws-sdk-go-v2/credentials v1.21.0
+	github.com/aws/aws-sdk-go-v2/config v1.33.19
+	github.com/aws/aws-sdk-go-v2/credentials v1.21.1
 	github.com/aws/aws-sdk-go-v2/service/eks v1.105.6
 	github.com/aws/aws-sdk-go-v2/service/sso v1.39.5
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.44.5
