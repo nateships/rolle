@@ -704,7 +704,7 @@ describe("SessionRow actions", () => {
 describe("SessionRow appearance", () => {
   it("leaves out the cells of hidden columns", () => {
     renderRow(session({ name: "personal", kind: Kind.KindAWSIAMUser, region: "us-west-2" }), {
-      columns: { profile: false, region: false, state: true },
+      columns: ["state"],
     });
     expect(screen.queryByTitle("Change the AWS profile name")).not.toBeInTheDocument();
     expect(screen.queryByTitle("Change the region")).not.toBeInTheDocument();

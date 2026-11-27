@@ -40,7 +40,7 @@ import { ago, cloudOf, kindLabel, remaining, sessionSubtitle, useNow } from "@/l
 import { cn } from "@/lib/utils";
 import { SESSION_DRAG, setSessionDragImage } from "@/lib/drag";
 import { TagGlyph } from "@/lib/tags";
-import { DEFAULT_COLUMNS, type Columns } from "./columns";
+import { COLUMN_KEYS, type ColumnKey } from "./columns";
 
 const isAWSKind = (k: string) => cloudOf(k) === "aws";
 
@@ -52,7 +52,7 @@ export function SessionRow({
   session: s,
   workspace,
   nested,
-  columns = DEFAULT_COLUMNS,
+  columns = COLUMN_KEYS,
   onNeedsLogin,
   onNeedsSessionLogin,
   onTagClick,
@@ -61,8 +61,8 @@ export function SessionRow({
   session: Session;
   workspace: Workspace;
   nested?: boolean;
-  /** The optional columns on show. Every one by default. */
-  columns?: Columns;
+  /** The optional columns on show, in table order. Every one by default. */
+  columns?: ColumnKey[];
   onNeedsLogin?: (integration: Integration, startSessionId?: string) => void;
   /** A console login session needs its browser sign-in before it starts. */
   onNeedsSessionLogin?: (session: Session) => void;
@@ -302,6 +302,76 @@ export function SessionRow({
     ...common,
   ];
 
+  // The optional cells. The table gives the ones on show and their order.
+  const cells: Record<ColumnKey, React.ReactNode> = {
+    profile: (
+      <TableCell key="profile">
+        {isAWS ? (
+          <button
+            type="button"
+            onClick={() => setEditing(profileTarget())}
+            className={cn(
+              "inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-accent hover:text-foreground",
+              // The warning color stays on hover; it wins over hover:text-foreground through tailwind-merge.
+              shadowedBy && "text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300",
+            )}
+            title={shadowNote || "Change the AWS profile name"}
+          >
+            {shadowedBy && <TriangleAlert aria-label="Profile is shadowed" className="size-3" />}
+            {profileName}
+          </button>
+        ) : (
+          <span className="text-xs text-muted-foreground/50">—</span>
+        )}
+      </TableCell>
+    ),
+    region: (
+      <TableCell key="region">
+        {isAWS ? (
+          <button
+            type="button"
+            title="Change the region"
+            onClick={() => setRegionOpen(true)}
+            className="rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            {s.region || "—"}
+          </button>
+        ) : (
+          <span className="text-xs text-muted-foreground/50">—</span>
+        )}
+      </TableCell>
+    ),
+    state: (
+      <TableCell key="state">
+        <span
+          className={cn(
+            // Inline, so the table can measure the content width.
+            "inline-flex items-center gap-1.5 font-mono text-xs tabular-nums",
+            active
+              ? "text-emerald-700 dark:text-emerald-300"
+              : s.expiredAt
+                ? "text-amber-700 dark:text-amber-400"
+                : "text-muted-foreground/70",
+          )}
+        >
+          {active ? (
+            <>
+              <span className="font-sans font-medium">Active</span>
+              <Countdown expires={s.expires} />
+            </>
+          ) : s.expiredAt ? (
+            <>
+              <span className="font-sans font-medium">Expired</span>
+              <Ago at={s.expiredAt} />
+            </>
+          ) : (
+            <span className="font-sans">Inactive</span>
+          )}
+        </span>
+      </TableCell>
+    ),
+  };
+
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
@@ -424,71 +494,7 @@ export function SessionRow({
               </div>
             </div>
           </TableCell>
-          {columns.profile && (
-            <TableCell>
-              {isAWS ? (
-                <button
-                  type="button"
-                  onClick={() => setEditing(profileTarget())}
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-accent hover:text-foreground",
-                    // The warning color stays on hover; it wins over hover:text-foreground through tailwind-merge.
-                    shadowedBy && "text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300",
-                  )}
-                  title={shadowNote || "Change the AWS profile name"}
-                >
-                  {shadowedBy && <TriangleAlert aria-label="Profile is shadowed" className="size-3" />}
-                  {profileName}
-                </button>
-              ) : (
-                <span className="text-xs text-muted-foreground/50">—</span>
-              )}
-            </TableCell>
-          )}
-          {columns.region && (
-            <TableCell>
-              {isAWS ? (
-                <button
-                  type="button"
-                  title="Change the region"
-                  onClick={() => setRegionOpen(true)}
-                  className="rounded px-1.5 py-0.5 font-mono text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
-                >
-                  {s.region || "—"}
-                </button>
-              ) : (
-                <span className="text-xs text-muted-foreground/50">—</span>
-              )}
-            </TableCell>
-          )}
-          {columns.state && (
-            <TableCell>
-              <span
-                className={cn(
-                  "flex items-center gap-1.5 font-mono text-xs tabular-nums",
-                  active
-                    ? "text-emerald-700 dark:text-emerald-300"
-                    : s.expiredAt
-                      ? "text-amber-700 dark:text-amber-400"
-                      : "text-muted-foreground/70",
-                )}
-              >
-                {active ? (
-                  <>
-                    <span className="font-sans font-medium">Active</span>
-                    <Countdown expires={s.expires} />
-                  </>
-                ) : s.expiredAt ? (
-                  <>
-                    <span className="font-sans font-medium">Expired</span>
-                    <Ago at={s.expiredAt} />
-                  </>
-                ) : (
-                  <span className="font-sans">Inactive</span>
-                )}
-              </span>
-            </TableCell>
-          )}
+          {columns.map((k) => cells[k])}
           <TableCell className="text-right">
             <div className="flex items-center justify-end gap-0.5">
               <div
