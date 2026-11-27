@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import {
   ArrowRight,
@@ -129,6 +129,11 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
   const [importing, setImporting] = useState<string | null>(null);
   // Imported IAM users; the offer to remove their keys outlives the found panel.
   const [removingKeys, setRemovingKeys] = useState<RemoveKeysTarget | null>(null);
+  // The integration whose sign-in the approve step is waiting on.
+  const loginRef = useRef<string | null>(null);
+  const cancelledRef = useRef(false);
+  // The step that the approve step goes back to.
+  const approveBackRef = useRef<Step>("connect");
 
   async function importPortal(p: FoundPortal) {
     setImporting(p.startUrl);
@@ -269,10 +274,14 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
     done: "roles",
   };
   const FORWARD: Partial<Record<Step, Step>> = { welcome: "cloud", cloud: "connect", roles: "done" };
+  // The listeners below are added one time. They read the step and the busy
+  // state from these refs.
   const stepRef = useRef(step);
-  stepRef.current = step;
   const busyRef = useRef(busy);
-  busyRef.current = busy;
+  useLayoutEffect(() => {
+    stepRef.current = step;
+    busyRef.current = busy;
+  });
 
   // Every history entry carries a sequence number. A popstate compares the
   // popped number with the current one, which gives the direction even when
@@ -289,11 +298,6 @@ export function Onboarding({ workspace }: { workspace: Workspace }) {
     if (current !== step) push(step);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
-  // The integration whose sign-in the approve step is waiting on.
-  const loginRef = useRef<string | null>(null);
-  const cancelledRef = useRef(false);
-  // The step that the approve step goes back to.
-  const approveBackRef = useRef<Step>("connect");
   const cancelLogin = () => {
     if (!loginRef.current) return;
     cancelledRef.current = true;
