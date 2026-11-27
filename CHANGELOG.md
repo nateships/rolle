@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.21.0](https://github.com/nateships/rolle/compare/v0.20.1...v0.21.0) (2026-11-27)
+
+
+### Features
+
+* **desktop:** fit session table columns to content and reorder them by drag ([#483](https://github.com/nateships/rolle/issues/483)) ([28a3ef5](https://github.com/nateships/rolle/commit/28a3ef58b4c0ed0598288e708a6e1f04e24100de))
+
+
+### Bug Fixes
+
+* **deps:** update aws-sdk-go-v2 monorepo ([#471](https://github.com/nateships/rolle/issues/471)) ([7e89eb1](https://github.com/nateships/rolle/commit/7e89eb1a74f07566a233f076e73d64ce1317ef47))
+* **deps:** update aws-sdk-go-v2 monorepo ([#474](https://github.com/nateships/rolle/issues/474)) ([f30e1cc](https://github.com/nateships/rolle/commit/f30e1cccc83a02d46de4def2bac45622b8e97ab2))
+* **deps:** update aws-sdk-go-v2 monorepo ([#479](https://github.com/nateships/rolle/issues/479)) ([536a665](https://github.com/nateships/rolle/commit/536a66507693a3d37b72896ba04ccac4424c8496))
+
 ## [0.20.1](https://github.com/nateships/rolle/compare/v0.20.0...v0.20.1) (2026-11-21)
 
 
